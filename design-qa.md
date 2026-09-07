@@ -1,5 +1,96 @@
 # Room of Days design QA
 
+## Goals, choices and session experience — 2026-09-06
+
+**final result: passed** for the implemented local experience and rendered
+evidence. Owner phone, haptic and listening acceptance remains pending.
+
+This is the Build 41 authored continuation at
+`app/.worktrees/build41-authored-continuation`. The approved foundation is
+`design/ideation/2026-09-06-top-three-room/02-choose-today.png`; the related
+Goals, Quests and useful-depth images define the remaining jobs. The owner
+authorized implementation of the combined experience. These are adaptable
+production screens, with actual goal/timer/daily-field data and the existing
+earned room, rather than literal replicas of invented sample content.
+
+### Source and same-input visual review
+
+The five complete reference/current pairs are in
+`design/audits/2026-09-06/comparison_*.png`. Source and production frames are
+fitted to the same height with their aspect ratios preserved. The chooser is
+reviewed both with two chosen and with one chosen plus the 10-minute filter;
+the timer is compared in Ready, not while running. The companion
+`visual-comparison.md` records the differences and the final independent
+review. Remaining differences are P3: the mock's denser ornament and task
+illustrations, broader camera framing, and exact sample wording.
+
+Nine current-widget captures cover 430 × 932 and 320 × 568 at 200% text for
+Goals, chooser, Quests and timer, plus the selected-one/filter-10 state. The
+smaller-attempt review has its own current capture and a 200% text interaction
+check. All live controls and text remain Flutter content. The final material
+pass uses the intact room plate, fine existing grain and shared authored gold.
+
+### Findings resolved
+
+- P1: recovery previously changed a plan before review. The new draft is
+  mutation-free until acceptance; stale plan/Quest checks precede the exact
+  replacement. Integration exposed fingerprint and JSON-normalization traps;
+  exact defensive copies now preserve prior proof and mastery values.
+- P1: the timer's raw overlay exposed underlying Quest/navigation actions to
+  accessibility traversal. A modal route, blocked underlying semantics and
+  closed-loop focus now isolate the session. Browser snapshots confirm only
+  session controls are exposed; eight keyboard Tab presses are covered by a
+  focused interaction test. The clock no longer announces each second.
+- P2: completed or set-aside field choices could disappear on saving an edit.
+  The writer now preserves those explicitly retained choices and their order.
+- P2: the first glass render had an opaque border gradient filling the pane.
+  The rim is now painted independently; room depth stays visible. Fine grain,
+  existing authored brass and one adaptive session rail close the remaining
+  flat-material mismatch found in comparison.
+- P2: the timer's first face was visually flat and its primary control was too
+  small. The final bronze instrument has indexed recessed glass, a readable
+  clock and full-width Start. Ready and running copy describe the actual state.
+- P2: narrow header overflow, row backplates, a reversed back chevron and a
+  duplicate daily heading were fixed. The small teal freeze badge now follows
+  the room palette and uses a reachable control.
+
+### Live journey and persistence
+
+`design/audits/2026-09-06/browser-validation.md` records the isolated sample
+save and steps. The browser verified selection/filtering/capacity/save; no XP
+for choosing; Ready remaining at 10:00; real optional music playback after
+Start and pause on exit; reachable saved notes; byte-identical cancellation;
+five-minute replacement at the same daily rank; one 15-XP base completion;
+restoration of the normal ten-minute practice; and durable reload.
+
+Final browser evidence is in `output/playwright/08-goals-return-final.png`,
+`09-session-ready-final.png`, `10-session-running-final.png`,
+`11-session-narrow-final.png`, `12-session-narrow-controls-final.png`,
+`13-session-wide-final.png` and `14-chooser-final.png`. Browser checks cover
+430 × 932, 320 × 568 and 1280 × 900. The final rebuilt modal hides the page
+beneath it and restores the Quest controls after cancellation. The latest
+reload retains one completion, 15 XP, three saved choices and the goal note.
+No product console errors or warnings were observed.
+
+### Verification and boundary
+
+- The main focused regression run passed 115 tests across suggestions, field
+  writes, chooser, Goals, adjustment, timer, correct Quest routing, rewards,
+  history, audio and Workshop behavior.
+- The final timer/modal suite passed 21 tests. The final chooser/Goals/render
+  run passed 20 tests; adjustment review passed 4; capacity journeys passed 6.
+  These overlap and are not presented as an aggregate count.
+- Full static analysis passed. Final release WebAssembly/JavaScript build and
+  offline freshness preparation passed (295 files).
+- Local preview: `http://127.0.0.1:8393/`. No TestFlight or production release
+  is implied by this local implementation.
+
+`code_complete: pass`; `visual_evidence_ready: pass`;
+`owner_device_accepted: pending`. Runtime sound success does not establish
+speaker/headphone quality or tactile feel on the owner's phone.
+
+---
+
 ## Quest completion, reactive light, and motion-cost pass - 2026-07-31
 
 This section supersedes the earlier Quest-state verdict for the completion

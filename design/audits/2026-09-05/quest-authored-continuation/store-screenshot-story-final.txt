@@ -1,0 +1,23 @@
+00:00 +0: loading C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/screenshots_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: store screenshot story: real production surfaces
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications tz init (continuing): MissingPluginException(No implementation found for method getLocalTimezone on channel flutter_timezone)
+Notifications init (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+Notifications channel cleanup (continuing): LateInitializationError: Field '_instance@1265271368' has not been initialized.
+00:28 +1: (tearDownAll)
+00:28 +1: All tests passed!

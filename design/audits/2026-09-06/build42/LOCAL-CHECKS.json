@@ -1,0 +1,14 @@
+{
+  "version": "1.0.4+42",
+  "full_flutter_suite": {"passed": 1186, "failed": 0},
+  "feature_on_discovery_packet": {"passed": 28, "skipped": 1, "failed": 0},
+  "web_worker_and_preview_tests": {"passed": 9, "failed": 0},
+  "flutter_analyze": "No issues found",
+  "testflight_metadata": "pass",
+  "selected_refined_asset_hashes": {"matched": 107, "mismatched": 0},
+  "visual_review": "Fresh Goals, mixed/empty Workshop and release-card captures inspected at phone size and enlarged text",
+  "owner_audio_choice": "go for refined!",
+  "installed_iphone_test": "pending owner TestFlight test",
+  "app_store_submission": "held until owner tests; workflow explicitly disables App Store submission",
+  "local_logs": "output/release42/; final delivery receipt retains these with the exact source and cloud result"
+}

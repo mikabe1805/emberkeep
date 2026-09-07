@@ -79,19 +79,21 @@ void main() {
       onPersist: () => persistCount++,
     );
 
-    final choose = find.byKey(const Key('goals-field-door'));
+    final choose = find.byKey(const Key('goals-choose-today'));
     expect(choose, findsOneWidget);
-    expect(find.text('Choose up to 3'), findsOneWidget);
+    expect(find.text('Choose today'), findsOneWidget);
     await tester.tap(choose);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Browse all quests (4)'));
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('top-three-Read ten pages')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('top-three-Clear the desk')));
     await tester.pump();
-    await tester.tap(find.text('REVIEW 2 CHOICES'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('KEEP TODAY’S FIELD'));
+    final save = find.byKey(const Key('top-three-save'));
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pumpAndSettle();
 
     expect(persistCount, 1);
@@ -100,14 +102,17 @@ void main() {
     expect(quests[2].priorityDay, Days.key(today));
     expect(quests[2].priorityRank, 2);
     expect(quests[0].priorityDay, isNull);
-    expect(find.text('2 chosen'), findsOneWidget);
+    expect(
+      find.text('0 of 2 complete · the rest of the day stays open'),
+      findsOneWidget,
+    );
     await tester.scrollUntilVisible(
       find.byKey(const Key('goals-today-field')),
       260,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.byKey(const Key('goals-reshape-today')), findsOneWidget);
-    expect(find.text('Today has a shape.'), findsOneWidget);
+    expect(find.text('Today’s three'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('goals-today-field-read ten pages')),
       findsOneWidget,
@@ -151,7 +156,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Choose what leads today.'), findsOneWidget);
+    expect(find.text('Today’s three'), findsOneWidget);
+    expect(find.byKey(const Key('goals-choose-today')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

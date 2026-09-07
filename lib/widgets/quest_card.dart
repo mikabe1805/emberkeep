@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 
 import '../audio.dart';
 import '../clock.dart';
@@ -15,6 +16,7 @@ import 'facets.dart';
 import 'gold_surface.dart';
 import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
+import 'working_surface.dart' show WorkingType;
 
 /// A quest row from the approved room-backed board.
 ///
@@ -29,6 +31,7 @@ class QuestCard extends StatefulWidget {
     required this.done,
     required this.xpPreview,
     required this.onComplete,
+    this.onSelect,
     this.onManage,
     this.onEncore,
     this.deskFinish,
@@ -37,6 +40,7 @@ class QuestCard extends StatefulWidget {
     this.lightDirection,
     this.scrollPosition,
     this.featuredAnchor,
+    this.goalThreadLabel,
   });
 
   /// Set on whichever card is currently [featured], so the board can measure it
@@ -47,6 +51,7 @@ class QuestCard extends StatefulWidget {
   final bool done;
   final int xpPreview;
   final void Function(Offset globalTapPosition) onComplete;
+  final VoidCallback? onSelect;
   final VoidCallback? onManage;
   final VoidCallback? onEncore;
   final Color? deskFinish;
@@ -54,6 +59,7 @@ class QuestCard extends StatefulWidget {
   final bool featured;
   final ValueListenable<Offset>? lightDirection;
   final ValueListenable<double>? scrollPosition;
+  final String? goalThreadLabel;
 
   @override
   State<QuestCard> createState() => _QuestCardState();
@@ -70,6 +76,15 @@ class _QuestCardState extends State<QuestCard>
   Timer? _completionSettleTimer;
   late bool _showEncore = widget.done;
   bool _holdResolvedFeature = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // A `late` controller is otherwise initialized on first access. Reduced
+    // motion can leave the acknowledgement path unpressed, so disposing such
+    // a card must not attempt to create a ticker from a deactivated State.
+    _squash.value = 0;
+  }
 
   @override
   void didUpdateWidget(QuestCard oldWidget) {
@@ -99,7 +114,7 @@ class _QuestCardState extends State<QuestCard>
     }
   }
 
-  void _handleTap(Offset globalPosition) {
+  void _handleComplete(Offset globalPosition) {
     if (widget.done) return;
     final still =
         widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
@@ -133,6 +148,16 @@ class _QuestCardState extends State<QuestCard>
     final quest = widget.quest;
     final done = widget.done;
     final opensJournal = quest.journalPrompt != null;
+    final primaryActionLabel = opensJournal
+        ? 'OPEN JOURNAL'
+        : quest.allDay
+        ? 'CHECK TONIGHT'
+        : quest.workout
+        ? 'BEGIN SESSION'
+        : quest.verification == Verification.timer &&
+              quest.effectiveTimerMinutes > 0
+        ? 'Open ${quest.effectiveTimerMinutes}-minute session'
+        : 'MARK COMPLETE';
     final isMain = quest.priorityOn(Clock.now());
     final mastery = quest.masteryTier;
     final masterySemantics = quest.masteryCompletions == 0
@@ -183,7 +208,8 @@ class _QuestCardState extends State<QuestCard>
             duration: still ? const Duration(milliseconds: 1) : Motion.settle,
             curve: Motion.respond,
             alignment: Alignment.topCenter,
-            child: Pressable(
+            child: _QuestCardInteraction(
+              compact: !heroLayout,
               enabled: !done,
               semanticLabel:
                   '${quest.displayTitle}, ${done
@@ -193,66 +219,71 @@ class _QuestCardState extends State<QuestCard>
                       : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
               semanticHint: done
                   ? (widget.onManage == null ? null : 'Use Manage to edit')
-                  : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
-              onTapUp: _handleTap,
+                  : heroLayout
+                  ? 'Use the named action below${widget.onManage == null ? '' : '; use Manage to edit'}'
+                  : 'Activate to select this quest${widget.onManage == null ? '' : '; use Manage to edit'}',
+              onSelect: widget.onSelect,
               onLongPress: widget.onManage,
-              // The card delegates sound to the accepted outcome. A normal clear
-              // owns the full contact-to-detent completion voice; Journal,
-              // workout, timer, and all-day paths voice the surface they actually
-              // open. Keeping this press silent prevents a second generic clasp
-              // and guarantees that a cancelled scroll never makes a sound.
-              soundEnabled: false,
-              material: MaterialSound.wood,
-              interactionSound: InteractionSound.open,
-              shape: const FacetedBorder(cut: 11),
               child: AnimatedContainer(
                 duration: Motion.settle,
                 curve: Motion.respond,
                 decoration: facetedDecoration(
-                  cut: 11,
+                  cut: heroLayout ? 13 : 10,
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      done
-                          ? Color.lerp(base, const Color(0xFFB78A50), 0.055)!
-                          : Color.lerp(base, const Color(0xFF4B3627), 0.12)!,
-                      base,
-                      const Color(0xFF100D0B),
-                    ],
-                    stops: const [0, 0.54, 1],
+                    colors: heroLayout
+                        ? const [
+                            Color(0xF03B2A20),
+                            Color(0xF0201713),
+                            Color(0xF0171110),
+                          ]
+                        : [
+                            done
+                                ? Color.lerp(
+                                    base,
+                                    const Color(0xFFB78A50),
+                                    0.045,
+                                  )!
+                                : Color.lerp(
+                                    base,
+                                    const Color(0xFF4B3627),
+                                    0.08,
+                                  )!,
+                            base,
+                            const Color(0xFF100D0B),
+                          ],
+                    stops: const [0, 0.44, 1],
                   ),
                   borderColor: edge,
-                  borderWidth: featured
-                      ? 1.35
-                      : (resolvedFeature ? 1.15 : 1.05),
+                  borderWidth: heroLayout ? 1.2 : 0.9,
                   shadows: [
-                    const BoxShadow(
-                      color: Color(0x8A090605),
-                      blurRadius: 14,
-                      offset: Offset(0, 6),
+                    BoxShadow(
+                      color: const Color(0xC0090504),
+                      blurRadius: heroLayout ? 28 : 12,
+                      offset: Offset(0, heroLayout ? 16 : 5),
                     ),
-                    if (featured)
-                      BoxShadow(
-                        color: Palette.xp.withValues(alpha: 0.10),
-                        blurRadius: 22,
-                        offset: const Offset(0, 6),
+                    if (heroLayout)
+                      const BoxShadow(
+                        color: Color(0x99090504),
+                        blurRadius: 2,
+                        offset: Offset(0, 3),
                       ),
                   ],
                 ),
                 child: ClipPath(
-                  clipper: const FacetedClipper(cut: 11),
+                  clipper: FacetedClipper(cut: heroLayout ? 13 : 10),
                   child: Stack(
                     children: [
                       if (heroLayout)
                         Positioned(
-                          top: 42,
-                          right: -4,
-                          width: 208,
-                          height: 112,
+                          top: 34,
+                          right: -18,
+                          width: 168,
+                          height: 96,
                           child: IgnorePointer(
                             child: Opacity(
-                              opacity: done ? 0.30 : 1,
+                              opacity: done ? 0.12 : 0.28,
                               child: _QuestCategoryVignette(
                                 stat: quest.stat,
                                 lightDirection: featured
@@ -274,10 +305,10 @@ class _QuestCardState extends State<QuestCard>
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  const Color(0x18FFD493),
+                                  const Color(0x0FFFD493),
                                   Colors.transparent,
                                   Colors.transparent,
-                                  const Color(0x3D000000),
+                                  const Color(0x26000000),
                                 ],
                                 stops: const [0, 0.24, 0.72, 1],
                               ),
@@ -315,30 +346,12 @@ class _QuestCardState extends State<QuestCard>
                           ),
                         ),
                       ),
-                      if (heroLayout)
-                        Positioned.fill(
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: facetedDecoration(
-                                  cut: 8,
-                                  color: Colors.transparent,
-                                  borderColor: done
-                                      ? const Color(0x3DBF9560)
-                                      : const Color(0x66FFD38A),
-                                  borderWidth: 0.7,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       Padding(
                         padding: EdgeInsets.fromLTRB(
-                          heroLayout ? 15 : 14,
-                          heroLayout ? 14 : 13,
-                          heroLayout ? 15 : 12,
-                          heroLayout ? 13 : 13,
+                          heroLayout ? 20 : 14,
+                          heroLayout ? 18 : 13,
+                          heroLayout ? 20 : 12,
+                          heroLayout ? 17 : 13,
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -379,6 +392,7 @@ class _QuestCardState extends State<QuestCard>
                                         isMain: isMain,
                                         featured: heroLayout,
                                         compactLargeType: largePhoneType,
+                                        goalThreadLabel: widget.goalThreadLabel,
                                       ),
                                     ),
                                     if (quest.dread) ...[
@@ -399,13 +413,13 @@ class _QuestCardState extends State<QuestCard>
                                         widget.onEncore != null &&
                                         _showEncore)
                                       _EncoreButton(onTap: widget.onEncore!)
-                                    else if (!largePhoneType)
+                                    else if (!largePhoneType && !done)
                                       _XpChip(
                                         xp: widget.xpPreview,
                                         dim: done,
                                         featured: heroLayout,
                                       ),
-                                    if (!heroLayout) ...[
+                                    if (!heroLayout && !done) ...[
                                       const SizedBox(width: 5),
                                       Icon(
                                         Icons.chevron_right_rounded,
@@ -419,7 +433,7 @@ class _QuestCardState extends State<QuestCard>
                                 ),
                               ),
                             ),
-                            if (heroLayout && largePhoneType) ...[
+                            if (heroLayout && largePhoneType && !done) ...[
                               const SizedBox(height: 6),
                               Align(
                                 alignment: Alignment.centerRight,
@@ -432,27 +446,58 @@ class _QuestCardState extends State<QuestCard>
                             ],
                             if (heroLayout) ...[
                               const SizedBox(height: 10),
-                              IgnorePointer(
-                                child: AnimatedSwitcher(
-                                  duration: still
-                                      ? Duration.zero
-                                      : const Duration(milliseconds: 260),
-                                  switchInCurve: Motion.respond,
-                                  switchOutCurve: Curves.easeInCubic,
-                                  child: done
-                                      ? const _ResolvedQuestPlate(
-                                          key: ValueKey('quest-resolved-plate'),
-                                        )
-                                      : _CompleteQuestButton(
-                                          key: const ValueKey(
-                                            'quest-complete-plate',
+                              Column(
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: still
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 260),
+                                    switchInCurve: Motion.respond,
+                                    switchOutCurve: Curves.easeInCubic,
+                                    child: done
+                                        ? const _ResolvedQuestPlate(
+                                            key: ValueKey(
+                                              'quest-resolved-plate',
+                                            ),
+                                          )
+                                        : Pressable(
+                                            key: const ValueKey(
+                                              'quest-primary-action',
+                                            ),
+                                            semanticLabel: primaryActionLabel,
+                                            semanticHint:
+                                                'Activates ${quest.displayTitle}',
+                                            onTapUp: _handleComplete,
+                                            guardRapidReentry: true,
+                                            soundEnabled: false,
+                                            material: opensJournal
+                                                ? MaterialSound.parchment
+                                                : MaterialSound.brass,
+                                            pressDepth: 3,
+                                            child: _CompleteQuestButton(
+                                              key: const ValueKey(
+                                                'quest-complete-plate',
+                                              ),
+                                              opensJournal: opensJournal,
+                                              actionLabel: primaryActionLabel,
+                                              lightDirection:
+                                                  widget.lightDirection,
+                                              scrollPosition:
+                                                  widget.scrollPosition,
+                                              reduceMotion: widget.reduceMotion,
+                                            ),
                                           ),
-                                          opensJournal: opensJournal,
-                                          lightDirection: widget.lightDirection,
-                                          scrollPosition: widget.scrollPosition,
-                                          reduceMotion: widget.reduceMotion,
-                                        ),
-                                ),
+                                  ),
+                                  if (!done && widget.onManage != null) ...[
+                                    const SizedBox(height: 7),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: _ManageQuestAction(
+                                        onTap: widget.onManage!,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ],
                           ],
@@ -464,7 +509,7 @@ class _QuestCardState extends State<QuestCard>
                         bottom: 0,
                         child: IgnorePointer(
                           child: Container(
-                            height: 2,
+                            height: 1,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
@@ -493,6 +538,60 @@ class _QuestCardState extends State<QuestCard>
   }
 }
 
+class _QuestCardInteraction extends StatelessWidget {
+  const _QuestCardInteraction({
+    required this.compact,
+    required this.enabled,
+    required this.semanticLabel,
+    required this.semanticHint,
+    required this.onSelect,
+    required this.onLongPress,
+    required this.child,
+  });
+
+  final bool compact;
+  final bool enabled;
+  final String semanticLabel;
+  final String? semanticHint;
+  final VoidCallback? onSelect;
+  final VoidCallback? onLongPress;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!compact) {
+      final manageActions = onLongPress == null
+          ? null
+          : <CustomSemanticsAction, VoidCallback>{
+              const CustomSemanticsAction(label: 'Manage'): onLongPress!,
+            };
+      return Semantics(
+        container: true,
+        label: semanticLabel,
+        hint: semanticHint,
+        customSemanticsActions: manageActions,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: onLongPress,
+          child: child,
+        ),
+      );
+    }
+    return Pressable(
+      enabled: enabled && onSelect != null,
+      semanticLabel: semanticLabel,
+      semanticHint: semanticHint,
+      onTapUp: onSelect == null ? null : (_) => onSelect!(),
+      onLongPress: onLongPress,
+      soundEnabled: true,
+      material: MaterialSound.wood,
+      interactionSound: InteractionSound.select,
+      shape: const FacetedBorder(cut: 11),
+      child: child,
+    );
+  }
+}
+
 class _QuestTitleBlock extends StatelessWidget {
   const _QuestTitleBlock({
     required this.quest,
@@ -500,6 +599,7 @@ class _QuestTitleBlock extends StatelessWidget {
     required this.isMain,
     required this.featured,
     required this.compactLargeType,
+    this.goalThreadLabel,
   });
 
   final Quest quest;
@@ -507,6 +607,7 @@ class _QuestTitleBlock extends StatelessWidget {
   final bool isMain;
   final bool featured;
   final bool compactLargeType;
+  final String? goalThreadLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -553,12 +654,11 @@ class _QuestTitleBlock extends StatelessWidget {
       children: [
         Text(
           quest.displayTitle,
-          maxLines: compactLargeType ? 3 : (featured || done ? 2 : 1),
+          maxLines: compactLargeType ? 3 : 2,
           overflow: TextOverflow.ellipsis,
-          style: Type.display.copyWith(
-            fontSize: featured ? 20 : 15.5,
-            height: 1.08,
-            fontWeight: FontWeight.w500,
+          style: WorkingType.title.copyWith(
+            fontSize: featured ? 27 : 18,
+            height: featured ? 1.02 : 1.08,
             color: done ? Palette.textMid : Palette.textHi,
           ),
         ),
@@ -596,9 +696,33 @@ class _QuestTitleBlock extends StatelessWidget {
             ],
           ),
         ],
-        if (featured && quest.latestNote != null) ...[
-          const SizedBox(height: 4),
+        if (featured && goalThreadLabel != null) ...[
+          const SizedBox(height: 7),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.menu_book_outlined, size: 17, color: Palette.xp),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  goalThreadLabel!,
+                  key: const ValueKey('quest-goal-thread'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.body.copyWith(
+                    fontSize: 14.5,
+                    height: 1.18,
+                    color: Palette.xp,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (featured && quest.latestNote != null) ...[
+          const SizedBox(height: 7),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(
                 Icons.sticky_note_2_outlined,
@@ -609,11 +733,11 @@ class _QuestTitleBlock extends StatelessWidget {
               Flexible(
                 child: Text(
                   '${quest.latestNote!.text} · ${relativeWhen(quest.latestNote!.at)}',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    letterSpacing: 0.15,
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    height: 1.2,
                     color: Palette.textLo,
                   ),
                 ),
@@ -760,7 +884,7 @@ class _QuestCategoryVignette extends StatelessWidget {
                 light.dy * 1.6 - drift * 0.45,
               ),
               child: Opacity(
-                opacity: 0.52,
+                opacity: 0.42,
                 child: Image.asset(
                   _asset,
                   fit: BoxFit.contain,
@@ -900,12 +1024,14 @@ class _CompleteQuestButton extends StatelessWidget {
   const _CompleteQuestButton({
     super.key,
     required this.opensJournal,
+    required this.actionLabel,
     required this.lightDirection,
     required this.scrollPosition,
     required this.reduceMotion,
   });
 
   final bool opensJournal;
+  final String actionLabel;
   final ValueListenable<Offset>? lightDirection;
   final ValueListenable<double>? scrollPosition;
   final bool reduceMotion;
@@ -922,7 +1048,51 @@ class _CompleteQuestButton extends StatelessWidget {
         light: lightDirection,
         scroll: scrollPosition,
         reduceMotion: reduceMotion,
-        child: const GoldLabel(text: 'MARK COMPLETE'),
+        textured: false,
+        child: GoldLabel(text: actionLabel),
+      ),
+    );
+  }
+}
+
+class _ManageQuestAction extends StatelessWidget {
+  const _ManageQuestAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      key: const ValueKey('quest-manage-action'),
+      semanticLabel: 'Manage quest',
+      semanticHint: 'Edit, snooze, or remove this quest',
+      onTapUp: (_) => onTap(),
+      guardRapidReentry: true,
+      edgeColor: Colors.transparent,
+      pressDepth: 0,
+      material: MaterialSound.wood,
+      interactionSound: InteractionSound.open,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 88, minHeight: 48),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.tune_rounded, size: 16, color: Palette.textLo),
+                const SizedBox(width: 5),
+                Text(
+                  'Manage',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -942,11 +1112,7 @@ class _JournalQuestBookplate extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       key: const ValueKey('journal-quest-bookplate'),
-      constraints: const BoxConstraints(
-        minWidth: 220,
-        maxWidth: 260,
-        minHeight: 52,
-      ),
+      constraints: const BoxConstraints(maxWidth: 260, minHeight: 52),
       child: DecoratedBox(
         decoration: facetedDecoration(
           cut: 9,

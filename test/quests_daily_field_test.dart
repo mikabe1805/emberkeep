@@ -51,7 +51,7 @@ void main() {
   });
 
   testWidgets(
-    'a dated field keeps optional quests available behind OPEN IF IT FITS',
+    'a dated field keeps optional quests available behind Open if it fits',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -91,18 +91,19 @@ void main() {
       await tester.pump(const Duration(milliseconds: 180));
       await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-      expect(find.text('TODAY’S FIELD'), findsOneWidget);
-      expect(find.text('OPEN IF IT FITS · 2'), findsOneWidget);
+      expect(find.text('Today’s three'), findsOneWidget);
+      expect(find.text('0 of 2 complete'), findsOneWidget);
+      expect(find.text('Open if it fits · 2'), findsOneWidget);
       expect(find.text('First chosen'), findsOneWidget);
       expect(find.text('Second chosen'), findsOneWidget);
       expect(find.text('Submit the form'), findsOneWidget);
       expect(find.text('Optional sketch'), findsNothing);
       expect(find.text('Optional walk'), findsNothing);
 
-      await tester.tap(find.text('OPEN IF IT FITS · 2'));
+      await tester.tap(find.text('Open if it fits · 2'));
       await tester.pump(const Duration(milliseconds: 180));
 
-      expect(find.text('HIDE OPTIONAL QUESTS'), findsOneWidget);
+      expect(find.text('Hide optional quests'), findsOneWidget);
       expect(find.text('Optional sketch'), findsOneWidget);
       expect(find.text('Optional walk'), findsOneWidget);
     },
@@ -134,9 +135,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 180));
     await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-    expect(find.text('TODAY’S FIELD · 1 TO CARRY'), findsOneWidget);
-    expect(find.textContaining('set aside for today'), findsOneWidget);
-    expect(find.text('TODAY’S FIELD · ENOUGH'), findsNothing);
+    expect(find.text('Today’s three'), findsOneWidget);
+    expect(find.text('0 of 1 complete · 1 set aside'), findsOneWidget);
+    expect(find.text('1 of 1 complete'), findsNothing);
   });
 
   testWidgets(
@@ -175,11 +176,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 180));
       await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-      expect(find.text('TODAY’S FIELD · ENOUGH'), findsOneWidget);
-      expect(find.text('OPEN IF IT FITS · 1'), findsOneWidget);
+      expect(find.text('Today’s three'), findsOneWidget);
+      expect(find.text('1 of 1 complete'), findsOneWidget);
+      expect(find.text('Open if it fits · 1'), findsOneWidget);
       expect(find.text('Sketch if there is room'), findsNothing);
 
-      await tester.tap(find.text('OPEN IF IT FITS · 1'));
+      await tester.tap(find.text('Open if it fits · 1'));
       await tester.pump(const Duration(milliseconds: 180));
       expect(find.text('Sketch if there is room'), findsOneWidget);
     },

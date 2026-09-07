@@ -26,6 +26,34 @@ void main() {
   });
 
   testWidgets(
+    'OS Reduce Motion softens native haptic sequences without an app toggle',
+    (tester) async {
+      final haptics = <MethodCall>[];
+      tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') haptics.add(call);
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue();
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+      Haptics.rise();
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(haptics.map((call) => call.arguments), [
+        'HapticFeedbackType.lightImpact',
+      ]);
+    },
+  );
+
+  testWidgets(
     'in-app Reduce Motion presents the complete reward receipt immediately',
     (tester) async {
       final state = GameState()..reduceMotion = true;

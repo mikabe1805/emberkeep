@@ -82,25 +82,25 @@ abstract final class Palette {
   static const glassBottom = Color(0x0BFFF2DC); // bottom: settling into shadow
 
   // The one gold CTA ramp — satin physical gold, not a mustard slab and not an
-  // orange block. Measured off the approved target's MARK COMPLETE: a lit upper
-  // plane around (216,168,102), a mid body around (194,142,80) and a lower
-  // plane around (169,118,63), i.e. ~0.59 saturation and a value range that
-  // stays *inside* metal. The previous recipe peaked at 0xFFF6D9A2 (near-white,
-  // read as plastic) while the Quest control ran to 0xFF9B5A1D (0.81 sat, read
-  // as an orange block). Both are the same material now.
+  // orange block. The face stays in a quieter champagne-to-honey range so the
+  // candlelit room remains the source of warmth. Depth comes from the rim,
+  // shoulder shade, one broad reflection, and the press under-plane rather
+  // than a saturated orange lower half.
   // [onHoney] is the engraved ink that sits on it.
   static const honeyGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0xFFDDB474),
-      Color(0xFFCE9C5B),
-      Color(0xFFBE884C),
-      Color(0xFFA9743D),
+      Color(0xFFE2C58F),
+      Color(0xFFD0AD72),
+      Color(0xFFBF965E),
+      Color(0xFFAD814F),
     ],
-    stops: [0.0, 0.26, 0.62, 1.0],
+    stops: [0.0, 0.30, 0.68, 1.0],
   );
-  static const onHoney = Color(0xFF4A2F1A);
+  // Dark enough to remain readable over the ramp's lowest value when a
+  // localized or large-text label wraps toward the shaded lower plane.
+  static const onHoney = Color(0xFF25170F);
 
   /// Gold hardware, in the three values it actually needs.
   /// [brass] is the resting rim (aged, quiet); [brassLit] is the catch-light

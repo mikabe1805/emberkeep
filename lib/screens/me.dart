@@ -3599,7 +3599,7 @@ class MePage extends StatelessWidget {
       required String label,
       required String detail,
       required bool value,
-      required ValueChanged<bool> onChanged,
+      required GlassSwitchAcceptedChange onChangeAccepted,
     }) => Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -3628,7 +3628,11 @@ class MePage extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        GlassSwitch(value: value, semanticLabel: label, onChanged: onChanged),
+        GlassSwitch(
+          value: value,
+          semanticLabel: label,
+          onChangeAccepted: onChangeAccepted,
+        ),
       ],
     );
 
@@ -3733,10 +3737,11 @@ class MePage extends StatelessWidget {
               label: 'Quest & plan reminders',
               detail: 'Your first quest and anything due that day.',
               value: state.notifyEnabled,
-              onChanged: (value) async {
-                if (!await permissionIfNeeded(value)) return;
+              onChangeAccepted: (value) async {
+                if (!await permissionIfNeeded(value)) return false;
                 state.setNotify(enabled: value);
                 await onNotifyChanged();
+                return true;
               },
             ),
             if (state.notifyEnabled) ...[
@@ -3759,10 +3764,11 @@ class MePage extends StatelessWidget {
               label: 'Night routine reminder',
               detail: 'A quiet cue to review today and set up tomorrow.',
               value: state.nightReminderEnabled,
-              onChanged: (value) async {
-                if (!await permissionIfNeeded(value)) return;
+              onChangeAccepted: (value) async {
+                if (!await permissionIfNeeded(value)) return false;
                 state.setNightReminder(enabled: value);
                 await onNotifyChanged();
+                return true;
               },
             ),
             if (state.nightReminderEnabled) ...[

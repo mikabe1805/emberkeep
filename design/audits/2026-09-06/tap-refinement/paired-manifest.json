@@ -1,0 +1,2882 @@
+{
+  "current/paired_return/a5/navigate/1.wav": {
+    "sha256": "8221b6a92679419ebe60f37576684af0c2d80c72f645b469939cebff196b39d5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/1.wav",
+    "source_sha256": "8221b6a92679419ebe60f37576684af0c2d80c72f645b469939cebff196b39d5",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.621869813387886,
+      "dc": -0.00033256941371493867,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.852003419276979,
+      "last_sample": 1.3709068298339844e-05
+    }
+  },
+  "refined/paired_return/a5/navigate/1.wav": {
+    "sha256": "81629bd2dc22e5f3002a96206e7963835fe6af73befeaf47aecdef9d2886802c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/1.wav",
+    "source_sha256": "8221b6a92679419ebe60f37576684af0c2d80c72f645b469939cebff196b39d5",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.169360218184909,
+      "dc": -0.00034339738388856255,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.859237769129659,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/navigate/1.wav": {
+    "sha256": "7a58d6d51644c5aa3f401273875e206e54a3b2dd023118ff3d6ebf8b6fac2128",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/1.wav",
+    "source_sha256": "8221b6a92679419ebe60f37576684af0c2d80c72f645b469939cebff196b39d5",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.639181082232341,
+      "dc": -0.0003523768650160895,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.86455632171813,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/navigate/2.wav": {
+    "sha256": "b65d506bcf151ef371376e1394283e0ba52076e6bf09a1db850e73e687255fd0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/2.wav",
+    "source_sha256": "b65d506bcf151ef371376e1394283e0ba52076e6bf09a1db850e73e687255fd0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.575352655489883,
+      "dc": -0.0003510221838951111,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.114462186528552,
+      "last_sample": -4.76837158203125e-06
+    }
+  },
+  "refined/paired_return/a5/navigate/2.wav": {
+    "sha256": "f57d17d7654cbbe256f0339f459ab4958e1bc6f99e3056ae64ee2d7c1693f79c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/2.wav",
+    "source_sha256": "b65d506bcf151ef371376e1394283e0ba52076e6bf09a1db850e73e687255fd0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.938914573493703,
+      "dc": -0.00036135667728053197,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.11775800342943,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/navigate/2.wav": {
+    "sha256": "404549c5ccc9e33983c608dc98f38a2c60f932c850a05ec32ddb8563e1f6fccc",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/2.wav",
+    "source_sha256": "b65d506bcf151ef371376e1394283e0ba52076e6bf09a1db850e73e687255fd0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.260552391619246,
+      "dc": -0.0003700774163007736,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.120385098300981,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/navigate/3.wav": {
+    "sha256": "8d39a611b3699380d5b84b9de05607f51949be6bd1f5b0167dca3657815bc0f8",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/3.wav",
+    "source_sha256": "8d39a611b3699380d5b84b9de05607f51949be6bd1f5b0167dca3657815bc0f8",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.914018192259105,
+      "dc": -0.0003548966513739692,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.186272860030219,
+      "last_sample": -8.702278137207031e-06
+    }
+  },
+  "refined/paired_return/a5/navigate/3.wav": {
+    "sha256": "c17572f6c0a6fb5c923a2186a88735901bf366bcac5ff536a9c92b71d9589783",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/3.wav",
+    "source_sha256": "8d39a611b3699380d5b84b9de05607f51949be6bd1f5b0167dca3657815bc0f8",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.1172680519158416,
+      "dc": -0.00036632203393512303,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.1901932669933615,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/navigate/3.wav": {
+    "sha256": "f6420d605a5108cf1903a56cc2d2010f184e7ded4d35e7c5f2e6087162b15ecd",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/3.wav",
+    "source_sha256": "8d39a611b3699380d5b84b9de05607f51949be6bd1f5b0167dca3657815bc0f8",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.341674124479822,
+      "dc": -0.0003761846572160721,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.193096107457743,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/navigate/4.wav": {
+    "sha256": "6bc15c5f51d8bd4147f87969e107b43e4073d059d3b5a4ef3554162c24e12c9d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/4.wav",
+    "source_sha256": "6bc15c5f51d8bd4147f87969e107b43e4073d059d3b5a4ef3554162c24e12c9d",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.659942290442752,
+      "dc": -0.00033692680299282076,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.553009409871319,
+      "last_sample": 9.298324584960938e-06
+    }
+  },
+  "refined/paired_return/a5/navigate/4.wav": {
+    "sha256": "d38eb1becd72e44b19c4d561ae11faf64e4f35180e3b4b640032e4c5470f437c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/4.wav",
+    "source_sha256": "6bc15c5f51d8bd4147f87969e107b43e4073d059d3b5a4ef3554162c24e12c9d",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.47180097146923,
+      "dc": -0.00034450379510720573,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.553407452009921,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/navigate/4.wav": {
+    "sha256": "f396d5d1260c8941b07c8cd94dad39d8b6a2faa0ecddab014d937d25e58bba17",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/4.wav",
+    "source_sha256": "6bc15c5f51d8bd4147f87969e107b43e4073d059d3b5a4ef3554162c24e12c9d",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.968416736773927,
+      "dc": -0.00035031715201006995,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.553983537536735,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/navigate/5.wav": {
+    "sha256": "9767b336431d8d2d9c890117ea7b20f87f4a17944a31f18081b7a3f992edd8d8",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/5.wav",
+    "source_sha256": "9767b336431d8d2d9c890117ea7b20f87f4a17944a31f18081b7a3f992edd8d8",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.262924066540766,
+      "dc": -0.00035683090488115946,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.252716076953505,
+      "last_sample": -1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/a5/navigate/5.wav": {
+    "sha256": "c52441c9feda2b5ad48db63666e8be555bfa7a3f9c7d6bd1cd5e008bda49ea73",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/5.wav",
+    "source_sha256": "9767b336431d8d2d9c890117ea7b20f87f4a17944a31f18081b7a3f992edd8d8",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.77740512525022,
+      "dc": -0.00036895312368869784,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.262000093655347,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/navigate/5.wav": {
+    "sha256": "557bf0da10ddcf510ad9e258dc4a4aacdca2f68b7d41320e6a79a17b2e6bddce",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/navigate/5.wav",
+    "source_sha256": "9767b336431d8d2d9c890117ea7b20f87f4a17944a31f18081b7a3f992edd8d8",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.240512223671029,
+      "dc": -0.0003791948987378014,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.269289580526876,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/open/1.wav": {
+    "sha256": "924fe584ec0bbe8a2e9e70a174d6dbe5775749694d654482c682a4e5927247c5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/1.wav",
+    "source_sha256": "924fe584ec0bbe8a2e9e70a174d6dbe5775749694d654482c682a4e5927247c5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.804911681122668,
+      "dc": -0.0003408257746034198,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.777922562266015,
+      "last_sample": 5.4836273193359375e-06
+    }
+  },
+  "refined/paired_return/a5/open/1.wav": {
+    "sha256": "4a3a4c501cbec3d777c344690c2fb110e90e912e6afd39d5ec93b6a7bdcaf35c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/1.wav",
+    "source_sha256": "924fe584ec0bbe8a2e9e70a174d6dbe5775749694d654482c682a4e5927247c5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.281109560836578,
+      "dc": -0.00035124946799543167,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.784859232442781,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/open/1.wav": {
+    "sha256": "41675e7d85181492c651019e0d048c27c0c608b06443f8b8e6104f06953d3ea3",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/1.wav",
+    "source_sha256": "924fe584ec0bbe8a2e9e70a174d6dbe5775749694d654482c682a4e5927247c5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.677622092667649,
+      "dc": -0.00036019608378410337,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.790248022269251,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/open/2.wav": {
+    "sha256": "0783d76a5ffc3294e29fb5929bfa43cb675116376a145b843173f98ef1b105e1",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/2.wav",
+    "source_sha256": "0783d76a5ffc3294e29fb5929bfa43cb675116376a145b843173f98ef1b105e1",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.920111658242899,
+      "dc": -0.0003482112867964639,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.093518214145364,
+      "last_sample": -1.9073486328125e-06
+    }
+  },
+  "refined/paired_return/a5/open/2.wav": {
+    "sha256": "65f899ddc7bc46e0d4b09db3b10e1c428059425fbc30343ca8de5c14641d7fea",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/2.wav",
+    "source_sha256": "0783d76a5ffc3294e29fb5929bfa43cb675116376a145b843173f98ef1b105e1",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.180043620069286,
+      "dc": -0.0003581139776441786,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.096269201212307,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/open/2.wav": {
+    "sha256": "9d973d85d7a39b2876ff718f00926f2b55303fb2852ec3c3e3168e9854f92bdc",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/2.wav",
+    "source_sha256": "0783d76a5ffc3294e29fb5929bfa43cb675116376a145b843173f98ef1b105e1",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.414924635094273,
+      "dc": -0.00036670068899790443,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.098528222536691,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/open/3.wav": {
+    "sha256": "f995dfaa88b48a20ed8bab257047bdeda442bcf7bd955e88adc1b9c69238802b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/3.wav",
+    "source_sha256": "f995dfaa88b48a20ed8bab257047bdeda442bcf7bd955e88adc1b9c69238802b",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.324448561179627,
+      "dc": -0.00034959982666704387,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.128690524785561,
+      "last_sample": -3.337860107421875e-06
+    }
+  },
+  "refined/paired_return/a5/open/3.wav": {
+    "sha256": "cd1ffe625c2c3b532b707185697cfc6fc751d7a274797471985746da980c9768",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/3.wav",
+    "source_sha256": "f995dfaa88b48a20ed8bab257047bdeda442bcf7bd955e88adc1b9c69238802b",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.421099921126901,
+      "dc": -0.00036069630748695796,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.132418268772372,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/open/3.wav": {
+    "sha256": "2dcfc48893716ae5ce7d9673f344ccac5da1bf49edb3600b923b9143697d7d6b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/3.wav",
+    "source_sha256": "f995dfaa88b48a20ed8bab257047bdeda442bcf7bd955e88adc1b9c69238802b",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.553342170137351,
+      "dc": -0.0003705090946621365,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.1353806559444335,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/open/4.wav": {
+    "sha256": "73eba5bfb56d6a668584965b00277ae2807548374e4220c6039cfd9e9b6d1255",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/4.wav",
+    "source_sha256": "73eba5bfb56d6a668584965b00277ae2807548374e4220c6039cfd9e9b6d1255",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.092500465176906,
+      "dc": -0.00034239710205131107,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.599123270948153,
+      "last_sample": 3.814697265625e-06
+    }
+  },
+  "refined/paired_return/a5/open/4.wav": {
+    "sha256": "d51f11535db4a109d76c12ccf2fcc200afaea7821a480a877838f863a4290988",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/4.wav",
+    "source_sha256": "73eba5bfb56d6a668584965b00277ae2807548374e4220c6039cfd9e9b6d1255",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.764295128272234,
+      "dc": -0.00034928967555363974,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.599436716208419,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/open/4.wav": {
+    "sha256": "648104c9533bdfcb10c12edfaf393a71f9fc1168e95c48254f7625e8c8462f3b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/4.wav",
+    "source_sha256": "73eba5bfb56d6a668584965b00277ae2807548374e4220c6039cfd9e9b6d1255",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.404674238079334,
+      "dc": -0.00035469097395737965,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.599894981398253,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/open/5.wav": {
+    "sha256": "8bfcfc5b0cce52bd4b6359364ad05aada5886be38e30be5a7990e7aa84f8cd5d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/5.wav",
+    "source_sha256": "8bfcfc5b0cce52bd4b6359364ad05aada5886be38e30be5a7990e7aa84f8cd5d",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.7096135761280555,
+      "dc": -0.00035017343858877815,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.200796018608599,
+      "last_sample": -3.933906555175781e-06
+    }
+  },
+  "refined/paired_return/a5/open/5.wav": {
+    "sha256": "ff18107a53e7a2bbacffdfab4183c14856fc09cbad9e479134892eb70c14b545",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/5.wav",
+    "source_sha256": "8bfcfc5b0cce52bd4b6359364ad05aada5886be38e30be5a7990e7aa84f8cd5d",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.118842923043417,
+      "dc": -0.00036189456780751544,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.208931411413479,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/open/5.wav": {
+    "sha256": "4bf14fb3f2d08567291c8af3d164b50f8f68530d07f09b5bfcb7359dee19e1bd",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/open/5.wav",
+    "source_sha256": "8bfcfc5b0cce52bd4b6359364ad05aada5886be38e30be5a7990e7aa84f8cd5d",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.491177477741436,
+      "dc": -0.0003720296753777398,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.215656592642538,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/place/1.wav": {
+    "sha256": "f966a957826c594371f032a8b36c431a6efd8167d4ce0a6d8e8ffadc4672b2ae",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/1.wav",
+    "source_sha256": "f966a957826c594371f032a8b36c431a6efd8167d4ce0a6d8e8ffadc4672b2ae",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.640932800928213,
+      "dc": -0.0003199982974264357,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.92494637348544,
+      "last_sample": 2.6226043701171875e-05
+    }
+  },
+  "refined/paired_return/a5/place/1.wav": {
+    "sha256": "fcfc1c7858f954bad6950752ce322318fc780b3c436899824dc3950b3d13ea56",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/1.wav",
+    "source_sha256": "f966a957826c594371f032a8b36c431a6efd8167d4ce0a6d8e8ffadc4672b2ae",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.26274767610891,
+      "dc": -0.0003312728471226162,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.931201245677893,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/place/1.wav": {
+    "sha256": "d2c229034958b8d152f5539fb60a709a5ee607e63aa35da97794a532a950e455",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/1.wav",
+    "source_sha256": "f966a957826c594371f032a8b36c431a6efd8167d4ce0a6d8e8ffadc4672b2ae",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.789313549293434,
+      "dc": -0.00034029198189576467,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.935512668300303,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/place/2.wav": {
+    "sha256": "36960c6bdef6c7ef2e2d2098cbc90c61e9d63290a4051a4d873674184ce7fc66",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/2.wav",
+    "source_sha256": "36960c6bdef6c7ef2e2d2098cbc90c61e9d63290a4051a4d873674184ce7fc66",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.497170110915627,
+      "dc": -0.0003551973650852839,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.126276772741601,
+      "last_sample": -8.940696716308594e-06
+    }
+  },
+  "refined/paired_return/a5/place/2.wav": {
+    "sha256": "4d718989dde2e90795abe261f29815719bb96e6b6fa1e12f4ff3b81a8acb0dd7",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/2.wav",
+    "source_sha256": "36960c6bdef6c7ef2e2d2098cbc90c61e9d63290a4051a4d873674184ce7fc66",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.956160135671812,
+      "dc": -0.00036560226645734574,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.12973276153588,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/place/2.wav": {
+    "sha256": "e6d600d873dbc3fe19dd5b1cb6a696da5e3e18b19b76486f132e4a9563f1adef",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/2.wav",
+    "source_sha256": "36960c6bdef6c7ef2e2d2098cbc90c61e9d63290a4051a4d873674184ce7fc66",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.352434990305508,
+      "dc": -0.00037417651878462896,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.1324271339017065,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/place/3.wav": {
+    "sha256": "1112d407da4cff98316aa8709c85fefe938630c3e83f3f6447d2150e0e695074",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/3.wav",
+    "source_sha256": "1112d407da4cff98316aa8709c85fefe938630c3e83f3f6447d2150e0e695074",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.6963822463415115,
+      "dc": -0.00036334747241603004,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.239153121901176,
+      "last_sample": -1.704692840576172e-05
+    }
+  },
+  "refined/paired_return/a5/place/3.wav": {
+    "sha256": "8e97e6c18520adccc4c06b25a17bb28cba2c9be5bd9a270358850062594d1aa5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/3.wav",
+    "source_sha256": "1112d407da4cff98316aa8709c85fefe938630c3e83f3f6447d2150e0e695074",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.044680684872619,
+      "dc": -0.000374670202533404,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.242364027304705,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/place/3.wav": {
+    "sha256": "3f0519b4c1b81d34f861ecb323b0d8984d16b69f827a7c374d2b8a7a59aff7cb",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/3.wav",
+    "source_sha256": "1112d407da4cff98316aa8709c85fefe938630c3e83f3f6447d2150e0e695074",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.336808248504072,
+      "dc": -0.0003842510282993317,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.244484332149678,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/place/4.wav": {
+    "sha256": "58a7c3047877dc8ce0c30f42badcec80bf04b54f5cae30794e016a89d833e190",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/4.wav",
+    "source_sha256": "58a7c3047877dc8ce0c30f42badcec80bf04b54f5cae30794e016a89d833e190",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.931557478908179,
+      "dc": -0.000329074760278066,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.521851298647136,
+      "last_sample": 1.71661376953125e-05
+    }
+  },
+  "refined/paired_return/a5/place/4.wav": {
+    "sha256": "07bc6da5dab27eb12a7b853cfc40a0903d6f471968043c7077cbc0763c90fe49",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/4.wav",
+    "source_sha256": "58a7c3047877dc8ce0c30f42badcec80bf04b54f5cae30794e016a89d833e190",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.019221249492546,
+      "dc": -0.0003373835649755266,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.522551264171179,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/place/4.wav": {
+    "sha256": "812eca11f2d4ba0b1f0dde1e31e295fb091b8b3ea2b67a2059b004474b91c6e7",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/4.wav",
+    "source_sha256": "58a7c3047877dc8ce0c30f42badcec80bf04b54f5cae30794e016a89d833e190",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.11305493870745,
+      "dc": -0.0003436351401938332,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.523385081673641,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/place/5.wav": {
+    "sha256": "c1431f728d3aeb85c084dca016d945042ece98a29f0777bc280dcc628031dc10",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/5.wav",
+    "source_sha256": "c1431f728d3aeb85c084dca016d945042ece98a29f0777bc280dcc628031dc10",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.08102560956565,
+      "dc": -0.0003679895566569434,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.3128011457939905,
+      "last_sample": -2.1696090698242188e-05
+    }
+  },
+  "refined/paired_return/a5/place/5.wav": {
+    "sha256": "45a3552fdc4ba01442be81c64d7eab4152981b49a6ca2ad3d0174bffb0c86b19",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/5.wav",
+    "source_sha256": "c1431f728d3aeb85c084dca016d945042ece98a29f0777bc280dcc628031dc10",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.700634570488621,
+      "dc": -0.0003800184776385625,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.321681354995153,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/place/5.wav": {
+    "sha256": "15a61c779e2e6010c8bf60da28be0488ac817fd89c3f237343e88e6392e1a2ce",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/place/5.wav",
+    "source_sha256": "c1431f728d3aeb85c084dca016d945042ece98a29f0777bc280dcc628031dc10",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.247183594268272,
+      "dc": -0.00038998458120558,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.3282881017123005,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/select/1.wav": {
+    "sha256": "0878ce43da4d561d929451a38bd69c03c30a6fe87ed07af4a2868e4fff73de6f",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/1.wav",
+    "source_sha256": "0878ce43da4d561d929451a38bd69c03c30a6fe87ed07af4a2868e4fff73de6f",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.388207478397769,
+      "dc": -0.0003356905033191045,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.830990630038284,
+      "last_sample": 1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/a5/select/1.wav": {
+    "sha256": "88244a3d2a798e4edcdd9a9acb3b6fdbf4d421a8a74818ed28ebb655da00c53d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/1.wav",
+    "source_sha256": "0878ce43da4d561d929451a38bd69c03c30a6fe87ed07af4a2868e4fff73de6f",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.912682275122682,
+      "dc": -0.00034650228917598724,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.8381927116017245,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/select/1.wav": {
+    "sha256": "4cce3602be69765759c746ff2c1fd166144c0f045cf8474db42a93d49be2790a",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/1.wav",
+    "source_sha256": "0878ce43da4d561d929451a38bd69c03c30a6fe87ed07af4a2868e4fff73de6f",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.3641242564228335,
+      "dc": -0.00035555362701416015,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.843566924882147,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/select/2.wav": {
+    "sha256": "777d409c0aa606625f467d586a6060fa915b4a87e84a2b88246669bf8f5575ad",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/2.wav",
+    "source_sha256": "777d409c0aa606625f467d586a6060fa915b4a87e84a2b88246669bf8f5575ad",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.3706848693940685,
+      "dc": -0.0003499713208940294,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.11097567654402,
+      "last_sample": -3.6954879760742188e-06
+    }
+  },
+  "refined/paired_return/a5/select/2.wav": {
+    "sha256": "c6bd97eef74ef2ed2fe8d97c869780d9129858e7f0db7a6d4df621f32fb43997",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/2.wav",
+    "source_sha256": "777d409c0aa606625f467d586a6060fa915b4a87e84a2b88246669bf8f5575ad",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.707092327110141,
+      "dc": -0.00036031160917547015,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.114158965461176,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/select/2.wav": {
+    "sha256": "13d64bd15c9ffb063da31a02f78adcda641be4df6d43f2b7d122d4fc89f1effe",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/2.wav",
+    "source_sha256": "777d409c0aa606625f467d586a6060fa915b4a87e84a2b88246669bf8f5575ad",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.006559345327858,
+      "dc": -0.00036909249093797474,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.1167124108471915,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/select/3.wav": {
+    "sha256": "c756af6fc5849d575473bdcb4deee2a9c6c0e3d05e479e815e5df5eb05da0caa",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/3.wav",
+    "source_sha256": "c756af6fc5849d575473bdcb4deee2a9c6c0e3d05e479e815e5df5eb05da0caa",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.731267375150467,
+      "dc": -0.000352867196003596,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.171717899403275,
+      "last_sample": -6.67572021484375e-06
+    }
+  },
+  "refined/paired_return/a5/select/3.wav": {
+    "sha256": "04fc8128ab15da2b80be05acdc7a68f8691d5fd4ab1135d546107e946aa0490b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/3.wav",
+    "source_sha256": "c756af6fc5849d575473bdcb4deee2a9c6c0e3d05e479e815e5df5eb05da0caa",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.906150204689226,
+      "dc": -0.0003643217600054211,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.17560834193837,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/select/3.wav": {
+    "sha256": "24eb60ca5dfec10195c1dc45d2c9c2266a8967a86f2e5c38290d4fcf0f4c2219",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/3.wav",
+    "source_sha256": "c756af6fc5849d575473bdcb4deee2a9c6c0e3d05e479e815e5df5eb05da0caa",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.106502913631599,
+      "dc": -0.0003742630283037821,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.178548996781152,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/select/4.wav": {
+    "sha256": "a4cb3f6540b52e6b096a38fe2021973ab56eb151b5005a08321a82c8381b430f",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/4.wav",
+    "source_sha256": "a4cb3f6540b52e6b096a38fe2021973ab56eb151b5005a08321a82c8381b430f",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.256182237744737,
+      "dc": -0.0003389654888047112,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.561993731312505,
+      "last_sample": 7.271766662597656e-06
+    }
+  },
+  "refined/paired_return/a5/select/4.wav": {
+    "sha256": "51ab43e6e8864359082773c38e7e48617a085cd133cd532cdb1f1c1889ed0be7",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/4.wav",
+    "source_sha256": "a4cb3f6540b52e6b096a38fe2021973ab56eb151b5005a08321a82c8381b430f",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.036682391557939,
+      "dc": -0.00034646809928947026,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.562367418959358,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/select/4.wav": {
+    "sha256": "fffa7631d3c31d7fa5dc4dae385c70648aeeb68a515051092ff8da241c6e475c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/4.wav",
+    "source_sha256": "a4cb3f6540b52e6b096a38fe2021973ab56eb151b5005a08321a82c8381b430f",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.762678783148981,
+      "dc": -0.0003522604289982054,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.562909113415214,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/a5/select/5.wav": {
+    "sha256": "464501f107d91c96e9ce4e04db9b08bc7b0926b3c3b46ce72c3e5655cd4e9e94",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/5.wav",
+    "source_sha256": "464501f107d91c96e9ce4e04db9b08bc7b0926b3c3b46ce72c3e5655cd4e9e94",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.0887916772494455,
+      "dc": -0.0003542478299803204,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.236351901873631,
+      "last_sample": -7.987022399902344e-06
+    }
+  },
+  "refined/paired_return/a5/select/5.wav": {
+    "sha256": "410958f77cf18449aee888227ceb04949b9dae1d0cd3a23948acc8cb3778c065",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/5.wav",
+    "source_sha256": "464501f107d91c96e9ce4e04db9b08bc7b0926b3c3b46ce72c3e5655cd4e9e94",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.575172571393271,
+      "dc": -0.00036638387375407746,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.24539072104483,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/a5/select/5.wav": {
+    "sha256": "5ab3523f18e06bb0cccc15651450d07f226c9e18d2be459c8adf749571b59424",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/a5/select/5.wav",
+    "source_sha256": "464501f107d91c96e9ce4e04db9b08bc7b0926b3c3b46ce72c3e5655cd4e9e94",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.014698616447833,
+      "dc": -0.0003766947736342748,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.2525830853488635,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/navigate/1.wav": {
+    "sha256": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/1.wav",
+    "source_sha256": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.621590184875835,
+      "dc": -0.00027221147384908466,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.175072510680368,
+      "last_sample": 1.3709068298339844e-05
+    }
+  },
+  "refined/paired_return/d5/navigate/1.wav": {
+    "sha256": "7038d35b1c614d7d225ed3d0d8523c5d94d0107e5c2520f05919d9f8a1d44b86",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/1.wav",
+    "source_sha256": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.169062397048008,
+      "dc": -0.0002830394440227085,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.154032234860456,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/navigate/1.wav": {
+    "sha256": "37375795b837164e5b1c140712293b3fe29182f5deea7ea8c7176cd627f718d5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/1.wav",
+    "source_sha256": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.638866708575737,
+      "dc": -0.0002920189251502355,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.13831833147362,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/navigate/2.wav": {
+    "sha256": "5e80ae5b1c99f4c738a86fa786bfb7ad7c88eb8eb54b8a3ded7d3264348f06f0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/2.wav",
+    "source_sha256": "5e80ae5b1c99f4c738a86fa786bfb7ad7c88eb8eb54b8a3ded7d3264348f06f0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.575040583505331,
+      "dc": -0.00029066424402925703,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.761762819005143,
+      "last_sample": -4.76837158203125e-06
+    }
+  },
+  "refined/paired_return/d5/navigate/2.wav": {
+    "sha256": "186c5868f000f306679d93f753ec84aae18a2d8793e9cf4bb9819e8c3084b055",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/2.wav",
+    "source_sha256": "5e80ae5b1c99f4c738a86fa786bfb7ad7c88eb8eb54b8a3ded7d3264348f06f0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.938589162257155,
+      "dc": -0.00030099873741467795,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.742138695116529,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/navigate/2.wav": {
+    "sha256": "30748a7ab88d8f4fc204a6e89a536aa5535f8565424a33e6484023067a078f24",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/2.wav",
+    "source_sha256": "5e80ae5b1c99f4c738a86fa786bfb7ad7c88eb8eb54b8a3ded7d3264348f06f0",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.26021470478459,
+      "dc": -0.0003097194764349196,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.727018468410445,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/navigate/3.wav": {
+    "sha256": "82b7a55f61a607ab0dd52bc3b8e0d34a76bca2ff8ef26c4a4eb3343fa5c7c7c0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/3.wav",
+    "source_sha256": "82b7a55f61a607ab0dd52bc3b8e0d34a76bca2ff8ef26c4a4eb3343fa5c7c7c0",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.913760447752497,
+      "dc": -0.0002945387115081151,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.826609308727555,
+      "last_sample": -8.702278137207031e-06
+    }
+  },
+  "refined/paired_return/d5/navigate/3.wav": {
+    "sha256": "4e5e17e9a6968d3fd454a9158aec31b3fbb37a5b735bd4afef5272d503a316bf",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/3.wav",
+    "source_sha256": "82b7a55f61a607ab0dd52bc3b8e0d34a76bca2ff8ef26c4a4eb3343fa5c7c7c0",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.117004205160247,
+      "dc": -0.00030596409406926896,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.818663112459014,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/navigate/3.wav": {
+    "sha256": "472d5b7da1ae3d9d3ed4ddb431c3408dd354d7109045eefd0c94bff2fa2fc0ef",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/3.wav",
+    "source_sha256": "82b7a55f61a607ab0dd52bc3b8e0d34a76bca2ff8ef26c4a4eb3343fa5c7c7c0",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.34140337234526,
+      "dc": -0.000315826717350218,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.812664631607796,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/navigate/4.wav": {
+    "sha256": "eb5d3e21c8ef174db4abc7746cc9ed0956fe7828e69e52636b0b9574c4c66b39",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/4.wav",
+    "source_sha256": "eb5d3e21c8ef174db4abc7746cc9ed0956fe7828e69e52636b0b9574c4c66b39",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.659588714077566,
+      "dc": -0.0002765688631269667,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.579547604705962,
+      "last_sample": 9.298324584960938e-06
+    }
+  },
+  "refined/paired_return/d5/navigate/4.wav": {
+    "sha256": "31ebd4211ace86f8dfc0b24c8234624952bef83289f9af5e2f6c7e5ff1e99f3b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/4.wav",
+    "source_sha256": "eb5d3e21c8ef174db4abc7746cc9ed0956fe7828e69e52636b0b9574c4c66b39",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.471412753802639,
+      "dc": -0.00028414585524135167,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.575374780427007,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/navigate/4.wav": {
+    "sha256": "b68a93407c7fc48f5dd8497b1102106af0f32f55c3c0290ed0aae7980587c3e1",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/4.wav",
+    "source_sha256": "eb5d3e21c8ef174db4abc7746cc9ed0956fe7828e69e52636b0b9574c4c66b39",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.96882781650676,
+      "dc": -0.0002899592121442159,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.57209810745336,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/navigate/5.wav": {
+    "sha256": "8c1dbaefa15d827f2ab48efc39e08ecc0e05511dda304d59d49aa8a399e8b630",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/5.wav",
+    "source_sha256": "8c1dbaefa15d827f2ab48efc39e08ecc0e05511dda304d59d49aa8a399e8b630",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.262655758030825,
+      "dc": -0.0002964729650153054,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.661395202890989,
+      "last_sample": -1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/d5/navigate/5.wav": {
+    "sha256": "5ac4f3c0bb3079abe25d9e763577f4f65bf989d29bbe1e4526da1f37d9e777e5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/5.wav",
+    "source_sha256": "8c1dbaefa15d827f2ab48efc39e08ecc0e05511dda304d59d49aa8a399e8b630",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.77712044450696,
+      "dc": -0.00030859518382284377,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.630731718752122,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/navigate/5.wav": {
+    "sha256": "f79d3715ee1dd02c970eadfa39cc4e8912f0d99e943a8143d21f2a1c294c80c0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/navigate/5.wav",
+    "source_sha256": "8c1dbaefa15d827f2ab48efc39e08ecc0e05511dda304d59d49aa8a399e8b630",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.240211952902032,
+      "dc": -0.0003188369588719474,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.606799634774281,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/open/1.wav": {
+    "sha256": "275e262c17e7f19a9e9cd91c1d0d2ae0432e22aaf3e3e3d620a8eb520e5882e8",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/1.wav",
+    "source_sha256": "275e262c17e7f19a9e9cd91c1d0d2ae0432e22aaf3e3e3d620a8eb520e5882e8",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.8051662157654444,
+      "dc": -0.0002804678347375658,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.306483384022343,
+      "last_sample": 5.4836273193359375e-06
+    }
+  },
+  "refined/paired_return/d5/open/1.wav": {
+    "sha256": "93d7d6fc8cf1c109ac5d8fb0085ab122d0ed9001071ecfbd3c0b068bd71d5753",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/1.wav",
+    "source_sha256": "275e262c17e7f19a9e9cd91c1d0d2ae0432e22aaf3e3e3d620a8eb520e5882e8",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.280840689994058,
+      "dc": -0.00029089152812957766,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.286406726214106,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/open/1.wav": {
+    "sha256": "3cf3de4720c2a29b4d6a4d8d4d76010a371afc370753fd943af39d20c5975b3d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/1.wav",
+    "source_sha256": "275e262c17e7f19a9e9cd91c1d0d2ae0432e22aaf3e3e3d620a8eb520e5882e8",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.6773406635554196,
+      "dc": -0.00029983814391824936,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.27070412593617,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/open/2.wav": {
+    "sha256": "a57e91426790c6c3d78b60c3d2a8bf7b728c225b3ebc301a40dfa15b3976a69d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/2.wav",
+    "source_sha256": "a57e91426790c6c3d78b60c3d2a8bf7b728c225b3ebc301a40dfa15b3976a69d",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.9198222617259795,
+      "dc": -0.0002878533469306098,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.830391577075637,
+      "last_sample": -1.9073486328125e-06
+    }
+  },
+  "refined/paired_return/d5/open/2.wav": {
+    "sha256": "50d3dab927e32fef39314b3dd6cb09f0aa1a05194a78ab28b1b1caadaf4c55fa",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/2.wav",
+    "source_sha256": "a57e91426790c6c3d78b60c3d2a8bf7b728c225b3ebc301a40dfa15b3976a69d",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.17974543240162,
+      "dc": -0.00029775603777832456,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.811885281284122,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/open/2.wav": {
+    "sha256": "19d1ec6d9e685ef01735d29b90de064772a4da7bb254a75895957c73ff304baa",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/2.wav",
+    "source_sha256": "a57e91426790c6c3d78b60c3d2a8bf7b728c225b3ebc301a40dfa15b3976a69d",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.414618274061773,
+      "dc": -0.0003063427491320504,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.797041083836664,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/open/3.wav": {
+    "sha256": "3715727d6c244b229f79979d4b5db6e39e30286a2cce4da9fac97f2631a55852",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/3.wav",
+    "source_sha256": "3715727d6c244b229f79979d4b5db6e39e30286a2cce4da9fac97f2631a55852",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.3242077307507385,
+      "dc": -0.00028924188680118986,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.907550107869782,
+      "last_sample": -3.337860107421875e-06
+    }
+  },
+  "refined/paired_return/d5/open/3.wav": {
+    "sha256": "d6651a8d1df354903d69efa9ce730a3a97b0b2ce0b3ea43b487296cd62452007",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/3.wav",
+    "source_sha256": "3715727d6c244b229f79979d4b5db6e39e30286a2cce4da9fac97f2631a55852",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.420856395954359,
+      "dc": -0.0003003383676211039,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.900111368853146,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/open/3.wav": {
+    "sha256": "003e5f8944a6c577494f1784ffc70c33167f73e7b587130f722b518f87754872",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/3.wav",
+    "source_sha256": "3715727d6c244b229f79979d4b5db6e39e30286a2cce4da9fac97f2631a55852",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.553094908990779,
+      "dc": -0.00031015115479628245,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.894043381050151,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/open/4.wav": {
+    "sha256": "0558beb25247538feb1b1a64e45cd721f426f4d818e7b3a4eb0c814b0fc4158b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/4.wav",
+    "source_sha256": "0558beb25247538feb1b1a64e45cd721f426f4d818e7b3a4eb0c814b0fc4158b",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.092205267731321,
+      "dc": -0.000282039162185457,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.609758348625566,
+      "last_sample": 3.814697265625e-06
+    }
+  },
+  "refined/paired_return/d5/open/4.wav": {
+    "sha256": "3e4d7af07ecf5d123151358b79cb64137772623500825dfe760479c67ae623b5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/4.wav",
+    "source_sha256": "0558beb25247538feb1b1a64e45cd721f426f4d818e7b3a4eb0c814b0fc4158b",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.763976193600207,
+      "dc": -0.0002889317356877857,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.605887016642329,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/open/4.wav": {
+    "sha256": "0c3dc6df47c820e2771e69737bfd08bef5fdfafa7ee01cb0e8ad7375e8c9cd34",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/4.wav",
+    "source_sha256": "0558beb25247538feb1b1a64e45cd721f426f4d818e7b3a4eb0c814b0fc4158b",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.40433090149658,
+      "dc": -0.0002943330340915256,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.602798535091082,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/open/5.wav": {
+    "sha256": "e11484ec1e2ba9eb5a8b4c31f96f0036cfd253b84ad971e6af86f4f503e39903",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/5.wav",
+    "source_sha256": "e11484ec1e2ba9eb5a8b4c31f96f0036cfd253b84ad971e6af86f4f503e39903",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.709361826210585,
+      "dc": -0.00028981549872292414,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.781448024991363,
+      "last_sample": -3.933906555175781e-06
+    }
+  },
+  "refined/paired_return/d5/open/5.wav": {
+    "sha256": "656bdad091967594058c1461aceb9f72273b8a94872bca39d61f912519e88a61",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/5.wav",
+    "source_sha256": "e11484ec1e2ba9eb5a8b4c31f96f0036cfd253b84ad971e6af86f4f503e39903",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.118579028445171,
+      "dc": -0.00030153662794166143,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.754010992543617,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/open/5.wav": {
+    "sha256": "c9a957a0056bbc5d392f1e178b66ceedf92fff43b86a062ca2dea0160f769f9c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/open/5.wav",
+    "source_sha256": "e11484ec1e2ba9eb5a8b4c31f96f0036cfd253b84ad971e6af86f4f503e39903",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.490902025101272,
+      "dc": -0.00031167173551188574,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.731569503790776,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/place/1.wav": {
+    "sha256": "a690374b90b5c11bee97f72938d8c0f7292318679eb9d6a5daac67eccfd3db42",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/1.wav",
+    "source_sha256": "a690374b90b5c11bee97f72938d8c0f7292318679eb9d6a5daac67eccfd3db42",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.640618363865348,
+      "dc": -0.0002596403575605816,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.0566935023093915,
+      "last_sample": 2.6226043701171875e-05
+    }
+  },
+  "refined/paired_return/d5/place/1.wav": {
+    "sha256": "fe6dcd283e8a6a7aa7a50684f11e2776d372ebd4f9a9aced85d5dd46f464f110",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/1.wav",
+    "source_sha256": "a690374b90b5c11bee97f72938d8c0f7292318679eb9d6a5daac67eccfd3db42",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.262409903917662,
+      "dc": -0.0002709149072567622,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.038285010005197,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/place/1.wav": {
+    "sha256": "bb5cc9bfbff1242609f55e7c196b0f7ab2f8aaed04d73595b39d8e39212f3f53",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/1.wav",
+    "source_sha256": "a690374b90b5c11bee97f72938d8c0f7292318679eb9d6a5daac67eccfd3db42",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.788954667309394,
+      "dc": -0.0002799340420299106,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.025182685718021,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/place/2.wav": {
+    "sha256": "39b249aae542bb4895f6d535b526945f25aa6f9add1918b6398414d9ee8a3c7e",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/2.wav",
+    "source_sha256": "39b249aae542bb4895f6d535b526945f25aa6f9add1918b6398414d9ee8a3c7e",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.49682309868498,
+      "dc": -0.00029483942521942984,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.699307163287119,
+      "last_sample": -8.940696716308594e-06
+    }
+  },
+  "refined/paired_return/d5/place/2.wav": {
+    "sha256": "44fbe8d1cf351f80205749296d378349816854d473eedca43a4a789b584cb5bf",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/2.wav",
+    "source_sha256": "39b249aae542bb4895f6d535b526945f25aa6f9add1918b6398414d9ee8a3c7e",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.955794293461292,
+      "dc": -0.0003052443265914917,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.68128331756961,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/place/2.wav": {
+    "sha256": "ec5e98fa5f58bb9850982e2916025e29599182b9db454f2721790bf362076aab",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/2.wav",
+    "source_sha256": "39b249aae542bb4895f6d535b526945f25aa6f9add1918b6398414d9ee8a3c7e",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.35205207111838,
+      "dc": -0.00031381857891877495,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.667901056705359,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/place/3.wav": {
+    "sha256": "bacad35e6ce92d6f1cfe67fbab276a650e154d4e53602cb68285ade147c93f17",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/3.wav",
+    "source_sha256": "bacad35e6ce92d6f1cfe67fbab276a650e154d4e53602cb68285ade147c93f17",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.696100208739707,
+      "dc": -0.000302989532550176,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.729011323821469,
+      "last_sample": -1.704692840576172e-05
+    }
+  },
+  "refined/paired_return/d5/place/3.wav": {
+    "sha256": "700e9b2f393f2f02c610110798aa78247a945ce25959ccfcdf341fc60f6cb5a0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/3.wav",
+    "source_sha256": "bacad35e6ce92d6f1cfe67fbab276a650e154d4e53602cb68285ade147c93f17",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.044387108130568,
+      "dc": -0.00031431226266755,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.723627981692977,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/place/3.wav": {
+    "sha256": "a3958a260e65a329596a06bb1c37c91f93c1252f9cdb2d04f660dcb7b29adc31",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/3.wav",
+    "source_sha256": "bacad35e6ce92d6f1cfe67fbab276a650e154d4e53602cb68285ade147c93f17",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.336504630323272,
+      "dc": -0.0003238930884334776,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.720191153484325,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/place/4.wav": {
+    "sha256": "23cfe40140b2b98d05bc21fd2d37d5f6f13c836f9edfe8fad4f1c870b8d3c2b3",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/4.wav",
+    "source_sha256": "23cfe40140b2b98d05bc21fd2d37d5f6f13c836f9edfe8fad4f1c870b8d3c2b3",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.931966817846844,
+      "dc": -0.00026871682041221197,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.566495263330872,
+      "last_sample": 1.71661376953125e-05
+    }
+  },
+  "refined/paired_return/d5/place/4.wav": {
+    "sha256": "1158bc97e70b2f7503cf36b1a0f865bb8ea6ce1be8aa5eeed4beb6ed3c207ef5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/4.wav",
+    "source_sha256": "23cfe40140b2b98d05bc21fd2d37d5f6f13c836f9edfe8fad4f1c870b8d3c2b3",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.019634740768977,
+      "dc": -0.00027702562510967255,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.56204889760088,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/place/4.wav": {
+    "sha256": "13552a084b94ccd8ff0128c6ef668ace0447e5241095834f8748e413585c110c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/4.wav",
+    "source_sha256": "23cfe40140b2b98d05bc21fd2d37d5f6f13c836f9edfe8fad4f1c870b8d3c2b3",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.113472921254662,
+      "dc": -0.0002832772003279792,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.558589549272996,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/place/5.wav": {
+    "sha256": "1d0679ef919ecfadb2df978c23573e4fdbb3c9166afa3bc6ebd55bd0a48c7322",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/5.wav",
+    "source_sha256": "1d0679ef919ecfadb2df978c23573e4fdbb3c9166afa3bc6ebd55bd0a48c7322",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.08073080183882,
+      "dc": -0.0003076316167910894,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.562853481768307,
+      "last_sample": -2.1696090698242188e-05
+    }
+  },
+  "refined/paired_return/d5/place/5.wav": {
+    "sha256": "4d80677dc9c2e7a86d8c416ba6fab020d3b49b357af35b607eab3027868a3fe3",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/5.wav",
+    "source_sha256": "1d0679ef919ecfadb2df978c23573e4fdbb3c9166afa3bc6ebd55bd0a48c7322",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.700317964762547,
+      "dc": -0.00031966053777270846,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.533786030529678,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/place/5.wav": {
+    "sha256": "ea9b8efac255de458fca8d423410b2a6394e12940a13674236912b568fac7e3f",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/place/5.wav",
+    "source_sha256": "1d0679ef919ecfadb2df978c23573e4fdbb3c9166afa3bc6ebd55bd0a48c7322",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.246846426770965,
+      "dc": -0.0003296266413397259,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.512157874054796,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/select/1.wav": {
+    "sha256": "fd3444f6a99f8d4dc5e4b08e58740e0269bead8a102f9e6e603b1d0e08f3d824",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/1.wav",
+    "source_sha256": "fd3444f6a99f8d4dc5e4b08e58740e0269bead8a102f9e6e603b1d0e08f3d824",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.387935271879548,
+      "dc": -0.00027533256345325046,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.214184474902201,
+      "last_sample": 1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/d5/select/1.wav": {
+    "sha256": "bc51ecfc1401ddc39974fb939f05b02d725fc581e55bb15a07e88859348e02ab",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/1.wav",
+    "source_sha256": "fd3444f6a99f8d4dc5e4b08e58740e0269bead8a102f9e6e603b1d0e08f3d824",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.912393126028039,
+      "dc": -0.0002861443493101332,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.1932866921653975,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/select/1.wav": {
+    "sha256": "42b1c1e234d1bae79bd5346c118cb70fe2786cb8534e8776cbc055531a6f2aa9",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/1.wav",
+    "source_sha256": "fd3444f6a99f8d4dc5e4b08e58740e0269bead8a102f9e6e603b1d0e08f3d824",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.363819681915597,
+      "dc": -0.0002951956871483061,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.177492599302474,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/select/2.wav": {
+    "sha256": "b4011c2fc857dfa71dc7f8029150c54e395713a487b96525bc118f37cd63f987",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/2.wav",
+    "source_sha256": "b4011c2fc857dfa71dc7f8029150c54e395713a487b96525bc118f37cd63f987",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.370380064753213,
+      "dc": -0.00028961338102817535,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.781704402756078,
+      "last_sample": -3.6954879760742188e-06
+    }
+  },
+  "refined/paired_return/d5/select/2.wav": {
+    "sha256": "c4d8213dc23d933b1682940f5509328519e901c5aac8664a6b7435a2445e418d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/2.wav",
+    "source_sha256": "b4011c2fc857dfa71dc7f8029150c54e395713a487b96525bc118f37cd63f987",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.706775485911855,
+      "dc": -0.0002999536693096161,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.762221878994593,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/select/2.wav": {
+    "sha256": "6ca605c9455e728931170ef646a30752a76c9e19cea13fc4783f6d68f31cd9a9",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/2.wav",
+    "source_sha256": "b4011c2fc857dfa71dc7f8029150c54e395713a487b96525bc118f37cd63f987",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.006231389977751,
+      "dc": -0.0003087345510721207,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.747058427749985,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/select/3.wav": {
+    "sha256": "5ec25af33bdc6cfb4c7c209d3f6372a38a16916f8887d1404e6e2fda40fa6171",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/3.wav",
+    "source_sha256": "5ec25af33bdc6cfb4c7c209d3f6372a38a16916f8887d1404e6e2fda40fa6171",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.731014996850211,
+      "dc": -0.0002925092561377419,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.85623900342411,
+      "last_sample": -6.67572021484375e-06
+    }
+  },
+  "refined/paired_return/d5/select/3.wav": {
+    "sha256": "6722f7e8be43bf12a14a87c8c0db3920a41132df245b96909ad88dbab20515d6",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/3.wav",
+    "source_sha256": "5ec25af33bdc6cfb4c7c209d3f6372a38a16916f8887d1404e6e2fda40fa6171",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.905892693547582,
+      "dc": -0.0003039638201395671,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.848304658547763,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/select/3.wav": {
+    "sha256": "ab10ad5d89bdc82673f8a843143fff518c1f85ddbaba22067910718a6dd88569",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/3.wav",
+    "source_sha256": "5ec25af33bdc6cfb4c7c209d3f6372a38a16916f8887d1404e6e2fda40fa6171",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.106239393675498,
+      "dc": -0.0003139050884379281,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.842170147595284,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/select/4.wav": {
+    "sha256": "e304657b2bd661c33c6e0074622276a057cf31fec495082f2fe681bfa34e7a60",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/4.wav",
+    "source_sha256": "e304657b2bd661c33c6e0074622276a057cf31fec495082f2fe681bfa34e7a60",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.255844720765289,
+      "dc": -0.0002786075489388572,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.582650274146406,
+      "last_sample": 7.271766662597656e-06
+    }
+  },
+  "refined/paired_return/d5/select/4.wav": {
+    "sha256": "af46372af30c1fcd1bab792171989d07237a18c3b4eb2ccc77515ebbcbd10848",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/4.wav",
+    "source_sha256": "e304657b2bd661c33c6e0074622276a057cf31fec495082f2fe681bfa34e7a60",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.036313142122376,
+      "dc": -0.0002861101594236162,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.578553578728033,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/select/4.wav": {
+    "sha256": "ff1f89dfc373cb6ed99cad70ab0378706b7378bd10deaa264ec753f0500b47ec",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/4.wav",
+    "source_sha256": "e304657b2bd661c33c6e0074622276a057cf31fec495082f2fe681bfa34e7a60",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.76227734480264,
+      "dc": -0.00029190248913235135,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.575330534794227,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/d5/select/5.wav": {
+    "sha256": "8e212c2ab5fa98a6e446a06eaf4b91477dd7821100e9e3994aa805da7faca4c0",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/5.wav",
+    "source_sha256": "8e212c2ab5fa98a6e446a06eaf4b91477dd7821100e9e3994aa805da7faca4c0",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.088528694076405,
+      "dc": -0.0002938898901144663,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.6931551750042075,
+      "last_sample": -7.987022399902344e-06
+    }
+  },
+  "refined/paired_return/d5/select/5.wav": {
+    "sha256": "1691cde6960420b07d986bbe899e17aab3030c90fa71795eae8adb5d42772146",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/5.wav",
+    "source_sha256": "8e212c2ab5fa98a6e446a06eaf4b91477dd7821100e9e3994aa805da7faca4c0",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.57489444216732,
+      "dc": -0.00030602593388822345,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.663172126734438,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/d5/select/5.wav": {
+    "sha256": "62009fa37bcd3f060b8ef9b8ab714d2ce41dfc77b860c559fdc76f8bcc891bcf",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/d5/select/5.wav",
+    "source_sha256": "8e212c2ab5fa98a6e446a06eaf4b91477dd7821100e9e3994aa805da7faca4c0",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.014406051313841,
+      "dc": -0.00031633683376842075,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.63949381720167,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/navigate/1.wav": {
+    "sha256": "805ec2f4dd8fe75be61608eebd63c1f180b1ff7144e9323a02658e8c07514c28",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/1.wav",
+    "source_sha256": "805ec2f4dd8fe75be61608eebd63c1f180b1ff7144e9323a02658e8c07514c28",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.621479223675469,
+      "dc": -0.0002803783449861738,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.934666004180995,
+      "last_sample": 1.3709068298339844e-05
+    }
+  },
+  "refined/paired_return/e5/navigate/1.wav": {
+    "sha256": "5ef43285c956fe93a3e64e297abc129f22126b8d1b71a32d8401454ca08ffb63",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/1.wav",
+    "source_sha256": "805ec2f4dd8fe75be61608eebd63c1f180b1ff7144e9323a02658e8c07514c28",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.168944216887258,
+      "dc": -0.0002912063151597977,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.946249608295617,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/navigate/1.wav": {
+    "sha256": "e03cc67cad2aba01f261ddf2180a97a96e72303aa0d6b9f04ac9b5a5c7aa1c0d",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/1.wav",
+    "source_sha256": "805ec2f4dd8fe75be61608eebd63c1f180b1ff7144e9323a02658e8c07514c28",
+    "plain_source": "ordinary/navigate/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.638741960278111,
+      "dc": -0.0003001857962873247,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.955084099048341,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/navigate/2.wav": {
+    "sha256": "e7cf1280ef0193a5cd782a14e587b2e02ef1ad335c952f0c81b1a7b40d8ee2af",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/2.wav",
+    "source_sha256": "e7cf1280ef0193a5cd782a14e587b2e02ef1ad335c952f0c81b1a7b40d8ee2af",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.574916748523624,
+      "dc": -0.00029883111516634624,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.046250851337973,
+      "last_sample": -4.76837158203125e-06
+    }
+  },
+  "refined/paired_return/e5/navigate/2.wav": {
+    "sha256": "ad7fade073b62a288558f7fa650eda3825c65f42e099c88a25a9d34316acc433",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/2.wav",
+    "source_sha256": "e7cf1280ef0193a5cd782a14e587b2e02ef1ad335c952f0c81b1a7b40d8ee2af",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.938460034192803,
+      "dc": -0.00030916560855176716,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.040783627360153,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/navigate/2.wav": {
+    "sha256": "70b2b5a41fdb94b5c1ff7fbef3bf28489be10f88e84e7b3eb2cae3448c487781",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/2.wav",
+    "source_sha256": "e7cf1280ef0193a5cd782a14e587b2e02ef1ad335c952f0c81b1a7b40d8ee2af",
+    "plain_source": "ordinary/navigate/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.260080705710868,
+      "dc": -0.00031788634757200874,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.0364017720553775,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/navigate/3.wav": {
+    "sha256": "ebdabe9c683191e736f7875462135e334d05d1be5b2ded36c66b5f9d2f829dae",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/3.wav",
+    "source_sha256": "ebdabe9c683191e736f7875462135e334d05d1be5b2ded36c66b5f9d2f829dae",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.9136581703060545,
+      "dc": -0.00030270558264520434,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.41155815889661,
+      "last_sample": -8.702278137207031e-06
+    }
+  },
+  "refined/paired_return/e5/navigate/3.wav": {
+    "sha256": "101c537ea4764d31d95204286e71692bcb135d9d383c3d65db53fe2cc85ec9ea",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/3.wav",
+    "source_sha256": "ebdabe9c683191e736f7875462135e334d05d1be5b2ded36c66b5f9d2f829dae",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.116899506287984,
+      "dc": -0.0003141309652063582,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.432647159513458,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/navigate/3.wav": {
+    "sha256": "5ca735cd422a9ca7f36bd66548ac6e82b1553d0e5a6a807030b70ccef3f01335",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/3.wav",
+    "source_sha256": "ebdabe9c683191e736f7875462135e334d05d1be5b2ded36c66b5f9d2f829dae",
+    "plain_source": "ordinary/navigate/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.341295933361035,
+      "dc": -0.00032399358848730724,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.4496237729320285,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/navigate/4.wav": {
+    "sha256": "de1a9c8768cc68591a55ea07958224711ed7f40c3d25f44b642baf0f7d6e9020",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/4.wav",
+    "source_sha256": "de1a9c8768cc68591a55ea07958224711ed7f40c3d25f44b642baf0f7d6e9020",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.659448409985044,
+      "dc": -0.0002847357342640559,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.220552951973313,
+      "last_sample": 9.298324584960938e-06
+    }
+  },
+  "refined/paired_return/e5/navigate/4.wav": {
+    "sha256": "265ec87e5deccda20a73483db8bea5bcab9643747ef3308e2d5a59e974afb47e",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/4.wav",
+    "source_sha256": "de1a9c8768cc68591a55ea07958224711ed7f40c3d25f44b642baf0f7d6e9020",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.471258703981835,
+      "dc": -0.0002923127263784409,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.203932850205008,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/navigate/4.wav": {
+    "sha256": "092ecddcbac91795559cb63a1ec8312fec21739de70765f167c5cb3d6b7d302a",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/4.wav",
+    "source_sha256": "de1a9c8768cc68591a55ea07958224711ed7f40c3d25f44b642baf0f7d6e9020",
+    "plain_source": "ordinary/navigate/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.968990948777016,
+      "dc": -0.0002981260832813051,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.191988327205315,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/navigate/5.wav": {
+    "sha256": "a3431c7b43eaa634defaecc5bc4e8071f0aa00f8ca30cb3a7d80b10223b6f9f1",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/5.wav",
+    "source_sha256": "a3431c7b43eaa634defaecc5bc4e8071f0aa00f8ca30cb3a7d80b10223b6f9f1",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.262549288696881,
+      "dc": -0.0003046398361523946,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.28021279601433,
+      "last_sample": -1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/e5/navigate/5.wav": {
+    "sha256": "6192c7526bf62690e009dc76ed83ae84a3a07e42542125c03171faef8ebc7eae",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/5.wav",
+    "source_sha256": "a3431c7b43eaa634defaecc5bc4e8071f0aa00f8ca30cb3a7d80b10223b6f9f1",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.777007478543907,
+      "dc": -0.000316762054959933,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.288906059095028,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/navigate/5.wav": {
+    "sha256": "c0eb91865dc651ebf659179bff8b855b39d3787fdb724994d29160d7df7ad239",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/navigate/5.wav",
+    "source_sha256": "a3431c7b43eaa634defaecc5bc4e8071f0aa00f8ca30cb3a7d80b10223b6f9f1",
+    "plain_source": "ordinary/navigate/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.240092800711802,
+      "dc": -0.00032700383000903657,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.295694936105647,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/open/1.wav": {
+    "sha256": "bdc471e5bbc7ab661b12b4cc96c2ed9f7bdd369d8920f00c0783ffbcdf8c4dc5",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/1.wav",
+    "source_sha256": "bdc471e5bbc7ab661b12b4cc96c2ed9f7bdd369d8920f00c0783ffbcdf8c4dc5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.805267223643346,
+      "dc": -0.00028863470587465497,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.848739620775153,
+      "last_sample": 5.4836273193359375e-06
+    }
+  },
+  "refined/paired_return/e5/open/1.wav": {
+    "sha256": "2f6d8135e5aa2ab3627236aa34a0cd9ce19812ead946455ac5683a47be21ec1a",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/1.wav",
+    "source_sha256": "bdc471e5bbc7ab661b12b4cc96c2ed9f7bdd369d8920f00c0783ffbcdf8c4dc5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.280733997521903,
+      "dc": -0.0002990583992666668,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.859770052971012,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/open/1.wav": {
+    "sha256": "1a238fd32ec06117c427acc74b95029bcde644fd9eb63ded7d9df27d5dbd1e91",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/1.wav",
+    "source_sha256": "bdc471e5bbc7ab661b12b4cc96c2ed9f7bdd369d8920f00c0783ffbcdf8c4dc5",
+    "plain_source": "ordinary/open/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.677228987863408,
+      "dc": -0.0003080050150553385,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.868512505843034,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/open/2.wav": {
+    "sha256": "aa8e897a61ae2cc8c57738afb53185b2fe1e6267c013e0ab49b8d1015c4f9086",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/2.wav",
+    "source_sha256": "aa8e897a61ae2cc8c57738afb53185b2fe1e6267c013e0ab49b8d1015c4f9086",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.919707424510552,
+      "dc": -0.000296020218067699,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.029166999110632,
+      "last_sample": -1.9073486328125e-06
+    }
+  },
+  "refined/paired_return/e5/open/2.wav": {
+    "sha256": "2ecfd830fe1a4eb73665ee70fe78bfcc2d7c9e293ec83493f92abe5459cd16bb",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/2.wav",
+    "source_sha256": "aa8e897a61ae2cc8c57738afb53185b2fe1e6267c013e0ab49b8d1015c4f9086",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.179627106799123,
+      "dc": -0.0003059229089154138,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.02377787619047,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/open/2.wav": {
+    "sha256": "aeff9105fdcc463ee7f084ce036ae548016501ff038f08d967950dc1b6427ad4",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/2.wav",
+    "source_sha256": "aa8e897a61ae2cc8c57738afb53185b2fe1e6267c013e0ab49b8d1015c4f9086",
+    "plain_source": "ordinary/open/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.414496705218192,
+      "dc": -0.00031450962026913963,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.01936466513983,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/open/3.wav": {
+    "sha256": "2d3969b3f1efce404a5196161c4b513245a8d3f4369d82169058208fdaabfafc",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/3.wav",
+    "source_sha256": "2d3969b3f1efce404a5196161c4b513245a8d3f4369d82169058208fdaabfafc",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.324112164970829,
+      "dc": -0.00029740875793827907,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.30541778961885,
+      "last_sample": -3.337860107421875e-06
+    }
+  },
+  "refined/paired_return/e5/open/3.wav": {
+    "sha256": "5e9b7bba40fcca8e0241e06e6c37388dbd25c2236d5390010660ab6e13913ab7",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/3.wav",
+    "source_sha256": "2d3969b3f1efce404a5196161c4b513245a8d3f4369d82169058208fdaabfafc",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.4207597608733735,
+      "dc": -0.0003085052387581931,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.324751358696351,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/open/3.wav": {
+    "sha256": "925f22c7f13285de14e1ea2761b801cbf10bd1f11495a72176ab70fa0ac4b1f2",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/3.wav",
+    "source_sha256": "2d3969b3f1efce404a5196161c4b513245a8d3f4369d82169058208fdaabfafc",
+    "plain_source": "ordinary/open/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.552996791438921,
+      "dc": -0.00031831802593337166,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.340965439726999,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/open/4.wav": {
+    "sha256": "c2d3f5229bb54a7506cee197f17594d931ca446b3590e2d6a2177e5addf13794",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/4.wav",
+    "source_sha256": "c2d3f5229bb54a7506cee197f17594d931ca446b3590e2d6a2177e5addf13794",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.0920881286682755,
+      "dc": -0.0002902060333225462,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.326442655688942,
+      "last_sample": 3.814697265625e-06
+    }
+  },
+  "refined/paired_return/e5/open/4.wav": {
+    "sha256": "598dd0dbd1eb391b45f3466b004ec15cbec7bc0cc175d8a5f0250ebefb63d8dd",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/4.wav",
+    "source_sha256": "c2d3f5229bb54a7506cee197f17594d931ca446b3590e2d6a2177e5addf13794",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.76384963546799,
+      "dc": -0.0002970986068248749,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.308978908321986,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/open/4.wav": {
+    "sha256": "fa36fc203a3d8e28eb127f592f1d09cfabb1cd45a34cd35f1a0e0278816f4b43",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/4.wav",
+    "source_sha256": "c2d3f5229bb54a7506cee197f17594d931ca446b3590e2d6a2177e5addf13794",
+    "plain_source": "ordinary/open/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.404194660582093,
+      "dc": -0.0003024999052286148,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.295931476226766,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/open/5.wav": {
+    "sha256": "38b74974f9792ad01601cf997321f50f841fcf337057f3f427a4f953b8879a3b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/5.wav",
+    "source_sha256": "38b74974f9792ad01601cf997321f50f841fcf337057f3f427a4f953b8879a3b",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.709261927471903,
+      "dc": -0.00029798236986001335,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.221287691975996,
+      "last_sample": -3.933906555175781e-06
+    }
+  },
+  "refined/paired_return/e5/open/5.wav": {
+    "sha256": "f532adef009e29a38cf7b3f93c60b99fdce900a822c419409048088caab204d9",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/5.wav",
+    "source_sha256": "38b74974f9792ad01601cf997321f50f841fcf337057f3f427a4f953b8879a3b",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.118474310588534,
+      "dc": -0.0003097034990787506,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.228788668311056,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/open/5.wav": {
+    "sha256": "7d48e49cb4df3aef1aaa859fc5e0889724d002dfd05e6a14e7ffa2ee0806f5ca",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/open/5.wav",
+    "source_sha256": "38b74974f9792ad01601cf997321f50f841fcf337057f3f427a4f953b8879a3b",
+    "plain_source": "ordinary/open/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.490792720918968,
+      "dc": -0.00031983860664897495,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.23494611557094,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/place/1.wav": {
+    "sha256": "06e8315560ef633ae9f49a8f480204e4b45c4def7873cf18cdac4f4abb68309f",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/1.wav",
+    "source_sha256": "06e8315560ef633ae9f49a8f480204e4b45c4def7873cf18cdac4f4abb68309f",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.640493590407781,
+      "dc": -0.00026780722869767083,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.014122686380095,
+      "last_sample": 2.6226043701171875e-05
+    }
+  },
+  "refined/paired_return/e5/place/1.wav": {
+    "sha256": "22e9466edd7357451a6e8d9961d213f799ce3dfdc17d3ec05103c58648d0cacd",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/1.wav",
+    "source_sha256": "06e8315560ef633ae9f49a8f480204e4b45c4def7873cf18cdac4f4abb68309f",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.262275870974115,
+      "dc": -0.00027908177839385136,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.024616490521846,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/place/1.wav": {
+    "sha256": "615b6171a535de1c2da55f8f9b51aec8e14785a73d81bce5d4c35c1a232fdf58",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/1.wav",
+    "source_sha256": "06e8315560ef633ae9f49a8f480204e4b45c4def7873cf18cdac4f4abb68309f",
+    "plain_source": "ordinary/place/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.788812257933172,
+      "dc": -0.0002881009131669998,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.0323500457710715,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/place/2.wav": {
+    "sha256": "bca8eb2067f42cb9756068eb95c2321b9c4b75e055e9373e44cff9d4ec5a49df",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/2.wav",
+    "source_sha256": "bca8eb2067f42cb9756068eb95c2321b9c4b75e055e9373e44cff9d4ec5a49df",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.496685399261018,
+      "dc": -0.00030300629635651906,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.061791903947361,
+      "last_sample": -8.940696716308594e-06
+    }
+  },
+  "refined/paired_return/e5/place/2.wav": {
+    "sha256": "2c40646d0241227c6238ce6379ec8f30a58a3a2fe5ec72bc2dd93bd5d17b0e53",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/2.wav",
+    "source_sha256": "bca8eb2067f42cb9756068eb95c2321b9c4b75e055e9373e44cff9d4ec5a49df",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.95564912225138,
+      "dc": -0.0003134111977285809,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.056407191106671,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/place/2.wav": {
+    "sha256": "d8b286c458ef215d076c55322e6f5234e6e6afc190ab89900ac4b341e6066cf9",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/2.wav",
+    "source_sha256": "bca8eb2067f42cb9756068eb95c2321b9c4b75e055e9373e44cff9d4ec5a49df",
+    "plain_source": "ordinary/place/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.351900123738424,
+      "dc": -0.0003219854500558641,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.0521554635988455,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/place/3.wav": {
+    "sha256": "327f8459cb1203bfa5f6bd691bbbfffb9623aaaa77d7ac326a905bc52b570c63",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/3.wav",
+    "source_sha256": "327f8459cb1203bfa5f6bd691bbbfffb9623aaaa77d7ac326a905bc52b570c63",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.695988291594517,
+      "dc": -0.0003111564036872652,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.501138178419118,
+      "last_sample": -1.704692840576172e-05
+    }
+  },
+  "refined/paired_return/e5/place/3.wav": {
+    "sha256": "04bbb9130924f66e3a101800195240fe1da0e9f10ae92d37631a2fdcce4579a9",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/3.wav",
+    "source_sha256": "327f8459cb1203bfa5f6bd691bbbfffb9623aaaa77d7ac326a905bc52b570c63",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.044270612173399,
+      "dc": -0.00032247913380463916,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.521152516564108,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/place/3.wav": {
+    "sha256": "f6920319e397d7477e25e60de53b1f61c70925ca7d5080c6335fd980bc4a487c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/3.wav",
+    "source_sha256": "327f8459cb1203bfa5f6bd691bbbfffb9623aaaa77d7ac326a905bc52b570c63",
+    "plain_source": "ordinary/place/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.336384149859524,
+      "dc": -0.00033205995957056683,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.5366287146517,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/place/4.wav": {
+    "sha256": "44e0b3279d2af55b7406aa9ad84db123974f4c7eba5a4c483d72517ccf692b12",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/4.wav",
+    "source_sha256": "44e0b3279d2af55b7406aa9ad84db123974f4c7eba5a4c483d72517ccf692b12",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.93212925928019,
+      "dc": -0.0002768836915493011,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.150476163307726,
+      "last_sample": 1.71661376953125e-05
+    }
+  },
+  "refined/paired_return/e5/place/4.wav": {
+    "sha256": "5746a2dd27e257e2fd425bddf53b3bf0cd0f68f31e5a691e3b76404c591690ae",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/4.wav",
+    "source_sha256": "44e0b3279d2af55b7406aa9ad84db123974f4c7eba5a4c483d72517ccf692b12",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.019798830064431,
+      "dc": -0.00028519249624676176,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.135945976566781,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/place/4.wav": {
+    "sha256": "25713bdb908ed754197d1b8be9220d93fa736079882e8f64bc47bdbf1f8cafff",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/4.wav",
+    "source_sha256": "44e0b3279d2af55b7406aa9ad84db123974f4c7eba5a4c483d72517ccf692b12",
+    "plain_source": "ordinary/place/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -10.113638792919588,
+      "dc": -0.00029144407146506837,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.125739377480487,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/place/5.wav": {
+    "sha256": "a44a57870560396dd544f412e1c85400b46cccfc07f110816cbfa36bb54ad6dc",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/5.wav",
+    "source_sha256": "a44a57870560396dd544f412e1c85400b46cccfc07f110816cbfa36bb54ad6dc",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.0806138174187385,
+      "dc": -0.0003157984879281786,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.346458133015282,
+      "last_sample": -2.1696090698242188e-05
+    }
+  },
+  "refined/paired_return/e5/place/5.wav": {
+    "sha256": "16e6fa3343e7b5e16f6ecb61d8f65957b42a6d5bb11103fa79a865aa378ea796",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/5.wav",
+    "source_sha256": "a44a57870560396dd544f412e1c85400b46cccfc07f110816cbfa36bb54ad6dc",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.700192330768006,
+      "dc": -0.00032782740890979767,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.354644983947011,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/place/5.wav": {
+    "sha256": "23e7e181eb64d61a12bf82df6f42067b99d552c0792b743706d4a75b0e962abb",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/place/5.wav",
+    "source_sha256": "a44a57870560396dd544f412e1c85400b46cccfc07f110816cbfa36bb54ad6dc",
+    "plain_source": "ordinary/place/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.24671263377231,
+      "dc": -0.00033779351247681513,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.360710119534969,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/select/1.wav": {
+    "sha256": "abe499014f1852881df1d66d792df2854fec042162e5bf354b4394800a608f34",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/1.wav",
+    "source_sha256": "abe499014f1852881df1d66d792df2854fec042162e5bf354b4394800a608f34",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.387827255784147,
+      "dc": -0.00028349943459033967,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.91115059439881,
+      "last_sample": 1.0609626770019531e-05
+    }
+  },
+  "refined/paired_return/e5/select/1.wav": {
+    "sha256": "b67d6d767ff64082358584ec837c596255b2fe1093aee4174fe705a43067f425",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/1.wav",
+    "source_sha256": "abe499014f1852881df1d66d792df2854fec042162e5bf354b4394800a608f34",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.9122783869914874,
+      "dc": -0.0002943112204472224,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.922648521732634,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/select/1.wav": {
+    "sha256": "180b7200c78a148c7c4d9f08ca35bc54b32971cf9392c91d76381a0293c5a82b",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/1.wav",
+    "source_sha256": "abe499014f1852881df1d66d792df2854fec042162e5bf354b4394800a608f34",
+    "plain_source": "ordinary/select/1.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.363698821975789,
+      "dc": -0.0003033625582853953,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.9315004011963826,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/select/2.wav": {
+    "sha256": "d4b6a5d9c61091e659691b67d9927b3fcbe6e00d50292ffbbfeebed385c95dfa",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/2.wav",
+    "source_sha256": "d4b6a5d9c61091e659691b67d9927b3fcbe6e00d50292ffbbfeebed385c95dfa",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.370259113495016,
+      "dc": -0.00029778025216526457,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.041802259450166,
+      "last_sample": -3.6954879760742188e-06
+    }
+  },
+  "refined/paired_return/e5/select/2.wav": {
+    "sha256": "5f4b2f2197f8a3d66711cadeed1ae05a631e30fd55404abd0434061fd79a219c",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/2.wav",
+    "source_sha256": "d4b6a5d9c61091e659691b67d9927b3fcbe6e00d50292ffbbfeebed385c95dfa",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.706649758480719,
+      "dc": -0.0003081205404467053,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.03630876048354,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/select/2.wav": {
+    "sha256": "a759961860978c0de928e8fd7c17270d29322068fd6a6d567fd9bc37e5cd32cf",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/2.wav",
+    "source_sha256": "d4b6a5d9c61091e659691b67d9927b3fcbe6e00d50292ffbbfeebed385c95dfa",
+    "plain_source": "ordinary/select/2.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.006101252397565,
+      "dc": -0.0003169014222092099,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.03188702336421,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/select/3.wav": {
+    "sha256": "cfe7995ade3a5cbd35df55790ff090a93d90ef4cf46190c8c9991f3c593d4d37",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/3.wav",
+    "source_sha256": "cfe7995ade3a5cbd35df55790ff090a93d90ef4cf46190c8c9991f3c593d4d37",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.73091484876339,
+      "dc": -0.00030067612727483113,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.384919846695415,
+      "last_sample": -6.67572021484375e-06
+    }
+  },
+  "refined/paired_return/e5/select/3.wav": {
+    "sha256": "bdcfc5fb2125b00af42c305b894852a4543b52a3c254e2a75e61b62e0445c368",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/3.wav",
+    "source_sha256": "cfe7995ade3a5cbd35df55790ff090a93d90ef4cf46190c8c9991f3c593d4d37",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -5.905790508702447,
+      "dc": -0.00031213069127665623,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.405678071579723,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/select/3.wav": {
+    "sha256": "f124460f2d9bd60af6ccd7ca3aae6c5139a98d6e215b75a677ed1afaf4ce09d7",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/3.wav",
+    "source_sha256": "cfe7995ade3a5cbd35df55790ff090a93d90ef4cf46190c8c9991f3c593d4d37",
+    "plain_source": "ordinary/select/3.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.106134824480075,
+      "dc": -0.0003220719595750173,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.422566172062203,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/select/4.wav": {
+    "sha256": "7660120c2f201ffb58f809435972d6f739e6de0857252e1a71a1d4a010be6008",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/4.wav",
+    "source_sha256": "7660120c2f201ffb58f809435972d6f739e6de0857252e1a71a1d4a010be6008",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -8.255710789090765,
+      "dc": -0.00028677442007594636,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.243438052538348,
+      "last_sample": 7.271766662597656e-06
+    }
+  },
+  "refined/paired_return/e5/select/4.wav": {
+    "sha256": "ad54348386e3ee4ca0299f8af8c15fcbfb46d047540f01cd0fb0eca2f596bdab",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/4.wav",
+    "source_sha256": "7660120c2f201ffb58f809435972d6f739e6de0857252e1a71a1d4a010be6008",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.036166618918948,
+      "dc": -0.0002942770305607054,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.226649945667047,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/select/4.wav": {
+    "sha256": "7be0ea41a54d754307eb58ce066590a62ec764d86efe424d3b54e3c6e480979e",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/4.wav",
+    "source_sha256": "7660120c2f201ffb58f809435972d6f739e6de0857252e1a71a1d4a010be6008",
+    "plain_source": "ordinary/select/4.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -9.762118049013445,
+      "dc": -0.00030006936026944056,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 6.214498836766175,
+      "last_sample": 0.0
+    }
+  },
+  "current/paired_return/e5/select/5.wav": {
+    "sha256": "515a47ef02368b2ea56699e73d4f305abc683054f99daa9212e3b5ed4f853fbf",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/5.wav",
+    "source_sha256": "515a47ef02368b2ea56699e73d4f305abc683054f99daa9212e3b5ed4f853fbf",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.088424337881115,
+      "dc": -0.00030205676125155554,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.26171113092621,
+      "last_sample": -7.987022399902344e-06
+    }
+  },
+  "refined/paired_return/e5/select/5.wav": {
+    "sha256": "bcf9dbbe248c85a7f2435aa2a6a1a37edb42e0a5d3151de68cd3426911285347",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/5.wav",
+    "source_sha256": "515a47ef02368b2ea56699e73d4f305abc683054f99daa9212e3b5ed4f853fbf",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -6.574784075895074,
+      "dc": -0.0003141928050253126,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.270129602111539,
+      "last_sample": 0.0
+    }
+  },
+  "weightier/paired_return/e5/select/5.wav": {
+    "sha256": "505138f83fce8d60ef8a2568bd483b61f6ae386f7e25f74276f09d87f7981572",
+    "source": "design/audits/2026-09-06/tap-refinement/current/paired_return/e5/select/5.wav",
+    "source_sha256": "515a47ef02368b2ea56699e73d4f305abc683054f99daa9212e3b5ed4f853fbf",
+    "plain_source": "ordinary/select/5.wav",
+    "treatment": "same plain-base substitution as auditioned paired-return reel",
+    "meaning_max_abs_error": 0.0,
+    "metrics": {
+      "duration_ms": 60.0,
+      "peak_dbfs": -7.014289956769523,
+      "dc": -0.00032450370490550996,
+      "onset_ms_at_minus60dbfs": 0.041666666666666664,
+      "phone_band_energy": 7.276787339935995,
+      "last_sample": 0.0
+    }
+  }
+}

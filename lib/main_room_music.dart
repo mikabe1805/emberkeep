@@ -18,32 +18,130 @@ abstract interface class MainRoomMusicPlayback {
   Future<void> dispose();
 }
 
-/// Shuffle-bag over the eight approved umbrella-brush takes. Every bag plays
-/// all eight before repeating, and the bag boundary cannot repeat a take.
+/// Composition-aware shuffle-bag over long-form music takes.
+///
+/// With no [compositionGroups], every take from 1 through [takeCount] plays
+/// before a non-adjacent repeat. A composition set can instead declare groups
+/// such as `[1..8]`, `[9]`, `[10]`, and `[11]`. The rotation
+/// first shuffles compositions without an immediate family repeat, then takes
+/// within each selected composition without an immediate take repeat.
 class MusicRotation {
-  MusicRotation({math.Random? random, this.takeCount = MainRoomMusic.takeCount})
-    : _random = random ?? math.Random();
+  MusicRotation({
+    math.Random? random,
+    this.takeCount = MainRoomMusic.takeCount,
+    List<List<int>>? compositionGroups,
+  }) : _random = random ?? math.Random() {
+    if (takeCount <= 0) {
+      throw ArgumentError.value(takeCount, 'takeCount', 'must be positive');
+    }
+    final suppliedGroups =
+        compositionGroups ??
+        [
+          [for (var take = 1; take <= takeCount; take++) take],
+        ];
+    if (suppliedGroups.isEmpty) {
+      throw ArgumentError.value(
+        compositionGroups,
+        'compositionGroups',
+        'must contain at least one composition',
+      );
+    }
+
+    final seen = <int>{};
+    final copiedGroups = <List<int>>[];
+    for (final group in suppliedGroups) {
+      if (group.isEmpty) {
+        throw ArgumentError.value(
+          compositionGroups,
+          'compositionGroups',
+          'must not contain an empty composition',
+        );
+      }
+      final copiedGroup = <int>[];
+      for (final take in group) {
+        if (take < 1 || take > takeCount) {
+          throw ArgumentError.value(
+            take,
+            'compositionGroups',
+            'takes must be between 1 and $takeCount',
+          );
+        }
+        if (!seen.add(take)) {
+          throw ArgumentError.value(
+            take,
+            'compositionGroups',
+            'a take may belong to only one composition',
+          );
+        }
+        copiedGroup.add(take);
+      }
+      copiedGroups.add(List<int>.unmodifiable(copiedGroup));
+    }
+    if (seen.length != takeCount) {
+      throw ArgumentError.value(
+        compositionGroups,
+        'compositionGroups',
+        'must assign every take from 1 through $takeCount',
+      );
+    }
+
+    _compositionGroups = List<List<int>>.unmodifiable(copiedGroups);
+    _takeBags = List<List<int>>.generate(
+      _compositionGroups.length,
+      (_) => <int>[],
+    );
+    _lastTakeByComposition = List<int?>.filled(_compositionGroups.length, null);
+  }
 
   final int takeCount;
   final math.Random _random;
-  final List<int> _bag = <int>[];
-  int? _last;
+  late final List<List<int>> _compositionGroups;
+  late final List<List<int>> _takeBags;
+  late final List<int?> _lastTakeByComposition;
+  final List<int> _compositionBag = <int>[];
+  int? _lastComposition;
 
   int next() {
-    if (_bag.isEmpty) _refill();
-    final take = _bag.removeLast();
-    _last = take;
+    if (_compositionBag.isEmpty) _refillCompositions();
+    final composition = _compositionBag.removeLast();
+    _lastComposition = composition;
+
+    final takeBag = _takeBags[composition];
+    if (takeBag.isEmpty) _refillTakes(composition);
+    final take = takeBag.removeLast();
+    _lastTakeByComposition[composition] = take;
     return take;
   }
 
-  void _refill() {
-    _bag.addAll([for (var take = 1; take <= takeCount; take++) take]);
-    _bag.shuffle(_random);
-    if (_bag.length > 1 && _bag.last == _last) {
-      final swap = _random.nextInt(_bag.length - 1);
-      final displaced = _bag[swap];
-      _bag[swap] = _bag.last;
-      _bag[_bag.length - 1] = displaced;
+  void _refillCompositions() {
+    _compositionBag.addAll([
+      for (
+        var composition = 0;
+        composition < _compositionGroups.length;
+        composition++
+      )
+        composition,
+    ]);
+    _compositionBag.shuffle(_random);
+    if (_compositionBag.length > 1 &&
+        _compositionBag.last == _lastComposition) {
+      final swap = _random.nextInt(_compositionBag.length - 1);
+      final displaced = _compositionBag[swap];
+      _compositionBag[swap] = _compositionBag.last;
+      _compositionBag[_compositionBag.length - 1] = displaced;
+    }
+  }
+
+  void _refillTakes(int composition) {
+    final takeBag = _takeBags[composition];
+    takeBag.addAll(_compositionGroups[composition]);
+    takeBag.shuffle(_random);
+    final lastTake = _lastTakeByComposition[composition];
+    if (takeBag.length > 1 && takeBag.last == lastTake) {
+      final swap = _random.nextInt(takeBag.length - 1);
+      final displaced = takeBag[swap];
+      takeBag[swap] = takeBag.last;
+      takeBag[takeBag.length - 1] = displaced;
     }
   }
 }
@@ -138,13 +236,15 @@ class _MusicVoice {
       _fadeTo == 0 && now.difference(_fadeStart) >= _fadeLength;
 }
 
-/// The owner-approved normal-room score: eight 96-second umbrella-brush takes
-/// at 72 BPM, rotated without immediate repetition and crossfaded at the seam.
+/// The owner-approved normal-room scores: eight umbrella-brush performances
+/// and Lamp left on, each 96 seconds at 72 BPM. Compositions alternate while
+/// umbrella performances rotate, with a crossfade at each seam.
 /// The masters carry their auditioned level in-file, so playback stays at
 /// unity apart from fades and interaction ducking.
 class MainRoomMusic implements MainRoomMusicPlayback {
   MainRoomMusic._({MusicRotation? rotation, MusicDucker? ducker})
-    : _rotation = rotation ?? MusicRotation(),
+    : _rotation =
+          rotation ?? MusicRotation(compositionGroups: compositionGroups),
       ducker = ducker ?? MusicDucker();
 
   @visibleForTesting
@@ -153,9 +253,18 @@ class MainRoomMusic implements MainRoomMusicPlayback {
 
   static final MainRoomMusic instance = MainRoomMusic._();
 
-  static const takeCount = 8;
-  static String assetForTake(int take) =>
-      'music/take_${take.toString().padLeft(2, '0')}.m4a';
+  static const takeCount = 9;
+  static const compositionGroups = <List<int>>[
+    [1, 2, 3, 4, 5, 6, 7, 8],
+    [9],
+  ];
+  static String assetForTake(int take) {
+    RangeError.checkValueInInterval(take, 1, takeCount, 'take');
+    return take == 9
+        ? 'music/lamp-left-on.m4a'
+        : 'music/take_${take.toString().padLeft(2, '0')}.m4a';
+  }
+
   static final List<String> takeAssets = List<String>.unmodifiable([
     for (var take = 1; take <= takeCount; take++) assetForTake(take),
   ]);

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 import '../audio.dart';
+import '../clock.dart';
+import '../haptics.dart';
+import '../content/quest_suggestions.dart';
 import '../models.dart';
 import '../tokens.dart';
-import 'facets.dart';
-import 'glass.dart';
-import 'honey_button.dart';
+import 'pressable.dart';
+import 'working_surface.dart';
 
 Future<Set<String>?> showTopThreeWizard(
   BuildContext context, {
@@ -15,442 +15,547 @@ Future<Set<String>?> showTopThreeWizard(
   required String dayLabel,
   required Iterable<Quest> candidates,
   Iterable<String> initialTitles = const [],
+  Iterable<Goal> goals = const [],
+  DateTime? day,
   Color accent = Palette.xpLight,
   String confirmLabel = 'KEEP THESE THREE',
   Future<Quest?> Function()? onAdd,
-}) {
-  return showModalBottomSheet<Set<String>>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: const Color(0xE0140C06),
-    builder: (_) => _TopThreeWizard(
+}) => Navigator.of(context).push<Set<String>>(
+  PageRouteBuilder<Set<String>>(
+    settings: const RouteSettings(name: '/quests/choose'),
+    transitionDuration:
+        Haptics.reduceMotion || MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 260),
+    reverseTransitionDuration:
+        Haptics.reduceMotion || MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180),
+    pageBuilder: (_, animation, secondary) => _TopThreeWizard(
       title: title,
-      subtitle: subtitle,
       dayLabel: dayLabel,
       candidates: candidates.toList(),
-      initialTitles: initialTitles.toSet(),
-      accent: accent,
-      confirmLabel: confirmLabel,
+      initialTitles: initialTitles.toList(),
+      goals: goals.toList(),
+      day: day ?? Clock.now(),
       onAdd: onAdd,
     ),
-  );
-}
+    transitionsBuilder: (_, animation, secondary, child) => FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      child: child,
+    ),
+  ),
+);
 
 class _TopThreeWizard extends StatefulWidget {
   const _TopThreeWizard({
     required this.title,
-    required this.subtitle,
     required this.dayLabel,
     required this.candidates,
     required this.initialTitles,
-    required this.accent,
-    required this.confirmLabel,
-    required this.onAdd,
+    required this.goals,
+    required this.day,
+    this.onAdd,
   });
-
-  final String title;
-  final String subtitle;
-  final String dayLabel;
+  final String title, dayLabel;
   final List<Quest> candidates;
-  final Set<String> initialTitles;
-  final Color accent;
-  final String confirmLabel;
+  final List<String> initialTitles;
+  final List<Goal> goals;
+  final DateTime day;
   final Future<Quest?> Function()? onAdd;
-
   @override
   State<_TopThreeWizard> createState() => _TopThreeWizardState();
 }
 
 class _TopThreeWizardState extends State<_TopThreeWizard> {
-  late final List<Quest> _candidates = [...widget.candidates];
-  late final Set<String> _selected = {
-    for (final q in widget.candidates)
-      if (widget.initialTitles.contains(q.title)) q.title,
-  }.take(3).toSet();
-  int _step = 0;
-  bool _adding = false;
+  late final Map<String, Quest> _candidates = () {
+    final result = <String, Quest>{};
+    for (final q in widget.candidates) {
+      result.putIfAbsent(q.title, () => q);
+    }
+    return result;
+  }();
+  // Keep saved rank rather than reconstructing order from the source list.
+  late final Set<String> _selected = widget.initialTitles
+      .where(_candidates.containsKey)
+      .take(3)
+      .toSet();
+  int? _minutes;
+  bool _browseAll = false, _adding = false;
+  String? _notice;
 
-  void _toggle(Quest quest) {
-    if (_selected.contains(quest.title)) {
-      setState(() => _selected.remove(quest.title));
-      Sfx.instance.playMaterial(MaterialSound.glass);
-      HapticFeedback.selectionClick();
-      return;
+  void _toggle(Quest quest) => setState(() {
+    _notice = null;
+    if (_selected.remove(quest.title)) return;
+    if (_selected.length == 3) {
+      _notice = 'Your three are chosen. Remove one first to make room.';
+    } else {
+      _selected.add(quest.title);
     }
-    if (_selected.length >= 3) {
-      Sfx.instance.play('boing');
-      HapticFeedback.lightImpact();
-      return;
-    }
-    setState(() => _selected.add(quest.title));
-    Sfx.instance.play('tick_lift');
-    HapticFeedback.selectionClick();
-  }
+  });
 
   Future<void> _add() async {
-    final add = widget.onAdd;
-    if (add == null || _adding) return;
+    if (_adding || widget.onAdd == null) return;
     setState(() => _adding = true);
-    final quest = await add();
-    if (!mounted) return;
-    setState(() {
-      _adding = false;
-      if (quest != null && !_candidates.any((q) => q.title == quest.title)) {
-        _candidates.add(quest);
+    try {
+      final quest = await widget.onAdd!();
+      if (!mounted || quest == null) return;
+      setState(() {
+        _candidates.putIfAbsent(quest.title, () => quest);
         if (_selected.length < 3) _selected.add(quest.title);
-      }
-    });
+        _browseAll = true;
+      });
+    } finally {
+      if (mounted) setState(() => _adding = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      heightFactor: 0.92,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: GlassPanel(
-          tint: const Color(0xFA281D1A),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+    final suggestions = suggestQuests(
+      candidates: _candidates.values,
+      goals: widget.goals,
+      selectedTitles: _selected,
+      day: widget.day,
+      maxMinutes: _minutes,
+    );
+    final available = _candidates.values
+        .where(
+          (q) =>
+              !_selected.contains(q.title) &&
+              isAvailableSuggestionCandidate(
+                q,
+                goals: widget.goals,
+                day: widget.day,
+              ),
+        )
+        .toList();
+    final reasons = {for (final s in suggestions) s.quest.title: s.reason};
+    final shown = _browseAll
+        ? available
+        : suggestions.take(3).map((s) => s.quest).toList();
+    final compact =
+        MediaQuery.sizeOf(context).height < 720 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.25;
+    return Scaffold(
+      backgroundColor: Palette.parchment,
+      body: WorkingScene(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
                 children: [
-                  Text(
-                    widget.dayLabel.toUpperCase(),
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: widget.accent,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 20, 0),
+                    child: Row(
+                      children: [
+                        WorkingAction(
+                          label: 'Back',
+                          icon: Icons.chevron_left,
+                          iconLeading: true,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'ROOM of DAYS',
+                            textAlign: TextAlign.right,
+                            style: WorkingType.title.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: Palette.xpLight,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  Text(
-                    '${_step + 1} / 2',
-                    style: Type.label.copyWith(fontSize: Type.minLabel),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).pop(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(7),
-                      child: Icon(Icons.close, size: 18, color: Palette.textLo),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      key: const Key('choose-today-scroll'),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(height: compact ? 14 : 52),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.title,
+                                  style: WorkingType.title.copyWith(
+                                    fontSize: compact ? 30 : 36,
+                                    height: 1.06,
+                                    fontWeight: FontWeight.w400,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Color(0xFF090504),
+                                        blurRadius: 12,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 9),
+                                Text(
+                                  'Pick up to three. One or two is enough.',
+                                  style: Type.body.copyWith(
+                                    fontSize: 14,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  MaterialLocalizations.of(
+                                    context,
+                                  ).formatFullDate(widget.day),
+                                  style: Type.body.copyWith(
+                                    fontSize: 12,
+                                    color: Palette.xpLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          WorkingSurface(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        widget.dayLabel.toLowerCase().contains(
+                                              'tomorrow',
+                                            )
+                                            ? 'CHOSEN FOR TOMORROW'
+                                            : 'CHOSEN FOR TODAY',
+                                        style: Type.label.copyWith(
+                                          color: Palette.xpLight,
+                                          fontSize: 10.5,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${_selected.length} of 3',
+                                      style: Type.body.copyWith(
+                                        color: Palette.xpLight,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                if (_selected.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 20,
+                                    ),
+                                    child: Text(
+                                      'What would feel good to have done?',
+                                      style: WorkingType.title.copyWith(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                for (final (index, title) in _selected.indexed)
+                                  _row(
+                                    _candidates[title]!,
+                                    selected: true,
+                                    index: index + 1,
+                                  ),
+                                if (_notice != null)
+                                  Semantics(
+                                    liveRegion: true,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(top: 10),
+                                      child: Text(
+                                        _notice!,
+                                        style: Type.body.copyWith(
+                                          fontSize: 13,
+                                          color: Palette.xpLight,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                const WorkingRule(),
+                                Text(
+                                  'FIND A SESSION UP TO',
+                                  style: Type.label.copyWith(
+                                    fontSize: 10,
+                                    color: Palette.textMid,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                _sessionFilters(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _browseAll
+                                      ? 'ALL AVAILABLE QUESTS'
+                                      : 'WORTH CONSIDERING',
+                                  style: Type.label.copyWith(
+                                    fontSize: 10.5,
+                                    color: Palette.xpLight,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                if (shown.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    child: Text(
+                                      _browseAll
+                                          ? 'Everything available is already chosen.'
+                                          : _minutes == null
+                                          ? 'Browse your available quests to choose what fits.'
+                                          : 'No saved timer fits this length. All your other quests are still available below.',
+                                      style: Type.body.copyWith(
+                                        fontSize: 13,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                for (final quest in shown)
+                                  _row(
+                                    quest,
+                                    selected: false,
+                                    reason: reasons[quest.title],
+                                  ),
+                                if (available.isNotEmpty)
+                                  WorkingAction(
+                                    label: _browseAll
+                                        ? 'Show suggestions'
+                                        : 'Browse all quests (${available.length})',
+                                    icon: _browseAll
+                                        ? Icons.expand_less
+                                        : Icons.chevron_right,
+                                    onTap: () => setState(
+                                      () => _browseAll = !_browseAll,
+                                    ),
+                                  ),
+                                if (widget.onAdd != null)
+                                  WorkingAction(
+                                    label: _adding ? 'Adding…' : 'Add a quest',
+                                    icon: Icons.add,
+                                    enabled: !_adding,
+                                    onTap: _add,
+                                  ),
+                                const WorkingRule(),
+                                WorkingAction(
+                                  key: const Key('top-three-save'),
+                                  label: _selected.isEmpty
+                                      ? 'Choose one to begin'
+                                      : _selected.length == 1
+                                      ? 'Keep this 1'
+                                      : 'Keep these ${_selected.length}',
+                                  primary: true,
+                                  enabled: _selected.isNotEmpty,
+                                  sound: InteractionSound.place,
+                                  icon: Icons.arrow_forward,
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pop(Set<String>.of(_selected)),
+                                ),
+                                const SizedBox(height: 8),
+                                WorkingAction(
+                                  label: 'Cancel',
+                                  onTap: () => Navigator.of(context).pop(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
-              Text(widget.title, style: Type.display.copyWith(fontSize: 27)),
-              const SizedBox(height: 4),
-              Text(
-                widget.subtitle,
-                style: Type.body.copyWith(
-                  fontSize: 13.5,
-                  height: 1.35,
-                  color: Palette.textLo,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: Motion.settle,
-                  child: _step == 0 ? _chooseStep() : _confirmStep(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (_step == 0)
-                HoneyButton(
-                  label: _selected.isEmpty
-                      ? 'CHOOSE UP TO THREE'
-                      : 'REVIEW ${_selected.length} CHOICE${_selected.length == 1 ? '' : 'S'}',
-                  icon: Icons.arrow_forward,
-                  enabled: _selected.isNotEmpty,
-                  expand: true,
-                  onTap: () {
-                    setState(() => _step = 1);
-                  },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sessionFilters() => Container(
+    padding: const EdgeInsets.all(3),
+    decoration: BoxDecoration(
+      color: const Color(0x44090504),
+      borderRadius: BorderRadius.circular(27),
+      border: Border.all(color: const Color(0x886F5133), width: .8),
+    ),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        const values = <int?>[5, 10, 20, null];
+        final fitsOneLine =
+            constraints.maxWidth >= MediaQuery.textScalerOf(context).scale(260);
+        return fitsOneLine
+            ? Row(
+                children: [
+                  for (final value in values) Expanded(child: _filter(value)),
+                ],
+              )
+            : Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: [for (final value in values) _filter(value)],
+              );
+      },
+    ),
+  );
+
+  Widget _filter(int? minutes) {
+    final selected = _minutes == minutes;
+    final label = minutes == null ? 'Any' : '$minutes min';
+    return Pressable(
+      semanticLabel: 'Session length $label',
+      edgeColor: Colors.transparent,
+      semanticToggled: selected,
+      interactionSound: InteractionSound.select,
+      material: MaterialSound.glass,
+      // The visible selected pill is the current filter, not a second action.
+      // Keep a re-tap silent so a search refinement cannot become a metronome.
+      soundEnabled: !selected,
+      pressDepth: 1,
+      onTapUp: (_) {
+        if (selected) return;
+        setState(() {
+          _minutes = minutes;
+          _browseAll = false;
+        });
+      },
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 57, minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: selected ? const Color(0xFFEBCBA1) : Colors.transparent,
+          ),
+          gradient: selected
+              ? const LinearGradient(
+                  colors: [
+                    Color(0x6659432F),
+                    Color(0x66423942),
+                    Color(0x33261B17),
+                  ],
                 )
-              else
-                Row(
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _step = 0),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          'BACK',
-                          style: Type.label.copyWith(fontSize: 11),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: HoneyButton(
-                        label: widget.confirmLabel,
-                        icon: Icons.auto_awesome,
-                        expand: true,
-                        onTap: () {
-                          Navigator.of(context).pop(Set<String>.of(_selected));
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+              : null,
+          boxShadow: selected
+              ? const [BoxShadow(color: Color(0x30866A79), blurRadius: 9)]
+              : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: WorkingType.title.copyWith(
+            fontSize: 18,
+            color: selected ? Palette.textHi : Palette.textMid,
           ),
         ),
       ),
     );
   }
 
-  Widget _chooseStep() {
-    return Column(
-      key: const ValueKey('choose-three'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
+  Widget _row(
+    Quest quest, {
+    required bool selected,
+    int? index,
+    String? reason,
+  }) {
+    final done = quest.doneFor(widget.day);
+    final aside = quest.snoozedDay == Days.key(widget.day);
+    return Pressable(
+      key: ValueKey('top-three-${quest.title}'),
+      edgeColor: Colors.transparent,
+      semanticLabel: '${selected ? 'Remove' : 'Choose'} ${quest.displayTitle}',
+      semanticToggled: selected,
+      interactionSound: InteractionSound.select,
+      material: MaterialSound.glass,
+      pressDepth: 1,
+      onTapUp: (_) => _toggle(quest),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0x456F5133), width: .7),
+          ),
+        ),
+        child: Row(
           children: [
-            Text(
-              '${_selected.length} OF 3 CHOSEN',
-              style: Type.label.copyWith(fontSize: 11, color: widget.accent),
-            ),
-            const Spacer(),
-            if (widget.onAdd != null)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _add,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    _adding ? 'ADDING…' : '+ ADD ONE',
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.xpLight,
-                    ),
+            if (index != null) ...[
+              SizedBox(
+                width: 28,
+                child: Text(
+                  '$index',
+                  style: WorkingType.title.copyWith(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w400,
+                    color: Palette.xpLight,
                   ),
                 ),
               ),
+              const SizedBox(width: 7),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    quest.displayTitle,
+                    style: WorkingType.title.copyWith(
+                      fontSize: 23,
+                      fontWeight: FontWeight.w400,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    done
+                        ? 'Done today · kept in your three'
+                        : aside
+                        ? 'Set aside · still chosen'
+                        : reason ?? quest.goalTitle ?? 'A quest for you',
+                    style: Type.body.copyWith(fontSize: 12.5, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF59402A), Color(0xFF20160F)],
+                ),
+                border: Border.all(
+                  color: Palette.xpLight.withValues(alpha: .55),
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0xBB0C0704),
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(
+                selected ? Icons.remove : Icons.add,
+                color: Palette.xpLight,
+                size: 23,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 6),
-        Expanded(
-          child: _candidates.isEmpty
-              ? _emptyState()
-              : ListView.separated(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  itemCount: _candidates.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 7),
-                  itemBuilder: (_, index) {
-                    final quest = _candidates[index];
-                    return _ChoiceTile(
-                      key: ValueKey('top-three-${quest.title}'),
-                      quest: quest,
-                      selected: _selected.contains(quest.title),
-                      accent: widget.accent,
-                      onTap: () => _toggle(quest),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _emptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.bedtime_outlined, size: 34, color: widget.accent),
-            const SizedBox(height: 10),
-            Text(
-              'Nothing is waiting',
-              style: Type.display.copyWith(fontSize: 20),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              'A clear day is allowed. Add one only if it would genuinely help.',
-              textAlign: TextAlign.center,
-              style: Type.body.copyWith(fontSize: 13.5, color: Palette.textLo),
-            ),
-            if (widget.onAdd != null) ...[
-              const SizedBox(height: 12),
-              HoneyButton(
-                label: 'ADD ONE FOR TOMORROW',
-                icon: Icons.add,
-                onTap: _add,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _confirmStep() {
-    final chosen = [
-      for (final quest in _candidates)
-        if (_selected.contains(quest.title)) quest,
-    ];
-    return ListView(
-      key: const ValueKey('confirm-three'),
-      padding: const EdgeInsets.fromLTRB(2, 8, 2, 8),
-      children: [
-        Icon(Icons.auto_awesome, size: 30, color: widget.accent),
-        const SizedBox(height: 9),
-        Text(
-          chosen.length == 1 ? 'One clear promise' : 'Your day has a shape',
-          textAlign: TextAlign.center,
-          style: Type.display.copyWith(fontSize: 23),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          'These lead the way. Everything else stays safely on your board.',
-          textAlign: TextAlign.center,
-          style: Type.body.copyWith(fontSize: 13.5, color: Palette.textLo),
-        ),
-        const SizedBox(height: 18),
-        for (var i = 0; i < chosen.length; i++) ...[
-          _ChosenTile(index: i + 1, quest: chosen[i], accent: widget.accent),
-          if (i != chosen.length - 1) const SizedBox(height: 8),
-        ],
-      ],
-    );
-  }
-}
-
-class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({
-    super.key,
-    required this.quest,
-    required this.selected,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final Quest quest;
-  final bool selected;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: '${quest.displayTitle}${selected ? ', chosen' : ''}',
-      onTap: onTap,
-      child: GestureDetector(
-        excludeFromSemantics: true,
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 58),
-          padding: const EdgeInsets.fromLTRB(12, 9, 11, 9),
-          decoration: facetedDecoration(
-            cut: 9,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: selected
-                  ? [
-                      accent.withValues(alpha: 0.17),
-                      accent.withValues(alpha: 0.05),
-                    ]
-                  : const [Color(0x2EFFF2DC), Color(0x0AFFF2DC)],
-            ),
-            borderColor: selected
-                ? accent.withValues(alpha: 0.72)
-                : Palette.glassEdge,
-          ),
-          child: Row(
-            children: [
-              Transform.rotate(
-                angle: 0.785,
-                child: Container(width: 9, height: 9, color: quest.stat.color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      quest.displayTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                        fontSize: 14,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${quest.stat.abbr} · ${quest.isEvent ? 'DATED' : quest.schedule.label.toUpperCase()} · ${quest.difficulty <= 3
-                          ? 'LIGHT'
-                          : quest.difficulty <= 6
-                          ? 'STEADY'
-                          : 'HEAVY'}',
-                      style: Type.label.copyWith(fontSize: Type.minLabel),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              FacetCheck(selected: selected, accent: accent, size: 22),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChosenTile extends StatelessWidget {
-  const _ChosenTile({
-    required this.index,
-    required this.quest,
-    required this.accent,
-  });
-
-  final int index;
-  final Quest quest;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-      decoration: facetedDecoration(
-        cut: 10,
-        color: accent.withValues(alpha: 0.1),
-        borderColor: accent.withValues(alpha: 0.5),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$index',
-            style: Type.numerals.copyWith(fontSize: 21, color: accent),
-          ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Text(
-              quest.displayTitle,
-              style: Type.body.copyWith(fontSize: 14.5, color: Palette.textHi),
-            ),
-          ),
-          Transform.rotate(
-            angle: 0.785,
-            child: Container(width: 8, height: 8, color: quest.stat.color),
-          ),
-        ],
       ),
     );
   }

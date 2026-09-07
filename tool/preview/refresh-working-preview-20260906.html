@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opening Room of Days</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #211b20; color: #f6ece0; }
+  body { margin: 0; min-height: 100svh; display: grid; place-items: center; }
+  main { max-width: 28rem; padding: 2rem; }
+  h1 { font: 400 2rem Georgia, serif; margin: 0 0 1rem; }
+  p { line-height: 1.6; color: #d1c2b9; }
+  a { color: #e5c58f; }
+</style>
+<main aria-live="polite">
+  <h1 id="heading">Opening the updated Goals…</h1>
+  <p id="status">Refreshing this local preview. Your saved progress stays here.</p>
+  <noscript><p>JavaScript is needed to refresh this preview.</p></noscript>
+</main>
+<script>
+'use strict';
+(async () => {
+  // This helper is copied into the local build only, never shipped in web/.
+  // Keep its authority limited to the preview it was created to repair.
+  if (location.hostname !== '127.0.0.1' || location.port !== '8393') {
+    document.getElementById('heading').textContent = 'This link is for the local preview';
+    document.getElementById('status').textContent = 'Open this page on the Room of Days preview at 127.0.0.1:8393.';
+    return;
+  }
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        const scope = new URL(registration.scope);
+        const workers = [registration.active, registration.waiting, registration.installing].filter(Boolean);
+        const belongsToPreview = scope.origin === location.origin && scope.pathname === '/' && workers.some(worker => {
+          const script = new URL(worker.scriptURL);
+          return script.origin === location.origin &&
+            ['/room_of_days_service_worker.js', '/flutter_service_worker.js'].includes(script.pathname);
+        });
+        if (belongsToPreview && !(await registration.unregister())) {
+          throw new Error('The local preview worker could not be removed.');
+        }
+      }
+    }
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.filter(name => name.startsWith('room-of-days-shell-')).map(name => caches.delete(name)));
+    }
+    // Saves, preferences, authentication, localStorage, and IndexedDB are untouched.
+    location.replace('/?page=goals&preview=working-room-20260906');
+  } catch (error) {
+    document.getElementById('heading').textContent = 'The preview could not refresh';
+    document.getElementById('status').textContent = 'Your saved progress is unchanged. Reload this page to try again.';
+  }
+})();
+</script>
+</html>

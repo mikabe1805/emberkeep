@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-06",
+  "preview": "http://127.0.0.1:8393/?page=goals",
+  "refresh": "http://127.0.0.1:8393/refresh-working-preview-20260906.html",
+  "branch": "codex/build41-authored-continuation",
+  "browser_profile": "isolated Playwright rod-implementation, synthetic save",
+  "served_files_match_build": true,
+  "sha256": {
+    "main.dart.js": "f44fe0b316409f1e145ad6b918b54e2cf30b902ca1b0e2c37ee8b6b8a328741f",
+    "main.dart.wasm": "2e5b037e670dc2d2fa659a994e84e00d07e13ea1f83d83e0d065a82ccc0c18c9",
+    "room_of_days_service_worker.js": "1ae1e9b8151f8b2ef00e12155c62bb9f2950e69b7a1e0787bdc3d07e2f274c8f",
+    "offline-assets.json": "4a75ff0dfdda8739dadab52480b2013f8efaf6552ff662a762f7401eb17f5862"
+  },
+  "browser_save_comparison": {
+    "saved_progress_identical": true,
+    "only_changed_field": "state.lastModified",
+    "xp": 15,
+    "total_completions": 1,
+    "stale_app_cache_removed": true,
+    "unrelated_cache_preserved": true,
+    "new_worker_version": "2961611379"
+  },
+  "owner_browser_open_result": "queued",
+  "owner_browser_execution_confirmed": false
+}

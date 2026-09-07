@@ -6,6 +6,18 @@ approved page targets in `design/visual-targets/2026-07-30/`; the current Plans
 and Journal destination plates use the threshold-view lane recorded in
 `design/visual-targets/2026-08-21/GENERATION-RECORD.md`.
 
+## Working room — 2026-09-06
+
+`working-room-v1.webp` is the intact 1024 × 1536 writing-room plate used behind
+the Goals, daily chooser, session and adjustment surfaces. The existing earned
+room remains on Quests. It contains no live UI, text or task-specific artwork.
+The original is preserved at
+`design/ideation/2026-09-06-useful-depth/working-room-source.png`; the approved
+reference is `design/ideation/2026-09-06-top-three-room/02-choose-today.png`.
+WebP export used quality 88 and method 6 with no semantic image edits. The
+source path, prompt and camera/material intent are recorded in
+`design/ideation/2026-09-06-useful-depth/implementation.md`.
+
 ## Active threshold-view plates — 2026-08-21
 
 Both active sources are native 1672 x 941 PNGs. Their runtime WebPs were

@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "build41-authored-continuation-2026-09-05",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "working_full_app_candidate",
+  "surface": "Daily Quest selection, reward continuity, domain doors, Journal materials, Focus playback reliability",
+  "scope": "Continue Build 41 as the full application foundation and preserve later experimental code. Improve the real daily loop while retaining the room, RPG depth and complete destinations.",
+  "user_job": "Make a small real action, feel its immediate consequence, see what it contributes to, and return without losing prior work.",
+  "active_sources": [
+    {
+      "id": "owner-continuation-direction",
+      "kind": "owner_direction",
+      "path": "design/audits/2026-09-05/build41-continuation/README.md",
+      "judged_state": "Owner rejects the separate study's appearance and loss of depth, authorizes continuing from Build 41 or later work using Sol agents, and asks to retain useful improvements.",
+      "priority": 1,
+      "content_sha256": "869b736675f5b7e52791c5f1f1901d9ace2f4f87a8a60e4d182fc6f5522d68aa"
+    },
+    {
+      "id": "intact-build41",
+      "kind": "production_baseline",
+      "revision": "fd584564c6889f8aff891b5e5a8d8f4602d957d0",
+      "path": "design/audits/2026-09-05/build41-continuation/baseline/01-quests-production.png",
+      "judged_state": "The complete existing product, with authored room materials, dense useful behavior and real production input.",
+      "priority": 2,
+      "content_sha256": "a879eb55c0bc4a300e4f75c4d47c75b6b0d36bf064e7538ce29f7902526b320d"
+    }
+  ],
+  "superseded_sources": [
+    {
+      "id": "day-room-study",
+      "reason": "Owner rejected its sparse composition, colored panels and loss of product depth. Its visual system is not a source for this continuation."
+    }
+  ],
+  "source_conflicts": [],
+  "edge_contract": {
+    "product": {
+      "decision": "Selection is free; only a named action enters the existing completion or special-action path. Link actual earned progress to domain and Goal context.",
+      "proof": "Exact-row selection, no XP on selection, one explicit completion, truthful goal status and preserved later writing."
+    },
+    "interaction": {
+      "decision": "Keep the Build 41 completion choreography and full destinations. Recover focus playback reliably without changing saved music preferences.",
+      "proof": "Real daily journey plus cancellation, repeat input, undo, focus retry/background and reduced-motion checks."
+    },
+    "visual": {
+      "decision": "Preserve the authored room; reduce competing frames; make dark Journal materials coherent; use restrained pigments and one clear primary action.",
+      "proof": "Same-input baseline and candidate renders, full-frame inspection, narrow and large text plus actual browser interaction."
+    }
+  },
+  "unverified_property": "Owner judgment of beauty and depth, physical phone feel, sound balance and long-session fatigue; automatic domain history is still a short recent buffer.",
+  "decisive_check": {
+    "method": "Use the full app locally through the daily journey and compare fresh production fixtures, then review on a physical phone.",
+    "pass_condition": "All preserved destinations work, actions and rewards remain honest, writing survives later edits, the composition reads coherently, and owner/device acceptance is recorded separately."
+  }
+}

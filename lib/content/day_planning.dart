@@ -116,7 +116,14 @@ void applyDailyField(
     source,
     day,
   ).where((quest) => !quest.allDay && !quest.isEvent).toList(growable: false);
+  // A re-opened chooser can keep a completed or set-aside Quest selected.
+  // Resolve those existing field entries before today's open candidates so a
+  // title still names the same first source Quest the field already held.
+  // New titles remain restricted to live planning candidates.
   final candidatesByTitle = <String, Quest>{};
+  for (final quest in selectedDailyFieldForDay(source, day)) {
+    candidatesByTitle.putIfAbsent(quest.title, () => quest);
+  }
   for (final quest in candidates) {
     candidatesByTitle.putIfAbsent(quest.title, () => quest);
   }

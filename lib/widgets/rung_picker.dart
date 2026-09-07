@@ -51,6 +51,9 @@ class _RungSheetState extends State<_RungSheet> {
   late int _sel = widget.initial;
 
   void _choose(int rung) {
+    // The selected rung is already the value this sheet will return. A second
+    // tap has no state consequence, so it must not mint a confirmation cue.
+    if (rung == _sel) return;
     Sfx.instance.playMaterial(MaterialSound.glass);
     setState(() => _sel = rung);
   }

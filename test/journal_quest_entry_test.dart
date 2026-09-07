@@ -73,11 +73,21 @@ Future<void> _openJournalQuest(WidgetTester tester, Quest quest) async {
   expect(card, findsOneWidget);
   await Scrollable.ensureVisible(
     tester.element(card),
-    alignment: 0.5,
+    alignment: 0.35,
     duration: Duration.zero,
   );
   await tester.pump();
-  await tester.tap(card);
+  final action = find.descendant(
+    of: card,
+    matching: find.byKey(const ValueKey('quest-primary-action')),
+  );
+  await Scrollable.ensureVisible(
+    tester.element(action),
+    alignment: 0.75,
+    duration: Duration.zero,
+  );
+  await tester.pump();
+  await tester.tap(action);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 650));
   expect(find.byType(JournalEntryScreen), findsOneWidget);
@@ -282,7 +292,12 @@ void main() {
     expect(find.byType(JournalEntryScreen), findsNothing);
     expect(events, isEmpty);
 
-    await tester.tap(card);
+    await tester.tap(
+      find.descendant(
+        of: card,
+        matching: find.byKey(const ValueKey('quest-primary-action')),
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(JournalEntryScreen), findsOneWidget);
@@ -330,7 +345,7 @@ void main() {
     );
     await _pumpBoard(tester, state: state, quests: [quest]);
 
-    await tester.tap(find.byKey(ValueKey('card-${quest.title}')));
+    await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
     await tester.pump();
     expect(quest.doneFor(Clock.now()), isTrue);
     expect(events, ['complete']);

@@ -684,10 +684,25 @@ class QuestDeskStyleButton extends StatelessWidget {
                 borderWidth: 1.1,
               ),
               child: Center(
-                child: Icon(
-                  Icons.auto_awesome_rounded,
-                  color: look.brass,
-                  size: 26,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      color: look.brass,
+                      size: 21,
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      'DESK',
+                      style: Type.label.copyWith(
+                        fontSize: 8,
+                        height: 1,
+                        letterSpacing: 0.8,
+                        color: look.brass.withValues(alpha: 0.84),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

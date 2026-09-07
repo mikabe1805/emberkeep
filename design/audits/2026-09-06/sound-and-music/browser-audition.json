@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-06",
+  "environment": "isolated Playwright preview at 127.0.0.1:8393; not the owner's browser save or physical phone",
+  "music_url": "http://127.0.0.1:8393/umbrella-review-20260906/",
+  "source_receipt": "umbrella-listening-room.json",
+  "checks": {
+    "six_audio_files_decode": true,
+    "durations_seconds": [18, 96, 16, 18, 96, 16],
+    "new_hook_playback_clock_advances": true,
+    "starting_another_player_pauses_the_first": true,
+    "cold_audition_cache_reload_plays": true,
+    "all_players_left_paused": true,
+    "app_refresh_preserves_save_except_state_lastModified": true
+  },
+  "repair": "The first native range request failed through the offline worker. The local audition now fetches each complete file and assigns a blob URL, matching the app's whole-file loading behavior. Cold-cache playback was then verified.",
+  "not_established": [
+    "musical quality or Room of Days identity: no audio input capability in this root session",
+    "phone speaker, headphones, or signed-device acceptance",
+    "real visibility-change pause: CLI tab selection did not hide the headless document; handler is present but this check was inconclusive"
+  ],
+  "runtime_music": "original umbrella-brush and Focus masters unchanged",
+  "visual_artifacts": [
+    "output/playwright/19-sound-listening-room.png",
+    "output/playwright/20-gold-finish-goals.png",
+    "output/playwright/21-gold-finish-chooser.png"
+  ]
+}

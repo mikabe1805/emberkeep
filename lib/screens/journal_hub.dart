@@ -107,7 +107,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       out.add(
         _Entry(
           n,
-          'JOURNAL',
+          _journalSource(n),
           Palette.xp,
           journal: true,
           currentContext: _s.buildTitle,
@@ -138,6 +138,11 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     }
     out.sort((a, b) => b.note.at.compareTo(a.note.at));
     return out;
+  }
+
+  String _journalSource(Note note) {
+    final quest = note.sourceQuestKey?.trim();
+    return quest == null || quest.isEmpty ? 'JOURNAL' : 'QUEST THREAD · $quest';
   }
 
   String _contextLine(_Entry entry) {
@@ -609,16 +614,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              const FacetMedallion(
-                size: 42,
-                accent: Palette.unlock,
-                glow: true,
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  size: 21,
-                  color: Palette.unlock,
-                ),
-              ),
+              _materialLead(Icons.inventory_2_outlined, Palette.unlock),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -735,13 +731,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           glow: true,
           child: Row(
             children: [
-              const FacetMedallion(
-                size: 44,
-                accent: Palette.xp,
-                gradient: Palette.honeyGradient,
-                glow: true,
-                child: Icon(Icons.edit_note, size: 26, color: Palette.onHoney),
-              ),
+              _materialLead(Icons.edit_note, Palette.xpLight, iconSize: 24),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -833,19 +823,14 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     final hasQuests = trace.questTitles.isNotEmpty;
     return GlassPanel(
       padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
-      tint: const Color(0xE8251C17),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FacetMedallion(
-            size: 34,
-            accent: hasQuests ? Palette.success : Palette.xp,
-            glow: hasQuests,
-            child: Icon(
-              hasQuests ? Icons.link_rounded : Icons.bookmark_add_outlined,
-              size: 17,
-              color: hasQuests ? Palette.success : Palette.xpLight,
-            ),
+          _materialLead(
+            hasQuests ? Icons.link_rounded : Icons.bookmark_add_outlined,
+            hasQuests ? Palette.success : Palette.xpLight,
+            iconSize: 17,
+            height: 34,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1128,22 +1113,54 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     );
   }
 
-  Widget _chip(String label, Color c) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: facetedDecoration(
-      cut: 4,
-      color: c.withValues(alpha: 0.14),
-      borderColor: c.withValues(alpha: 0.2),
+  Widget _materialLead(
+    IconData icon,
+    Color accent, {
+    double iconSize = 20,
+    double height = 38,
+  }) => SizedBox(
+    height: height,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 28,
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: accent.withValues(alpha: 0.9),
+          ),
+        ),
+        const SizedBox(width: 7),
+        Container(
+          width: 1,
+          height: height,
+          color: accent.withValues(alpha: 0.38),
+        ),
+      ],
     ),
-    child: Text(
-      label,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Type.label.copyWith(
-        fontSize: Type.minLabel,
-        color: c,
-        letterSpacing: 0.8,
-      ),
+  );
+
+  Widget _chip(String label, Color c) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 2, height: 14, color: c.withValues(alpha: 0.64)),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.textMid,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }

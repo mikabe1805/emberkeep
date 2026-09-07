@@ -1,0 +1,62 @@
+{
+  "tool": "sonic_taste_gate",
+  "mode": "qc",
+  "files": [
+    {
+      "path": "design\\audits\\2026-09-06\\sound-and-music\\umbrella-new-theme\\lamp-left-on-master.wav",
+      "status": "ok",
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "sample_width_bits": 24,
+      "duration_seconds": 96.0,
+      "peak": 0.13981139659881592,
+      "rms": 0.01841326558911551,
+      "dc_offset": -5.914043221208784e-08,
+      "onset_seconds": 0.005145833333333333,
+      "attack_10pct_seconds": 0.018333333333333333,
+      "crest_factor_db": 17.608235131890684,
+      "clipping_sample_ratio": 0.0,
+      "clipping_detected": false,
+      "tail_window_ms": 100.0,
+      "tail_rms_final_window": 0.0,
+      "tail_relative_to_program_db": -205.30261634755388,
+      "stereo_correlation": null,
+      "mono_fold_loss_db": null,
+      "low_frequency_energy_ratio": 0.15634096074420215,
+      "presence_energy_ratio": 2.844453945143055e-05,
+      "brightness_energy_ratio": 2.3476142338449484e-06,
+      "air_energy_ratio": 1.2670845930113271e-09,
+      "spectral_centroid_hz": 396.73803329651184
+    },
+    {
+      "path": "design\\audits\\2026-09-06\\sound-and-music\\umbrella-new-theme\\lamp-left-on-hook-18s.wav",
+      "status": "ok",
+      "sample_rate_hz": 48000,
+      "channels": 1,
+      "sample_width_bits": 24,
+      "duration_seconds": 18.0,
+      "peak": 0.11493790149688721,
+      "rms": 0.01858453334865531,
+      "dc_offset": -5.935546424653795e-08,
+      "onset_seconds": 0.005145833333333333,
+      "attack_10pct_seconds": 0.018166666666666668,
+      "crest_factor_db": 15.826232061306136,
+      "clipping_sample_ratio": 0.0,
+      "clipping_detected": false,
+      "tail_window_ms": 100.0,
+      "tail_rms_final_window": 0.00013899545379365838,
+      "tail_relative_to_program_db": -42.523021296413866,
+      "stereo_correlation": null,
+      "mono_fold_loss_db": null,
+      "low_frequency_energy_ratio": 0.24969772763706172,
+      "presence_energy_ratio": 0.00021964379884109201,
+      "brightness_energy_ratio": 1.009983674752466e-05,
+      "air_energy_ratio": 1.0637823886822638e-08,
+      "spectral_centroid_hz": 332.5715341366154
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "ok": 2
+  }
+}

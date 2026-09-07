@@ -13,6 +13,58 @@ void main() {
   setUp(() => Clock.freeze(DateTime(2026, 8, 19, 14)));
   tearDown(Clock.reset);
 
+  testWidgets(
+    'an unpressed reduced-motion card disposes before and after motion toggles',
+    (tester) async {
+      final show = ValueNotifier(true);
+      final reduceMotion = ValueNotifier(true);
+      addTearDown(show.dispose);
+      addTearDown(reduceMotion.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<bool>(
+              valueListenable: show,
+              builder: (context, visible, _) => visible
+                  ? ValueListenableBuilder<bool>(
+                      valueListenable: reduceMotion,
+                      builder: (context, still, _) => QuestCard(
+                        quest: Quest(
+                          title: 'Put one book away',
+                          stat: Stat.dis,
+                          difficulty: 2,
+                        ),
+                        done: false,
+                        reduceMotion: still,
+                        xpPreview: 10,
+                        onComplete: (_) {},
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      show.value = false;
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      show.value = true;
+      await tester.pump();
+
+      reduceMotion.value = false;
+      await tester.pump();
+      reduceMotion.value = true;
+      await tester.pump();
+      show.value = false;
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('only the featured quest ring follows live light', (
     tester,
   ) async {
@@ -96,7 +148,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byType(QuestCard));
+    await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('QUEST COMPLETE'), findsOneWidget);
 
@@ -137,6 +189,8 @@ void main() {
       await tester.pump();
 
       expect(find.text(title), findsOneWidget);
+      expect(find.text('+41 XP'), findsNothing);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -283,6 +337,124 @@ void main() {
 
     expect(find.text('OPEN THIS WEEK'), findsOneWidget);
     expect(find.text('STILL THIS WEEK'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('timer Quest opens a Ready session instead of claiming proof', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 390,
+              child: QuestCard(
+                quest: Quest(
+                  title: 'Sketch one object',
+                  stat: Stat.foc,
+                  difficulty: 3,
+                  verification: Verification.timer,
+                  timerMinutes: 10,
+                ),
+                done: false,
+                featured: true,
+                xpPreview: 26,
+                onComplete: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Open 10-minute session'), findsOneWidget);
+    expect(find.textContaining('BEGIN 10M'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('featured long title keeps readable Goal context and Manage', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(() {
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    var managed = 0;
+    const title = 'Finish the unusually detailed visual polish pass';
+    const goal = 'Make the room feel deliberate and easy to return to';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(12),
+            child: QuestCard(
+              quest: Quest(title: title, stat: Stat.foc, difficulty: 5),
+              done: false,
+              featured: true,
+              goalThreadLabel: goal,
+              xpPreview: 41,
+              onComplete: (_) {},
+              onManage: () => managed++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final titleText = tester.widget<Text>(find.text(title));
+    final goalText = tester.widget<Text>(find.text(goal));
+    expect(titleText.maxLines, 3);
+    expect(titleText.style?.fontFamily, 'EBGaramond');
+    expect(goalText.maxLines, 2);
+    expect(find.text('Manage'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('quest-manage-action'))).height,
+      greaterThanOrEqualTo(44),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('quest-manage-action')));
+    await tester.pump();
+    expect(managed, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('compact Quest title wraps and remains directly selectable', (
+    tester,
+  ) async {
+    var selected = 0;
+    const title = 'Take a ten-minute walk around the quiet block';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 290,
+              child: QuestCard(
+                quest: Quest(title: title, stat: Stat.str, difficulty: 2),
+                done: false,
+                featured: false,
+                xpPreview: 10,
+                onSelect: () => selected++,
+                onComplete: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.widget<Text>(find.text(title)).maxLines, 2);
+    await tester.tap(find.text(title));
+    await tester.pump();
+    expect(selected, 1);
     expect(tester.takeException(), isNull);
   });
 }

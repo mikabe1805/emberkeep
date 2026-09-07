@@ -3,13 +3,15 @@
 Normal Room music and Focus music are different authored roles. Do not point
 both controls at one file again.
 
-## Normal Room music — approved umbrella-brush rotation
+## Normal Room music — umbrella-brush and Lamp left on
 
 `take_01.m4a` through `take_08.m4a` are 96-second performances of the
 owner-selected umbrella-brush grammar: jazzy/lofi B-minor harmony, 72 BPM,
 swung eighths, and the dark brush replacing the rejected fake-rain droplets.
-Runtime shuffles all eight without an adjacent repeat and crossfades their
-seams. `take_01` is byte-derived from the audition winner; the remaining seven
+Runtime alternates the two compositions and crossfades their seams, so the
+eight umbrella performances do not crowd out the new piece. Within umbrella,
+all eight performances play before one repeats. `take_01` is byte-derived
+from the audition winner; the remaining seven
 are deterministic performance variations of the same approved grammar.
 
 Owner evidence, preserved verbatim in the audit records:
@@ -31,6 +33,25 @@ under:
 
 The shipped AAC digests are pinned in `test/music_asset_roles_test.dart`.
 
+### Lamp left on — approved September 6, 2026
+
+> it sounds pretty good! you can add it to the app
+
+`lamp-left-on.m4a` is the exact approved 96-second AAC from the umbrella
+comparison. It uses the original umbrella-brush instruments and groove with
+a written A–A′–B–A melody. The reviewed file was copied without re-encoding,
+changing its level, or modifying any existing take.
+
+- Source: `tool/author_room_music_new_theme.py`
+- Score and deterministic render receipt: `design/audits/2026-09-06/sound-and-music/umbrella-new-theme/`
+- AAC-LC, 96 kbps, 48 kHz mono, 96 seconds
+- SHA-256: `a1b84c0b850e03131e5a22269cac7aa2532ad6a0fce5a31dea21e17d40078cc3`
+
+All normal pieces use the existing 2.5-second transition beginning at 93.5
+seconds and the same interaction ducking. Normal music remains optional;
+Focus retains its distinct meditation track. All music is deferred from the
+web first-frame cache and remains available for offline warming.
+
 ## Focus music — peaceful meditation loop
 
 `focus-meditation.m4a` is the 112-second Steward-supper master that Build 40
@@ -46,7 +67,7 @@ Owner role evidence:
 - Bundle: AAC-LC, 96 kbps, 48 kHz mono, 112.000 s, 1,381,265 bytes
 - SHA-256: `e4162909e9a5063e5d087b267346a9bf4383fcdb47a38e91fae1843271534d9e`
 
-Both music families are original deterministic project synthesis with no
+All bundled music is original deterministic project synthesis with no
 imported recordings, external music-generation service, or paid sample source.
 
 ## License

@@ -1,0 +1,232 @@
+{
+  "study": "umbrella-new-theme",
+  "render_version": "umbrella-authored-theme-v1",
+  "piece": {
+    "piece_id": "lamp-left-on",
+    "title": "Lamp left on",
+    "bpm": 72.0,
+    "swing": 0.57,
+    "bars": 28,
+    "program_seconds": 93.3333,
+    "master_seconds": 96.0,
+    "form": "A1 (8) | A2 developed (8) | B (4) | A return (8)",
+    "harmony": "Bm9 | F#m7(11) | A9sus | Em9, two bars each; bridge Gmaj9 | A13 | Dmaj9 | Em9",
+    "arrangement": "approved rolled modal keys, written lead, two-feel bass, thump, papery rim, steady dark swung brush",
+    "first_melody_onset_seconds": 0.8466,
+    "lead_note_count": 114
+  },
+  "purpose": "one original authored musical sibling for review; no runtime or bundle edits",
+  "source_policy": "fixed original score; no imported samples, borrowed melody, or reference transcription",
+  "source_graph": {
+    "keys_and_lead": "author_room_music_v2_study._play_keys/_play_lead and shared modal body",
+    "bass": "author_room_music_v2_study._bass_two_feel",
+    "groove": "author_room_music_v2_study._thump/_rim/_shaker_grain",
+    "space": "Room close three-reflection bus",
+    "pitch_law": "B minor inside D major; every pitch class diatonic to D major"
+  },
+  "dependency_sha256": {
+    "C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/tool/author_room_music_new_theme.py": "023aafe059118ca6664edf5ee6844250a052fe481d83da6706384adb6d2aa16b",
+    "tool/author_room_music_study.py": "2a26b10437802bf11a70a083123d868eaf414978262607acf7a16fa24f464bb1",
+    "tool/author_room_music_v2_study.py": "c1663d03d8ecff54724b2b2408bef850ab03b274a1f00e585030f208fd52cef9",
+    "tool/author_room_sonic_world_study.py": "573a85dfed0cb00981cd03ebb9498e10c35133d9e85aa8c2d05a1e1a8ec26469"
+  },
+  "artifacts": {
+    "lamp-left-on-master.wav": {
+      "sha256": "8c1a88bcceb4cc6998ea41d9973ef9ced2b96b71a4f99dfa9cd8f5ccd0fbe607",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 1,
+            "bit_rate": "1152000"
+          }
+        ],
+        "format": {
+          "duration": "96.000000"
+        }
+      }
+    },
+    "lamp-left-on.m4a": {
+      "sha256": "a1b84c0b850e03131e5a22269cac7aa2532ad6a0fce5a31dea21e17d40078cc3",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 1,
+            "bit_rate": "95359"
+          }
+        ],
+        "format": {
+          "duration": "96.000000"
+        }
+      }
+    },
+    "lamp-left-on-hook-18s.wav": {
+      "sha256": "d9c27db8b8520bd11e918a89dcb2b11f096bd6eaeb29ab70a73ea94364abf227",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "pcm_s24le",
+            "sample_rate": "48000",
+            "channels": 1,
+            "bit_rate": "1152000"
+          }
+        ],
+        "format": {
+          "duration": "18.000000"
+        }
+      }
+    },
+    "lamp-left-on-hook-18s.m4a": {
+      "sha256": "08af251736c065af3fa85c699600f29ca3bfca021c2cb889bd9f59cc617d08c8",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "aac",
+            "sample_rate": "48000",
+            "channels": 1,
+            "bit_rate": "96004"
+          }
+        ],
+        "format": {
+          "duration": "18.000000"
+        }
+      }
+    },
+    "lamp-left-on-score.json": {
+      "sha256": "67ba3d7ed392f92fea79cbc190c8cad6ab3f7e8ecd27419e59723485707e947d"
+    },
+    "LEAD-SHEET.md": {
+      "sha256": "249c6849a06d0494680a56b8f2516dfaa54a4fda9e47f3288311ec4405af71f8"
+    },
+    "qc.json": {
+      "sha256": "6f1d0df0334bff428184ee308d42986bbdc1be8c3eb1b448edcf9522bdca93a3"
+    },
+    "sonic-taste-gate-qc.json": {
+      "sha256": "4a2adf44fe8a62c730046b52ceaf0f1ab44f03a2391ab14a0f701d1b9201c082"
+    },
+    "spectrogram.png": {
+      "sha256": "bc2a19f783c1ab713f228132829b12665ad086bf31e71fc7e9569b8d3a9c0bf1"
+    },
+    "README.md": {
+      "sha256": "d9fdfe8611c63e1b757129a1b23d026a365b8d8f33eef6ae97606c661b42dc70"
+    }
+  },
+  "qc": {
+    "waveform": {
+      "duration_seconds": 96.0,
+      "sample_peak": 0.13981133,
+      "sample_peak_dbfs": -17.089,
+      "true_peak": 0.13984084,
+      "true_peak_dbfs": -17.087,
+      "phone_band_rms_dbfs": -36.0,
+      "dc_offset": -0.0,
+      "max_mixed_note_end_sample_jump": 0.00437353,
+      "minimum_half_second_rms_before_fade": 0.005787533,
+      "minimum_half_second_dbfs_before_fade": -44.75,
+      "passed": true
+    },
+    "pitch_field": {
+      "law": "all pitched events diatonic to D major; interaction field D E F# A B remains a subset",
+      "passed": true,
+      "offenders": []
+    },
+    "reserved_motif": {
+      "reserved_motif": "D5-A5-E5-D5",
+      "passed": true,
+      "matches": {},
+      "voices_scanned": {
+        "keys": 100,
+        "bass": 100,
+        "lead": 114
+      }
+    },
+    "form_and_hook": {
+      "expected_form": [
+        "A1",
+        "A2",
+        "B",
+        "A_return"
+      ],
+      "actual_form": [
+        "A1",
+        "A2",
+        "B",
+        "A_return"
+      ],
+      "bars_by_section": [
+        8,
+        8,
+        4,
+        8
+      ],
+      "hook_rhythm_occurrences": [
+        {
+          "section": "A1",
+          "bar": 1
+        },
+        {
+          "section": "A1",
+          "bar": 3
+        },
+        {
+          "section": "A1",
+          "bar": 5
+        },
+        {
+          "section": "A1",
+          "bar": 7
+        },
+        {
+          "section": "A2",
+          "bar": 9
+        },
+        {
+          "section": "A2",
+          "bar": 11
+        },
+        {
+          "section": "A2",
+          "bar": 13
+        },
+        {
+          "section": "A_return",
+          "bar": 21
+        },
+        {
+          "section": "A_return",
+          "bar": 23
+        },
+        {
+          "section": "A_return",
+          "bar": 25
+        },
+        {
+          "section": "A_return",
+          "bar": 27
+        }
+      ],
+      "hook_occurrence_count": 11,
+      "hook_arrives_early": true,
+      "exact_eight_bar_return": true,
+      "passed": true
+    },
+    "passed": true
+  },
+  "approval": {
+    "technically_valid": true,
+    "semantically_mapped": true,
+    "cohesive_in_audition_flow": "unverified \u2014 requires listening",
+    "owner_phone_or_headphone_approved": false
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "date": "2026-09-06",
+  "scope": "Independent signal-level inspection of the audition-only tap refinement render. No production assets, authoring recipe, preview HTML, or runtime contract were edited.",
+  "render_determinism": {
+    "rerendered_with": "python tool/author_room_tap_refinement.py",
+    "cue_records": 141,
+    "audit_tree_sha256_before": "217f840f9566378b89e9d69b209d004506c9f84b36016695b4e6ebc06f20aafe",
+    "audit_tree_sha256_after": "217f840f9566378b89e9d69b209d004506c9f84b36016695b4e6ebc06f20aafe",
+    "manifest_sha256_before_and_after": "df714b983435cda26a9150a9ff5fc173ce6874d4ede7ebbfb3d2da358fa7dec0",
+    "result": "Byte-identical across the repeat render."
+  },
+  "production_integrity": {
+    "assets_sfx_room_tree_sha256_before": "c64e83f7b2008545765e2f2c663d1312d04449c5d67ecff8ae9604ae9e386c05",
+    "assets_sfx_room_tree_sha256_after": "c64e83f7b2008545765e2f2c663d1312d04449c5d67ecff8ae9604ae9e386c05",
+    "result": "Production tap masters remained unchanged."
+  },
+  "main_cue_continuity_after_diagnostic_revision": {
+    "cue_records": 141,
+    "cue_tree_sha256_before": "4b2c3297f502b3beba838311260c2c1c2c6407aa69fe1bb8c95e4e579ed1c630",
+    "cue_tree_sha256_after": "4b2c3297f502b3beba838311260c2c1c2c6407aa69fe1bb8c95e4e579ed1c630",
+    "result": "The existing current, refined, and weightier cue exports were byte-identical before and after the diagnostics revision."
+  },
+  "archived_baseline_and_paired_derivatives": {
+    "source_manifest": "source-manifest.json",
+    "source_manifest_records": 110,
+    "current_recipe_sha256": "18fe8ce2f0cd7f6abdf4e1017726ddd8ad354d001a3886d6ce535b8a9d93a9a1",
+    "all_main_manifest_sources_use_archived_current_paths": true,
+    "existing_cue_exports": {
+      "count": 47,
+      "matches_archived_source_manifest": true,
+      "historical_141_cue_tree_sha256": "4b2c3297f502b3beba838311260c2c1c2c6407aa69fe1bb8c95e4e579ed1c630",
+      "historical_label": "Preserved unchanged from main_cue_continuity_after_diagnostic_revision."
+    },
+    "paired_records": {
+      "total": 180,
+      "per_family": {"current": 60, "refined": 60, "weightier": 60},
+      "verified_hashes": true,
+      "format": {"duration_ms": 60, "sample_rate_hz": 48000, "channels": 1, "encoding": "PCM_24"},
+      "candidate_meaning_max_abs_error": {"refined": 0.0, "weightier": 0.0},
+      "meaning_gate_max_abs_error": 0.00000012,
+      "worst_peak_dbfs": -5.324112164970829,
+      "worst_peak_path": "current/paired_return/e5/open/3.wav",
+      "result": "Every candidate paired derivative preserved (new paired - new plain) equal to (archived paired - archived plain) within the stated gate; no file clipped."
+    }
+  },
+  "cue_pcm_checks": {
+    "per_family_cues": 47,
+    "same_duration_all_cues": true,
+    "current": {
+      "peak_dbfs_max": -5.324779236059713,
+      "dc_abs_max": 0.00022810974130124757,
+      "onset_ms_max_at_minus60dbfs": 3.6666666666666665,
+      "phone_band_energy_delta_db_abs_max": 0.0
+    },
+    "refined": {
+      "peak_dbfs_max": -5.42143429617761,
+      "dc_abs_max": 0.00022290390210621285,
+      "onset_ms_max_at_minus60dbfs": 3.6666666666666665,
+      "phone_band_energy_delta_db_abs_max": 0.0000002887130633509371
+    },
+    "weightier": {
+      "peak_dbfs_max": -5.553681675083618,
+      "dc_abs_max": 0.0002183946921969905,
+      "onset_ms_max_at_minus60dbfs": 3.6666666666666665,
+      "phone_band_energy_delta_db_abs_max": 0.00000035347642518358207
+    },
+    "result": "All exports retain their source duration, stay below full scale, have negligible DC, start within 3.667 ms at -60 dBFS, and match 260-8000 Hz energy to materially better than 0.01 dB."
+  },
+  "rapid_and_music_mix_checks": {
+    "rapid_taps": {
+      "count": 28,
+      "duration_ms": 4200,
+      "peak_dbfs": {
+        "current": -5.804562213168842,
+        "refined": -6.281478738330412,
+        "weightier": -6.61481527433605
+      }
+    },
+    "flow_and_music": {
+      "duration_ms": 10500,
+      "highest_peak_dbfs": -5.188640066032505,
+      "highest_peak_source": "current/with-music.wav",
+      "result": "All flow, Lamp-left-on music, and umbrella music mixes remained below full scale."
+    }
+  },
+  "diagnostic_reels": {
+    "count": 12,
+    "roles_per_family": ["contact-lineage", "body-lineage", "space-present", "space-bypass"],
+    "duration_ms_each": 2600,
+    "source_reconstruction_max_abs_error": {
+      "slate": 0.00000011895456542118828,
+      "page": 0.0000001189723487552384,
+      "glass": 0.00000011894903685118197,
+      "brass": 0.00000011897583390881039
+    },
+    "reconstruction_gate_max_abs_error": 0.00000012,
+    "diagnostic_peak_dbfs_max": -9.614841333971476,
+    "diagnostic_dc_abs_max": 0.000010781540320469784,
+    "space_present_minus_bypass_relative_rms_db": {
+      "current": -8.684991527801158,
+      "refined": -9.048192817907871,
+      "weightier": -9.256340316372157
+    },
+    "result": "All diagnostic reels are below full scale. The reconstruction errors stay below one 24-bit quantization step, and space-present differs materially from space-bypass rather than duplicating it."
+  },
+  "lane_change_metrics": {
+    "method": "Per-lane mean Pearson waveform correlation to the original, relative-RMS difference, and short-window spectral-centroid shift. These describe signal change; they do not establish a listening verdict.",
+    "refined": {
+      "wood": {"correlation": 0.9973841429459626, "change_relative_rms_db": -22.835335972686146, "centroid_shift_hz": -313.9682037244458},
+      "slate": {"correlation": 0.99858027985606, "change_relative_rms_db": -25.481619318218517, "centroid_shift_hz": -137.11184242198095},
+      "page": {"correlation": 0.9998754710241947, "change_relative_rms_db": -36.04526525396343, "centroid_shift_hz": -64.4532262960259},
+      "glass": {"correlation": 0.9993372415644816, "change_relative_rms_db": -28.790678034910062, "centroid_shift_hz": -50.31297107227954},
+      "brass": {"correlation": 0.9992083359139373, "change_relative_rms_db": -28.007221635159183, "centroid_shift_hz": -100.75560996789635}
+    },
+    "weightier": {
+      "wood": {"correlation": 0.9917062238749524, "change_relative_rms_db": -17.8371087732591, "centroid_shift_hz": -508.1611700100043},
+      "slate": {"correlation": 0.9954438467270005, "change_relative_rms_db": -20.4187727874075, "centroid_shift_hz": -221.86937732403578},
+      "page": {"correlation": 0.9998336328612432, "change_relative_rms_db": -34.78634575955747, "centroid_shift_hz": -70.43673621153182},
+      "glass": {"correlation": 0.997711002032975, "change_relative_rms_db": -23.409857265171492, "centroid_shift_hz": -82.1865238692928},
+      "brass": {"correlation": 0.9973654395543928, "change_relative_rms_db": -22.785442849396862, "centroid_shift_hz": -161.39228242129457}
+    },
+    "interpretation": "The treatment is not byte-identical or numerically zero: wood and slate receive the largest lowward spectral movement, especially in weightier; page remains the smallest intervention. All lanes retain very high correlation with their own source, so the role material has not been replaced or homogenized by a common new sound. Whether these small-to-moderate, lane-specific changes are perceptually useful requires owner listening."
+  },
+  "conclusion": {
+    "technical_status": "pass",
+    "sensory_status": "not established",
+    "limit": "Peak, duration, DC, onset, energy, correlation, and spectral metrics cannot show that any family sounds better."
+  }
+}

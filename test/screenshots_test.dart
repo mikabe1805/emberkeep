@@ -65,6 +65,7 @@ import 'package:emberkeep/widgets/pressable.dart';
 import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
 import 'package:emberkeep/widgets/top_three_wizard.dart';
+import 'package:emberkeep/widgets/working_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show FontLoader, MethodChannel, rootBundle;
@@ -188,7 +189,7 @@ Future<void> _precachePageArt(WidgetTester tester) async {
     'assets/pages/journal-page-edge-v1.webp',
     'assets/pages/goals-living-backdrop-v2.webp',
     'assets/pages/goals-room-retreat-v1.webp',
-    'assets/pages/goals-threshold-room-v1.webp',
+    'assets/pages/working-room-v1.webp',
     'assets/pages/goals-room-kitchen-v1.webp',
     'assets/pages/goals-workshop-tavern-back-v2.webp',
     'assets/pages/goals-workshop-tavern-counter-v2.webp',
@@ -309,6 +310,7 @@ void main() {
     MethodChannel('xyz.luan/audioplayers.global/events'),
     MethodChannel('xyz.luan/audioplayers'),
     MethodChannel('xyz.luan/audioplayers/events/room-of-days-background-music'),
+    MethodChannel('xyz.luan/audioplayers/events/room-of-days-focus-music'),
   ];
   // Load the icon font. Without this the test binding has no MaterialIcons
   // glyphs, so EVERY `Icon` in a screenshot renders as a tofu box — and a
@@ -782,6 +784,7 @@ void main() {
             'Long day, but I kept the fire going. Two quests done and a '
             'walk after dinner — small, but it counts.',
         context: 'Kindling',
+        sourceQuestKey: 'Walk after dinner',
         trace: const JournalTrace(
           day: '2026-07-07',
           level: 8,
@@ -815,6 +818,45 @@ void main() {
         ),
       ),
       'journal_hub',
+    );
+  });
+
+  testWidgets('journal hub: narrow material contract', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    final state = GameState()..level = 8;
+    state.setJournal([
+      Note(
+        at: DateTime(2026, 7, 7, 21, 30),
+        text: 'The open book made returning easier.',
+        context: 'Kindling',
+        sourceQuestKey: 'Read ten pages',
+        trace: const JournalTrace(
+          day: '2026-07-07',
+          level: 8,
+          totalXp: 1360,
+          todayXp: 26,
+          streakDays: 5,
+          questTitles: ['Read ten pages'],
+          statGains: {Stat.intl: 6},
+        ),
+      ),
+    ]);
+    await _shoot(
+      tester,
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: JournalHubScreen(
+          state: state,
+          quests: const [],
+          onPersist: () {},
+        ),
+      ),
+      'journal_hub_narrow_320x568',
     );
   });
 
@@ -1009,7 +1051,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump(const Duration(milliseconds: 180));
-    expect(find.text('OPEN IF IT FITS · 2'), findsOneWidget);
+    expect(find.text('Open if it fits · 2'), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -1017,7 +1059,7 @@ void main() {
       );
     }
 
-    await tester.tap(find.text('OPEN IF IT FITS · 2'));
+    await tester.tap(find.text('Open if it fits · 2'));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(
       find.text('Sketch if there is room'),
@@ -1032,8 +1074,8 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.ensureVisible(find.text('HIDE OPTIONAL QUESTS'));
-    await tester.tap(find.text('HIDE OPTIONAL QUESTS'));
+    await tester.ensureVisible(find.text('Hide optional quests'));
+    await tester.tap(find.text('Hide optional quests'));
     commitment.lastDoneDay = today;
     first.lastDoneDay = today;
     second.lastDoneDay = today;
@@ -1044,8 +1086,8 @@ void main() {
       260,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('TODAY’S FIELD · ENOUGH'), findsOneWidget);
-    expect(find.text('OPEN IF IT FITS · 2'), findsOneWidget);
+    expect(find.text('2 of 2 complete'), findsOneWidget);
+    expect(find.text('Open if it fits · 2'), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -1081,7 +1123,7 @@ void main() {
         ),
       );
     }
-    await tester.tap(find.text('OPEN IF IT FITS · 2'));
+    await tester.tap(find.text('Open if it fits · 2'));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(
       find.text('Sketch if there is room'),
@@ -1333,7 +1375,7 @@ void main() {
     final journalCard = find.byKey(ValueKey('card-${journalQuest.title}'));
     final journalAction = find.descendant(
       of: journalCard,
-      matching: find.byType(Pressable),
+      matching: find.byKey(const ValueKey('quest-primary-action')),
     );
     tester
         .widget<Pressable>(journalAction)
@@ -1622,7 +1664,7 @@ void main() {
     // Store story beat two: one real quest becomes XP, Glimmers, and visible
     // permanent progress. Capture the production receipt while its reward
     // bubbles are fully readable, then let it clear before navigating.
-    await tester.tap(find.text('Read ten pages'));
+    await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 170));
     await _storeShotNow(tester, '02a_stitch_1290x2796');
@@ -1683,6 +1725,13 @@ void main() {
 
     _activateDock(tester, Icons.explore_outlined);
     await tester.pump(const Duration(milliseconds: 450));
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/pages/working-room-v1.webp'),
+        tester.element(find.byType(MaterialApp)),
+      );
+    });
+    await tester.pump(const Duration(milliseconds: 180));
     await _storeShot(tester, '04_goals_1290x2796');
 
     final supportToggle = find.byKey(const ValueKey('goals-support-toggle'));
@@ -1693,7 +1742,14 @@ void main() {
     );
     await tester.tap(supportToggle);
     await tester.pump(const Duration(milliseconds: 220));
-    await tester.tap(find.byKey(const ValueKey('goals-unstick-me')));
+    final unstick = find.byKey(const ValueKey('goals-unstick-me'));
+    await Scrollable.ensureVisible(
+      tester.element(unstick),
+      alignment: 0.4,
+      duration: Duration.zero,
+    );
+    await tester.pump();
+    await tester.tap(unstick);
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, '04b_momentum_kits_1290x2796');
     await tester.enterText(
@@ -1772,6 +1828,15 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.textContaining('Guided workout').last);
+    await tester.pump(const Duration(milliseconds: 350));
+    final workoutAction = find.byKey(const ValueKey('quest-primary-action'));
+    await Scrollable.ensureVisible(
+      tester.element(workoutAction),
+      alignment: 0.72,
+      duration: Duration.zero,
+    );
+    await tester.pump();
+    await tester.tap(workoutAction);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '08_workout_picker_1290x2796');
 
@@ -2812,16 +2877,22 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(tester.takeException(), isNull);
-    expect(
-      find.byKey(const Key('goals-workshop-entrance-label')),
-      findsOneWidget,
+    final workshop = find.text('Workshop');
+    await tester.scrollUntilVisible(
+      workshop,
+      220,
+      scrollable: find.descendant(
+        of: find.byKey(const Key('goals-threshold-scroll')),
+        matching: find.byType(Scrollable),
+      ),
     );
-    expect(
-      find.byKey(const Key('goals-workshop-entrance-status')),
-      findsOneWidget,
+    await Scrollable.ensureVisible(
+      tester.element(workshop),
+      alignment: 0.35,
+      duration: Duration.zero,
     );
-
-    await tester.tap(find.byKey(const Key('goals-open-workshop')));
+    await tester.pump();
+    await tester.tap(workshop);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-tavern')), findsOneWidget);
@@ -2867,21 +2938,6 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('goals-new-goal')),
-      280,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('goals-new-goal')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('quick-goal-create')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -2905,6 +2961,7 @@ void main() {
       why: 'Home should feel easier to return to, even after a long day.',
       fallbackCue: 'the whole apartment feels like too much',
       fallbackAction: 'clear one hand-sized surface and leave the rest',
+      openingSeen: true,
     );
     final state = GameState()
       ..reduceMotion = true
@@ -2963,10 +3020,7 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    final action = find.byKey(
-      const Key('focus-goal-action'),
-      skipOffstage: false,
-    );
+    final action = find.text('Open Quest', skipOffstage: false);
     await tester.scrollUntilVisible(
       action,
       210,
@@ -3029,6 +3083,7 @@ void main() {
       ..soundEnabled = false
       ..goals.add(goal);
     final quests = <Quest>[quest];
+    expect(GoalPlanner.decide(goal, quests, Clock.now())!.quest, same(quest));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -3066,8 +3121,13 @@ void main() {
       ),
     );
     await _precachePageArt(tester);
-    final recovery = find.byKey(const Key('focus-goal-fallback'));
-    await tester.ensureVisible(recovery);
+    final recovery = find.text('Make this smaller', skipOffstage: false);
+    await Scrollable.ensureVisible(
+      tester.element(recovery),
+      alignment: 0.2,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     await tester.tap(recovery);
     await tester.pumpAndSettle();
 
@@ -3168,6 +3228,7 @@ void main() {
       ..soundEnabled = false
       ..goals.add(goal);
     final quests = <Quest>[oldQuest];
+    Quest? openedQuest;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -3193,14 +3254,20 @@ void main() {
             onRemoveQuest: quests.remove,
             onRemoveGoal: (_) {},
             onPersist: () {},
-            onOpenQuest: (_) {},
+            onOpenQuest: (quest) => openedQuest = quest,
           ),
         ),
       ),
     );
     await _precachePageArt(tester);
 
-    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    final recovery = find.text('Make this smaller', skipOffstage: false);
+    await tester.scrollUntilVisible(
+      recovery,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(recovery);
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('goal-recovery-leaveTodayAlone')),
@@ -3219,7 +3286,7 @@ void main() {
     ).hideCurrentSnackBar();
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    await tester.tap(recovery);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
     await tester.pumpAndSettle();
@@ -3227,12 +3294,27 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          'goldens/goals_recovery_smaller_workshop_430x932.png',
+          'goldens/goals_recovery_smaller_review_430x932.png',
         ),
       );
     }
-    expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
-    expect(quests, isEmpty);
+    expect(
+      find.byKey(const Key('goal-adjustment-review-scroll')),
+      findsOneWidget,
+    );
+    expect(quests.single, same(oldQuest));
+    await tester.tap(find.byKey(const Key('goal-adjustment-keep-original')));
+    await tester.pumpAndSettle();
+    expect(quests.single, same(oldQuest));
+
+    await tester.tap(recovery);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-adjustment-accept')));
+    await tester.pumpAndSettle();
+    expect(openedQuest, isNotNull);
+    expect(openedQuest, isNot(same(oldQuest)));
     expect(tester.takeException(), isNull);
   });
 
@@ -3742,7 +3824,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('goals personal index: active and quick create', (tester) async {
+  testWidgets('goals personal index: active exact Quest handoff', (tester) async {
     final storeCapture = _captureStore && !_capture;
     tester.view.devicePixelRatio = storeCapture ? 3 : 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -3785,6 +3867,7 @@ void main() {
       fallbackCue: focusRoute.obstacleCue,
       fallbackAction: focusRoute.fallbackAction,
       plan: focusRoute,
+      openingSeen: true,
     );
     state.goals.addAll([
       focus,
@@ -3897,7 +3980,7 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    await tester.tap(find.text('Make this smaller'));
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -3912,50 +3995,6 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byKey(const Key('goals-open-workshop')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_workshop_home_430x932.png'),
-      );
-    }
-    if (storeCapture) {
-      await _storeShot(tester, 'goals_workshop_1290x2796');
-    }
-    await tester.tap(find.byKey(const Key('steward-hidden-card')));
-    await tester.pumpAndSettle();
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_workshop_conversation_430x932.png'),
-      );
-    }
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.byKey(const Key('steward-leave')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>(
-          'goal-workshop-home-goal-Make the apartment feel calm',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('CURRENT QUEST'), findsOneWidget);
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_workshop_owned_430x932.png'),
-      );
-    }
-    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
-    await tester.pumpAndSettle();
 
     final support = find.byKey(const Key('goals-support-toggle'));
     await tester.scrollUntilVisible(
@@ -3978,12 +4017,18 @@ void main() {
     await tester.tap(support);
     await tester.pumpAndSettle();
 
-    final primary = find.byKey(const Key('focus-goal-action'));
+    final primary = find.widgetWithText(WorkingAction, 'Open Quest');
     final scrollable = tester.state<ScrollableState>(
       find.byType(Scrollable).first,
     );
     scrollable.position.jumpTo(0);
     await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(
+      tester.element(primary),
+      alignment: 0.45,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     final press = await tester.startGesture(tester.getCenter(primary));
     await tester.pump();
     if (_capture) {
@@ -3997,9 +4042,7 @@ void main() {
     await press.cancel();
     await tester.pumpAndSettle();
 
-    // A rapid second acceptance cannot hand the same Quest off twice. The
-    // first accepted frame remains visibly pending before the route begins.
-    await tester.tap(primary);
+    // The accepted row hands off its exact Quest through the room route.
     await tester.tap(primary);
     await tester.pump();
     expect(openedQuest, isNull);
@@ -4015,91 +4058,6 @@ void main() {
     expect(find.byType(GoalDetailScreen), findsNothing);
     expect(identical(openedQuest, quests.first), isTrue);
 
-    await tester.tap(find.byKey(const Key('goals-open-workshop')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>(
-          'goal-workshop-home-goal-Make the apartment feel calm',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('goal-workshop-rework-route')),
-    );
-    await tester.tap(find.byKey(const Key('goal-workshop-rework-route')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('goal-plan-signal-tooBig')));
-    await tester.pumpAndSettle();
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/goals_personal_index_repair_workshop_430x932.png',
-        ),
-      );
-    }
-    expect(focus.plan!.adjustments, hasLength(1));
-    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const Key('goals-new-goal')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('goals-new-goal')));
-    await tester.pumpAndSettle();
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_quick_create_430x932.png'),
-      );
-    }
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-name')),
-      'Make the kitchen easier to return to',
-    );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-outcome')),
-      'I can use the kitchen without feeling overwhelmed',
-    );
-    final resetType = find.byKey(const Key('quick-goal-type-reset'));
-    await tester.ensureVisible(resetType);
-    await tester.tap(resetType);
-    await tester.tap(find.byKey(const Key('quick-goal-create')));
-    await tester.pumpAndSettle();
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_quick_create_reality_430x932.png'),
-      );
-    }
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-starting-point')),
-      'The counter is crowded and I avoid deciding where things go',
-    );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-proof')),
-      'The counter stays usable for a normal week',
-    );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-obstacle')),
-      'the whole apartment feels like too much after class',
-    );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-horizon')),
-      'Before the semester begins',
-    );
-    await tester.tap(find.byKey(const Key('quick-goal-create')));
-    await tester.pumpAndSettle();
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/goals_quick_create_handoff_430x932.png'),
-      );
-    }
     expect(tester.takeException(), isNull);
   });
 
@@ -4520,6 +4478,7 @@ void main() {
       why: 'Home should feel easier to return to.',
       fallbackCue: 'the whole apartment feels like too much',
       fallbackAction: 'clear one small surface',
+      openingSeen: true,
     );
     state.goals.add(goal);
     final quests = <Quest>[
@@ -4560,10 +4519,9 @@ void main() {
     );
     await _precachePageArt(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await tester.tap(find.text('Open Quest'));
     await tester.pump();
-    expect(find.byKey(const Key('focus-goal-action')), findsOneWidget);
-    expect(find.text('Opening'), findsOneWidget);
+    expect(find.text('Open Quest'), findsOneWidget);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 130));
 

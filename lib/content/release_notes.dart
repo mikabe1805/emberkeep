@@ -52,6 +52,45 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+42',
+    versionLabel: 'VERSION 1.0.4 · BUILD 42',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'Your day, in focus.',
+    introduction:
+        'Choose what matters today, find a manageable next step, and settle '
+        'into a room with a little more music.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'TODAY’S THREE, CLOSE AT HAND',
+        body:
+            'Choose up to three Quests from Goals or Quests. Suggested next '
+            'steps are there to consider, and the rest of the day stays open.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'RETURN TO THE WORKSHOP',
+        body:
+            'Workshop now has a permanent place on Goals. Review a next step '
+            'with the Steward, shape a route, or return to your existing Quest.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'A FINER TOUCH',
+        body:
+            'Refined taps bring a fuller body and softer grain to the familiar '
+            'Room gestures, with their small musical accents intact.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'LAMP LEFT ON',
+        body:
+            'A new original piece joins the umbrella-brush room music. Focus '
+            'keeps its own quiet theme and separate listening choice.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+41',
     versionLabel: 'VERSION 1.0.4 · BUILD 41',
     dateLabel: 'SEPTEMBER 2026',

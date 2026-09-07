@@ -17,10 +17,16 @@ import '../tokens.dart';
 /// for the top of the value range. Hairline rules separate the columns instead,
 /// so the only things carrying light here are the six glyphs and their numbers.
 class StatChips extends StatefulWidget {
-  const StatChips({super.key, required this.values, this.reduceMotion = false});
+  const StatChips({
+    super.key,
+    required this.values,
+    this.reduceMotion = false,
+    this.onSelect,
+  });
 
   final Map<Stat, int> values;
   final bool reduceMotion;
+  final ValueChanged<Stat>? onSelect;
 
   @override
   State<StatChips> createState() => _StatChipsState();
@@ -29,18 +35,66 @@ class StatChips extends StatefulWidget {
 class _StatChipsState extends State<StatChips> {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        for (final s in Stat.values) ...[
-          if (s.index != 0) const _DomainRule(),
-          Expanded(
-            child: RepaintBoundary(
-              child: _StatChip(stat: s, value: widget.values[s] ?? 0),
-            ),
-          ),
-        ],
-      ],
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        // Six readable, thumb-sized targets on a modern iPhone. Narrow screens
+        // and accessibility text get two rows instead of smaller hit areas.
+        final columns =
+            bounds.maxWidth < 300 ||
+                MediaQuery.textScalerOf(context).scale(1) >= 1.5
+            ? 3
+            : 6;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var start = 0; start < Stat.values.length; start += columns)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    for (final s in Stat.values.skip(start).take(columns)) ...[
+                      if (s.index != start) const _DomainRule(),
+                      Expanded(
+                        child: RepaintBoundary(
+                          child: Semantics(
+                            button: widget.onSelect == null ? null : true,
+                            onTap: widget.onSelect == null
+                                ? null
+                                : () => widget.onSelect!(s),
+                            label: widget.onSelect == null
+                                ? null
+                                : 'Explore ${s.label}, ${widget.values[s] ?? 0} points',
+                            excludeSemantics: widget.onSelect != null,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: widget.onSelect == null
+                                    ? null
+                                    : () => widget.onSelect!(s),
+                                borderRadius: BorderRadius.circular(5),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: 76,
+                                  ),
+                                  child: _StatChip(
+                                    stat: s,
+                                    value: widget.values[s] ?? 0,
+                                    reduceMotion: widget.reduceMotion,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -55,7 +109,7 @@ class _DomainRule extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 1,
-    height: 62,
+    height: 48,
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
@@ -72,10 +126,15 @@ class _DomainRule extends StatelessWidget {
 }
 
 class _StatChip extends StatefulWidget {
-  const _StatChip({required this.stat, required this.value});
+  const _StatChip({
+    required this.stat,
+    required this.value,
+    required this.reduceMotion,
+  });
 
   final Stat stat;
   final int value;
+  final bool reduceMotion;
 
   @override
   State<_StatChip> createState() => _StatChipState();
@@ -94,7 +153,9 @@ class _StatChipState extends State<_StatChip>
     super.didUpdateWidget(old);
     if (widget.value > old.value) {
       _shownFrom = old.value;
-      _pulse.forward(from: 0);
+      if (!widget.reduceMotion && !MediaQuery.disableAnimationsOf(context)) {
+        _pulse.forward(from: 0);
+      }
     }
   }
 
@@ -107,6 +168,8 @@ class _StatChipState extends State<_StatChip>
   @override
   Widget build(BuildContext context) {
     final c = widget.stat.color;
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
     return AnimatedBuilder(
       animation: _pulse,
       builder: (context, _) {
@@ -114,7 +177,7 @@ class _StatChipState extends State<_StatChip>
         final wave = Curves.easeOutBack.transform(
           1 - (_pulse.value - 0.5).abs() * 2,
         );
-        final active = _pulse.isAnimating;
+        final active = !still && _pulse.isAnimating;
         final glyphAlpha = (0.86 + 0.14 * (active ? wave : 0)).clamp(0.0, 1.0);
         return Transform.scale(
           scale: 1 + 0.08 * (active ? wave : 0),
@@ -125,7 +188,7 @@ class _StatChipState extends State<_StatChip>
               children: [
                 Icon(
                   widget.stat.icon,
-                  size: 24,
+                  size: 20,
                   color: c.withValues(alpha: glyphAlpha),
                   // the only place a domain is allowed to throw light, and
                   // only while it is actually gaining
@@ -138,7 +201,7 @@ class _StatChipState extends State<_StatChip>
                         ]
                       : const [],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 3),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
@@ -154,14 +217,14 @@ class _StatChipState extends State<_StatChip>
                 const SizedBox(height: 3),
                 TweenAnimationBuilder<int>(
                   tween: IntTween(begin: _shownFrom, end: widget.value),
-                  duration: Motion.settle,
+                  duration: still ? Duration.zero : Motion.settle,
                   builder: (_, v, _) => FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
                       '$v',
                       maxLines: 1,
                       style: Type.numerals.copyWith(
-                        fontSize: 20,
+                        fontSize: 18,
                         color: Palette.textMid,
                       ),
                     ),

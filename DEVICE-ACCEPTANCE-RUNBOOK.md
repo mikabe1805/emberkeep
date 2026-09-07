@@ -20,9 +20,9 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 41) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 42) from TestFlight.
   It must come from the exact
-  `room-of-days-1.0.4-build-41-internal-candidate-retry-1` receipt through the
+  `room-of-days-1.0.4-build-42-internal-candidate-retry-1` receipt through the
   Codemagic `ios-testflight` workflow; do not substitute a local debug/profile
   build. Both Build 40 tags remain immutable history; Build 40 is superseded
   because it assigned the peaceful Focus track to the normal room too.
@@ -68,11 +68,11 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 41 over the newest processed TestFlight build
+For iPhone, first install Build 42 over the newest processed TestFlight build
 already on the phone without deleting Room of Days. Confirm the save, journal,
 room, Daybook, settings, and account state remain and What's New appears once.
 Separately, use a disposable test device or installation for the
-uninstall/reinstall check: install Build 41 fresh and confirm onboarding starts
+uninstall/reinstall check: install Build 42 fresh and confirm onboarding starts
 with no prior test data. Never delete the owner's personal app data for this
 check.
 

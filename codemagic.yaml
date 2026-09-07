@@ -4,7 +4,7 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. Both Build 40 tags remain
-# immutable history. This corrected candidate permits one exact Build 41 receipt
+# immutable history. This corrected candidate permits one exact Build 42 receipt
 # tag so the signed device-evidence build can start without broadening the release
 # channel. No other tag or branch push matches. The final App Store screenshot
 # receipt remains a separate, non-binary gate after the installed widget has been
@@ -53,7 +53,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-41-internal-candidate-retry-1"
+        - pattern: "room-of-days-1.0.4-build-42-internal-candidate-retry-1"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -83,11 +83,11 @@ workflows:
             git fetch --no-tags --depth=2 origin "$CM_COMMIT"
           RECEIPT_REVISION=$(git rev-parse HEAD)
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
-          MANIFEST=release-evidence/internal-testflight/1.0.4+41/CANDIDATE-MANIFEST.json
+          MANIFEST=release-evidence/internal-testflight/1.0.4+42/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-41-internal-candidate-retry-1"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-42-internal-candidate-retry-1"
           test "$(jq -er '.candidate.tag' "$MANIFEST")" = "$CM_TAG"
-          test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+41"
+          test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+42"
           test "$(jq -er '.purpose' "$MANIFEST")" = "internal_testflight_device_evidence"
           test "$RECEIPT_REVISION" = "$CM_COMMIT"
           test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
@@ -448,7 +448,7 @@ workflows:
           done <<< "$CODESIGN_DETAILS"
           test -n "$SIGNING_AUTHORITY"
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' \
-            release-evidence/internal-testflight/1.0.4+41/CANDIDATE-MANIFEST.json)
+            release-evidence/internal-testflight/1.0.4+42/CANDIDATE-MANIFEST.json)
           {
             echo "source_commit=$SOURCE_REVISION"
             echo "receipt_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
@@ -483,5 +483,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        submit_to_app_store: false
         beta_groups:
           - Me

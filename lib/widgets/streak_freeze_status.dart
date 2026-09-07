@@ -38,63 +38,41 @@ class StreakFreezeStatus extends StatelessWidget {
         shape: const FacetedBorder(cut: 5),
         semanticLabel: 'Freeze reserve. $spokenStatus Open details.',
         onTapUp: (_) => showStreakFreezeDetails(context, state),
-        child: DecoratedBox(
-          decoration: facetedDecoration(
-            cut: 5,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: stale
-                  ? const [Color(0x261C1714), Color(0x14120F0D)]
-                  : const [Color(0x242A5553), Color(0x12131E1E)],
-            ),
-            borderColor: (stale ? Palette.textLo : Palette.info).withValues(
-              alpha: stale ? 0.24 : 0.34,
-            ),
-            borderWidth: 0.8,
-          ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(7, 4, 9, 5),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Icon(
-                        stale ? Icons.history_rounded : Icons.ac_unit_rounded,
-                        size: 9,
-                        color: stale ? Palette.textLo : Palette.info,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
+                Icon(
+                  stale ? Icons.history_rounded : Icons.ac_unit_rounded,
+                  size: 15,
+                  color: Palette.textLo,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         'FREEZE RESERVE',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                         style: Type.label.copyWith(
-                          fontSize: 7.5,
-                          color: (stale ? Palette.textLo : Palette.info)
-                              .withValues(alpha: 0.82),
-                          letterSpacing: 1.15,
+                          fontSize: 9.5,
+                          color: Palette.textLo,
+                          letterSpacing: .5,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: 9.2,
-                    color: stale ? Palette.textLo : Palette.info,
-                    letterSpacing: 0.7,
+                      const SizedBox(height: 2),
+                      Text(
+                        value,
+                        style: Type.body.copyWith(
+                          fontSize: 11.5,
+                          height: 1.2,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

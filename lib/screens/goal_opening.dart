@@ -1034,7 +1034,7 @@ class _OpeningRoutePreview extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                '${plan.steps.length - plan.currentStepIndex} marker${plan.steps.length - plan.currentStepIndex == 1 ? '' : 's'} remain',
+                '${plan.steps.length - plan.currentStepIndex} ${plan.steps.length - plan.currentStepIndex == 1 ? 'marker remains' : 'markers remain'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,

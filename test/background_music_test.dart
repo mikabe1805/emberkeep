@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:emberkeep/background_music.dart';
 import 'package:emberkeep/main_room_music.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MainMusic implements MainRoomMusicPlayback {
@@ -47,6 +48,8 @@ class _FocusTransport implements BackgroundMusicTransport {
   bool sourceStarted = false;
   bool failStart = false;
   bool failPause = false;
+  final Set<int> failVolumeCalls = <int>{};
+  int volumeCalls = 0;
   bool disposed = false;
 
   @override
@@ -77,6 +80,10 @@ class _FocusTransport implements BackgroundMusicTransport {
   @override
   Future<void> setVolume(double volume) async {
     calls.add('focus:volume:$volume');
+    volumeCalls++;
+    if (failVolumeCalls.contains(volumeCalls)) {
+      throw StateError('focus volume failed');
+    }
   }
 }
 
@@ -276,6 +283,72 @@ void main() {
     await music.retryAfterUserGesture();
     expect(music.currentRole, RoomMusicRole.focus);
     expect(focus.calls.single, contains('focus-meditation.m4a'));
+  });
+
+  test('a failed Focus mid-fade keeps ownership for retry and shutdown', () {
+    fakeAsync((async) {
+      final main = _MainMusic();
+      final focus = _FocusTransport()..failVolumeCalls.add(2);
+      final music = _controller(main, focus);
+
+      music.setEnabled(true);
+      async.flushMicrotasks();
+      music.enterFocusSession();
+      async.flushMicrotasks();
+      async.elapse(const Duration(milliseconds: 90));
+      async.flushMicrotasks();
+
+      expect(music.currentRole, RoomMusicRole.focus);
+      expect(music.isPlaying, isTrue);
+      expect(
+        focus.calls.where((call) => call.startsWith('focus:start:')),
+        hasLength(1),
+      );
+
+      music.retryAfterUserGesture();
+      async.flushMicrotasks();
+      async.elapse(const Duration(milliseconds: 45));
+      async.flushMicrotasks();
+
+      expect(music.currentRole, RoomMusicRole.focus);
+      expect(music.isPlaying, isTrue);
+      expect(
+        focus.calls.where((call) => call.startsWith('focus:start:')),
+        hasLength(1),
+        reason: 'recovery must resume the existing single-player Focus source',
+      );
+      expect(
+        focus.calls.where((call) => call.startsWith('focus:resume:')),
+        hasLength(1),
+      );
+      expect(
+        focus.calls.where((call) => call.startsWith('focus:volume:')),
+        hasLength(3),
+      );
+      expect(focus.calls.where((call) => call == 'focus:pause'), isEmpty);
+
+      music.setForeground(false);
+      async.flushMicrotasks();
+      expect(focus.calls.last, 'focus:pause');
+      expect(music.currentRole, isNull);
+
+      music.setForeground(true);
+      async.flushMicrotasks();
+      focus.pauseGate = Completer<void>();
+      music.leaveFocusSession();
+      async.flushMicrotasks();
+
+      expect(focus.calls.last, 'focus:pause');
+      expect(
+        main.calls.where((call) => call == 'main:start'),
+        hasLength(1),
+        reason: 'main must wait for the live Focus transport to pause',
+      );
+
+      focus.pauseGate!.complete();
+      async.flushMicrotasks();
+      expect(main.calls.where((call) => call == 'main:start'), hasLength(2));
+    });
   });
 
   test('a failed Focus pause never overlaps the normal-room role', () async {

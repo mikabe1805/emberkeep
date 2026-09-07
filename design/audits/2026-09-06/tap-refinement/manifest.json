@@ -1,0 +1,2969 @@
+{
+  "study": "room-tap-refinement-v1",
+  "status": "audition only; owner taste decision pending",
+  "families": [
+    "current",
+    "refined",
+    "weightier"
+  ],
+  "cues": {
+    "materials/brass/place": [
+      "materials/brass/place/1.wav",
+      "materials/brass/place/2.wav",
+      "materials/brass/place/3.wav"
+    ],
+    "materials/brass/select": [
+      "materials/brass/select/1.wav",
+      "materials/brass/select/2.wav",
+      "materials/brass/select/3.wav"
+    ],
+    "materials/glass/place": [
+      "materials/glass/place/1.wav",
+      "materials/glass/place/2.wav",
+      "materials/glass/place/3.wav"
+    ],
+    "materials/glass/select": [
+      "materials/glass/select/1.wav",
+      "materials/glass/select/2.wav",
+      "materials/glass/select/3.wav"
+    ],
+    "materials/page/navigate": [
+      "materials/page/navigate/1.wav",
+      "materials/page/navigate/2.wav",
+      "materials/page/navigate/3.wav"
+    ],
+    "materials/page/open": [
+      "materials/page/open/1.wav",
+      "materials/page/open/2.wav",
+      "materials/page/open/3.wav"
+    ],
+    "materials/slate/navigate": [
+      "materials/slate/navigate/1.wav",
+      "materials/slate/navigate/2.wav",
+      "materials/slate/navigate/3.wav"
+    ],
+    "materials/slate/place": [
+      "materials/slate/place/1.wav",
+      "materials/slate/place/2.wav",
+      "materials/slate/place/3.wav"
+    ],
+    "materials/slate/select": [
+      "materials/slate/select/1.wav",
+      "materials/slate/select/2.wav",
+      "materials/slate/select/3.wav"
+    ],
+    "ordinary/navigate": [
+      "ordinary/navigate/1.wav",
+      "ordinary/navigate/2.wav",
+      "ordinary/navigate/3.wav",
+      "ordinary/navigate/4.wav",
+      "ordinary/navigate/5.wav"
+    ],
+    "ordinary/open": [
+      "ordinary/open/1.wav",
+      "ordinary/open/2.wav",
+      "ordinary/open/3.wav",
+      "ordinary/open/4.wav",
+      "ordinary/open/5.wav"
+    ],
+    "ordinary/place": [
+      "ordinary/place/1.wav",
+      "ordinary/place/2.wav",
+      "ordinary/place/3.wav",
+      "ordinary/place/4.wav",
+      "ordinary/place/5.wav"
+    ],
+    "ordinary/select": [
+      "ordinary/select/1.wav",
+      "ordinary/select/2.wav",
+      "ordinary/select/3.wav",
+      "ordinary/select/4.wav",
+      "ordinary/select/5.wav"
+    ]
+  },
+  "records": {
+    "current/materials/brass/place/1.wav": {
+      "sha256": "25c913583da3ef30e66922cc30c4e44486eb8b6f056c0941aed3a63671757c1c",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/1.wav",
+      "source_sha256": "25c913583da3ef30e66922cc30c4e44486eb8b6f056c0941aed3a63671757c1c",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -10.502391598312741,
+        "dc": -7.387269604004036e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.415176200814892,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/place/1.wav": {
+      "sha256": "56cab131a57beaf4811eaa656389a058780afe300725827df1eb2b19a999694b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/1.wav",
+      "source_sha256": "25c913583da3ef30e66922cc30c4e44486eb8b6f056c0941aed3a63671757c1c",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -11.169195213179059,
+        "dc": -7.210065752772962e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.41517617071738,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.553286949733178e-08
+      }
+    },
+    "weightier/materials/brass/place/1.wav": {
+      "sha256": "adb42015765b1cc7ab7069c1e36f9b18bff02b67f6261d02cddfca8dbcc62dc3",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/1.wav",
+      "source_sha256": "25c913583da3ef30e66922cc30c4e44486eb8b6f056c0941aed3a63671757c1c",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -11.780927756208095,
+        "dc": -7.050541245331199e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.415176184495397,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -8.422243717713432e-09
+      }
+    },
+    "current/materials/brass/place/2.wav": {
+      "sha256": "9553f403d02c3104417540366981346283e1ad1750059871866f6b47af1d8171",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/2.wav",
+      "source_sha256": "9553f403d02c3104417540366981346283e1ad1750059871866f6b47af1d8171",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -10.698002621966642,
+        "dc": -3.964940117577375e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.36161706117174,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/place/2.wav": {
+      "sha256": "2230b2a092541d3351b381e6901ad473b3a3cb2384b7fd6eaa0566b3a9d9b791",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/2.wav",
+      "source_sha256": "9553f403d02c3104417540366981346283e1ad1750059871866f6b47af1d8171",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -11.432406268143964,
+        "dc": -3.8612781271422654e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.361616979071536,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -4.264206945548698e-08
+      }
+    },
+    "weightier/materials/brass/place/2.wav": {
+      "sha256": "306a6812117da98136b4022b296df70461b44ab20dd87657a5d67a2fac164d2e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/2.wav",
+      "source_sha256": "9553f403d02c3104417540366981346283e1ad1750059871866f6b47af1d8171",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -12.100704836498409,
+        "dc": -3.7693139691810826e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.36161695447953,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -5.5414925373121715e-08
+      }
+    },
+    "current/materials/brass/place/3.wav": {
+      "sha256": "e7a46005a2294d960c12830d8024891f51c7b232a218e4ba214ed891533ce92a",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/3.wav",
+      "source_sha256": "e7a46005a2294d960c12830d8024891f51c7b232a218e4ba214ed891533ce92a",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -10.076407174193653,
+        "dc": -2.8466942620142706e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.533964534622255,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/place/3.wav": {
+      "sha256": "130c36fd464e81be263dd9eea0e4910221f70302dc8517037282aa8a7f1f4751",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/3.wav",
+      "source_sha256": "e7a46005a2294d960c12830d8024891f51c7b232a218e4ba214ed891533ce92a",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -10.747704135730967,
+        "dc": -2.8158922148289654e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.533964457334852,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -3.933165280817309e-08
+      }
+    },
+    "weightier/materials/brass/place/3.wav": {
+      "sha256": "eb4a441ef994e2de1820c3f7c123467a9a9bf94203c18605f2fd69e075b7f5fc",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/place/3.wav",
+      "source_sha256": "e7a46005a2294d960c12830d8024891f51c7b232a218e4ba214ed891533ce92a",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 118.0,
+        "peak_dbfs": -11.36445726126363,
+        "dc": -2.7799968328853112e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 8.533964633301709,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 5.021809216958978e-08
+      }
+    },
+    "current/materials/brass/select/1.wav": {
+      "sha256": "6cba4046d4bf1799bd8815bad30dbe576bed03c4cb38ace2d42aa1ed05692bf5",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/1.wav",
+      "source_sha256": "6cba4046d4bf1799bd8815bad30dbe576bed03c4cb38ace2d42aa1ed05692bf5",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -11.087283679310335,
+        "dc": 0.00022810974130124757,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.218721243983147,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/select/1.wav": {
+      "sha256": "f934f76a275870c2076cf4466e13e287836569951e04576decd374d3e5ad0a28",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/1.wav",
+      "source_sha256": "6cba4046d4bf1799bd8815bad30dbe576bed03c4cb38ace2d42aa1ed05692bf5",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -11.763384339471894,
+        "dc": 0.00022290390210621285,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.218721496109699,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.0981608736287707e-07
+      }
+    },
+    "weightier/materials/brass/select/1.wav": {
+      "sha256": "c356e52c6eb3d4e98551c5d15119fc8b18d97864d4ec85a13e8ca6df8bb83784",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/1.wav",
+      "source_sha256": "6cba4046d4bf1799bd8815bad30dbe576bed03c4cb38ace2d42aa1ed05692bf5",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -12.382854394415343,
+        "dc": 0.0002183946921969905,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.21872121450416,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.4531989368119934e-08
+      }
+    },
+    "current/materials/brass/select/2.wav": {
+      "sha256": "469716044505510406c45cc35e15ca4592cb07d14962b9f0a882ab68083da8e0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/2.wav",
+      "source_sha256": "469716044505510406c45cc35e15ca4592cb07d14962b9f0a882ab68083da8e0",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -11.53148509720371,
+        "dc": -6.421858614141291e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.190415477675309,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/select/2.wav": {
+      "sha256": "e07d80985a47fcf9789d41b94250b087229566f1b0729615df0c26b809fae246",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/2.wav",
+      "source_sha256": "469716044505510406c45cc35e15ca4592cb07d14962b9f0a882ab68083da8e0",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -12.276840030494531,
+        "dc": -6.304938120372367e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.190415506016644,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.3713873098015856e-08
+      }
+    },
+    "weightier/materials/brass/select/2.wav": {
+      "sha256": "ecd4db0d6d8c25e5a2b73fb641afe34bd20d16ea8306ecab35ddd5b71de13db7",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/2.wav",
+      "source_sha256": "469716044505510406c45cc35e15ca4592cb07d14962b9f0a882ab68083da8e0",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -12.954057248852113,
+        "dc": -6.199365651065654e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.190415722014527,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.044444654023028e-07
+      }
+    },
+    "current/materials/brass/select/3.wav": {
+      "sha256": "7e7e10b9e10c84c93355ac9372aecd5d9a0d1a3ff6f6d00c1c064b682ab612f9",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/3.wav",
+      "source_sha256": "7e7e10b9e10c84c93355ac9372aecd5d9a0d1a3ff6f6d00c1c064b682ab612f9",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -10.789250179304794,
+        "dc": 1.16065652533011e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.280378932035507,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/brass/select/3.wav": {
+      "sha256": "595c331d94d9bdf228e486bd049039749eb4e83d1025eea68a03a2a6aa9579e0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/3.wav",
+      "source_sha256": "7e7e10b9e10c84c93355ac9372aecd5d9a0d1a3ff6f6d00c1c064b682ab612f9",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -11.47180065286382,
+        "dc": 1.0559137797716891e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.280378581003111,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.887130633509371e-07
+      }
+    },
+    "weightier/materials/brass/select/3.wav": {
+      "sha256": "afd7a3e509bafa7c9dd094aa9ff979df991f428c6f7fcc3d62352b992e34b4e3",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/brass/select/3.wav",
+      "source_sha256": "7e7e10b9e10c84c93355ac9372aecd5d9a0d1a3ff6f6d00c1c064b682ab612f9",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 88.0,
+        "peak_dbfs": -12.09754437982965,
+        "dc": 9.839818107359337e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.2803789457167625,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.1252399678019752e-08
+      }
+    },
+    "current/materials/glass/place/1.wav": {
+      "sha256": "3443fd536280ad7101088845195643028b650fb79d0a07d56bd1cdc2d8dcd78b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/1.wav",
+      "source_sha256": "3443fd536280ad7101088845195643028b650fb79d0a07d56bd1cdc2d8dcd78b",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -10.560607110181445,
+        "dc": -2.6673255931763423e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.148843767636301,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/place/1.wav": {
+      "sha256": "f33e258aeddcd2effa92becd47ffbe03a83185efc90d4c4ba7ef47e632d749da",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/1.wav",
+      "source_sha256": "3443fd536280ad7101088845195643028b650fb79d0a07d56bd1cdc2d8dcd78b",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -10.932093565208671,
+        "dc": -2.5782054142346458e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.148843464680425,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.5553711636080035e-07
+      }
+    },
+    "weightier/materials/glass/place/1.wav": {
+      "sha256": "2abc26194ebdd3cf4de0c3223efb6ba8331e5fb886903882802d56a8ae65f666",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/1.wav",
+      "source_sha256": "3443fd536280ad7101088845195643028b650fb79d0a07d56bd1cdc2d8dcd78b",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -11.272553156802829,
+        "dc": -2.5084360487877378e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.148843862353001,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.989160602822936e-08
+      }
+    },
+    "current/materials/glass/place/2.wav": {
+      "sha256": "c9fcd34bfba861e8b18c126de38c1b5185f84f0f53b42bd786c5ee506904404b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/2.wav",
+      "source_sha256": "c9fcd34bfba861e8b18c126de38c1b5185f84f0f53b42bd786c5ee506904404b",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -10.711404369559862,
+        "dc": -1.6923432075788106e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.143969293246544,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/place/2.wav": {
+      "sha256": "e6bc1209185dcc71c1bc069f176cfd9d5990e970906281d50aad616c1277d3ed",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/2.wav",
+      "source_sha256": "c9fcd34bfba861e8b18c126de38c1b5185f84f0f53b42bd786c5ee506904404b",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -11.07164855800736,
+        "dc": -1.6539786306638567e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.143969102734143,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.6084560594913033e-07
+      }
+    },
+    "weightier/materials/glass/place/2.wav": {
+      "sha256": "f07022cbd837c2951988bd479323e32efb014f7e552573b5fd9a7b9875cee05d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/2.wav",
+      "source_sha256": "c9fcd34bfba861e8b18c126de38c1b5185f84f0f53b42bd786c5ee506904404b",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -11.398315318229654,
+        "dc": -1.6216986945697238e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.143969226731001,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -5.615767016611488e-08
+      }
+    },
+    "current/materials/glass/place/3.wav": {
+      "sha256": "9d8abe86889e856d74f9c993f05fcb6d9b2ef79bd3d4c4b63f7e2fbe908ce5d4",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/3.wav",
+      "source_sha256": "9d8abe86889e856d74f9c993f05fcb6d9b2ef79bd3d4c4b63f7e2fbe908ce5d4",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -10.446735106463713,
+        "dc": -2.3453008560907273e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.162072545871073,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/place/3.wav": {
+      "sha256": "fc3bb9936fe6a2ff036f26bd1387d85e4707ede7587af05b5a9f7d3c1b0ac7ca",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/3.wav",
+      "source_sha256": "9d8abe86889e856d74f9c993f05fcb6d9b2ef79bd3d4c4b63f7e2fbe908ce5d4",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -10.8746196911661,
+        "dc": -2.2760488920741613e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.162072580905314,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.947493989119824e-08
+      }
+    },
+    "weightier/materials/glass/place/3.wav": {
+      "sha256": "58d97221a41cf50743a3d96317455e7aefde6be21826bb85ad40c8560a6af6dc",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/place/3.wav",
+      "source_sha256": "9d8abe86889e856d74f9c993f05fcb6d9b2ef79bd3d4c4b63f7e2fbe908ce5d4",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 84.0,
+        "peak_dbfs": -11.267876340643603,
+        "dc": -2.2188006412415278e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 5.162072703857959,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.3291721703126755e-07
+      }
+    },
+    "current/materials/glass/select/1.wav": {
+      "sha256": "aab6bc9c9bc59fe760e8dfcf63a8fee7f2075f382536e86602546a0ecd5ba4d9",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/1.wav",
+      "source_sha256": "aab6bc9c9bc59fe760e8dfcf63a8fee7f2075f382536e86602546a0ecd5ba4d9",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.09426312471426,
+        "dc": 1.2941358760855664e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.103989118447664,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/select/1.wav": {
+      "sha256": "e2d728a18339accdde49bd9ca625628a589469a2e6ffba30b67294dc596cce39",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/1.wav",
+      "source_sha256": "aab6bc9c9bc59fe760e8dfcf63a8fee7f2075f382536e86602546a0ecd5ba4d9",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.515003076497543,
+        "dc": 1.2055467600109934e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1039891227736134,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 6.052649555977324e-09
+      }
+    },
+    "weightier/materials/glass/select/1.wav": {
+      "sha256": "394ef656e2081a989e84c80e00f8850a7a6639f42150e006e578fa8afc1b2fae",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/1.wav",
+      "source_sha256": "aab6bc9c9bc59fe760e8dfcf63a8fee7f2075f382536e86602546a0ecd5ba4d9",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.898489933384743,
+        "dc": 1.1273542012291393e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1039889983604754,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.6801993304239457e-07
+      }
+    },
+    "current/materials/glass/select/2.wav": {
+      "sha256": "561e51bb4c7e4de321a25aeaa38bc6f81222c190f0b61adb4cc86e4876f37aa7",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/2.wav",
+      "source_sha256": "561e51bb4c7e4de321a25aeaa38bc6f81222c190f0b61adb4cc86e4876f37aa7",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.430742164440952,
+        "dc": -2.3884249144587025e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.101264515566642,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/select/2.wav": {
+      "sha256": "6e26bf88f822bd54809ce3848b95f277234c08288a7327a2bb5bde33fcbcb6c6",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/2.wav",
+      "source_sha256": "561e51bb4c7e4de321a25aeaa38bc6f81222c190f0b61adb4cc86e4876f37aa7",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.833359134709383,
+        "dc": -3.035041107528511e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1012643263900093,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.649189378219563e-07
+      }
+    },
+    "weightier/materials/glass/select/2.wav": {
+      "sha256": "cb8cee439ce1e90a609c0af5cb54b2bb20416be96aade2cee84bd4470684d0b9",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/2.wav",
+      "source_sha256": "561e51bb4c7e4de321a25aeaa38bc6f81222c190f0b61adb4cc86e4876f37aa7",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -12.197389700673966,
+        "dc": -3.6044110511911327e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.101264621308043,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.4807800459686293e-07
+      }
+    },
+    "current/materials/glass/select/3.wav": {
+      "sha256": "0c21e75d3c447532b43d1afbf2a7995dc63341922ad110c5084e6e8b3fc366a1",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/3.wav",
+      "source_sha256": "0c21e75d3c447532b43d1afbf2a7995dc63341922ad110c5084e6e8b3fc366a1",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.088226319328552,
+        "dc": 1.4490094678155307e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1062423514027993,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/glass/select/3.wav": {
+      "sha256": "2b5f706a7c9bbfa5c264aae7b5b37f8fc32f52af3bdfff9ca6ca770cf5db2be5",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/3.wav",
+      "source_sha256": "0c21e75d3c447532b43d1afbf2a7995dc63341922ad110c5084e6e8b3fc366a1",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.538678465091671,
+        "dc": 1.3514839369675209e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1062423904959884,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 5.4657538508261614e-08
+      }
+    },
+    "weightier/materials/glass/select/3.wav": {
+      "sha256": "f4df84333c6a635c98e5aad34c7b004eacdb3749c69e22071d5e061c7138e2fb",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/glass/select/3.wav",
+      "source_sha256": "0c21e75d3c447532b43d1afbf2a7995dc63341922ad110c5084e6e8b3fc366a1",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 58.0,
+        "peak_dbfs": -11.951400222804402,
+        "dc": 1.2631260458080247e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 3.1062424425885675,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.2748997353326983e-07
+      }
+    },
+    "current/materials/page/navigate/1.wav": {
+      "sha256": "646be579c53bad5f27df7d379726fe03820b5f0af25d9ef54e7be47a765af323",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/1.wav",
+      "source_sha256": "646be579c53bad5f27df7d379726fe03820b5f0af25d9ef54e7be47a765af323",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -11.666359510732873,
+        "dc": -0.0002036231259504954,
+        "onset_ms_at_minus60dbfs": 2.020833333333333,
+        "phone_band_energy": 7.175966636388992,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/navigate/1.wav": {
+      "sha256": "9890c8ec6052ca0dafe4d7930db6659cc19219d7ee100e3dbdaa345dac1ae952",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/1.wav",
+      "source_sha256": "646be579c53bad5f27df7d379726fe03820b5f0af25d9ef54e7be47a765af323",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -11.94295596884498,
+        "dc": -0.0002048598114578497,
+        "onset_ms_at_minus60dbfs": 2.020833333333333,
+        "phone_band_energy": 7.1759666890595994,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.187661671623463e-08
+      }
+    },
+    "weightier/materials/page/navigate/1.wav": {
+      "sha256": "7d4b82840bf00d4648eedc1d2c2b29ed7d18fa49a5cb04f571ea16e267684e6c",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/1.wav",
+      "source_sha256": "646be579c53bad5f27df7d379726fe03820b5f0af25d9ef54e7be47a765af323",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -11.935730995020887,
+        "dc": -0.0002046853658698854,
+        "onset_ms_at_minus60dbfs": 2.020833333333333,
+        "phone_band_energy": 7.175966575907498,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -3.660381966009616e-08
+      }
+    },
+    "current/materials/page/navigate/2.wav": {
+      "sha256": "75f4f15902ac159abca73656794d2bda9a27d0bd8ab088b841945f2d1a58143d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/2.wav",
+      "source_sha256": "75f4f15902ac159abca73656794d2bda9a27d0bd8ab088b841945f2d1a58143d",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -15.145633882652305,
+        "dc": -0.00010127186154325803,
+        "onset_ms_at_minus60dbfs": 3.6666666666666665,
+        "phone_band_energy": 7.143783216279283,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/navigate/2.wav": {
+      "sha256": "38d7b251a09a5b3b2b64ed559867e9ecc950215a5aa4962a6dc72c88559969d1",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/2.wav",
+      "source_sha256": "75f4f15902ac159abca73656794d2bda9a27d0bd8ab088b841945f2d1a58143d",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -15.206568521423636,
+        "dc": -0.0001017495191523007,
+        "onset_ms_at_minus60dbfs": 3.6666666666666665,
+        "phone_band_energy": 7.143783246894196,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8611829613714407e-08
+      }
+    },
+    "weightier/materials/page/navigate/2.wav": {
+      "sha256": "1f4445d73de7ad6942ae66d6d35ac13426817fefb711a615add00df82d276a38",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/2.wav",
+      "source_sha256": "75f4f15902ac159abca73656794d2bda9a27d0bd8ab088b841945f2d1a58143d",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -15.210928448278779,
+        "dc": -0.00010148061084605398,
+        "onset_ms_at_minus60dbfs": 3.6666666666666665,
+        "phone_band_energy": 7.143783264922508,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.9571843228998495e-08
+      }
+    },
+    "current/materials/page/navigate/3.wav": {
+      "sha256": "7cb5aa886c5d93ea734a429eec773149c44dfc196c2972b11f45f60c2f3d5237",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/3.wav",
+      "source_sha256": "7cb5aa886c5d93ea734a429eec773149c44dfc196c2972b11f45f60c2f3d5237",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -12.332383313604108,
+        "dc": -0.00014039805336367515,
+        "onset_ms_at_minus60dbfs": 2.75,
+        "phone_band_energy": 7.18909934144547,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/navigate/3.wav": {
+      "sha256": "f0bf1715b3def85b77cbca7220ce2151c13568808769de0b625edf627163ff2a",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/3.wav",
+      "source_sha256": "7cb5aa886c5d93ea734a429eec773149c44dfc196c2972b11f45f60c2f3d5237",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -12.57930316927677,
+        "dc": -0.00014120471175937426,
+        "onset_ms_at_minus60dbfs": 2.75,
+        "phone_band_energy": 7.18909936847899,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.6330986869758803e-08
+      }
+    },
+    "weightier/materials/page/navigate/3.wav": {
+      "sha256": "ecc30de409cbc2603d071bcc72d4fc4e4bfcefa57e416b1772be80e5c27f59a0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/navigate/3.wav",
+      "source_sha256": "7cb5aa886c5d93ea734a429eec773149c44dfc196c2972b11f45f60c2f3d5237",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 112.0,
+        "peak_dbfs": -12.56645903458099,
+        "dc": -0.0001409475558570453,
+        "onset_ms_at_minus60dbfs": 2.75,
+        "phone_band_energy": 7.189099372877376,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8988058115851674e-08
+      }
+    },
+    "current/materials/page/open/1.wav": {
+      "sha256": "5d2bffabe2ef0a8fbcd7511d401170d01a7dc47e90b5483c41db60a2e521ef31",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/1.wav",
+      "source_sha256": "5d2bffabe2ef0a8fbcd7511d401170d01a7dc47e90b5483c41db60a2e521ef31",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.348999933672394,
+        "dc": 0.00018954903094304932,
+        "onset_ms_at_minus60dbfs": 3.2916666666666665,
+        "phone_band_energy": 5.3477330788641355,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/open/1.wav": {
+      "sha256": "7b2f7536ecfb02ea21d45de493c5b414448fc7930c2658f70e46ce22815de052",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/1.wav",
+      "source_sha256": "5d2bffabe2ef0a8fbcd7511d401170d01a7dc47e90b5483c41db60a2e521ef31",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.560072661206135,
+        "dc": 0.0001901491131219599,
+        "onset_ms_at_minus60dbfs": 3.2708333333333335,
+        "phone_band_energy": 5.3477331647759705,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 6.976981681895583e-08
+      }
+    },
+    "weightier/materials/page/open/1.wav": {
+      "sha256": "c9cef7c1373251b8da22ef84ca51cfd33cba0a1baf947f83b25b86064142461b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/1.wav",
+      "source_sha256": "5d2bffabe2ef0a8fbcd7511d401170d01a7dc47e90b5483c41db60a2e521ef31",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.557241639953439,
+        "dc": 0.0001899032180921899,
+        "onset_ms_at_minus60dbfs": 3.2708333333333335,
+        "phone_band_energy": 5.34773306778069,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -9.000971347341738e-09
+      }
+    },
+    "current/materials/page/open/2.wav": {
+      "sha256": "d229e2ea2be38c3d295328941c0c5f5f3e300c9d0fc590a9fd011f4a499f8fef",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/2.wav",
+      "source_sha256": "d229e2ea2be38c3d295328941c0c5f5f3e300c9d0fc590a9fd011f4a499f8fef",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.681162892654408,
+        "dc": -1.4491637961732016e-05,
+        "onset_ms_at_minus60dbfs": 2.7916666666666665,
+        "phone_band_energy": 5.3368970437158225,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/open/2.wav": {
+      "sha256": "697be3c8eeec5faf059b57793343528ea5a1e286ce9196444cf0d1d700fb7eb5",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/2.wav",
+      "source_sha256": "d229e2ea2be38c3d295328941c0c5f5f3e300c9d0fc590a9fd011f4a499f8fef",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.904144928626478,
+        "dc": -1.4685068486465349e-05,
+        "onset_ms_at_minus60dbfs": 2.7916666666666665,
+        "phone_band_energy": 5.336897087712241,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.5802454554613944e-08
+      }
+    },
+    "weightier/materials/page/open/2.wav": {
+      "sha256": "5de2282b9da704a834f0243c24a949844858cad0038445ed6326c152c59530c0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/2.wav",
+      "source_sha256": "d229e2ea2be38c3d295328941c0c5f5f3e300c9d0fc590a9fd011f4a499f8fef",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -12.905178798639001,
+        "dc": -1.4655395514435238e-05,
+        "onset_ms_at_minus60dbfs": 2.7916666666666665,
+        "phone_band_energy": 5.336896899748391,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.1715470912597243e-07
+      }
+    },
+    "current/materials/page/open/3.wav": {
+      "sha256": "216181028442797fbb1864053037b2f73fbd973502475f11c71ae1af13cf6a49",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/3.wav",
+      "source_sha256": "216181028442797fbb1864053037b2f73fbd973502475f11c71ae1af13cf6a49",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -11.655612116316657,
+        "dc": 0.00012952855063809289,
+        "onset_ms_at_minus60dbfs": 2.958333333333333,
+        "phone_band_energy": 5.365756649329984,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/page/open/3.wav": {
+      "sha256": "e349735da1559cc7ecebe7501db2af6bb276fddbd45b49414fa1714b50c24a8e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/3.wav",
+      "source_sha256": "216181028442797fbb1864053037b2f73fbd973502475f11c71ae1af13cf6a49",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -11.869440189807163,
+        "dc": 0.00013023467424015203,
+        "onset_ms_at_minus60dbfs": 2.958333333333333,
+        "phone_band_energy": 5.365756658899908,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.745721214970256e-09
+      }
+    },
+    "weightier/materials/page/open/3.wav": {
+      "sha256": "30e93f6c0a7d9c61967510b7af2183eb2d2a5dd7445a3a87d0ff0ecd916b7541",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/page/open/3.wav",
+      "source_sha256": "216181028442797fbb1864053037b2f73fbd973502475f11c71ae1af13cf6a49",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 96.0,
+        "peak_dbfs": -11.86684987626852,
+        "dc": 0.0001300338190048933,
+        "onset_ms_at_minus60dbfs": 2.958333333333333,
+        "phone_band_energy": 5.365756602070661,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -3.8250827341550224e-08
+      }
+    },
+    "current/materials/slate/navigate/1.wav": {
+      "sha256": "f12aa6df926867a301b0310efd15367d2739823d731983560a2ce18a56858755",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/1.wav",
+      "source_sha256": "f12aa6df926867a301b0310efd15367d2739823d731983560a2ce18a56858755",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -8.746880428731723,
+        "dc": 3.559142351150513e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 6.3189180517526635,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/navigate/1.wav": {
+      "sha256": "bb6fcfe554deae78b64d2da53e193711d06e9079985db8e9bb5cd4ee739088e2",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/1.wav",
+      "source_sha256": "f12aa6df926867a301b0310efd15367d2739823d731983560a2ce18a56858755",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -9.501047239705276,
+        "dc": 3.317404571954195e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 6.318918326309525,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8870086071758653e-07
+      }
+    },
+    "weightier/materials/slate/navigate/1.wav": {
+      "sha256": "cd93024413da019c2a937fc1f4e00bae15edf7524acb050bbf3249353099097b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/1.wav",
+      "source_sha256": "f12aa6df926867a301b0310efd15367d2739823d731983560a2ce18a56858755",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -10.191037373097586,
+        "dc": 3.1085500309059214e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 6.318918458136058,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.793042390984829e-07
+      }
+    },
+    "current/materials/slate/navigate/2.wav": {
+      "sha256": "3226c398339e94e2d6b76aecf1f5c8f03e8546e2d40df712330aa56b8cfbd410",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/2.wav",
+      "source_sha256": "3226c398339e94e2d6b76aecf1f5c8f03e8546e2d40df712330aa56b8cfbd410",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -7.214104292899633,
+        "dc": 3.5233627836983486e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 6.320021006640151,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/navigate/2.wav": {
+      "sha256": "e028f6c64348365e2ef8d0d00086b814a263cc5726a4f663916e19cac9a40995",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/2.wav",
+      "source_sha256": "3226c398339e94e2d6b76aecf1f5c8f03e8546e2d40df712330aa56b8cfbd410",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -7.799464880288367,
+        "dc": 3.391202237154987e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 6.320020858980197,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.0146786557716149e-07
+      }
+    },
+    "weightier/materials/slate/navigate/2.wav": {
+      "sha256": "40f1932129cd635cf1a66061bbcb4972c8b5116eff27c6dc13880a82ec6cc798",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/2.wav",
+      "source_sha256": "3226c398339e94e2d6b76aecf1f5c8f03e8546e2d40df712330aa56b8cfbd410",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -8.347215719832196,
+        "dc": 3.274976535960361e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 6.320021018743989,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 8.317424681114033e-09
+      }
+    },
+    "current/materials/slate/navigate/3.wav": {
+      "sha256": "50b9b2ef5fb21f2dc0afd3079a9c63fab17581ce5697e2ccd686d8eeabe29ff3",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/3.wav",
+      "source_sha256": "50b9b2ef5fb21f2dc0afd3079a9c63fab17581ce5697e2ccd686d8eeabe29ff3",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -8.613589597656732,
+        "dc": -4.794502311998659e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 6.341728458295033,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/navigate/3.wav": {
+      "sha256": "7394f5113fc4dc2707c8a03bfb37e2b5c294df924798c4e2933e8856f86b0048",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/3.wav",
+      "source_sha256": "50b9b2ef5fb21f2dc0afd3079a9c63fab17581ce5697e2ccd686d8eeabe29ff3",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -9.391645801489053,
+        "dc": -4.8529423840411074e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 6.341728714941811,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.7575693765201464e-07
+      }
+    },
+    "weightier/materials/slate/navigate/3.wav": {
+      "sha256": "d47409797c49e54e0a25080ea8ab814f2fdc4c93dc0a889353b69cec5646cfb8",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/navigate/3.wav",
+      "source_sha256": "50b9b2ef5fb21f2dc0afd3079a9c63fab17581ce5697e2ccd686d8eeabe29ff3",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 74.0,
+        "peak_dbfs": -10.105544633458784,
+        "dc": -4.883174289454211e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 6.34172794213572,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -3.5347642518358207e-07
+      }
+    },
+    "current/materials/slate/place/1.wav": {
+      "sha256": "9b5a84aafb5ebc3df72a39559324683ba3a68586ee0222abc11a81c371b001fe",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/1.wav",
+      "source_sha256": "9b5a84aafb5ebc3df72a39559324683ba3a68586ee0222abc11a81c371b001fe",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -6.982281585578224,
+        "dc": -1.8068851950841072e-06,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 10.17060793791461,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/place/1.wav": {
+      "sha256": "fde4f565de7ac05961c364616f3cc2cc34ad94ae4a64d3cc6a2f4dcdfdac9ada",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/1.wav",
+      "source_sha256": "9b5a84aafb5ebc3df72a39559324683ba3a68586ee0222abc11a81c371b001fe",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -7.764244502939207,
+        "dc": -3.54365851634588e-06,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 10.170607596865505,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.4563116362249086e-07
+      }
+    },
+    "weightier/materials/slate/place/1.wav": {
+      "sha256": "bf3207f67d3470fb2fdb5db188d3395600ba2666fe291de798d55ff21b48434a",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/1.wav",
+      "source_sha256": "9b5a84aafb5ebc3df72a39559324683ba3a68586ee0222abc11a81c371b001fe",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -8.48088924886899,
+        "dc": -4.94147818057965e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 10.170608009279185,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.047334186189142e-08
+      }
+    },
+    "current/materials/slate/place/2.wav": {
+      "sha256": "e222e882a5121ad6c6e404e4aea3c8cccee8fc3f0120ae038dd9a91e754aa489",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/2.wav",
+      "source_sha256": "e222e882a5121ad6c6e404e4aea3c8cccee8fc3f0120ae038dd9a91e754aa489",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -6.9417057689123105,
+        "dc": -5.568313197447704e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 10.210766052593907,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/place/2.wav": {
+      "sha256": "a6bf851c7d0ab5a4e33a96f6c87b4a4f1262e3f2aaa71ecb622dcf401d0f96a3",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/2.wav",
+      "source_sha256": "e222e882a5121ad6c6e404e4aea3c8cccee8fc3f0120ae038dd9a91e754aa489",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -7.691957218090376,
+        "dc": -5.5310602944630846e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 10.210765923155844,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -5.5053887915344684e-08
+      }
+    },
+    "weightier/materials/slate/place/2.wav": {
+      "sha256": "82ce12669fe03eec14948cfb8aff44fa3efc6ddf8241ba09f733f68a8a74582b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/2.wav",
+      "source_sha256": "e222e882a5121ad6c6e404e4aea3c8cccee8fc3f0120ae038dd9a91e754aa489",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -8.382532312192287,
+        "dc": -5.4865382993832616e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 10.21076631520457,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.1169618400519002e-07
+      }
+    },
+    "current/materials/slate/place/3.wav": {
+      "sha256": "61a02cac9c2dc0061ae7c50bcb5a5b17ff2eb71c0e5ffa23e3dbefdac5faf670",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/3.wav",
+      "source_sha256": "61a02cac9c2dc0061ae7c50bcb5a5b17ff2eb71c0e5ffa23e3dbefdac5faf670",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -7.625904963503328,
+        "dc": -2.285014264858686e-05,
+        "onset_ms_at_minus60dbfs": 0.0625,
+        "phone_band_energy": 9.954855277325917,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/place/3.wav": {
+      "sha256": "0d8454e94b40b016125fffb7c2168a3f9517d06757d481b267bbdd5052ba502d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/3.wav",
+      "source_sha256": "61a02cac9c2dc0061ae7c50bcb5a5b17ff2eb71c0e5ffa23e3dbefdac5faf670",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -8.400179238214934,
+        "dc": -2.3039798132884196e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 9.954855562869469,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.2457236518776488e-07
+      }
+    },
+    "weightier/materials/slate/place/3.wav": {
+      "sha256": "547f3a727076c41ea2def5a82843d4a7ef03dca248fd2fa5a6d51eb21399be6f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/place/3.wav",
+      "source_sha256": "61a02cac9c2dc0061ae7c50bcb5a5b17ff2eb71c0e5ffa23e3dbefdac5faf670",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 104.0,
+        "peak_dbfs": -9.10845577598947,
+        "dc": -2.3147998712001703e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 9.954854987391954,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.2648774737105326e-07
+      }
+    },
+    "current/materials/slate/select/1.wav": {
+      "sha256": "9cafe9b6b2727c2ab1392681d23a254c44cbfde801b4a3af8fea4c44d9f64bab",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/1.wav",
+      "source_sha256": "9cafe9b6b2727c2ab1392681d23a254c44cbfde801b4a3af8fea4c44d9f64bab",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -10.36884866377843,
+        "dc": 0.00010010993315113915,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.064764989185244,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/select/1.wav": {
+      "sha256": "3a358b6523812fbed455c32dd42ed060754cead03f2f3536eef95a04e9725a84",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/1.wav",
+      "source_sha256": "9cafe9b6b2727c2ab1392681d23a254c44cbfde801b4a3af8fea4c44d9f64bab",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -11.08839704460415,
+        "dc": 9.893419014083015e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.064765120072542,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.398448132205769e-07
+      }
+    },
+    "weightier/materials/slate/select/1.wav": {
+      "sha256": "9048cab8ae4526073c6039f4902d80c384f2f4613b102c9058f88266545c82cc",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/1.wav",
+      "source_sha256": "9cafe9b6b2727c2ab1392681d23a254c44cbfde801b4a3af8fea4c44d9f64bab",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -11.750228963196466,
+        "dc": 9.788266486591763e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.064765132574716,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.53202596797424e-07
+      }
+    },
+    "current/materials/slate/select/2.wav": {
+      "sha256": "e82fd2d6a928756a56b86d8b65a814453f1f67d707b2b247abb15e277123750b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/2.wav",
+      "source_sha256": "e82fd2d6a928756a56b86d8b65a814453f1f67d707b2b247abb15e277123750b",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.40711340842675,
+        "dc": -3.0030641290876602e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.072071706995411,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/select/2.wav": {
+      "sha256": "5b60e8ff62f7dc5c551261ad65ceaf4072ac29ec22dba0e4d5611f9a165f071b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/2.wav",
+      "source_sha256": "e82fd2d6a928756a56b86d8b65a814453f1f67d707b2b247abb15e277123750b",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.966444862674866,
+        "dc": -3.20653948518965e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.0720717287176775,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.316722575432873e-08
+      }
+    },
+    "weightier/materials/slate/select/2.wav": {
+      "sha256": "f8db092d6e6a9f8515e284128728508f8f20ffc0b9e05f37fec5dbcb3dfeca03",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/2.wav",
+      "source_sha256": "e82fd2d6a928756a56b86d8b65a814453f1f67d707b2b247abb15e277123750b",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.495592360984416,
+        "dc": -3.3731882770856224e-05,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.072071748404258,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 4.416335201323846e-08
+      }
+    },
+    "current/materials/slate/select/3.wav": {
+      "sha256": "d5ffdf155bca15787517e12e6d4d447bd10501b323904eb02c5c5b482cae856f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/3.wav",
+      "source_sha256": "d5ffdf155bca15787517e12e6d4d447bd10501b323904eb02c5c5b482cae856f",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -10.110583944939549,
+        "dc": -5.868532591395908e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.09420403319936,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/materials/slate/select/3.wav": {
+      "sha256": "894c6320c814fed10e5c3d9e5de0c9e03be5f00cf767db33845c8985ce840ac2",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/3.wav",
+      "source_sha256": "d5ffdf155bca15787517e12e6d4d447bd10501b323904eb02c5c5b482cae856f",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -10.871393779693804,
+        "dc": -7.001848684416877e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.0942037699197344,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.7927502250779185e-07
+      }
+    },
+    "weightier/materials/slate/select/3.wav": {
+      "sha256": "8d9d9fbdcd0500d8cf6b9396c141593fac1c9396fcd75748c64394afc9250d8e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/materials/slate/select/3.wav",
+      "source_sha256": "d5ffdf155bca15787517e12e6d4d447bd10501b323904eb02c5c5b482cae856f",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -11.571379543571414,
+        "dc": -7.855354083908929e-06,
+        "onset_ms_at_minus60dbfs": 0.08333333333333333,
+        "phone_band_energy": 4.094204278874769,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.6060125562501406e-07
+      }
+    },
+    "current/ordinary/navigate/1.wav": {
+      "sha256": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/1.wav",
+      "source_sha256": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.6222537624395,
+        "dc": 1.3688082496325175e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.0334998338723755,
+        "last_sample": 1.3709068298339844e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/navigate/1.wav": {
+      "sha256": "9d66334ab679e79e9a517f48bc029f30f8b38aa650245a26ca570efc685b68a6",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/1.wav",
+      "source_sha256": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.169769147969678,
+        "dc": 2.8601123227013483e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.0335001935530475,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.589000258547147e-07
+      }
+    },
+    "weightier/ordinary/navigate/1.wav": {
+      "sha256": "c1d100f36a65bcaeb2f9358c600294c2a17de1ed7c243c0ec51f9945a3039e5f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/1.wav",
+      "source_sha256": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.639612740790103,
+        "dc": -6.119368804825677e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.033500087317983,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8243147400552586e-07
+      }
+    },
+    "current/ordinary/navigate/2.wav": {
+      "sha256": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/2.wav",
+      "source_sha256": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.575781153544932,
+        "dc": -4.764687683847216e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.429622393871464,
+        "last_sample": -4.76837158203125e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/navigate/2.wav": {
+      "sha256": "486c8e38fdf38c190cf767cb2d5c09eee381dba952ebcb1d866d23fdb5710749",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/2.wav",
+      "source_sha256": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.939361388148481,
+        "dc": -1.509918106926812e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.429622242023111,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.025673020978974e-07
+      }
+    },
+    "weightier/ordinary/navigate/2.wav": {
+      "sha256": "880e320d3a1aa7b246a580fa01d71c39d9f584dadfcab59a2185222baec727a4",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/2.wav",
+      "source_sha256": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.26101606239188,
+        "dc": -2.3819920089509753e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.42962237789645,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.0790462741336294e-08
+      }
+    },
+    "current/ordinary/navigate/3.wav": {
+      "sha256": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/3.wav",
+      "source_sha256": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.914372092018112,
+        "dc": -8.639155162705316e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.432385890381989,
+        "last_sample": -8.702278137207031e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/navigate/3.wav": {
+      "sha256": "20d4e63f72c375b8088287a23fcbcc1cd9dbc06493a4f2a632a18666b776cc02",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/3.wav",
+      "source_sha256": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.117630330756572,
+        "dc": -2.0064537723859153e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.432385838266989,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -3.518641015412369e-08
+      }
+    },
+    "weightier/ordinary/navigate/3.wav": {
+      "sha256": "452327ca159baddef8da7201033a48dd97de1fa87f2894f78f452eb220de1e6e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/3.wav",
+      "source_sha256": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.342045885207911,
+        "dc": -2.9927161004808213e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.432385793354515,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -6.550990128996865e-08
+      }
+    },
+    "current/ordinary/navigate/4.wav": {
+      "sha256": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/4.wav",
+      "source_sha256": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.660427779853265,
+        "dc": 9.330693218443129e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.939599362057003,
+        "last_sample": 9.298324584960938e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/navigate/4.wav": {
+      "sha256": "ab4bff129037b561a655afb70dfceb37287f5666d999591e621452ae5f9863b5",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/4.wav",
+      "source_sha256": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.472334028756402,
+        "dc": 1.7537011040581596e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.939599228466192,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -9.767957302303649e-08
+      }
+    },
+    "weightier/ordinary/navigate/4.wav": {
+      "sha256": "9e28ccf36ce3f197c8fc26c2015035052f0cb09367be47be3d922cd3b927af28",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/4.wav",
+      "source_sha256": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.967852349468307,
+        "dc": -4.059655798806084e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.939599706971445,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 2.5219619238766564e-07
+      }
+    },
+    "current/ordinary/navigate/5.wav": {
+      "sha256": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/5.wav",
+      "source_sha256": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.263292471886384,
+        "dc": -1.0573408669895596e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.4726024536628435,
+        "last_sample": -1.0609626770019531e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/navigate/5.wav": {
+      "sha256": "90dd39dad1462eae3bce58b801782526f36c53b0f6b7507a7bbe48e9509b5011",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/5.wav",
+      "source_sha256": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.777796011630236,
+        "dc": -2.2695627477433946e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.4726024556727095,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.3485666383744664e-09
+      }
+    },
+    "weightier/ordinary/navigate/5.wav": {
+      "sha256": "5763adb3fd1b2da2eece3cada84ac11379371ffbd7c6f5aa757ba05fcaf7b537",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/navigate/5.wav",
+      "source_sha256": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.240924517114355,
+        "dc": -3.293740252653758e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.472602315113153,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -9.296317408966807e-08
+      }
+    },
+    "current/ordinary/open/1.wav": {
+      "sha256": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/1.wav",
+      "source_sha256": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.804562213168842,
+        "dc": 5.431721607844035e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.011958077258851,
+        "last_sample": 5.4836273193359375e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/open/1.wav": {
+      "sha256": "0316f6b153f6d423720ebe6125372e6c416e7d3af89dfda69c149f7ccbbebc7d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/1.wav",
+      "source_sha256": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.281478738330412,
+        "dc": -4.991971784167819e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.011957767508527,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.2375881240572904e-07
+      }
+    },
+    "weightier/ordinary/open/1.wav": {
+      "sha256": "2fe1310807e56f650bc6c6f32983f197dcc94833ad7d239c8b0105cb85030f77",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/1.wav",
+      "source_sha256": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.678008514161375,
+        "dc": -1.3938587572839526e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.011958119750895,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.0695590411542803e-08
+      }
+    },
+    "current/ordinary/open/2.wav": {
+      "sha256": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/2.wav",
+      "source_sha256": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.9205090199627906,
+        "dc": -1.953790585199992e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.417984922535155,
+        "last_sample": -1.9073486328125e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/open/2.wav": {
+      "sha256": "dc77c133032a5640bc5a861b8fd8491457173b677d1e5d5356cb070ed75f5d94",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/2.wav",
+      "source_sha256": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.1804530531475885,
+        "dc": -1.1856481432914733e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.4179849237101125,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.950744955158753e-10
+      }
+    },
+    "weightier/ordinary/open/2.wav": {
+      "sha256": "f2f6be4fc4a9682a47af3f15a64894c1810c995f0ea8a57808f29b53b2136e73",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/2.wav",
+      "source_sha256": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.415345291259042,
+        "dc": -2.044319278664059e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.417985017071464,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 6.397116541677086e-08
+      }
+    },
+    "current/ordinary/open/3.wav": {
+      "sha256": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/3.wav",
+      "source_sha256": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.324779236059713,
+        "dc": -3.3423304557800295e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.407418038858016,
+        "last_sample": -3.337860107421875e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/open/3.wav": {
+      "sha256": "cbafabe9d35175d578d9369307d0fe0be567c02f7461d757c23413b5ab5fbf05",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/3.wav",
+      "source_sha256": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.42143429617761,
+        "dc": -1.4438811275694105e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.407418203572736,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.1164355583505609e-07
+      }
+    },
+    "weightier/ordinary/open/3.wav": {
+      "sha256": "11dd8e9a244f4219eed11b2cbcad976f8abc27937a494dc71492db622ad6cc2d",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/3.wav",
+      "source_sha256": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.553681675083618,
+        "dc": -2.4251598450872634e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.407418147294774,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.34983811922641e-08
+      }
+    },
+    "current/ordinary/open/4.wav": {
+      "sha256": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/4.wav",
+      "source_sha256": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.092905792300015,
+        "dc": 3.860394159952799e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.9730736168574845,
+        "last_sample": 3.814697265625e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/open/4.wav": {
+      "sha256": "82b1c491752cea9f3564f5146ffbacb32e318f607da7c47a211dbc0813b0ad3f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/4.wav",
+      "source_sha256": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.764733049718369,
+        "dc": -3.0321793423758613e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.9730738272977035,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.5300836775192295e-07
+      }
+    },
+    "weightier/ordinary/open/4.wav": {
+      "sha256": "b96f81273830bb354ce75989e6da1ad405dac58107bdd33cbf01020f044d8b32",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/4.wav",
+      "source_sha256": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.405145666767481,
+        "dc": -8.43347774611579e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.973073525052931,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -6.674990781855933e-08
+      }
+    },
+    "current/ordinary/open/5.wav": {
+      "sha256": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/5.wav",
+      "source_sha256": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.709959244648156,
+        "dc": -3.915942377514309e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.46246989161517,
+        "last_sample": -3.933906555175781e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/open/5.wav": {
+      "sha256": "beaeed68b7cbf780b26ae50d37830cd393fed1483f1da78ee1b81e1426d1a7b0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/5.wav",
+      "source_sha256": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.1192052675776045,
+        "dc": -1.5637071596251595e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.462469853757395,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.54413916403929e-08
+      }
+    },
+    "weightier/ordinary/open/5.wav": {
+      "sha256": "3df5a4c4d3925816e83f965b6051f96ce2ec5a4a849a3a85f8731fe37a082632",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/open/5.wav",
+      "source_sha256": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.491555692819894,
+        "dc": -2.5772179166475933e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.462469920970532,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.9727553594609373e-08
+      }
+    },
+    "current/ordinary/place/1.wav": {
+      "sha256": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/1.wav",
+      "source_sha256": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.641364546551255,
+        "dc": 2.6259198784828185e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.0563274457907665,
+        "last_sample": 2.6226043701171875e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/place/1.wav": {
+      "sha256": "2c7ee948f28d4dae43a7758eddcda9f66681bf3851d1bdfab30498d2b1d3b5e1",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/1.wav",
+      "source_sha256": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.263211464088316,
+        "dc": 1.498464908864763e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.056327577466626,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 9.442372268035817e-08
+      }
+    },
+    "weightier/ordinary/place/1.wav": {
+      "sha256": "4fc2d901ae58db813ecea229c73af70752932d80abad27a594966752e603cb1f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/1.wav",
+      "source_sha256": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.789806324111872,
+        "dc": 5.9655143154992e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.056327710346212,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8971062628604466e-07
+      }
+    },
+    "current/ordinary/place/2.wav": {
+      "sha256": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/2.wav",
+      "source_sha256": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.497646586802635,
+        "dc": -8.939868874020047e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.435408439281498,
+        "last_sample": -8.940696716308594e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/place/2.wav": {
+      "sha256": "b8b7fd8df33ec0f98b6dae0d45b236551ebace90727f43ba2a1abdffda4c593e",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/2.wav",
+      "source_sha256": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.956662467937841,
+        "dc": -1.934477024608188e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.435408607139104,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.1327895006428781e-07
+      }
+    },
+    "weightier/ordinary/place/2.wav": {
+      "sha256": "d5f69e4b1971ba155d18af3034ae3df4261614230dd9c16a6498fad9d94efe83",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/2.wav",
+      "source_sha256": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.352960771929887,
+        "dc": -2.7919022573365105e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.435408488217265,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.3024373723262304e-08
+      }
+    },
+    "current/ordinary/place/3.wav": {
+      "sha256": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/3.wav",
+      "source_sha256": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.696769503365394,
+        "dc": -1.7089976204766168e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.450263814355985,
+        "last_sample": -1.704692840576172e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/place/3.wav": {
+      "sha256": "5645af26513fd5d39ffe7503080633dc102c1b13857d4ac7a08cc8340a8039e7",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/3.wav",
+      "source_sha256": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.045083786565066,
+        "dc": -2.8412706322140165e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.4502639245052595,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.41632020369884e-08
+      }
+    },
+    "weightier/ordinary/place/3.wav": {
+      "sha256": "7daf003672c7e9c4d40ae6b223cf1f1386dbf74e9083c50af7fffa10acf3681a",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/3.wav",
+      "source_sha256": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.337225138376099,
+        "dc": -3.799353208806779e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.450264090079681,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8564399967567788e-07
+      }
+    },
+    "current/ordinary/place/4.wav": {
+      "sha256": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/4.wav",
+      "source_sha256": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.930995481472744,
+        "dc": 1.7182735933197868e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.920587696369757,
+        "last_sample": 1.71661376953125e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/place/4.wav": {
+      "sha256": "e787f3a26f5a49c968ee89486ae9b9921d5f3261e55429515ac4efb7289982b0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/4.wav",
+      "source_sha256": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -10.018653551472205,
+        "dc": 8.87393123573727e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.9205875953299065,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -7.411603708193002e-08
+      }
+    },
+    "weightier/ordinary/place/4.wav": {
+      "sha256": "0703e1beb7c233535d40e484f6e97da3c1e6eda7b5799f0cd09d58aca95ed58c",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/4.wav",
+      "source_sha256": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -10.112481074801376,
+        "dc": 2.622356017430623e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.920587939066885,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.7802628167200258e-07
+      }
+    },
+    "current/ordinary/place/5.wav": {
+      "sha256": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/5.wav",
+      "source_sha256": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.081430401555591,
+        "dc": -2.1732060445679557e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.492281908258157,
+        "last_sample": -2.1696090698242188e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/place/5.wav": {
+      "sha256": "39977cfcd428ea45ba22b46491589ad1464b09cbce345369e7899cd292853ca5",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/5.wav",
+      "source_sha256": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.701069293977364,
+        "dc": -3.376098142729865e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.492281956521739,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 3.228542405611073e-08
+      }
+    },
+    "weightier/ordinary/place/5.wav": {
+      "sha256": "22a5f79adc395be88f20aedec885fad8e2cbf09c6afe33cb3e4e97f4feeb3146",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/place/5.wav",
+      "source_sha256": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.247646551916747,
+        "dc": -4.37270849943161e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.492281984759731,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 5.1174936443833074e-08
+      }
+    },
+    "current/ordinary/select/1.wav": {
+      "sha256": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/1.wav",
+      "source_sha256": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.388581236165821,
+        "dc": 1.0566992892159356e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.028035083114183,
+        "last_sample": 1.0609626770019531e-05,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/select/1.wav": {
+      "sha256": "10fec5c861bcb86ff19e6d09734efe6b1bbd04f55ab8a7bad839968be7f696a3",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/1.wav",
+      "source_sha256": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.913079297101014,
+        "dc": -2.447929647233751e-07,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.028035311447412,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.6450444968209614e-07
+      }
+    },
+    "weightier/ordinary/select/1.wav": {
+      "sha256": "de5143d79366beb2abfb9de1420077c711fd18bf73f095bfe1ec77bf403e6463",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/1.wav",
+      "source_sha256": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.3645424594553335,
+        "dc": -9.296130802896287e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.02803509346935,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 7.460460614606127e-09
+      }
+    },
+    "current/ordinary/select/2.wav": {
+      "sha256": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/2.wav",
+      "source_sha256": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.371103388429985,
+        "dc": -3.713824682765537e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428123908525466,
+        "last_sample": -3.6954879760742188e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/select/2.wav": {
+      "sha256": "379e315819ab6310940e6a04f704b4ebf874878df8c0f26635e25ff61b96aea6",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/2.wav",
+      "source_sha256": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.707527373933947,
+        "dc": -1.4054112964206272e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428124108187042,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.3489459840596305e-07
+      }
+    },
+    "weightier/ordinary/select/2.wav": {
+      "sha256": "86324f1cfd7584874f2be2d0254e0a1f9bebac69b074091b525d62b18353b261",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/2.wav",
+      "source_sha256": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.007009653402719,
+        "dc": -2.283499472671085e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428123927896607,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.3087456982080411e-08
+      }
+    },
+    "current/ordinary/select/3.wav": {
+      "sha256": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/3.wav",
+      "source_sha256": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.731613906509527,
+        "dc": -6.60969979233212e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428186501382949,
+        "last_sample": -6.67572021484375e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/select/3.wav": {
+      "sha256": "7ccda2497ddb988db38e2057ca37432a1ebd5e0ee7907a5c9e1bc8c7096bdfaa",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/3.wav",
+      "source_sha256": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -5.90650378401188,
+        "dc": -1.806426379415724e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428186724101445,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.5047076229188192e-07
+      }
+    },
+    "weightier/ordinary/select/3.wav": {
+      "sha256": "1012cb82866eb35691da65a71c74c97c9b3f338a77b48d5fa44c79881ab5542f",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/3.wav",
+      "source_sha256": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.106864743739109,
+        "dc": -2.8005532092518277e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.428186309818387,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.2942286807449597e-07
+      }
+    },
+    "current/ordinary/select/4.wav": {
+      "sha256": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/4.wav",
+      "source_sha256": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -8.256645675281964,
+        "dc": 7.292007406552633e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.944671019452646,
+        "last_sample": 7.271766662597656e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/select/4.wav": {
+      "sha256": "be40c22bcabe49b1479eff0a119e9662f9d00b661909b94360e8bda2bb3a6abd",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/4.wav",
+      "source_sha256": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.037189402467833,
+        "dc": -2.106030782063802e-07,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.944670987290323,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -2.34965393700367e-08
+      }
+    },
+    "weightier/ordinary/select/4.wav": {
+      "sha256": "ff417c018957085d774d45e5446b7516cdeca1652ca27dc41c4c87c6e0f97d82",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/4.wav",
+      "source_sha256": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -9.76322999459752,
+        "dc": -6.002932786941529e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 5.944670996178708,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": -1.7003031566826448e-08
+      }
+    },
+    "current/ordinary/select/5.wav": {
+      "sha256": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/5.wav",
+      "source_sha256": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+      "treatment": "current",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.089152770292285,
+        "dc": -7.990333769056531e-06,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.468233656855539,
+        "last_sample": -7.987022399902344e-06,
+        "phone_energy_delta_db": 0.0
+      }
+    },
+    "refined/ordinary/select/5.wav": {
+      "sha256": "887db2725768a01572437e1bb74775b1e2dc8e76e2ec372365b093e3c93a5f4b",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/5.wav",
+      "source_sha256": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+      "treatment": "refined",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -6.575554461744418,
+        "dc": -2.012637754281362e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.4682336850263695,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 1.8914647723453174e-08
+      }
+    },
+    "weightier/ordinary/select/5.wav": {
+      "sha256": "a5bfdf739dfb6c00aebd3089d4d9b3bc4b13e1d74a330a5bb474b4fbb47a9ed9",
+      "source": "design/audits/2026-09-06/tap-refinement/current/ordinary/select/5.wav",
+      "source_sha256": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+      "treatment": "weightier",
+      "source_graph": [
+        "approved-contact-body-closure",
+        "source-material-shading",
+        "complementary-band-envelope-v1"
+      ],
+      "metrics": {
+        "duration_ms": 60.0,
+        "peak_dbfs": -7.01510032907514,
+        "dc": -3.0437277423010932e-05,
+        "onset_ms_at_minus60dbfs": 0.041666666666666664,
+        "phone_band_energy": 6.468233724138461,
+        "last_sample": 0.0,
+        "phone_energy_delta_db": 4.5175549649147944e-08
+      }
+    }
+  },
+  "reel_qc": {
+    "current/with-music": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.188640400683456,
+      "dc": -7.695781464946876e-06,
+      "onset_ms_at_minus60dbfs": 2.5,
+      "phone_band_energy": 178.2829509228071,
+      "last_sample": 0.0035870864521712065
+    },
+    "current/with-umbrella": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.292579149584041,
+      "dc": -1.4663558133678286e-05,
+      "onset_ms_at_minus60dbfs": 0.3541666666666667,
+      "phone_band_energy": 183.64291859797657,
+      "last_sample": 0.025598878040909767
+    },
+    "refined/with-music": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.283784079217638,
+      "dc": -7.885606411289828e-06,
+      "onset_ms_at_minus60dbfs": 2.5,
+      "phone_band_energy": 178.32213658384336,
+      "last_sample": 0.0035870864521712065
+    },
+    "refined/with-umbrella": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.388874566215597,
+      "dc": -1.4853383080021236e-05,
+      "onset_ms_at_minus60dbfs": 0.3541666666666667,
+      "phone_band_energy": 183.71072047698283,
+      "last_sample": 0.025598878040909767
+    },
+    "weightier/with-music": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.413936521155485,
+      "dc": -8.034153485441248e-06,
+      "onset_ms_at_minus60dbfs": 2.5,
+      "phone_band_energy": 178.35773585212831,
+      "last_sample": 0.0035870864521712065
+    },
+    "weightier/with-umbrella": {
+      "duration_ms": 10500.0,
+      "peak_dbfs": -5.52062336181174,
+      "dc": -1.5001930154172654e-05,
+      "onset_ms_at_minus60dbfs": 0.3541666666666667,
+      "phone_band_energy": 183.77000726259445,
+      "last_sample": 0.025598878040909767
+    }
+  },
+  "source_runtime_unchanged": true,
+  "music": "exact approved Lamp left on and umbrella take01; no gain change",
+  "completion": "locked Answered Detent at75ms after one contact; no second generic click",
+  "comparison": "Same cue durations and phone-band energy within0.01dB; perceived loudness still requires listening",
+  "diagnostics": "Original shared material contact/body separated from deterministic source; space bypass removes only the inherited room bus; all use full-cue gain",
+  "source_decomposition_max_errors": {
+    "slate": 1.1895456542118828e-07,
+    "page": 1.189723487552384e-07,
+    "glass": 1.1894903685118197e-07,
+    "brass": 1.1897583390881039e-07
+  },
+  "sensory_verdict": "No audio perception available to root; owner audition required",
+  "recipe_sha256": "18fe8ce2f0cd7f6abdf4e1017726ddd8ad354d001a3886d6ce535b8a9d93a9a1"
+}

@@ -1,0 +1,101 @@
+{
+  "waveform": {
+    "duration_seconds": 96.0,
+    "sample_peak": 0.13981133,
+    "sample_peak_dbfs": -17.089,
+    "true_peak": 0.13984084,
+    "true_peak_dbfs": -17.087,
+    "phone_band_rms_dbfs": -36.0,
+    "dc_offset": -0.0,
+    "max_mixed_note_end_sample_jump": 0.00437353,
+    "minimum_half_second_rms_before_fade": 0.005787533,
+    "minimum_half_second_dbfs_before_fade": -44.75,
+    "passed": true
+  },
+  "pitch_field": {
+    "law": "all pitched events diatonic to D major; interaction field D E F# A B remains a subset",
+    "passed": true,
+    "offenders": []
+  },
+  "reserved_motif": {
+    "reserved_motif": "D5-A5-E5-D5",
+    "passed": true,
+    "matches": {},
+    "voices_scanned": {
+      "keys": 100,
+      "bass": 100,
+      "lead": 114
+    }
+  },
+  "form_and_hook": {
+    "expected_form": [
+      "A1",
+      "A2",
+      "B",
+      "A_return"
+    ],
+    "actual_form": [
+      "A1",
+      "A2",
+      "B",
+      "A_return"
+    ],
+    "bars_by_section": [
+      8,
+      8,
+      4,
+      8
+    ],
+    "hook_rhythm_occurrences": [
+      {
+        "section": "A1",
+        "bar": 1
+      },
+      {
+        "section": "A1",
+        "bar": 3
+      },
+      {
+        "section": "A1",
+        "bar": 5
+      },
+      {
+        "section": "A1",
+        "bar": 7
+      },
+      {
+        "section": "A2",
+        "bar": 9
+      },
+      {
+        "section": "A2",
+        "bar": 11
+      },
+      {
+        "section": "A2",
+        "bar": 13
+      },
+      {
+        "section": "A_return",
+        "bar": 21
+      },
+      {
+        "section": "A_return",
+        "bar": 23
+      },
+      {
+        "section": "A_return",
+        "bar": 25
+      },
+      {
+        "section": "A_return",
+        "bar": 27
+      }
+    ],
+    "hook_occurrence_count": 11,
+    "hook_arrives_early": true,
+    "exact_eight_bar_return": true,
+    "passed": true
+  },
+  "passed": true
+}

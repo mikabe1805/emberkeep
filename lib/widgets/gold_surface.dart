@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
@@ -63,19 +65,19 @@ class GoldSurface extends StatelessWidget {
           decoration: facetedDecoration(
             cut: cut,
             gradient: Palette.honeyGradient,
-            borderColor: Palette.brass,
-            borderWidth: 1.1,
+            borderColor: const Color(0xFF79502B),
+            borderWidth: 0.85,
             shadows: [
               const BoxShadow(
                 color: Palette.brassDeep,
                 blurRadius: 0,
-                offset: Offset(0, 2),
+                offset: Offset(0, 1.35),
               ),
               if (glow)
                 const BoxShadow(
-                  color: Color(0x2EC98F44),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
+                  color: Color(0x24D0A063),
+                  blurRadius: 18,
+                  offset: Offset(0, 5),
                 ),
             ],
           ),
@@ -88,10 +90,13 @@ class GoldSurface extends StatelessWidget {
                   Positioned.fill(
                     child: IgnorePointer(
                       child: Opacity(
-                        opacity: 0.18,
+                        // The source plate contains large crystalline flecks.
+                        // At this strength they resolve as quiet, irregular
+                        // grain instead of glitter competing with the label.
+                        opacity: 0.055,
                         child: ColorFiltered(
                           colorFilter: const ColorFilter.mode(
-                            Color(0xFFD8AE73),
+                            Color(0xFFB79A6B),
                             BlendMode.modulate,
                           ),
                           child: Image.asset(
@@ -111,7 +116,11 @@ class GoldSurface extends StatelessWidget {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(
-                      painter: _GoldFacePainter(sweep: sweep, tilt: tilt),
+                      painter: _GoldFacePainter(
+                        sweep: sweep,
+                        tilt: tilt,
+                        cut: cut,
+                      ),
                     ),
                   ),
                 ),
@@ -126,62 +135,119 @@ class GoldSurface extends StatelessWidget {
 }
 
 class _GoldFacePainter extends CustomPainter {
-  const _GoldFacePainter({required this.sweep, required this.tilt});
+  const _GoldFacePainter({
+    required this.sweep,
+    required this.tilt,
+    required this.cut,
+  });
 
   final double sweep;
   final Offset tilt;
+  final double cut;
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Shade only the shoulders. This gives the plate a gentle crown without
+    // turning its lower half into a separate orange block.
+    final face = Offset.zero & size;
+    canvas.drawRect(
+      face,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Color(0x246B4325),
+            Color(0x087B5432),
+            Color(0x00FFF2D2),
+            Color(0x00FFF2D2),
+            Color(0x12684527),
+            Color(0x2A56351F),
+          ],
+          stops: [0, 0.16, 0.34, 0.66, 0.84, 1],
+        ).createShader(face),
+    );
+
+    // A few long, low-contrast fibers give the face a directional satin nap
+    // at phone scale. They stay parallel to the plate instead of becoming
+    // crystalline flecks or a repeating sparkle texture.
+    final grain = math.Random(41);
+    for (var i = 0; i < 44; i++) {
+      final start = Offset(
+        grain.nextDouble() * size.width,
+        (0.08 + grain.nextDouble() * 0.84) * size.height,
+      );
+      final end = Offset(
+        (start.dx + size.width * (0.018 + grain.nextDouble() * 0.075))
+            .clamp(0.0, size.width)
+            .toDouble(),
+        start.dy,
+      );
+      canvas.drawLine(
+        start,
+        end,
+        Paint()
+          ..strokeWidth = 0.26 + grain.nextDouble() * 0.18
+          ..color = i.isEven
+              ? const Color(0x14F3DCB0)
+              : const Color(0x0F5E3D24),
+      );
+    }
+
     // One broad, soft reflection — the width of a real highlight rolling over
     // a satin surface, not a travelling glint.
     canvas.save();
-    canvas.translate(-size.width * 0.24 + sweep * size.width * 1.48, 0);
-    canvas.rotate(-0.20 + tilt.dy * 0.02);
+    canvas.translate(-size.width * 0.26 + sweep * size.width * 1.5, 0);
+    canvas.rotate(-0.17 + tilt.dy * 0.018);
     final band = Rect.fromLTWH(
-      -size.width * 0.13,
+      -size.width * 0.18,
       -size.height,
-      size.width * 0.26,
+      size.width * 0.36,
       size.height * 3,
     );
     canvas.drawRect(
       band,
       Paint()
-        ..blendMode = BlendMode.plus
+        ..blendMode = BlendMode.screen
         ..shader = const LinearGradient(
           colors: [
-            Color(0x00FFF3D6),
-            Color(0x0CFFF3D6),
-            Color(0x3AFFF7E2),
-            Color(0x0CFFF3D6),
-            Color(0x00FFF3D6),
+            Color(0x00F8E8C8),
+            Color(0x10F8E8C8),
+            Color(0x42FFF1D5),
+            Color(0x12F8E8C8),
+            Color(0x00F8E8C8),
           ],
-          stops: [0, 0.30, 0.5, 0.70, 1],
+          stops: [0, 0.26, 0.5, 0.74, 1],
         ).createShader(band),
     );
     canvas.restore();
 
     // The lit top lip and the plate's own shaded lower plane. Together these
     // are what makes it read as a raised piece of metal rather than a fill.
-    final lip = Rect.fromLTWH(size.width * 0.05, 0.8, size.width * 0.90, 1.4);
+    final lip = Rect.fromLTWH(
+      size.width * 0.055,
+      0.65,
+      size.width * 0.89,
+      1.15,
+    );
     canvas.drawRect(
       lip,
       Paint()
         ..shader = const LinearGradient(
           colors: [
-            Color(0x00FFF0C4),
-            Color(0xA8FFF0C4),
-            Color(0x66FFF0C4),
-            Color(0x00FFF0C4),
+            Color(0x00F0D19A),
+            Color(0xC0F0D19A),
+            Color(0x68F0D19A),
+            Color(0x00F0D19A),
           ],
           stops: [0, 0.3, 0.72, 1],
         ).createShader(lip),
     );
     final under = Rect.fromLTWH(
       0,
-      size.height - size.height * 0.26,
+      size.height - size.height * 0.16,
       size.width,
-      size.height * 0.26,
+      size.height * 0.16,
     );
     canvas.drawRect(
       under,
@@ -189,8 +255,24 @@ class _GoldFacePainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x00512F12), Color(0x36512F12)],
+          colors: [Color(0x00472D1A), Color(0x2B472D1A)],
         ).createShader(under),
+    );
+
+    canvas.drawLine(
+      Offset(size.width * 0.07, size.height - 1.1),
+      Offset(size.width * 0.93, size.height - 1.1),
+      Paint()
+        ..strokeWidth = 0.75
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0x00452B18),
+            Color(0x8A452B18),
+            Color(0x5C452B18),
+            Color(0x00452B18),
+          ],
+          stops: [0, 0.22, 0.78, 1],
+        ).createShader(face),
     );
 
     // A hairline of warm shadow inside the rim keeps the border from reading
@@ -198,18 +280,18 @@ class _GoldFacePainter extends CustomPainter {
     canvas.drawPath(
       facetedRectPath(
         Rect.fromLTWH(0, 0, size.width, size.height).deflate(1.6),
-        cut: 8,
+        cut: (cut - 1.6).clamp(0.0, cut).toDouble(),
       ),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0
-        ..color = const Color(0x3A6B441C),
+        ..strokeWidth = 0.75
+        ..color = const Color(0x326B482A),
     );
   }
 
   @override
   bool shouldRepaint(_GoldFacePainter old) =>
-      old.sweep != sweep || old.tilt != tilt;
+      old.sweep != sweep || old.tilt != tilt || old.cut != cut;
 }
 
 /// The engraved label that belongs on [GoldSurface]. Dark espresso ink with a

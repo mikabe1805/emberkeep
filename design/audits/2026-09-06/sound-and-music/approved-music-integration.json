@@ -1,0 +1,87 @@
+{
+  "date": "2026-09-06",
+  "decision": {
+    "owner_quote": "it sounds pretty good! you can add it to the app",
+    "supersedes": "The historical approval hold for this specific piece only.",
+    "piece": "Lamp left on",
+    "source": "design/audits/2026-09-06/sound-and-music/umbrella-new-theme/lamp-left-on.m4a",
+    "bundled_asset": "assets/music/lamp-left-on.m4a",
+    "sha256": "a1b84c0b850e03131e5a22269cac7aa2532ad6a0fce5a31dea21e17d40078cc3",
+    "copy": "The approved AAC was copied unchanged: no re-encode and no gain change."
+  },
+  "runtime": {
+    "normal_room": {
+      "take_count": 9,
+      "composition_groups": [[1, 2, 3, 4, 5, 6, 7, 8], [9]],
+      "behavior": "Normal-room playback alternates the umbrella composition and Lamp left on. All eight umbrella takes are sampled before an umbrella take repeats."
+    },
+    "focus": "Unchanged; Focus continues to use its distinct meditation master.",
+    "crossfade": {
+      "duration_seconds": 2.5,
+      "curve": "linear",
+      "technical_qc": {
+        "directed_seams_checked": 16,
+        "directions": "Lamp left on to each take_01 through take_08, and each take_01 through take_08 to Lamp left on",
+        "decoded_window_seconds": 2.52,
+        "worst_decoded_peak": 0.055773381,
+        "clipping": false,
+        "largest_start_boundary_step_to_local_step_ratio": 0.722141,
+        "largest_end_boundary_step_to_local_step_ratio": 0.728055,
+        "result": "No introduced PCM discontinuity signature was found."
+      }
+    }
+  },
+  "verification": {
+    "focused_flutter_tests": {
+      "log": "approved-music-tests.log",
+      "passed": 41
+    },
+    "analysis": {
+      "log": "approved-music-analysis.log",
+      "result": "No issues found."
+    },
+    "release_web_build": {
+      "log": "approved-music-web-build.log",
+      "duration_seconds": 128.6,
+      "result": "Built build/web."
+    },
+    "offline_manifest": {
+      "log": "approved-music-offline.log",
+      "worker": "The static service worker source was copied to build/web before offline preparation.",
+      "prepare_and_check": "passed",
+      "files": 296,
+      "core_mib": 27.1,
+      "deferred_mib": 25.9
+    },
+    "worker_tests": {
+      "log": "approved-music-worker-tests.log",
+      "passed": 6
+    },
+    "browser": {
+      "log": "approved-music-browser.log",
+      "environment": "isolated local browser profile",
+      "one_tap_plays": [
+        {"asset": "take_05.m4a", "duration_seconds": 96, "clock_seconds": 0.501333, "error": null},
+        {"asset": "lamp-left-on.m4a", "duration_seconds": 96, "clock_seconds": 0.501333, "error": null}
+      ],
+      "music_restored_after_off": true,
+      "save_preserved_except_last_modified": true,
+      "automatic_rotation": {
+        "observed": "umbrella take_07 to Lamp left on",
+        "lamp_clock_seconds": 38.96
+      }
+    },
+    "cold_audio_load": {
+      "log": "approved-music-cold-load.log",
+      "asset": "assets/sfx/room/materials/page/navigate/1.wav",
+      "play_resolved": true,
+      "duration_seconds": 0.112,
+      "errors": []
+    }
+  },
+  "limits": {
+    "subjective_listening": "No automated hearing or musical-quality claim is made here; the approval quote is the owner listening verdict.",
+    "release": "No signed release, TestFlight upload, or App Store submission was performed.",
+    "scope": "Browser checks used an isolated local profile and do not establish signed-device or store-release behavior."
+  }
+}

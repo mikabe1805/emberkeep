@@ -146,6 +146,8 @@ String socialInboxNoticeText({
   return parts.join(' ');
 }
 
+enum AppShellInitialPage { quests, goals }
+
 /// App shell: warm candlelit desk, five pages (Me · Quests · Goals · Plans ·
 /// Insights), floating glass nav dock. Owns the GameState + quest list,
 /// persists them locally, and runs day-rollover on launch/resume + at an
@@ -159,6 +161,7 @@ class AppShell extends StatefulWidget {
     this.scheduleRepository,
     this.widgetSnapshotWriter,
     this.releaseNotesGate,
+    this.initialPage = AppShellInitialPage.quests,
   });
 
   final String? initialRoomCode;
@@ -170,6 +173,7 @@ class AppShell extends StatefulWidget {
   /// Optional seam for preference-failure and launch-order tests. Production
   /// uses the device-local SharedPreferences implementation.
   final ReleaseNotesGate? releaseNotesGate;
+  final AppShellInitialPage initialPage;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -234,6 +238,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    if (widget.initialPage == AppShellInitialPage.goals) {
+      _tab = 2;
+      _visitedTabs.add(2);
+    }
     _releaseNotesGate =
         widget.releaseNotesGate ??
         const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
@@ -1935,10 +1943,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           state: state,
                                           quests: quests,
                                           onPersist: _persist,
-                                          onMusicChanged: (enabled) =>
-                                              unawaited(
-                                                _music.setEnabled(enabled),
-                                              ),
+                                          onMusicChanged: (enabled) async {
+                                            await _music.setEnabled(enabled);
+                                            if (enabled) {
+                                              await _music
+                                                  .retryAfterUserGesture();
+                                            }
+                                          },
                                           onPublishRoom: _publishSpaceRoom,
                                           onAddQuest: _addQuest,
                                           onExport: _export,
@@ -2089,6 +2100,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                             right: 0,
                             bottom: 0,
                             child: _BottomDock(
+                              key: ValueKey('app-bottom-dock-tab-$_tab'),
                               selected: _tab,
                               questAccent: activeQuestDeskLook(state).brass,
                               bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -2111,6 +2123,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
 class _BottomDock extends StatelessWidget {
   const _BottomDock({
+    super.key,
     required this.selected,
     required this.questAccent,
     required this.bottomInset,

@@ -1,7 +1,8 @@
 # Sound-effect sources
 
-> **Current status (2026-08-25):** the production everyday family is the
-> phone-approved X clasp under `room/ordinary/`. The older `tap_*`, `tick*`,
+> **Current status (2026-09-06):** the production everyday family is the
+> owner-selected Refined treatment under `room/ordinary/`, derived from the
+> frozen approved X masters. The older `tap_*`, `tick*`,
 > `complete.wav`, and `hearth_room.wav` files were archived compatibility
 > assets: the user rejected their sound quality and near-static note
 > variation, and runtime no longer routed to them. On 2026-08-25 their bytes
@@ -12,20 +13,18 @@
 
 ## Production Room interaction family
 
-`room/ordinary/<open|select|navigate|place>/1..5.wav` contains the selected X
-mechanism from `room-c-gesture-v3`: one complete 60 ms contact, compact body,
-and explicit 8.5 ms clasp. All 20 masters are mono 48 kHz / 24-bit PCM and
-carry the common `+1.5 dB` level that was approved through an iPhone built-in
-speaker. Runtime selects from one global non-repeating variant walk and only
-softens legitimate rapid taps; it never pitch-shifts the masters.
+`room/ordinary/<open|select|navigate|place>/1..5.wav` contains the owner's
+selected **Refined** treatment of the approved X mechanism: one complete 60 ms
+contact with its source compact body and clasp retained. All 20 masters are
+mono 48 kHz / 24-bit PCM. Runtime selects from one global non-repeating variant
+walk and only softens legitimate rapid taps; it never pitch-shifts the masters.
 
-The X family is deterministic project-authored synthesis. It uses no recorded
-Foley, sample library, room tone, reverb, or reference-video audio. The release
-repository retains the exact selected X masters under
-`design/audits/2026-08-20/room-c-gesture-v3/roles/c-clasp-family/`, their
-manifest, and the authoring recipe in `tool/author_room_c_gesture_v3_study.py`.
-Rejected weighted-click candidates and long audition reels are deliberately
-not part of the release package.
+The selected masters are copied byte-for-byte from
+`design/audits/2026-09-06/tap-refinement/refined/ordinary/`, locked by
+`tap-refinement/manifest.json`. Their immutable original sources remain under
+`tap-refinement/current/` and `source-manifest.json`; the deterministic recipe
+is `tool/author_room_tap_refinement.py`. The Refined treatment adds no notes,
+pitch walk, randomness, noise, reverb, Foley, compression, or melody.
 
 `room/completion/completion-composite.wav` is the immutable accepted Select-2
 contact followed by the selected Answered Detent exactly 75 ms later. The two
@@ -44,15 +43,12 @@ flow with its completion parked at 5.3 seconds; it is audit evidence, never a
 runtime cue.
 
 `room/materials/<slate|page|glass|brass>/<verb>/1..3.wav` contains the nine
-phone-approved material texture lanes (gestures approved in
-`room-material-shading-v1`, shipped as the `room-material-shading-v2-polish`
-render on the owner's 2026-08-21 final verdict). Each lane is a body/grain
-shading of the same X contact master, reflection fingerprint, and pentatonic
-tokens — deterministic project-authored synthesis, no recorded Foley —
-copied byte-for-byte from the v2-polish audition masters and regenerable via
-`tool/author_room_material_shading_study.py --polish`. Runtime routes a
-surface's declared `MaterialSound` onto these lanes and falls back to the
-plain clasp for anything undeclared.
+owner-selected **Refined** material lanes. Each is copied byte-for-byte from
+`design/audits/2026-09-06/tap-refinement/refined/materials/` and locked by the
+same audit manifest. They retain each lane's existing contact, reflection
+fingerprint, and source tuning while applying only the selected bounded body/EQ
+treatment. Runtime routes a surface's declared `MaterialSound` onto these lanes
+and falls back to the plain clasp for anything undeclared.
 
 `streak/crit/loot/levelup/boing/stat_0..5.wav` are the phone-approved event
 voices (gestures approved in `room-event-voice-v1`, shipped as the
@@ -64,10 +60,13 @@ the last Gen-1 synthesized sine palette. Regenerable via
 under `design/audits/2026-08-21/room-event-voice-v2-polish/events/`.
 
 `room/paired_return/<d5|a5|e5>/<open|select|navigate|place>/1..5.wav`
-contains the 60 physically approved Paired Return masters. Each is copied
-byte-for-byte from the corresponding v4 cue and contains one complete X take
-plus its dry 60 ms meaning resonance in a single file, preventing runtime
-scheduling jitter. The owner passed the corrected gate on an iPhone 17.
+contains the 60 owner-selected **Refined** Paired Return masters, copied
+byte-for-byte from `tap-refinement/refined/paired_return/` and locked by
+`paired-manifest.json`. Each retains the archived original rare meaning layer
+while substituting only its selected Refined plain base, in one file to prevent
+runtime scheduling jitter. The original paired sources remain frozen under
+`tap-refinement/current/`; this selection does not claim a physical output
+route beyond the owner's audition choice.
 
 Plain X with slight physical variation remains the everyday voice. Only after
 four accepted actions spaced 180–700 ms apart may the next four eligible

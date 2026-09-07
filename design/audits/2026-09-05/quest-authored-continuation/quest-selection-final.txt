@@ -1,0 +1,10 @@
+00:00 +0: loading C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: a compact row selects its exact Quest and only its named action completes
+00:01 +1: dragging a compact row neither selects nor completes it
+00:01 +2: the explicit action guards a repeated activation
+00:02 +3: featured actions name the path they actually open
+00:02 +4: linked Goal identity advances only after the reward commit
+00:02 +5: quick reflection keeps its Quest source and settles full undo
+00:03 +6: (tearDownAll)
+00:03 +6: All tests passed!

@@ -1,0 +1,658 @@
+{
+  "format": "sonic-system/v1",
+  "product": {
+    "name": "Room of Days tap refinement audition",
+    "promise": "Accepted ordinary actions feel crisp, close, and pleasantly substantial while retaining the approved Room gesture vocabulary and its silence.",
+    "owner_quotes": [
+      "the tap sounds just don't sound good",
+      "the sound changes notes as you keep clicking around",
+      "a tap sound should only be triggered when you directly tap a quest but don't trigger its completion, not when you just swipe around not intending to tap anything"
+    ]
+  },
+  "world": {
+    "sensory_words": [
+      "crisp",
+      "close",
+      "substantial",
+      "restrained"
+    ],
+    "avoid": [
+      "popping bubbles",
+      "old recording studio",
+      "new melody",
+      "literal Foley",
+      "reverb",
+      "randomized pitch"
+    ],
+    "shared_dna": {
+      "transient": "Retain each approved source's first-contact edge and onset; refinement begins only after the protected contact window.",
+      "body": "Move a small, time-bounded amount of existing energy into the compact source body; WEIGHTIER doubles that same modest body boost.",
+      "harmonic_field": "No added notes, retuning, phrase, melody, or variation: existing source tuning and global walk remain unchanged.",
+      "texture": "Reduce high grain after contact while retaining the original material texture; page preserves its fiber movement and glass keeps its initial distinction.",
+      "space": "No added space, room tone, noise, reverberation, or Foley. Existing source boundary remains intact; glass ring is only subtly shortened after its contact.",
+      "dynamics": "Each rendered master is normalized to its source 260\u20138000 Hz energy within 0.01 dB. Existing global walk and rapid-tap gain policy are unchanged."
+    }
+  },
+  "mix": {
+    "priority_order": [
+      "ceremony",
+      "outcome",
+      "progress",
+      "confirmation",
+      "contact"
+    ],
+    "priority_map": {
+      "contact": 1,
+      "confirmation": 2,
+      "progress": 3,
+      "outcome": 4,
+      "ceremony": 4
+    },
+    "voice_cap": 2,
+    "rapid_policy": "Unchanged runtime global walk and gain logic: ordinary has five source variants, every material role has three, and fast taps retain existing attenuation/no-immediate-repeat behavior.",
+    "ducking_policy": "Unchanged runtime hierarchy. The audition preserves its existing music ducking and gives the locked completion outcome its existing space; no candidate becomes louder through mix priority.",
+    "silence_policy": [
+      "bare scrolling without a pressed control",
+      "canceled drag never commits or plays outcome",
+      "selected-again focus or completion",
+      "typing",
+      "loading",
+      "disabled and busy controls",
+      "passive updates"
+    ],
+    "compound_outcome_rule": "Recorded flow: one contact then locked outcome75ms later. Live sandbox: visible press has one contact; only accepted click schedules outcome, at least75ms after contact. Cancellation produces no outcome.",
+    "voice_stealing_rule": "Unchanged runtime director rule: a higher-priority outcome steals the oldest lower-priority contact first; equal priorities use existing deterministic scheduling.",
+    "state_dedupe_rule": "Unchanged runtime state-transition guard: only accepted, meaningful actions voice. Repeated selected-state actions and cancelled gestures remain silent independently of rapid-tap attenuation.",
+    "settings_rule": "Unchanged runtime mute, haptic, reduced-feedback, and external-audio behavior. This audition changes no routing or user setting."
+  },
+  "render_contract": {
+    "version": "room-tap-refinement-v1",
+    "shared_sources": {
+      "contact": {
+        "id": "approved-room-contact-v1",
+        "recipe": "Exact approved masters under assets/sfx/room/ordinary and assets/sfx/room/materials; current copies are byte-identical."
+      },
+      "body": {
+        "id": "approved-room-compact-body-v1",
+        "recipe": "Complementary time-varying EQ redistributes existing source energy only; REFINED applies the modest lane body lift and WEIGHTIER doubles it."
+      },
+      "space": {
+        "id": "no-added-space-v1",
+        "recipe": "No new space layer. No room tone, noise, reverb, Foley, or tail extension; only the post-contact glass ring is subtly shortened."
+      }
+    },
+    "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior."
+  },
+  "cues": [
+    {
+      "id": "ordinary-open",
+      "verb": "open",
+      "meaning": "Open ordinary room content",
+      "representative_actions": [
+        "Open an ordinary room control"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate after accepted tap",
+      "timing_class": "immediate",
+      "gesture": "Existing ordinary open contact with only the audition EQ/body treatment",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "five existing ordinary variants",
+        "protected first-contact edge"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "CURRENT is byte-identical; REFINED and WEIGHTIER process only the existing master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "Existing accepted press motion",
+      "haptic": "Existing accepted selection haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "gesture becomes a scroll",
+        "action is cancelled or busy",
+        "no stateful action is accepted"
+      ]
+    },
+    {
+      "id": "ordinary-select",
+      "verb": "select",
+      "meaning": "Select an ordinary room choice",
+      "representative_actions": [
+        "Select an ordinary room control"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate after accepted selection",
+      "timing_class": "immediate",
+      "gesture": "Existing ordinary select contact with only the audition EQ/body treatment",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "five existing ordinary variants",
+        "no selected-again voice"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "CURRENT is byte-identical; REFINED and WEIGHTIER process only the existing master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "Existing accepted selection motion",
+      "haptic": "Existing accepted selection haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "already selected",
+        "gesture becomes a scroll",
+        "action is declined"
+      ]
+    },
+    {
+      "id": "material-page",
+      "verb": "open",
+      "meaning": "Open or navigate paper and journal content",
+      "representative_actions": [
+        "Open a journal entry",
+        "Navigate a paper surface"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate after accepted tap",
+      "timing_class": "immediate",
+      "gesture": "Existing compact page fiber contact, never converted into a thunk",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "three existing material variants",
+        "page fiber remains moving"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "Existing page source receives lane-specific complementary EQ only."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Existing paper-surface acknowledgement",
+      "haptic": "Existing accepted selection haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "ordinary scroll",
+        "cancelled drag",
+        "passive journal update"
+      ]
+    },
+    {
+      "id": "material-glass",
+      "verb": "select",
+      "meaning": "Select a delicate overlay or lens control",
+      "representative_actions": [
+        "Select a glass overlay control"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate after accepted tap",
+      "timing_class": "immediate",
+      "gesture": "Existing glass contact with its post-contact ring subtly shortened",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "three existing material variants",
+        "initial glass distinction retained"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "Existing glass source only; no sparkle or new ring is introduced."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Existing overlay acknowledgement",
+      "haptic": "Existing accepted selection haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "overlay is already dismissed",
+        "gesture becomes a scroll",
+        "passive preview"
+      ]
+    },
+    {
+      "id": "material-slate",
+      "verb": "select",
+      "meaning": "Select a durable date or progression control",
+      "representative_actions": [
+        "Select a slate date or progression control"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate after accepted tap",
+      "timing_class": "immediate",
+      "gesture": "Existing slate contact with only the audition EQ/body treatment",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "three existing material variants",
+        "compact durable body"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "Existing slate source receives lane-specific complementary EQ only."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Existing accepted state acknowledgement",
+      "haptic": "Existing accepted selection haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "already selected",
+        "declined state",
+        "gesture becomes a scroll"
+      ]
+    },
+    {
+      "id": "material-brass",
+      "verb": "place",
+      "meaning": "Confirm a durable primary action",
+      "representative_actions": [
+        "Place or confirm a brass primary action"
+      ],
+      "frequency": "frequent",
+      "priority": 2,
+      "priority_class": "confirmation",
+      "timing": "Immediate after accepted confirmation",
+      "timing_class": "immediate",
+      "gesture": "Existing brass contact with only the audition EQ/body treatment",
+      "shared_traits": [
+        "transient",
+        "body",
+        "texture",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "three existing material variants",
+        "recognizable confirmation mass"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "existing source tuning only",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "Existing brass source receives lane-specific complementary EQ only."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Existing accepted confirmation motion",
+      "haptic": "Existing accepted confirmation haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "action is declined",
+        "pending action rejects reentry",
+        "gesture becomes a scroll"
+      ]
+    },
+    {
+      "id": "completion-answered-detent",
+      "verb": "complete",
+      "meaning": "Resolve an earned completion after its accepted contact",
+      "representative_actions": [
+        "Complete a Quest"
+      ],
+      "frequency": "occasional",
+      "priority": 4,
+      "priority_class": "outcome",
+      "timing": "Original Answered Detent begins exactly 75 ms after one accepted contact",
+      "timing_class": "atomic_composed_outcome",
+      "gesture": "Locked original rare outcome; it is never processed by this tap study",
+      "shared_traits": [
+        "body",
+        "harmonic_field",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "original Answered Detent byte-locked",
+        "unchanged 75 ms contact-to-outcome relation"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-room-contact-v1",
+        "body_master_id": "approved-room-compact-body-v1",
+        "space_fingerprint_id": "no-added-space-v1",
+        "signature_source_id": null,
+        "layers": [
+          "contact",
+          "body",
+          "space"
+        ],
+        "pitch_token": "locked original outcome tuning",
+        "variant_axis": "Existing approved source variant only; no new candidate variants, randomization, notes, or pitch behavior.",
+        "derivation": "No processing. The paired-return reel substitutes only a processed plain base under the original rare meaning layer."
+      },
+      "variant_count": 1,
+      "no_immediate_repeat": false,
+      "motion": "Existing earned completion motion",
+      "haptic": "Existing earned completion haptic",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "completion did not occur",
+        "action was cancelled"
+      ]
+    }
+  ],
+  "auditions": [
+    {
+      "id": "ordinary-natural-flow",
+      "context": "Normal ten-event Room flow with one completion contact/outcome composite at the source timing.",
+      "question": "Does REFINED keep the approved gestures recognizable while making ordinary tapping feel crisp and more pleasantly substantial without becoming louder, poppier, or a new melody?",
+      "sequence": [
+        "material-page",
+        "ordinary-open",
+        "material-glass",
+        "material-slate",
+        "material-brass",
+        "material-page",
+        "ordinary-open",
+        "ordinary-select",
+        "material-brass",
+        "material-page"
+      ],
+      "comparison": {
+        "control": "current/flow.wav",
+        "candidate": "refined/flow.wav",
+        "timings_ms": [
+          300,
+          1100,
+          1800,
+          2500,
+          3200,
+          4100,
+          5200,
+          6250,
+          7900,
+          8900
+        ],
+        "order": "randomized per owner session; retain CURRENT as named anchor after the blind pass",
+        "natural_mix": true,
+        "level_control": {
+          "control": "current/matched.wav",
+          "candidate": "refined/matched.wav"
+        },
+        "verdicts": [
+          "control",
+          "candidate",
+          "both bad",
+          "no preference"
+        ]
+      }
+    },
+    {
+      "id": "ordinary-weight-flow",
+      "context": "Same ten-event flow, tested only after the REFINED comparison to decide whether additional existing-body emphasis overshoots.",
+      "question": "Does WEIGHTIER add useful phone-readable body without flattening the existing material distinctions or competing with completion?",
+      "sequence": [
+        "material-page",
+        "ordinary-open",
+        "material-glass",
+        "material-slate",
+        "material-brass",
+        "material-page",
+        "ordinary-open",
+        "ordinary-select",
+        "material-brass",
+        "material-page"
+      ],
+      "comparison": {
+        "control": "refined/flow.wav",
+        "candidate": "weightier/flow.wav",
+        "timings_ms": [
+          300,
+          1100,
+          1800,
+          2500,
+          3200,
+          4100,
+          5200,
+          6250,
+          7900,
+          8900
+        ],
+        "order": "randomized per owner session after the ordinary-natural-flow verdict",
+        "natural_mix": true,
+        "level_control": {
+          "control": "refined/matched.wav",
+          "candidate": "weightier/matched.wav"
+        },
+        "verdicts": [
+          "control",
+          "candidate",
+          "both bad",
+          "no preference"
+        ]
+      }
+    },
+    {
+      "id": "rapid-fatigue",
+      "context": "Twenty-eight alternating existing-role taps at 125 ms cadence using unchanged global walk and gain attenuation.",
+      "question": "Does the candidate remain controlled and non-repetitive under fast use?",
+      "sequence": [
+        "ordinary-open",
+        "material-glass",
+        "material-slate",
+        "material-brass",
+        "material-page"
+      ],
+      "comparison": {
+        "control": "current/rapid.wav",
+        "candidate": "refined/rapid.wav",
+        "timings_ms": [
+          200,
+          325,
+          450,
+          575,
+          700
+        ],
+        "order": "randomized per owner session",
+        "natural_mix": true,
+        "level_control": {
+          "control": "current/rapid.wav",
+          "candidate": "refined/rapid.wav"
+        },
+        "verdicts": [
+          "control",
+          "candidate",
+          "both bad",
+          "no preference"
+        ]
+      }
+    },
+    {
+      "id": "music-context",
+      "context": "The normal ten-event flow against approved Lamp left on, then the umbrella composition, at the app's existing natural mix.",
+      "question": "Does the tap treatment belong under both approved music anchors without asking for attention over them?",
+      "sequence": [
+        "material-page",
+        "ordinary-open",
+        "material-glass",
+        "material-slate",
+        "material-brass",
+        "material-page",
+        "ordinary-open",
+        "ordinary-select",
+        "material-brass",
+        "material-page"
+      ],
+      "comparison": {
+        "control": "current/with-music.wav",
+        "candidate": "refined/with-music.wav",
+        "timings_ms": [
+          300,
+          1100,
+          1800,
+          2500,
+          3200,
+          4100,
+          5200,
+          6250,
+          7900,
+          8900
+        ],
+        "order": "randomized per owner session; repeat with current/with-umbrella.wav and refined/with-umbrella.wav",
+        "natural_mix": true,
+        "level_control": {
+          "control": "current/with-music.wav",
+          "candidate": "refined/with-music.wav"
+        },
+        "verdicts": [
+          "control",
+          "candidate",
+          "both bad",
+          "no preference"
+        ]
+      }
+    },
+    {
+      "id": "paired-return-meaning",
+      "context": "Existing rare paired-return meaning layer with only its plain ordinary base substituted by the processed candidate.",
+      "question": "Does the refined base preserve the paired-return's original meaning and leave the rare layer as the event people hear?",
+      "sequence": [
+        "ordinary-open",
+        "completion-answered-detent",
+        "ordinary-open"
+      ],
+      "comparison": {
+        "control": "current/paired-return.wav",
+        "candidate": "refined/paired-return.wav",
+        "timings_ms": [
+          300,
+          700,
+          1100
+        ],
+        "order": "randomized per owner session",
+        "natural_mix": true,
+        "level_control": {
+          "control": "current/paired-return.wav",
+          "candidate": "refined/paired-return.wav"
+        },
+        "verdicts": [
+          "control",
+          "candidate",
+          "both bad",
+          "no preference"
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "policy": "Audition-only derivatives of exact approved Room masters. No production asset, routing, global walk, gain logic, source pitch, duration, or rare outcome is changed. Candidate processing adds no notes, noise, reverb, Foley, compression, or new randomization.",
+    "records": [
+      {
+        "scope": "47 masters: four ordinary roles with five takes each (20), nine material lanes with three takes each (27); three families yield141 entries.",
+        "sources": "assets/sfx/room/ordinary and assets/sfx/room/materials",
+        "families": "CURRENT byte-identical; REFINED complementary time-varying EQ/body redistribution; WEIGHTIER doubles REFINED's modest lane body boost.",
+        "headroom": "Renderer requires5dB headroom; actual worstcuepeak-5.325dBFS inunchangedcurrentanchor; cuephonebandenergy matchwithin0.01dB."
+      },
+      {
+        "scope": "reels",
+        "sources": "CURRENT/REFINED/WEIGHTIER flow.wav, matched.wav, single.wav, rapid.wav, paired-return.wav, with-music.wav, with-umbrella.wav; locked/silence.wav",
+        "timing": "Flow events at 300, 1100, 1800, 2500, 3200, 4100, 5200, 6250, 7900, and 8900 ms; completion outcome at 6325 ms."
+      }
+    ]
+  },
+  "approval": {
+    "technical": "pass",
+    "semantic": "pass",
+    "cohesion": "owner-selected-refined",
+    "physical_device": "output-route-not-recorded"
+  },
+  "integration": {
+    "selected_family": "refined",
+    "owner_quote": "go for refined!",
+    "copied_masters": {"base": 47, "paired_return": 60},
+    "source_snapshot": "design/audits/2026-09-06/tap-refinement/refined",
+    "source_locks": ["manifest.json", "paired-manifest.json", "source-manifest.json"],
+    "runtime_logic_changed": false,
+    "physical_output_route": "not recorded"
+  },
+  "technical_evidence": "manifest.json and independent-qc.json; technical measurement does not establish auditory preference"
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-05",
+  "originalSet": "manifest.json",
+  "originalVisualReferenceDisplayOrder": 2,
+  "rejectedOriginalDisplayOrders": [
+    1,
+    3
+  ],
+  "originalTwoJourneyApproved": false,
+  "revision": "single refinement of the second displayed original concept",
+  "revisedImage": "04-goal-at-the-workbench.png",
+  "originalOutput": "C:/Users/mikus/.codex/generated_images/01a07394-f3dd-7423-842b-44b7d5b9b9fc/exec-7285798e-91a9-475a-a9c2-34c58f8d547c.png",
+  "userSelectedRevision": false,
+  "observed": [
+    "Room architecture, light and materials remain recognizable from original image 2.",
+    "Architecture-bound route rail and home-specific labels are removed.",
+    "Different goal type is shown using generic current practice, repetition count, accepted Quest, plan disclosure and notes/progress.",
+    "No fixed number of drawn route locations or mastery percentage."
+  ],
+  "limits": [
+    "Static concept, not an implemented interaction.",
+    "Generated text still favors serif more than the requested body typography; live typography must be separately resolved.",
+    "Long titles must expand the header's quiet text surface and height; no fixed narrow column or baked title area in production.",
+    "3 practices is example current-step data, not a universal rule for skills.",
+    "Expanded plans of different lengths and narrow/large-text layouts require live verification.",
+    "No production code changed."
+  ]
+}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../clock.dart';
 import '../engine.dart';
 import '../goal_planner.dart';
@@ -186,6 +187,7 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
                 onOpen: _open,
                 onNewGoal: _newGoal,
                 onOpenEncounter: _openEncounter,
+                initialGoalTitle: widget.initialGoalTitle,
               ),
             ),
           ),
@@ -241,8 +243,8 @@ class _WorkshopGoalEntry {
             ? _WorkshopGoalKind.questOnBoard
             : _WorkshopGoalKind.cutWaiting,
         actionTitle: decision.actionTitle,
-        status: owned ? 'QUEST ON BOARD' : 'CUT WAITING',
-        actionLabel: 'Open bench',
+        status: owned ? 'QUEST ON BOARD' : 'NEXT STEP READY',
+        actionLabel: owned ? 'Review Quest' : 'Review next step',
         routePosition: decision.routePosition,
       );
     }
@@ -254,15 +256,15 @@ class _WorkshopGoalEntry {
           kind: _WorkshopGoalKind.questOnBoard,
           actionTitle: legacy.displayTitle,
           status: 'QUEST ON BOARD',
-          actionLabel: 'Open bench',
+          actionLabel: 'Review Quest',
         );
       }
       return _WorkshopGoalEntry(
         goal: goal,
         kind: _WorkshopGoalKind.needsRoute,
         actionTitle: 'No route has been shaped for this goal yet.',
-        status: 'NEEDS A ROUTE',
-        actionLabel: 'Build route',
+        status: 'ROUTE TO SHAPE',
+        actionLabel: 'Shape a route',
       );
     }
     return _WorkshopGoalEntry(
@@ -289,6 +291,7 @@ class _WorkshopRoom extends StatelessWidget {
     required this.onOpen,
     required this.onNewGoal,
     required this.onOpenEncounter,
+    required this.initialGoalTitle,
   });
 
   final List<_WorkshopGoalEntry> entries;
@@ -303,11 +306,12 @@ class _WorkshopRoom extends StatelessWidget {
   final ValueChanged<_WorkshopGoalEntry> onOpen;
   final VoidCallback onNewGoal;
   final VoidCallback onOpenEncounter;
+  final String? initialGoalTitle;
 
   String get _summary {
     final parts = <String>[];
     if (waiting > 0) {
-      parts.add('$waiting ${waiting == 1 ? 'cut' : 'cuts'} waiting');
+      parts.add('$waiting ${waiting == 1 ? 'step' : 'steps'} to review');
     }
     if (moving > 0) {
       parts.add('$moving ${moving == 1 ? 'Quest' : 'Quests'} on board');
@@ -428,6 +432,7 @@ class _WorkshopRoom extends StatelessWidget {
                                       onOpen: onOpen,
                                       onNewGoal: onNewGoal,
                                       onOpenEncounter: onOpenEncounter,
+                                      initialGoalTitle: initialGoalTitle,
                                     ),
                                   ),
                                 ),
@@ -495,6 +500,7 @@ class _WorkshopRegister extends StatefulWidget {
     required this.onOpen,
     required this.onNewGoal,
     required this.onOpenEncounter,
+    required this.initialGoalTitle,
   });
 
   final List<_WorkshopGoalEntry> entries;
@@ -505,6 +511,7 @@ class _WorkshopRegister extends StatefulWidget {
   final ValueChanged<_WorkshopGoalEntry> onOpen;
   final VoidCallback onNewGoal;
   final VoidCallback onOpenEncounter;
+  final String? initialGoalTitle;
 
   @override
   State<_WorkshopRegister> createState() => _WorkshopRegisterState();
@@ -677,6 +684,13 @@ class _WorkshopRegisterState extends State<_WorkshopRegister> {
                             ) ...[
                               _WorkshopGoalSlip(
                                 entry: widget.entries[index],
+                                selected:
+                                    widget.initialGoalTitle
+                                        ?.trim()
+                                        .toLowerCase() ==
+                                    widget.entries[index].goal.title
+                                        .trim()
+                                        .toLowerCase(),
                                 enabled: !widget.busy,
                                 onTap: () =>
                                     widget.onOpen(widget.entries[index]),
@@ -742,61 +756,72 @@ class _StewardHiddenCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Pressable(
-    key: const Key('steward-hidden-card'),
-    enabled: enabled,
-    soundEnabled: false,
-    pressDepth: 1,
-    shape: const FacetedBorder(cut: 9),
-    edgeColor: Colors.transparent,
-    semanticLabel: 'Talk with the Steward',
-    semanticHint: 'Start a short optional conversation',
-    onTapUp: (_) => onTap(),
-    child: ExcludeSemantics(
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 160, minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: facetedDecoration(
-          cut: 9,
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFE3CFA6), Color(0xFFB99766)],
-          ),
-          borderColor: const Color(0xFFCBAE78),
-          borderWidth: 1.1,
-          shadows: const [
-            BoxShadow(
-              color: Color(0x90080603),
-              blurRadius: 10,
-              offset: Offset(0, 5),
+  Widget build(BuildContext context) {
+    return Pressable(
+      key: const Key('steward-hidden-card'),
+      enabled: enabled,
+      soundEnabled: false,
+      pressDepth: 1,
+      shape: const FacetedBorder(cut: 9),
+      edgeColor: Colors.transparent,
+      semanticLabel: 'Talk with the Steward',
+      semanticHint: 'Start a short optional conversation',
+      onTapUp: (_) => onTap(),
+      child: ExcludeSemantics(
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 160, minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: facetedDecoration(
+            cut: 9,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF34261B), Color(0xFF1C130E)],
             ),
-          ],
-        ),
-        child: Text(
-          'Talk with the Steward',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'EBGaramond',
-            fontSize: 16,
-            height: 1.1,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF28180E),
+            borderColor: const Color(0xA8B47C43),
+            borderWidth: 1.1,
+            shadows: const [
+              BoxShadow(
+                color: Color(0x90080603),
+                blurRadius: 10,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.forum_outlined, size: 17, color: Palette.brassLit),
+              SizedBox(width: 8),
+              Text(
+                'Talk with the Steward',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'EBGaramond',
+                  fontSize: 16,
+                  height: 1.1,
+                  fontWeight: FontWeight.w600,
+                  color: Palette.textHi,
+                ),
+              ),
+            ],
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _WorkshopGoalSlip extends StatelessWidget {
   const _WorkshopGoalSlip({
     required this.entry,
+    required this.selected,
     required this.enabled,
     required this.onTap,
   });
 
   final _WorkshopGoalEntry entry;
+  final bool selected;
   final bool enabled;
   final VoidCallback onTap;
 
@@ -810,8 +835,10 @@ class _WorkshopGoalSlip extends StatelessWidget {
     return Pressable(
       key: ValueKey<String>('goal-workshop-home-goal-${entry.goal.title}'),
       enabled: enabled,
-      soundEnabled: false,
       pressDepth: 1,
+      material: MaterialSound.parchment,
+      interactionSound: InteractionSound.open,
+      guardRapidReentry: true,
       borderRadius: BorderRadius.circular(7),
       edgeColor: Colors.transparent,
       semanticLabel: semantic,
@@ -847,8 +874,16 @@ class _WorkshopGoalSlip extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: compact
-                  ? _CompactWorkshopGoalSlip(entry: entry, accent: accent)
-                  : _RegularWorkshopGoalSlip(entry: entry, accent: accent),
+                  ? _CompactWorkshopGoalSlip(
+                      entry: entry,
+                      accent: accent,
+                      selected: selected,
+                    )
+                  : _RegularWorkshopGoalSlip(
+                      entry: entry,
+                      accent: accent,
+                      selected: selected,
+                    ),
             ),
             if (!compact) ...[
               const SizedBox(width: 8),
@@ -869,40 +904,42 @@ class _WorkshopGoalSlip extends StatelessWidget {
 }
 
 class _RegularWorkshopGoalSlip extends StatelessWidget {
-  const _RegularWorkshopGoalSlip({required this.entry, required this.accent});
+  const _RegularWorkshopGoalSlip({
+    required this.entry,
+    required this.accent,
+    required this.selected,
+  });
 
   final _WorkshopGoalEntry entry;
   final Color accent;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              entry.goal.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Type.body.copyWith(
-                fontSize: 14,
-                height: 1.12,
-                fontWeight: FontWeight.w600,
-                color: Palette.textHi,
-              ),
-            ),
+      if (selected) ...[
+        Text(
+          'YOUR WORKBENCH',
+          key: const Key('goal-workshop-originating-goal'),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 0.8,
+            color: Palette.brassLit,
           ),
-          const SizedBox(width: 8),
-          Text(
-            entry.status,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              letterSpacing: 0.62,
-              color: Palette.textMid,
-            ),
-          ),
-        ],
+        ),
+        const SizedBox(height: 3),
+      ],
+      Text(
+        entry.goal.title,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Type.body.copyWith(
+          fontSize: 14,
+          height: 1.12,
+          fontWeight: FontWeight.w600,
+          color: Palette.textHi,
+        ),
       ),
       const SizedBox(height: 4),
       Text(
@@ -915,14 +952,37 @@ class _RegularWorkshopGoalSlip extends StatelessWidget {
           color: Palette.textMid,
         ),
       ),
+      const SizedBox(height: 5),
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              entry.status,
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 0.62,
+                color: Palette.textMid,
+              ),
+            ),
+          ),
+          Text(
+            entry.actionLabel.toUpperCase(),
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              letterSpacing: 0.54,
+              color: accent.withValues(alpha: 0.92),
+            ),
+          ),
+        ],
+      ),
       if (entry.routePosition case final position?) ...[
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         Text(
           position,
           style: Type.label.copyWith(
             fontSize: Type.minLabel,
             letterSpacing: 0.68,
-            color: Palette.textMid,
+            color: Palette.textLo,
           ),
         ),
       ],
@@ -931,15 +991,32 @@ class _RegularWorkshopGoalSlip extends StatelessWidget {
 }
 
 class _CompactWorkshopGoalSlip extends StatelessWidget {
-  const _CompactWorkshopGoalSlip({required this.entry, required this.accent});
+  const _CompactWorkshopGoalSlip({
+    required this.entry,
+    required this.accent,
+    required this.selected,
+  });
 
   final _WorkshopGoalEntry entry;
   final Color accent;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      if (selected) ...[
+        Text(
+          'YOUR WORKBENCH',
+          key: const Key('goal-workshop-originating-goal'),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 0.8,
+            color: Palette.brassLit,
+          ),
+        ),
+        const SizedBox(height: 3),
+      ],
       Row(
         children: [
           Expanded(
@@ -980,6 +1057,15 @@ class _CompactWorkshopGoalSlip extends StatelessWidget {
           fontSize: 13,
           height: 1.16,
           color: Palette.textMid,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        entry.actionLabel.toUpperCase(),
+        style: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          letterSpacing: 0.54,
+          color: accent.withValues(alpha: 0.92),
         ),
       ),
     ],

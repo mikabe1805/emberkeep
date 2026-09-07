@@ -207,4 +207,76 @@ void main() {
       ]);
     },
   );
+
+  test(
+    're-saving keeps completed and snoozed field choices in the new order',
+    () {
+      final completed = _quest(
+        'Finished reading',
+        priorityDay: dayKey,
+        priorityRank: 1,
+      )..lastDoneDay = dayKey;
+      final snoozed = _quest(
+        'Set aside walk',
+        priorityDay: dayKey,
+        priorityRank: 2,
+        snoozedDay: dayKey,
+      );
+      final fresh = _quest('Clear the desk');
+      final quests = [completed, snoozed, fresh];
+
+      applyDailyField(quests, day, [
+        'Clear the desk',
+        'Set aside walk',
+        'Finished reading',
+      ]);
+
+      expect(
+        selectedDailyFieldForDay(quests, day).map((quest) => quest.title),
+        ['Clear the desk', 'Set aside walk', 'Finished reading'],
+      );
+      expect(
+        selectedDailyFieldForDay(
+          quests,
+          day,
+        ).map((quest) => quest.priorityRank),
+        [1, 2, 3],
+      );
+    },
+  );
+
+  test('editing can explicitly remove an old selected choice', () {
+    final completed = _quest(
+      'Finished reading',
+      priorityDay: dayKey,
+      priorityRank: 1,
+    )..lastDoneDay = dayKey;
+    final fresh = _quest('Clear the desk');
+    final tomorrow = _quest(
+      'Tomorrow only',
+      priorityDay: Days.key(day.add(const Duration(days: 1))),
+      priorityRank: 1,
+    );
+    final quests = [completed, fresh, tomorrow];
+
+    applyDailyField(quests, day, ['Clear the desk']);
+
+    expect(completed.priorityDay, isNull);
+    expect(fresh.priorityDay, dayKey);
+    expect(tomorrow.priorityDay, Days.key(day.add(const Duration(days: 1))));
+  });
+
+  test(
+    'a newly completed candidate cannot enter a field from an old sheet',
+    () {
+      final wasOpen = _quest('Read ten pages')..lastDoneDay = dayKey;
+      final fresh = _quest('Clear the desk');
+      final quests = [wasOpen, fresh];
+
+      applyDailyField(quests, day, ['Read ten pages', 'Clear the desk']);
+
+      expect(wasOpen.priorityDay, isNull);
+      expect(selectedDailyFieldForDay(quests, day), [fresh]);
+    },
+  );
 }

@@ -451,6 +451,7 @@ class _RewardReceiptState extends State<RewardReceipt>
         if (!bubble.wide) bubble,
     ];
     final message = _bubbles.lastWhere((bubble) => bubble.wide);
+    final goalThread = _goalThreadStatus();
     _Bubble? hero;
     for (final bubble in rewards) {
       if (bubble.hero) {
@@ -508,7 +509,7 @@ class _RewardReceiptState extends State<RewardReceipt>
             // Was 8.5 pt in textLo — the smallest, lowest-contrast string in
             // the app, sitting beside its brightest numeral.
             Text(
-              'SWIPE TO UNDO',
+              _reflectionSaved ? 'QUEST SETTLED' : 'SWIPE TO UNDO',
               style: Type.label.copyWith(
                 fontSize: Type.minLabel,
                 color: Palette.textMid,
@@ -516,6 +517,28 @@ class _RewardReceiptState extends State<RewardReceipt>
             ),
           ],
         ),
+        if (goalThread != null) ...[
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              const Icon(Icons.route_rounded, size: 13, color: Palette.streak),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  goalThread,
+                  key: const ValueKey('receipt-goal-thread'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.3,
+                    color: Palette.streak,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
         if (compact.isNotEmpty) ...[
           const SizedBox(height: 10),
           Wrap(
@@ -543,7 +566,7 @@ class _RewardReceiptState extends State<RewardReceipt>
           Semantics(
             button: !_reflectionSaved,
             label: _reflectionSaved
-                ? 'One line kept in Journal'
+                ? 'One line kept in Journal; completion settled'
                 : 'Keep one line about this quest in Journal',
             child: Pressable(
               enabled: !_reflectionSaved,
@@ -551,7 +574,7 @@ class _RewardReceiptState extends State<RewardReceipt>
               pressDepth: 2,
               edgeColor: Colors.transparent,
               semanticLabel: _reflectionSaved
-                  ? 'One line kept in Journal'
+                  ? 'One line kept in Journal; completion settled'
                   : 'Keep one line in Journal',
               onTapUp: _reflectionSaved ? null : (_) => _openReflection(),
               child: Container(
@@ -609,6 +632,22 @@ class _RewardReceiptState extends State<RewardReceipt>
         ],
       ],
     );
+  }
+
+  String? _goalThreadStatus() {
+    final state = widget.state;
+    final title = widget.bundle.goalTitle?.trim();
+    if (state == null || title == null || title.isEmpty) return null;
+    Goal? linked;
+    for (final goal in state.goals) {
+      if (goal.title.trim().toLowerCase() == title.toLowerCase()) {
+        linked = goal;
+        break;
+      }
+    }
+    if (linked == null) return 'GOAL · $title';
+    if (linked.complete) return 'GOAL · ${linked.title} · COMPLETE';
+    return 'GOAL · ${linked.title} · ${linked.progress}/${linked.target}';
   }
 
   Widget _receiptChip(_Bubble bubble) {

@@ -3,6 +3,21 @@
 Updated September 1, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+42 authored continuation internal candidate
+
+Build 42 is reserved for the authored continuation after Build 41's completed
+Codemagic/TestFlight publishing run. The exact source commit remains to be
+frozen, followed immediately by a manifest-only receipt child and the tag
+`room-of-days-1.0.4-build-42-internal-candidate-retry-1`.
+
+- [ ] Freeze the complete Build 42 source with `pubspec.yaml` at `1.0.4+42`.
+- [ ] Add only `release-evidence/internal-testflight/1.0.4+42/CANDIDATE-MANIFEST.json`
+  in the receipt child, binding its `sourceRevision` to that source commit.
+- [ ] Push the exact receipt tag once. Confirm Codemagic completes, Apple
+  processes the upload, and the build attaches to internal group `Me`.
+- [ ] Install that exact processed build for the acceptance runbook before any
+  App Store review action.
+
 ## 1.0.4+41 corrected music roles internal candidate
 
 Build 41 preserves the Build 40 class import, reminders, widgets, and Open Door

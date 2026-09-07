@@ -1,0 +1,121 @@
+{
+  "checks": {
+    "live_browser": "pass: selection, exact completion, reflection, full reader/editor, reload persistence, domain navigation; zero errors and warnings",
+    "full_production_screenshot_story": "pass",
+    "web_release": "pass, full lib/main.dart with Wasm and JS",
+    "pointer_and_semantic_domain_targets": "pass at 393px and 320px with 2x text",
+    "offline_manifest": "pass, 294 current files",
+    "independent_visual_review": "pass after desk label, count and freeze-wrap corrections",
+    "domain_history_and_later_note_undo": "pass",
+    "focused_interaction_and_persistence": "pass"
+  },
+  "sources": [
+    {
+      "sha256": "263a00935fe26c5a4e4e7ac3727821c8f3b13d1d59849b16e6cd6d19d68234f3",
+      "path": "lib/background_music.dart"
+    },
+    {
+      "sha256": "a5508fc15b7837f9a35ab5e1ad36efd0bc11d0034ab178c72c458061ddabb8b6",
+      "path": "lib/haptics.dart"
+    },
+    {
+      "sha256": "89e421f5021a5a3a53e503af0e837cae901b4d3415deb3893a4949edfda9c91d",
+      "path": "lib/screens/journal_hub.dart"
+    },
+    {
+      "sha256": "a1c734c2c10e5c5eb54bb29dc0a9673083388c605efff9635733fbd82c579cac",
+      "path": "lib/screens/quests.dart"
+    },
+    {
+      "sha256": "4700b66ff95f4610374e7df7ba3cb43705b6774543eca219f2c191c4aa7c37f8",
+      "path": "lib/widgets/pressable.dart"
+    },
+    {
+      "sha256": "d37d6345409a8b2badc70216899f84abf7c8ee39067f8bb65674fd9e2705c13a",
+      "path": "lib/widgets/quest_card.dart"
+    },
+    {
+      "sha256": "d0dc12f45413f85eee46654f3df1b5ed2d76578ab438ee947a984102fcf5375e",
+      "path": "lib/widgets/quest_desk.dart"
+    },
+    {
+      "sha256": "7f205072ca75d7f7aa25bc4ae7456f390e36b5b3fa4a72c17a7984ab2755eb34",
+      "path": "lib/widgets/reward_receipt.dart"
+    },
+    {
+      "sha256": "f3955295343e2334c09de2cfe567f32b507ce9a254e52001a2aeee25d64c6b19",
+      "path": "lib/widgets/stat_chips.dart"
+    },
+    {
+      "sha256": "0783b38210d0da5fcc8965bef561a40dd314dfeaefcebb6ae9634ef48b1cc085",
+      "path": "lib/widgets/streak_freeze_status.dart"
+    },
+    {
+      "sha256": "26d4daec3c1d1db3f8d9c29d410ff997f038befae205544be84b518a582b38a3",
+      "path": "lib/widgets/timer_overlay.dart"
+    },
+    {
+      "sha256": "34faa2f5afc4de9f4602df1a885ec2c194f304baae6e5b0dc16ef0f5db64413e",
+      "path": "pubspec.lock"
+    },
+    {
+      "sha256": "b67f9fa240f693663d91c38259cb4e5db7f8c27ef5022aa9a83de22e706e5cd5",
+      "path": "pubspec.yaml"
+    }
+  ],
+  "implementation_sha256": "8675ef5f3dd194dea0add148a9443f5d354310c7a7b60f08bf5144fcae267faf",
+  "remaining": [
+    "Owner and physical phone review of appearance, touch, motion and sound",
+    "Long-session listening and fatigue",
+    "Dated domain completion archive and remaining inherited research-copy calibration",
+    "Atomic Extra Credit port from preserved later code"
+  ],
+  "artifacts": [
+    {
+      "path": "design/audits/2026-09-05/build41-continuation/browser/continuation-final-board.png",
+      "generated_at": "2026-09-05T20:08:10.1340862-04:00",
+      "sha256": "27bef3d3428a55914f28d6d1f07b4545dbac9d2763806d5f5afeb9883b53d4a9"
+    },
+    {
+      "path": "design/audits/2026-09-05/build41-continuation/browser/continuation-journal-thread.png",
+      "generated_at": "2026-09-05T20:06:43.4594425-04:00",
+      "sha256": "31877e933b1c76b55495e30f4353e265fb54bc72fc9bc1f6e344610b90fb396a"
+    },
+    {
+      "path": "design/audits/2026-09-05/build41-continuation/browser/continuation-domain-history.png",
+      "generated_at": "2026-09-05T20:08:28.6222519-04:00",
+      "sha256": "ff4957f9c0e3d4016fa27a531c9f4128c44f9efda905ca58b9b6874a6fdb2b07"
+    },
+    {
+      "path": "design/audits/2026-09-05/quest-authored-continuation/final/03-reward-after.png",
+      "generated_at": "2026-09-05T19:57:59.9123761-04:00",
+      "sha256": "cbe3fb2f1cd4752128c111780801c7f2a1711f02648a2ddb73135dc884237923"
+    },
+    {
+      "path": "design/audits/2026-09-05/quest-authored-continuation/full-lib-analyze.txt",
+      "generated_at": "2026-09-05T19:54:15.3025350-04:00",
+      "sha256": "bc41cad7bbde1a8372ef24d1878a41f481c96ac6272ac190114eb82e0404d934"
+    },
+    {
+      "path": "design/audits/2026-09-05/quest-authored-continuation/store-screenshot-story.txt",
+      "generated_at": "2026-09-05T19:53:02.1813440-04:00",
+      "sha256": "bfd11dc129a1f13c4e8c9d81a426de69baa412a5cf567440e597b92f515ffbfc"
+    }
+  ],
+  "owner_checkpoint": {
+    "note": "User authorized continuation and branch choice; this is not approval of the resulting visual candidate.",
+    "status": "not yet reviewed"
+  },
+  "phase": "local_candidate",
+  "baseline_revision": "fd584564c6889f8aff891b5e5a8d8f4602d957d0",
+  "captured_at": "2026-09-05T20:11:31.8626348-04:00",
+  "brief_id": "build41-authored-continuation-2026-09-05",
+  "brief_sha256": "e93a4393d8fd4e2e7e679a3ad668529950be2d998d4cb63d913d60c9558fd672",
+  "schema_version": 1,
+  "verdicts": {
+    "visual_evidence_ready": true,
+    "owner_device_accepted": false,
+    "code_complete": "first integrated slice",
+    "entire_redesign_complete": false
+  }
+}

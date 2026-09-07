@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 
 /// Centralized haptics — semantic taps mapped to the iOS Taptic Engine. These
 /// are REAL on a native build and silent no-ops on iOS Safari web (which
@@ -10,7 +11,15 @@ import 'package:flutter/services.dart';
 abstract final class Haptics {
   /// Wired from GameState.reduceMotion — softens intensity, never silences
   /// entirely (a muted phone still gets a soft ack).
-  static bool reduceMotion = false;
+  static bool _reduceMotion = false;
+  static bool get reduceMotion =>
+      _reduceMotion ||
+      WidgetsBinding
+          .instance
+          .platformDispatcher
+          .accessibilityFeatures
+          .disableAnimations;
+  static set reduceMotion(bool value) => _reduceMotion = value;
 
   /// A light UI tick — taps, toggles, selections.
   static void tap() => HapticFeedback.selectionClick();

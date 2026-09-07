@@ -12,16 +12,59 @@ import 'package:emberkeep/screens/goal_wizard.dart';
 import 'package:emberkeep/screens/goals.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
-import 'package:emberkeep/widgets/workout_flow.dart';
 import 'package:emberkeep/widgets/goal_primary_button.dart';
+import 'package:emberkeep/widgets/workout_flow.dart';
 import 'package:emberkeep/widgets/goal_steward.dart';
 import 'package:emberkeep/widgets/goal_world.dart';
 import 'package:emberkeep/widgets/pressable.dart';
+import 'package:emberkeep/widgets/working_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 String _key(String title) => title.trim().toLowerCase();
+
+Finder get _adjustmentReviewScrollable => find
+    .descendant(
+      of: find.byKey(const Key('goal-adjustment-review-scroll')),
+      matching: find.byType(Scrollable),
+    )
+    .first;
+
+Finder get _goalsScroll => find.byKey(const Key('goals-threshold-scroll'));
+
+Finder _goalAction(String label) => find.widgetWithText(WorkingAction, label);
+
+Future<void> _revealOnGoalsPage(
+  WidgetTester tester,
+  Finder target, {
+  int maxScrolls = 12,
+}) async {
+  if (target.evaluate().isEmpty) {
+    final scrollable = find
+        .descendant(of: _goalsScroll, matching: find.byType(Scrollable))
+        .first;
+    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+    await tester.pumpAndSettle();
+  }
+  for (
+    var attempt = 0;
+    target.evaluate().isEmpty && attempt < maxScrolls;
+    attempt++
+  ) {
+    await tester.drag(_goalsScroll, const Offset(0, -260));
+    await tester.pumpAndSettle();
+  }
+  expect(target, findsOneWidget);
+  await tester.ensureVisible(target);
+  await tester.pump();
+}
+
+Future<void> _tapGoalAction(WidgetTester tester, String label) async {
+  final action = _goalAction(label);
+  await _revealOnGoalsPage(tester, action);
+  await tester.tap(action);
+}
 
 Future<void> _pumpGoals(
   WidgetTester tester, {
@@ -325,7 +368,7 @@ void main() {
     expect(identical(opened, quests.single), isTrue);
     expect(persisted, 2);
 
-    await tester.tap(find.byKey(const Key('focus-goal-review')));
+    await _tapGoalAction(tester, 'Review goal');
     await tester.pumpAndSettle();
     expect(find.byType(GoalOpeningScreen), findsNothing);
     expect(find.byType(GoalDetailScreen), findsOneWidget);
@@ -365,7 +408,7 @@ void main() {
       expect(goal.openingSeen, isFalse);
       expect(quests, isEmpty);
 
-      await tester.tap(find.byKey(const Key('focus-goal-review')));
+      await _tapGoalAction(tester, 'Review goal');
       await tester.pumpAndSettle();
       expect(find.byType(GoalOpeningScreen), findsOneWidget);
       expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
@@ -1019,7 +1062,7 @@ void main() {
     expect(goal.openingSeen, isFalse);
     expect(quests, isEmpty);
 
-    await tester.tap(find.byKey(const Key('focus-goal-review')));
+    await _tapGoalAction(tester, 'Review goal');
     await tester.pumpAndSettle();
     expect(find.byType(GoalOpeningScreen), findsOneWidget);
     expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
@@ -1106,7 +1149,7 @@ void main() {
     );
 
     expect(find.text('Open Quest'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
 
     expect(find.byType(GoalDetailScreen), findsNothing);
@@ -1132,8 +1175,11 @@ void main() {
       onPersist: () => persistCalls++,
     );
 
-    expect(find.text('this doesn’t fit today'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    final recover = find.text('Make this smaller');
+    expect(recover, findsOneWidget);
+    await tester.ensureVisible(recover);
+    await tester.pump();
+    await tester.tap(recover);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('goal-recovery-smaller')), findsOneWidget);
     expect(
@@ -1164,104 +1210,151 @@ void main() {
     expect(persistCalls, 0);
   });
 
-  testWidgets(
-    'focused recovery offers a smaller cut before creating its revised Quest',
-    (tester) async {
-      Clock.freeze(DateTime(2026, 8, 29, 10));
-      addTearDown(Clock.reset);
-      final fixture = _focusedRecoveryFixture();
-      final oldRevision = fixture.goal.plan!.revision;
-      final completedStepBefore = jsonEncode(
-        fixture.goal.plan!.steps.first.toJson(),
-      );
-      final firstProofTitleBefore = fixture.goal.firstProofTitle;
-      final firstProofDayBefore = fixture.goal.firstProofDay;
-      Quest? opened;
+  testWidgets('focused recovery accepts a reviewed smaller cut exactly once', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 8, 29, 10));
+    addTearDown(Clock.reset);
+    final fixture = _focusedRecoveryFixture();
+    fixture.quest
+      ..priority = true
+      ..priorityDay = Days.key(Clock.now())
+      ..priorityRank = 2;
+    final oldRevision = fixture.goal.plan!.revision;
+    final completedStepBefore = jsonEncode(
+      fixture.goal.plan!.steps.first.toJson(),
+    );
+    final firstProofTitleBefore = fixture.goal.firstProofTitle;
+    final firstProofDayBefore = fixture.goal.firstProofDay;
+    final goalBeforeReview = jsonEncode(fixture.goal.toJson());
+    final questsBeforeReview = jsonEncode(
+      fixture.quests.map((quest) => quest.toJson()).toList(),
+    );
+    final opened = <Quest>[];
+    var persistCalls = 0;
 
-      await _pumpGoals(
-        tester,
-        state: fixture.state,
-        quests: fixture.quests,
-        onOpenQuest: (quest) => opened = quest,
-      );
+    await _pumpGoals(
+      tester,
+      state: fixture.state,
+      quests: fixture.quests,
+      onOpenQuest: opened.add,
+      onPersist: () => persistCalls++,
+    );
 
-      await tester.tap(find.byKey(const Key('focus-goal-fallback')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
-      await tester.pumpAndSettle();
+    final recover = find.text('Make this smaller');
+    await tester.ensureVisible(recover);
+    await tester.pump();
+    await tester.tap(recover);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
-      expect(fixture.goal.openingSeen, isTrue);
-      expect(fixture.goal.plan!.revision, oldRevision + 1);
-      expect(fixture.goal.plan!.lastSignal, GoalPlanSignal.tooBig);
-      expect(
-        jsonEncode(fixture.goal.plan!.steps.first.toJson()),
-        completedStepBefore,
-      );
-      expect(fixture.goal.firstProofTitle, firstProofTitleBefore);
-      expect(fixture.goal.firstProofDay, firstProofDayBefore);
-      expect(fixture.goal.plan!.currentStep!.kind, GoalPlanStepKind.recover);
-      expect(fixture.quests, isNot(contains(fixture.quest)));
-      expect(
-        fixture.quests.where(
-          (quest) => quest.goalPlanRevision == fixture.goal.plan!.revision,
-        ),
-        isEmpty,
-      );
+    expect(find.byKey(const Key('goal-adjustment-heading')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+    expect(jsonEncode(fixture.goal.toJson()), goalBeforeReview);
+    expect(
+      jsonEncode(fixture.quests.map((quest) => quest.toJson()).toList()),
+      questsBeforeReview,
+    );
+    expect(opened, isEmpty);
+    expect(persistCalls, 0);
 
-      await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
-      await tester.tap(find.byKey(const Key('goal-workshop-accept')));
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('goal-adjustment-accept')),
+      300,
+      scrollable: _adjustmentReviewScrollable,
+    );
+    await tester.tap(find.byKey(const Key('goal-adjustment-accept')));
+    await tester.pumpAndSettle();
 
-      final accepted = fixture.quests.single;
-      final current = fixture.goal.plan!.currentStep!;
-      expect(accepted.goalPlanRevision, fixture.goal.plan!.revision);
-      expect(accepted.goalPlanStepId, current.id);
-      expect(accepted.goalPlanAttempt, current.completions + 1);
-      expect(identical(opened, accepted), isTrue);
-    },
-  );
+    expect(find.byKey(const Key('goal-adjustment-heading')), findsNothing);
+    expect(
+      find.textContaining('This goal changed while you were reviewing'),
+      findsNothing,
+    );
+    expect(fixture.goal.openingSeen, isTrue);
+    expect(fixture.goal.plan!.revision, oldRevision + 1);
+    expect(fixture.goal.plan!.lastSignal, GoalPlanSignal.tooBig);
+    expect(
+      jsonEncode(fixture.goal.plan!.steps.first.toJson()),
+      completedStepBefore,
+    );
+    expect(fixture.goal.firstProofTitle, firstProofTitleBefore);
+    expect(fixture.goal.firstProofDay, firstProofDayBefore);
+    expect(fixture.goal.plan!.currentStep!.kind, GoalPlanStepKind.recover);
+    expect(fixture.quests, isNot(contains(fixture.quest)));
+    final accepted = fixture.quests.single;
+    final current = fixture.goal.plan!.currentStep!;
+    expect(accepted.goalPlanRevision, fixture.goal.plan!.revision);
+    expect(accepted.goalPlanStepId, current.id);
+    expect(accepted.goalPlanAttempt, current.completions + 1);
+    expect(accepted.priority, isTrue);
+    expect(accepted.priorityDay, Days.key(Clock.now()));
+    expect(accepted.priorityRank, 2);
+    expect(opened, hasLength(1));
+    expect(identical(opened.single, accepted), isTrue);
+    expect(persistCalls, 1);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+  });
 
-  testWidgets(
-    'focused recovery can prepare the return without pre-creating a Quest',
-    (tester) async {
-      Clock.freeze(DateTime(2026, 8, 29, 10));
-      addTearDown(Clock.reset);
-      final fixture = _focusedRecoveryFixture();
-      final oldRevision = fixture.goal.plan!.revision;
-      final completedStepBefore = jsonEncode(
-        fixture.goal.plan!.steps.first.toJson(),
-      );
-      final firstProofTitleBefore = fixture.goal.firstProofTitle;
-      final firstProofDayBefore = fixture.goal.firstProofDay;
+  testWidgets('cancelling a reviewed return leaves the live save unchanged', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 8, 29, 10));
+    addTearDown(Clock.reset);
+    final fixture = _focusedRecoveryFixture();
+    fixture.quest
+      ..priority = true
+      ..priorityDay = Days.key(Clock.now())
+      ..priorityRank = 1;
+    final goalBefore = jsonEncode(fixture.goal.toJson());
+    final questsBefore = jsonEncode(
+      fixture.quests.map((quest) => quest.toJson()).toList(),
+    );
+    final opened = <Quest>[];
+    var persistCalls = 0;
 
-      await _pumpGoals(tester, state: fixture.state, quests: fixture.quests);
+    await _pumpGoals(
+      tester,
+      state: fixture.state,
+      quests: fixture.quests,
+      onOpenQuest: opened.add,
+      onPersist: () => persistCalls++,
+    );
 
-      await tester.tap(find.byKey(const Key('focus-goal-fallback')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('goal-recovery-prepareReturn')),
-      );
-      await tester.pumpAndSettle();
+    final recover = find.text('Make this smaller');
+    await tester.ensureVisible(recover);
+    await tester.pump();
+    await tester.tap(recover);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goal-recovery-prepareReturn')));
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
-      expect(fixture.goal.plan!.revision, oldRevision + 1);
-      expect(fixture.goal.plan!.lastSignal, GoalPlanSignal.lowEnergy);
-      expect(
-        jsonEncode(fixture.goal.plan!.steps.first.toJson()),
-        completedStepBefore,
-      );
-      expect(fixture.goal.firstProofTitle, firstProofTitleBefore);
-      expect(fixture.goal.firstProofDay, firstProofDayBefore);
-      expect(fixture.goal.plan!.currentStep!.kind, GoalPlanStepKind.prepare);
-      expect(
-        fixture.quests.where(
-          (quest) => quest.goalPlanRevision == fixture.goal.plan!.revision,
-        ),
-        isEmpty,
-      );
-    },
-  );
+    expect(find.byKey(const Key('goal-adjustment-heading')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+    expect(jsonEncode(fixture.goal.toJson()), goalBefore);
+    expect(
+      jsonEncode(fixture.quests.map((quest) => quest.toJson()).toList()),
+      questsBefore,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('goal-adjustment-keep-original')),
+      300,
+      scrollable: _adjustmentReviewScrollable,
+    );
+    await tester.tap(find.byKey(const Key('goal-adjustment-keep-original')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('goal-adjustment-heading')), findsNothing);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+    expect(jsonEncode(fixture.goal.toJson()), goalBefore);
+    expect(
+      jsonEncode(fixture.quests.map((quest) => quest.toJson()).toList()),
+      questsBefore,
+    );
+    expect(opened, isEmpty);
+    expect(persistCalls, 0);
+  });
 
   testWidgets('Goals threshold honors the OS reduced-motion preference', (
     tester,
@@ -1284,9 +1377,8 @@ void main() {
       onOpenQuest: (value) => opened = value,
     );
 
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pump();
-    expect(find.text('Opening'), findsOneWidget);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 460));
     await tester.pump(const Duration(milliseconds: 460));
@@ -1330,12 +1422,10 @@ void main() {
       quests: [quest],
       onOpenQuest: (value) => opened = value,
     );
-    final action = find.byKey(
-      const Key('focus-goal-action'),
-      skipOffstage: false,
-    );
+    final action = _goalAction('Open Quest');
+    await _revealOnGoalsPage(tester, action);
     await tester.tap(action);
-    await tester.tap(action);
+    await tester.tap(action, warnIfMissed: false);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1640));
     await tester.pump(const Duration(milliseconds: 1));
@@ -1369,7 +1459,7 @@ void main() {
       onOpenQuest: (value) => opened = value,
     );
 
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     Navigator.of(tester.element(find.byType(GoalsPage))).pop();
@@ -1395,7 +1485,7 @@ void main() {
     await _pumpGoals(tester, state: state, quests: []);
 
     expect(find.text('Add a Quest'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Add a Quest');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ember-title')), findsOneWidget);
   });
@@ -1452,7 +1542,19 @@ void main() {
         onOpenQuest: (quest) => opened = quest,
       );
 
-      await tester.tap(find.byKey(const Key('goals-open-workshop')));
+      // The everyday surface keeps the owned Quest primary. Bring the waiting
+      // goal into the deeper track before opening its Workshop.
+      final otherGoals = find.byKey(const Key('other-goals-disclosure'));
+      await _revealOnGoalsPage(tester, otherGoals);
+      await tester.tap(otherGoals);
+      await tester.pumpAndSettle();
+      final waitingGoalCard = find.byKey(
+        const ValueKey<String>('active-goal-make the apartment feel calm'),
+      );
+      await _revealOnGoalsPage(tester, waitingGoalCard);
+      await tester.tap(waitingGoalCard);
+      await tester.pumpAndSettle();
+      await _tapGoalAction(tester, 'Workshop');
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
       expect(find.byKey(const Key('goal-workshop-steward')), findsOneWidget);
@@ -1476,7 +1578,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('QUEST ON BOARD'), findsOneWidget);
-      expect(find.text('CUT WAITING'), findsOneWidget);
+      expect(find.text('NEXT STEP READY'), findsOneWidget);
 
       await tester.tap(
         find.byKey(
@@ -1501,7 +1603,7 @@ void main() {
       expect(quests, hasLength(1));
       expect(find.byKey(const Key('goal-workshop-home')), findsNothing);
 
-      await tester.tap(find.byKey(const Key('goals-open-workshop')));
+      await _tapGoalAction(tester, 'Workshop');
       await tester.pumpAndSettle();
       final waitingRow = find.byKey(
         const ValueKey<String>(
@@ -1549,7 +1651,7 @@ void main() {
     final quests = <Quest>[];
     await _pumpGoals(tester, state: state, quests: quests);
 
-    await tester.tap(find.byKey(const Key('goals-open-workshop')));
+    await _tapGoalAction(tester, 'Workshop');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
     await tester.tap(
@@ -1881,7 +1983,7 @@ void main() {
       onOpenQuest: (value) => opened = value,
     );
 
-    await tester.tap(find.byKey(const Key('focus-goal-review')));
+    await _tapGoalAction(tester, 'Review goal');
     await tester.pumpAndSettle();
     expect(find.byType(GoalDetailScreen), findsOneWidget);
     final row = find.byKey(ValueKey('goal-detail-quest-${quest.title}'));
@@ -1911,11 +2013,13 @@ void main() {
       onOpenQuest: (quest) => opened = quest,
     );
 
-    expect(find.byKey(const Key('goals-support-toggle')), findsOneWidget);
+    final supportToggle = find.byKey(const Key('goals-support-toggle'));
+    await _revealOnGoalsPage(tester, supportToggle);
+    expect(supportToggle, findsOneWidget);
     expect(find.byKey(const Key('goals-unstick-me')), findsNothing);
     expect(find.byKey(const Key('goals-guided-workouts')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('goals-support-toggle')));
+    await tester.tap(supportToggle);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('goals-unstick-me')), findsOneWidget);
@@ -1934,7 +2038,7 @@ void main() {
     expect(opened?.workout, isTrue);
   });
 
-  testWidgets('another goal exchanges into the folio instead of teleporting', (
+  testWidgets('another goal enters the focused track without opening detail', (
     tester,
   ) async {
     final state = GameState()..reduceMotion = false;
@@ -1949,37 +2053,25 @@ void main() {
     await _pumpGoals(tester, state: state, quests: []);
 
     final disclosure = find.byKey(const Key('other-goals-disclosure'));
-    await tester.scrollUntilVisible(
-      disclosure,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await _revealOnGoalsPage(tester, disclosure);
     await tester.tap(disclosure);
     await tester.pumpAndSettle();
 
     final row = find.byKey(const ValueKey('active-goal-read books slowly'));
-    await tester.scrollUntilVisible(
-      row,
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await _revealOnGoalsPage(tester, row);
     await tester.tap(row);
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('goal-folio-tend the apartment')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('goal-folio-read books slowly')),
-      findsOneWidget,
-    );
-    await tester.pump(const Duration(milliseconds: 160));
     await tester.pumpAndSettle();
 
     expect(
+      find.byKey(const ValueKey('goal-folio-tend the apartment')),
+      findsNothing,
+    );
+    expect(
       find.byKey(const ValueKey('goal-folio-read books slowly')),
       findsOneWidget,
     );
+    expect(_goalAction('Add a Quest'), findsOneWidget);
+    expect(_goalAction('Review goal'), findsOneWidget);
     expect(find.byType(GoalDetailScreen), findsNothing);
   });
 
@@ -2010,7 +2102,7 @@ void main() {
     expect(find.textContaining('clear one'), findsOneWidget);
     expect(find.text('Open Quest'), findsOneWidget);
     expect(quests, hasLength(1));
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
     expect(quests, hasLength(2));
     final fallback = quests.last;
@@ -2021,7 +2113,7 @@ void main() {
     expect(fallback.difficulty, 1);
 
     // Returning to the same lighter action reuses the linked Quest.
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
     expect(quests, hasLength(2));
   });
@@ -2057,7 +2149,7 @@ void main() {
       );
 
       expect(find.text('Open Quest'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('focus-goal-action')));
+      await _tapGoalAction(tester, 'Open Quest');
       await tester.pumpAndSettle();
 
       expect(identical(opened, fallback), isTrue);
@@ -2092,7 +2184,7 @@ void main() {
       onOpenQuest: (value) => opened = value,
     );
 
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
 
     expect(quests, hasLength(2));
@@ -2116,7 +2208,7 @@ void main() {
       state.goals.add(goal);
       await _pumpGoals(tester, state: state, quests: []);
 
-      await tester.tap(find.byKey(const Key('focus-goal-review')));
+      await _tapGoalAction(tester, 'Review goal');
       await tester.pumpAndSettle();
       final support = find.byKey(const Key('goal-support-plan'));
       await tester.scrollUntilVisible(
@@ -2232,97 +2324,101 @@ void main() {
     expect(quests.single.schedule, QuestSchedule.daily);
   });
 
-  testWidgets(
-    'meaningful repair returns directly to the workshop before a revised Quest exists',
-    (tester) async {
-      Clock.freeze(DateTime(2026, 8, 28, 10));
-      addTearDown(Clock.reset);
-      final state = GameState()..reduceMotion = true;
-      final plan = GoalPlanner.draft(
-        GoalPlanInput(
-          title: 'Make the apartment feel calm',
-          stat: Stat.dis,
-          type: GoalRouteType.reset,
-          outcome: 'The kitchen is usable after ordinary days',
-          startingPoint: 'The counter is crowded',
-          successProof: 'One clear surface stays usable for a week',
-          timeBudgetMinutes: 15,
-          obstacleCue: 'the whole room feels too big after class',
-          now: Clock.now(),
-        ),
-      );
-      final goal = Goal(
+  testWidgets('meaningful repair reviews before replacing the stale Quest', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 8, 28, 10));
+    addTearDown(Clock.reset);
+    final state = GameState()..reduceMotion = true;
+    final plan = GoalPlanner.draft(
+      GoalPlanInput(
         title: 'Make the apartment feel calm',
         stat: Stat.dis,
-        target: 4,
-        plan: plan,
-        openingSeen: true,
-      );
-      state.goals.add(goal);
-      final current = plan.currentStep!;
-      final completedProof = Quest(
-        title: 'Earlier proof',
-        stat: Stat.dis,
-        difficulty: 1,
-        schedule: QuestSchedule.once,
-        goalTitle: goal.title,
-        goalPlanStepId: current.id,
-        goalPlanRevision: plan.revision,
-        goalPlanAttempt: 1,
-        lastDoneDay: Days.key(Clock.now()),
-      );
-      final staleUnfinished = GoalPlanner.questFor(
-        goal,
-        GoalPlanner.decide(goal, const [], Clock.now())!,
-        Clock.now(),
-      );
-      final quests = <Quest>[completedProof, staleUnfinished];
-      await _pumpGoals(tester, state: state, quests: quests);
+        type: GoalRouteType.reset,
+        outcome: 'The kitchen is usable after ordinary days',
+        startingPoint: 'The counter is crowded',
+        successProof: 'One clear surface stays usable for a week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole room feels too big after class',
+        now: Clock.now(),
+      ),
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: 4,
+      plan: plan,
+      openingSeen: true,
+    );
+    state.goals.add(goal);
+    final current = plan.currentStep!;
+    final completedProof = Quest(
+      title: 'Earlier proof',
+      stat: Stat.dis,
+      difficulty: 1,
+      schedule: QuestSchedule.once,
+      goalTitle: goal.title,
+      goalPlanStepId: current.id,
+      goalPlanRevision: plan.revision,
+      goalPlanAttempt: 1,
+      lastDoneDay: Days.key(Clock.now()),
+    );
+    final staleUnfinished = GoalPlanner.questFor(
+      goal,
+      GoalPlanner.decide(goal, const [], Clock.now())!,
+      Clock.now(),
+    );
+    final quests = <Quest>[completedProof, staleUnfinished];
+    Quest? opened;
+    var persistCalls = 0;
+    final goalBeforeReview = jsonEncode(goal.toJson());
+    final questsBeforeReview = jsonEncode(
+      quests.map((quest) => quest.toJson()).toList(),
+    );
+    await _pumpGoals(
+      tester,
+      state: state,
+      quests: quests,
+      onOpenQuest: (quest) => opened = quest,
+      onPersist: () => persistCalls++,
+    );
 
-      await tester.tap(find.byKey(const Key('goals-open-workshop')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'goal-workshop-home-goal-Make the apartment feel calm',
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
-      await tester.ensureVisible(
-        find.byKey(const Key('goal-workshop-rework-route')),
-      );
-      await tester.tap(find.byKey(const Key('goal-workshop-rework-route')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('goal-plan-signal-tooBig')));
-      await tester.pumpAndSettle();
+    await _tapGoalAction(tester, 'Make this smaller');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
-      expect(
-        find.byKey(const Key('goal-opening-show-plan')).hitTestable(),
-        findsNothing,
-      );
-      expect(goal.openingSeen, isTrue);
-      expect(goal.plan!.revision, plan.revision + 1);
-      expect(quests, contains(completedProof));
-      expect(quests, isNot(contains(staleUnfinished)));
-      expect(
-        quests.where((quest) => quest.goalPlanRevision == goal.plan!.revision),
-        isEmpty,
-      );
+    expect(find.byKey(const Key('goal-adjustment-heading')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+    expect(jsonEncode(goal.toJson()), goalBeforeReview);
+    expect(
+      jsonEncode(quests.map((quest) => quest.toJson()).toList()),
+      questsBeforeReview,
+    );
+    expect(opened, isNull);
+    expect(persistCalls, 0);
 
-      await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
-      await tester.tap(find.byKey(const Key('goal-workshop-accept')));
-      await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('goal-adjustment-accept')),
+      300,
+      scrollable: _adjustmentReviewScrollable,
+    );
+    await tester.tap(find.byKey(const Key('goal-adjustment-accept')));
+    await tester.pumpAndSettle();
 
-      expect(goal.openingSeen, isTrue);
-      expect(
-        quests.where((quest) => quest.goalPlanRevision == goal.plan!.revision),
-        hasLength(1),
-      );
-    },
-  );
+    expect(goal.openingSeen, isTrue);
+    expect(goal.plan!.revision, plan.revision + 1);
+    expect(quests, contains(completedProof));
+    expect(quests, isNot(contains(staleUnfinished)));
+    final replacement = quests.singleWhere(
+      (quest) => quest.goalPlanRevision == goal.plan!.revision,
+    );
+    expect(replacement.goalPlanStepId, goal.plan!.currentStep!.id);
+    expect(replacement.goalPlanAttempt, 1);
+    expect(identical(opened, replacement), isTrue);
+    expect(persistCalls, 1);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsNothing);
+  });
 
   testWidgets('quest-board handoff puts the requested due quest first', (
     tester,
@@ -2409,7 +2505,7 @@ void main() {
     },
   );
 
-  testWidgets('Goals room camera progresses through the registered landmarks', (
+  testWidgets('Goal row keeps the room handoff beat before opening its Quest', (
     tester,
   ) async {
     final state = GameState();
@@ -2436,7 +2532,7 @@ void main() {
       onOpenQuest: (value) => opened = value,
     );
 
-    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await _tapGoalAction(tester, 'Open Quest');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1640));
     expect(opened, isNull);
@@ -2449,7 +2545,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Goals narrow large text can enter detail without overflow', (
+  testWidgets('Goals narrow large text can reach its Quest without overflow', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -2489,15 +2585,8 @@ void main() {
       reason: 'The initial compact Goals threshold must lay out cleanly.',
     );
 
-    final action = find.byKey(
-      const Key('focus-goal-action'),
-      skipOffstage: false,
-    );
-    await tester.scrollUntilVisible(
-      action,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
+    final action = _goalAction('Open Quest');
+    await _revealOnGoalsPage(tester, action);
     expect(
       tester.takeException(),
       isNull,
@@ -2506,7 +2595,7 @@ void main() {
     // The compact layout keeps the action in the scrollable folio. Invoke the
     // same production callback after the layout/overflow check; hit testing
     // remains covered by the existing 430px journey tests.
-    tester.widget<GoalPrimaryButton>(action).onTap();
+    tester.widget<WorkingAction>(action).onTap();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1640));
     await tester.pump(const Duration(milliseconds: 1));

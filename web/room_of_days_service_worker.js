@@ -137,6 +137,31 @@ function cacheKeyFor(request) {
   return url;
 }
 
+// These are Flutter release entry files: an old bootstrap can start an old
+// entrypoint even after a navigation has fetched the new HTML. Fetch each from
+// the network first so a new release does not stay behind the app cache, while
+// retaining its most recently known-good response for an offline reopen. Other
+// assets remain cache-first because their URLs are either content-addressed by
+// the release or harmless to reuse until their next normal request.
+function isReleaseEntrypoint(url) {
+  if (!url.pathname.startsWith(scopeUrl.pathname)) return false;
+  const relativePath = url.pathname.slice(scopeUrl.pathname.length);
+  return (
+    relativePath === 'flutter_bootstrap.js' ||
+    relativePath === 'flutter.js' ||
+    relativePath === 'main.dart.js' ||
+    relativePath === 'main.dart.mjs' ||
+    relativePath === 'main.dart.wasm' ||
+    relativePath === 'offline-assets.json' ||
+    relativePath === 'manifest.json' ||
+    relativePath === 'version.json' ||
+    relativePath === 'assets/AssetManifest.bin' ||
+    relativePath === 'assets/AssetManifest.bin.json' ||
+    relativePath === 'assets/FontManifest.json' ||
+    relativePath.startsWith('canvaskit/')
+  );
+}
+
 async function rangedResponse(request, cached) {
   const range = request.headers.get('range');
   if (!range || !cached) return cached;
@@ -170,13 +195,44 @@ async function cachedAsset(request) {
   const cache = await caches.open(cacheName);
   const key = cacheKeyFor(request);
   const cached = await cache.match(key, {ignoreSearch: true});
-  if (cached) return rangedResponse(request, cached);
+  if (cached) {
+    // Native media elements make no-cors Range requests. Chromium rejects a
+    // synthesized 206 response for that request mode, so hand it the complete
+    // cached response and let the media element seek locally. CORS/same-origin
+    // callers retain the byte-range response needed for normal cache seeks.
+    if (request.mode === 'no-cors') return cached;
+    return rangedResponse(request, cached);
+  }
 
   const response = await fetch(request);
-  if (response.ok && response.type === 'basic') {
+  // Cache.put rejects 206 Partial Content. Preserve a cold media Range reply
+  // for its caller without trying to cache the incomplete body.
+  if (response.ok && response.status !== 206 && response.type === 'basic') {
     await cache.put(key, response.clone());
   }
   return response;
+}
+
+async function refreshedEntrypoint(request) {
+  const cache = await caches.open(cacheName);
+  const key = cacheKeyFor(request);
+  let response;
+  try {
+    // Do not let the browser HTTP cache reintroduce the stale bundle this
+    // worker is explicitly trying to replace. The app cache remains the
+    // offline fallback below.
+    response = await fetch(request, {cache: 'no-store'});
+  } catch (_) {}
+
+  if (response?.ok && response.type === 'basic') {
+    try {
+      await cache.put(key, response.clone());
+    } catch (_) {}
+    return response;
+  }
+
+  const cached = await cache.match(key, {ignoreSearch: true});
+  return rangedResponse(request, cached) || Response.error();
 }
 
 async function navigate(request) {
@@ -216,6 +272,11 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(navigate(request));
+    return;
+  }
+
+  if (isReleaseEntrypoint(url)) {
+    event.respondWith(refreshedEntrypoint(request));
     return;
   }
 

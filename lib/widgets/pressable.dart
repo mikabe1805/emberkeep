@@ -71,6 +71,7 @@ class Pressable extends StatefulWidget {
     this.soundEnabled = true,
     this.semanticLabel,
     this.semanticHint,
+    this.semanticToggled,
     this.stateBuilder,
     this.guardRapidReentry = false,
   });
@@ -94,6 +95,9 @@ class Pressable extends StatefulWidget {
   final bool soundEnabled;
   final String? semanticLabel;
   final String? semanticHint;
+
+  /// Checked state for controls exposed as one semantic toggle node.
+  final bool? semanticToggled;
 
   /// Lets a material respond locally to press, focus, and hover while the
   /// shared control continues to own gesture arbitration and semantics.
@@ -249,6 +253,7 @@ class _PressableState extends State<Pressable> {
         enabled: widget.enabled,
         label: widget.semanticLabel,
         hint: widget.semanticHint,
+        toggled: widget.semanticToggled,
         onTap: widget.enabled ? _activate : null,
         customSemanticsActions: manageActions,
         child: Listener(

@@ -122,6 +122,12 @@ class LifeRpgApp extends StatefulWidget {
   State<LifeRpgApp> createState() => _LifeRpgAppState();
 }
 
+/// The web app has one intentional deep link for now. Keeping this decision
+/// at the app boundary lets the shell remain responsible for real tab state.
+bool wantsGoalsPage(Uri uri) =>
+    (uri.path.isEmpty || uri.path == '/') &&
+    uri.queryParameters['page']?.toLowerCase() == 'goals';
+
 class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
   late final RoomLinkInbox _roomLinks;
   late final AcademicScheduleFileInbox _academicScheduleFiles;
@@ -226,6 +232,9 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
       home: AppShell(
         roomLinks: _roomLinks,
         academicScheduleFiles: _academicScheduleFiles,
+        initialPage: wantsGoalsPage(Uri.base)
+            ? AppShellInitialPage.goals
+            : AppShellInitialPage.quests,
       ),
     );
   }

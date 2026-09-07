@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -9,17 +10,19 @@ import 'package:flutter_test/flutter_test.dart';
 const _roles = ['open', 'select', 'navigate', 'place'];
 
 void main() {
-  test('runtime preserves every phone-approved X master byte for byte', () {
+  test('runtime preserves every owner-selected Refined ordinary master', () {
     for (final role in _roles) {
       for (var take = 1; take <= 5; take++) {
         final runtime = File('assets/sfx/room/ordinary/$role/$take.wav');
         final approved = File(
-          'design/audits/2026-08-20/room-c-gesture-v3/'
-          'roles/c-clasp-family/$role/$take.wav',
+          'design/audits/2026-09-06/tap-refinement/'
+          'refined/ordinary/$role/$take.wav',
         );
-        expect(
-          runtime.readAsBytesSync(),
-          orderedEquals(approved.readAsBytesSync()),
+        _expectSelectedTapSnapshot(
+          runtime,
+          approved,
+          'design/audits/2026-09-06/tap-refinement/manifest.json',
+          'refined/ordinary/$role/$take.wav',
         );
 
         final wave = _readWave(runtime);
@@ -34,10 +37,7 @@ void main() {
     }
   });
 
-  test('runtime preserves every phone-approved material lane master', () {
-    // Phone-approved 2026-08-21 (room-material-shading-v1 gestures, shipped
-    // as the render-polish-v2 masters after the owner's final verdict:
-    // "it sounds wonderful! very well done").
+  test('runtime preserves every owner-selected Refined material master', () {
     const lanes = [
       'slate/select',
       'slate/navigate',
@@ -53,12 +53,14 @@ void main() {
       for (var take = 1; take <= 3; take++) {
         final runtime = File('assets/sfx/room/materials/$lane/$take.wav');
         final approved = File(
-          'design/audits/2026-08-21/room-material-shading-v2-polish/'
-          'materials/$lane/$take.wav',
+          'design/audits/2026-09-06/tap-refinement/'
+          'refined/materials/$lane/$take.wav',
         );
-        expect(
-          runtime.readAsBytesSync(),
-          orderedEquals(approved.readAsBytesSync()),
+        _expectSelectedTapSnapshot(
+          runtime,
+          approved,
+          'design/audits/2026-09-06/tap-refinement/manifest.json',
+          'refined/materials/$lane/$take.wav',
         );
         final wave = _readWave(runtime);
         expect(wave.audioFormat, 1);
@@ -107,7 +109,7 @@ void main() {
     }
   });
 
-  test('runtime preserves every phone-approved Paired Return master', () {
+  test('runtime preserves every owner-selected Refined Paired Return master', () {
     const tokens = ['d5', 'a5', 'e5'];
     expect(InteractionSoundRouter.pairedReturnAssets, hasLength(60));
     for (final token in tokens) {
@@ -116,14 +118,16 @@ void main() {
           final runtime = File(
             'assets/sfx/room/paired_return/$token/$role/$take.wav',
           );
-          final approved = File(
-            'design/audits/2026-08-20/room-c-melody-v4/'
-            'cues/$token/$role/$take.wav',
-          );
-          expect(
-            runtime.readAsBytesSync(),
-            orderedEquals(approved.readAsBytesSync()),
-          );
+        final approved = File(
+          'design/audits/2026-09-06/tap-refinement/'
+          'refined/paired_return/$token/$role/$take.wav',
+        );
+        _expectSelectedTapSnapshot(
+          runtime,
+          approved,
+          'design/audits/2026-09-06/tap-refinement/paired-manifest.json',
+          'refined/paired_return/$token/$role/$take.wav',
+        );
           final wave = _readWave(runtime);
           expect(wave.audioFormat, 1);
           expect(wave.channels, 1);
@@ -843,10 +847,16 @@ void main() {
     expect(workoutOpen, contains('playMaterial(MaterialSound.parchment)'));
     expect(workoutOpen, isNot(contains('HapticFeedback')));
 
-    // QuestCard delegates its one accepted sound to the actual outcome. The
-    // flip belongs to a Journal or workout flow actually opening; an ordinary
-    // clear owns the atomic completion composite.
-    expect(questCard, isNot(contains('MaterialSound.parchment')));
+    // QuestCard delegates its one accepted sound to the actual outcome. A
+    // Journal doorway may declare its parchment surface for physical styling,
+    // but its Pressable stays silent; the flip belongs to the Journal flow.
+    final questPrimary = _between(
+      questCard,
+      "key: const ValueKey(\n                                              'quest-primary-action'",
+      "if (!done && widget.onManage != null)",
+    );
+    expect(questPrimary, contains('soundEnabled: false'));
+    expect(questPrimary, contains('MaterialSound.parchment'));
     expect(questCard, contains('material: MaterialSound.wood'));
     final journalOpen = _between(
       quests,
@@ -1079,6 +1089,27 @@ String _between(String source, String start, String end) {
   expect(startAt, isNonNegative, reason: 'missing start marker: $start');
   expect(endAt, greaterThan(startAt), reason: 'missing end marker: $end');
   return source.substring(startAt, endAt);
+}
+
+void _expectSelectedTapSnapshot(
+  File runtime,
+  File selectedSnapshot,
+  String manifestPath,
+  String manifestKey,
+) {
+  final manifest = jsonDecode(File(manifestPath).readAsStringSync())
+      as Map<String, dynamic>;
+  final record = manifest[manifestKey] ??
+      (manifest['records'] as Map<String, dynamic>)[manifestKey];
+  expect(record, isA<Map<String, dynamic>>(), reason: 'missing $manifestKey');
+  final expectedDigest = (record as Map<String, dynamic>)['sha256'] as String;
+  final runtimeBytes = runtime.readAsBytesSync();
+  expect(runtimeBytes, orderedEquals(selectedSnapshot.readAsBytesSync()));
+  expect(
+    sha256.convert(runtimeBytes).toString(),
+    expectedDigest,
+    reason: '$manifestKey must remain the selected Refined snapshot',
+  );
 }
 
 _Wave _readWave(File file) {

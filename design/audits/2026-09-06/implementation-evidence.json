@@ -1,0 +1,30 @@
+{
+  "date": "2026-09-06",
+  "branch": "codex/build41-authored-continuation",
+  "base_commit": "fd584564c6889f8aff891b5e5a8d8f4602d957d0",
+  "preview": "http://127.0.0.1:8393/",
+  "code_complete": "pass",
+  "visual_evidence_ready": "pass",
+  "owner_device_accepted": "pending",
+  "qa": "design-qa.md",
+  "browser_journey": "design/audits/2026-09-06/browser-validation.md",
+  "comparison_review": "design/audits/2026-09-06/visual-comparison.md",
+  "preview_sheet": "output/playwright/working-experience-preview.webp",
+  "sha256": {
+    "lib/widgets/working_surface.dart": "817f37fd3392a472bd84913826aa3626eae8e0b168305eed0d6859b68ff96261",
+    "lib/widgets/top_three_wizard.dart": "e013af5d69343be6cb4323cc9de3d2724a07a62e62f64c652c58dc2f9993aef1",
+    "lib/widgets/timer_overlay.dart": "fc3edd406cfe53de59e7b370e1fb2b801e471ee33a988533f5fed2f6e46d050a",
+    "lib/widgets/goal_adjustment_review.dart": "916cd8ec4db963f79cb4d664cad9d192c35ef88e72940a15ace88d572b6861c1",
+    "lib/screens/goals.dart": "0621f87f3bd5bc619a7d296201a094f46415db9027d2c21c73068eb0898590b8",
+    "lib/screens/quests.dart": "4ca769b52a4cbdf7c30ab87683dd1810137d18612d07e40bca933a2aaf486892",
+    "lib/screens/goal_opening.dart": "5e2ec6cf7b6a7b60d97d32c728ee7f684a1c3dfc79e6f886133c5fd8fc1d39b5",
+    "lib/content/day_planning.dart": "5b66eceecb0f866e20f7b6855cc71c3aef12715b5e01dedc50f6528957036185",
+    "lib/content/quest_suggestions.dart": "1b0aa28335db387fdbb4029b220ccc19c9ea84caa2b0eeea3cc37e22883d49b2",
+    "lib/goal_adjustment.dart": "444d49fd02fbba2d358c080342c8a2edca779536b1e2af0d6f1eadbb20080023",
+    "lib/goal_planner.dart": "bb69067ce4aeb9941f437cba918468afc171f53cec085f8038cf124c7be2191a",
+    "assets/pages/working-room-v1.webp": "ed1174461714fe29fe77a70cca9dcdfede107b92a3fb301b45e6c422225b066d",
+    "build/web/main.dart.js": "1ad6440a643a87fc187599ab5ac2583019c71f89a5dfd42e5e6f9340898e5e60",
+    "build/web/main.dart.wasm": "193c9b5860fcc14aea03bc8229e717d100c3bf2c79b849bf5f82adc5dd5e72ca",
+    "build/web/offline-assets.json": "4a75ff0dfdda8739dadab52480b2013f8efaf6552ff662a762f7401eb17f5862"
+  }
+}

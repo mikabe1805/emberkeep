@@ -1,0 +1,16 @@
+00:00 +0: loading C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/reward_motion_accessibility_test.dart
+00:00 +0: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/reward_motion_accessibility_test.dart: OS Reduce Motion softens native haptic sequences without an app toggle
+00:00 +1: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/reward_motion_accessibility_test.dart: in-app Reduce Motion presents the complete reward receipt immediately
+00:00 +2: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: (setUpAll)
+00:00 +3: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: (setUpAll)
+00:00 +3: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: dated MAIN choices lead only the intended morning and round-trip
+00:00 +4: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: Gentle Mode suggestion caps a crowded custom board at three
+00:00 +5: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/reward_motion_accessibility_test.dart: OS Reduce Motion shows level-up final state without particles or a slam
+00:01 +6: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: choosing Gentle Mode visibly shelters a veteran board
+00:01 +7: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: choosing Gentle Mode visibly shelters a veteran board
+00:01 +8: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: choosing Gentle Mode visibly shelters a veteran board
+00:03 +9: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: the room waits for the quest list to reach its top
+00:03 +10: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: focus mode protects its exit and names both ordering choices
+00:03 +11: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: planning Ember opens a real two-step tomorrow chooser
+00:04 +12: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/capacity_journeys_test.dart: (tearDownAll)
+00:04 +12: All tests passed!

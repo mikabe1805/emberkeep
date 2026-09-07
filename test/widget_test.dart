@@ -86,6 +86,54 @@ Future<void> revealQuest(WidgetTester tester, String title) async {
   await tester.pump(const Duration(milliseconds: 100));
 }
 
+/// The room artwork intentionally occupies the top of the Quest board. Keep
+/// assertions on the HUD and its counter tied to a reachable, visible board
+/// position instead of assuming those elements are initially built on a short
+/// phone.
+Future<void> revealBoardText(WidgetTester tester, String text) async {
+  final board = find.byKey(const ValueKey('quest-board-scroll'));
+  final target = find.text(text);
+  await returnQuestBoardToTop(tester);
+  for (var attempt = 0;
+      attempt < 8 && target.hitTestable().evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(board, const Offset(0, -220));
+    await tester.pump(const Duration(milliseconds: 80));
+  }
+  expect(target.hitTestable(), findsOneWidget);
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// A compact row only selects an action. Its featured card then exposes the
+/// explicit completion control, which is the only path that earns a reward.
+Future<void> completeQuest(WidgetTester tester, String title) async {
+  await revealQuest(tester, title);
+  await tester.tap(find.text(title));
+  await tester.pump(const Duration(milliseconds: 120));
+  final action = find.byKey(const ValueKey('quest-primary-action'));
+  final board = find.byKey(const ValueKey('quest-board-scroll'));
+  for (var attempt = 0;
+      attempt < 4 && action.hitTestable().evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(board, const Offset(0, 160));
+    await tester.pump(const Duration(milliseconds: 80));
+  }
+  expect(action.hitTestable(), findsOneWidget);
+  await tester.tap(action.hitTestable());
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
+Future<void> revealGoalsAction(WidgetTester tester, Finder target) async {
+  final surface = find.byKey(const Key('goals-threshold-scroll'));
+  for (var attempt = 0;
+      attempt < 8 && target.hitTestable().evaluate().isEmpty;
+      attempt++) {
+    await tester.drag(surface, const Offset(0, -180));
+    await tester.pump(const Duration(milliseconds: 80));
+  }
+  expect(target.hitTestable(), findsOneWidget);
+}
+
 void main() {
   setUpAll(() {
     // no network in tests — fall back to system fonts silently
@@ -99,11 +147,11 @@ void main() {
   testWidgets('quests page renders header and quests', (tester) async {
     await pumpApp(tester);
 
-    // The header carries LEVEL as a small caps label and the number as its own
-    // display numeral, so they are two Texts rather than one string.
-    expect(find.text('LEVEL'), findsOneWidget);
-    expect(find.text('1'), findsWidgets);
-    expect(find.text('Do 2 push-ups'), findsOneWidget);
+    // The HUD is a single RichText instrument, so search its composed text
+    // rather than relying on a separate Text widget for the label span.
+    expect(find.textContaining('LEVEL', findRichText: true), findsOneWidget);
+    await revealQuest(tester, 'Do 2 push-ups');
+    await revealBoardText(tester, 'TODAY · 5 OPEN');
     expect(find.text('TODAY · 5 OPEN'), findsOneWidget);
   });
 
@@ -117,7 +165,8 @@ void main() {
     ) async {
       await pumpApp(tester, timeShape: shape);
 
-      expect(find.text('TODAY · $count OPEN'), findsOneWidget);
+    await revealBoardText(tester, 'TODAY · $count OPEN');
+    expect(find.text('TODAY · $count OPEN'), findsOneWidget);
     });
   }
 
@@ -147,12 +196,15 @@ void main() {
   testWidgets('completing a quest marks it done and grants XP', (tester) async {
     await pumpApp(tester);
 
+    await completeQuest(tester, 'Walk 10 minutes');
+    // Undo is armed with the atomic reward commit, not at raw tap time.
+    await tester.pump(const Duration(milliseconds: 650));
     await revealQuest(tester, 'Walk 10 minutes');
-    await tester.tap(find.text('Walk 10 minutes'));
-    await tester.pump(const Duration(milliseconds: 100));
-    await returnQuestBoardToTop(tester);
-
-    expect(find.text('TODAY · 4 OPEN'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('undo-Walk 10 minutes')),
+      findsOneWidget,
+      reason: 'the completed quest must enter its reversible done state',
+    );
 
     // let receipt/particle timers and bar fill finish so no timers leak
     // (pumpAndSettle would never settle: ambient animations repeat forever)
@@ -225,6 +277,10 @@ void main() {
     await tester.ensureVisible(find.text('KEEP IN JOURNAL'));
     await tester.pump();
     await tester.tap(find.text('KEEP IN JOURNAL'));
+    // Let the standalone receipt finish mounting and its short feedback
+    // timers drain before the next app-level interaction test begins.
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(kept, 'Leaving the book open made starting easy.');
@@ -500,15 +556,15 @@ void main() {
     },
   );
 
-  testWidgets('first trophy waits until the reward receipt clears', (
+  testWidgets('first trophy is banked while the reward receipt stays readable', (
     tester,
   ) async {
     await pumpApp(tester);
 
-    await revealQuest(tester, 'Walk 10 minutes');
-    await tester.tap(find.text('Walk 10 minutes'));
+    await completeQuest(tester, 'Walk 10 minutes');
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('First Step'), findsNothing);
+    expect(find.byType(RewardReceipt), findsOneWidget);
 
     // The luxury receipt stays readable longer before trophy chrome is allowed
     // to arrive on top of it.
@@ -516,20 +572,20 @@ void main() {
     // leave the full rail readable before the queued trophy's 200 ms entrance.
     await tester.pump(const Duration(milliseconds: 4300));
     await tester.pump(const Duration(milliseconds: 250));
-    expect(find.text('First Step'), findsOneWidget);
+    expect(find.byType(RewardReceipt), findsNothing);
+    final saved = (await Storage.load())!;
+    expect(saved.$1.unlockedAchievements, contains('first-step'));
 
     await tester.pump(const Duration(seconds: 3));
   });
 
   testWidgets('undo restores a quest completed by accident', (tester) async {
     await pumpApp(tester);
-    expect(find.text('TODAY · 5 OPEN'), findsOneWidget);
 
+    await completeQuest(tester, 'Walk 10 minutes');
+    await tester.pump(const Duration(milliseconds: 650));
     await revealQuest(tester, 'Walk 10 minutes');
-    await tester.tap(find.text('Walk 10 minutes'));
-    await tester.pump(const Duration(milliseconds: 100));
-    await returnQuestBoardToTop(tester);
-    expect(find.text('TODAY · 4 OPEN'), findsOneWidget);
+    expect(find.byKey(const ValueKey('undo-Walk 10 minutes')), findsOneWidget);
 
     // wait for the deferred commit, which arms swipe-to-undo on the card
     await tester.pump(const Duration(milliseconds: 1400));
@@ -549,9 +605,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    // the quest is back on the board, the completion reverted
-    await returnQuestBoardToTop(tester);
-    expect(find.text('TODAY · 5 OPEN'), findsOneWidget);
+    // The quest is back on the board and the reversible done state is gone.
+    expect(find.byKey(const ValueKey('card-Walk 10 minutes')), findsOneWidget);
+    expect(find.byKey(const ValueKey('undo-Walk 10 minutes')), findsNothing);
 
     // settle remaining timers
     await tester.pump(const Duration(seconds: 5));
@@ -565,17 +621,22 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 1800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await pumpApp(tester);
-      expect(find.text('TODAY · 5 OPEN'), findsOneWidget);
 
-      // complete A, then complete B before A's deferred commit fires (~1s)
+      // Select A and use its named action, then do the same for B before A's
+      // deferred commit fires. This deliberately bypasses the scrolling helper
+      // so the two acceptance beats remain inside the race window.
       await tester.tap(find.text('Walk 10 minutes'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
       await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.text('Read one page'));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
       await tester.pump(const Duration(milliseconds: 150));
-      expect(find.text('TODAY · 3 OPEN'), findsOneWidget);
 
       // wait for B's commit (arms swipe-to-undo on B's card), then undo B
       await tester.pump(const Duration(milliseconds: 1400));
+      await revealQuest(tester, 'Read one page');
       final cardB = find.byKey(const ValueKey('undo-Read one page'));
       expect(cardB, findsOneWidget);
       await tester.ensureVisible(cardB);
@@ -831,28 +892,39 @@ void main() {
     // The real goals stay quiet until the person deliberately asks for
     // starting points; the catalog is no longer mixed into the main page.
     expect(find.text('Keep your space'), findsNothing);
-    await tester.tap(find.byKey(const Key('goals-browse-starting-points')));
+    final browse = find.byKey(const Key('goals-browse-starting-points'));
+    await revealGoalsAction(tester, browse);
+    await tester.tap(browse.hitTestable());
     await settle(tester);
     expect(find.text('STARTING POINTS'), findsOneWidget);
 
     // expand the first catalog goal (HOME & HEARTH → "Keep your space", near
     // the top) and adopt its first quest. The new cinematic goal header makes
     // the catalog genuinely lazy at this viewport, so reveal it by scrolling.
+    final keepYourSpace = find.byKey(
+      const ValueKey<String>('goal-catalog-toggle-keep your space'),
+      skipOffstage: false,
+    );
     await tester.scrollUntilVisible(
-      find.text('Keep your space'),
+      keepYourSpace,
       240,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('Keep your space'));
+    await tester.tap(keepYourSpace);
     await tester.pump(const Duration(milliseconds: 450));
     await tester.pump(const Duration(milliseconds: 150));
-    final takeOn = find.text('TAKE ON').first;
+    final takeOn = find.byKey(
+      const ValueKey<String>('goal-quest-take-make your bed'),
+    );
     await tester.ensureVisible(takeOn);
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(takeOn);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('TAKEN · EDIT'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('goal-quest-manage-make your bed')),
+      findsOneWidget,
+    );
 
     // settle the snackbar timer
     await tester.pump(const Duration(seconds: 2));
@@ -865,7 +937,9 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.explore_outlined));
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.byKey(const Key('goals-create-first')));
+    final create = find.byKey(const Key('goals-create-first'));
+    await revealGoalsAction(tester, create);
+    await tester.tap(create.hitTestable());
     await settle(tester);
     await tester.ensureVisible(find.byKey(const Key('quick-goal-advanced')));
     await tester.pump(const Duration(milliseconds: 100));

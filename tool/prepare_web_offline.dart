@@ -253,7 +253,7 @@ Future<_ReleaseManifest> _releaseManifest(Directory root) async {
   );
 }
 
-/// Long-form music is optional and totals roughly 11 MB. Keep it available
+/// Long-form music is optional and totals roughly 12 MB. Keep it available
 /// offline without making first-frame readiness wait for the music library.
 const _musicDeferred = <String>{
   'assets/assets/music/focus-meditation.m4a',
@@ -265,6 +265,7 @@ const _musicDeferred = <String>{
   'assets/assets/music/take_06.m4a',
   'assets/assets/music/take_07.m4a',
   'assets/assets/music/take_08.m4a',
+  'assets/assets/music/lamp-left-on.m4a',
 };
 
 bool _sharedCore(String relative) {
@@ -285,6 +286,14 @@ bool _sharedCore(String relative) {
 }
 
 bool _cacheable(String relative) {
+  // Local listening/refresh pages can survive a Flutter rebuild. They are
+  // review tools, never part of the installed room or its music inventory.
+  if (relative.startsWith('umbrella-review-') ||
+      relative.startsWith('sound-review-') ||
+      relative.startsWith('music-studies-set-aside-') ||
+      relative.startsWith('refresh-working-preview-')) {
+    return false;
+  }
   if (relative == '.last_build_id' ||
       relative == _manifestName ||
       relative == _workerName ||

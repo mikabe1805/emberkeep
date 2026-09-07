@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Room of Days · Earlier music studies</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme:dark; --ink:#eee1cc; --soft:#bba993; --gold:#d4b87c; background:#1b1519; color:var(--ink); font:16px/1.6 system-ui,sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:radial-gradient(ellipse at 12% 0,#49352780,transparent 58%); }
+  main { max-width:760px; margin:auto; padding:52px 24px 72px; }
+  .brand, .number { color:var(--gold); font:11px/1.5 monospace; letter-spacing:.15em; text-transform:uppercase; }
+  h1 { font:400 clamp(38px,7vw,60px)/1.1 Georgia,serif; margin:22px 0; }
+  h2 { font:400 28px/1.2 Georgia,serif; margin:8px 0; }
+  p { color:var(--soft); margin:12px 0 20px; }
+  article { border-top:1px solid #b9995540; padding:28px 0; }
+  audio { display:block; width:100%; height:44px; margin:18px 0 8px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .caption { font-size:12px; color:var(--soft); }
+  a { color:var(--gold); text-underline-offset:4px; }
+  details { margin-top:24px; }
+  summary { cursor:pointer; color:var(--gold); }
+  @media(max-width:520px) { .pair { grid-template-columns:1fr; gap:0; } main { padding-top:30px; } }
+</style>
+<main>
+  <div class="brand">Room of Days · Listening room</div>
+  <h1>Earlier studies.</h1>
+  <p>These three pieces were set aside after listening. They remain here as a record of the earlier direction. <a href="/umbrella-review-20260906/">Open the current umbrella comparison.</a></p>
+  <article>
+    <div class="number">01 · Forward motion</div>
+    <h2>A little further</h2>
+    <p>Felt keys, a small returning melody, and the umbrella’s soft brush rhythm. The middle opens into a quiet pause before the rhythm returns.</p>
+    <audio controls preload="none" aria-label="A little further, full piece" src="a-little-further.m4a"></audio>
+    <div class="pair"><div><audio controls preload="none" aria-label="A little further with interactions" src="a-little-further-flow.mp3"></audio><span class="caption">16 seconds · with interactions</span></div><div><audio controls preload="none" aria-label="A little further two-piece transition" src="a-little-further-transition.mp3"></audio><span class="caption">Transition from the existing score</span></div></div>
+  </article>
+  <article>
+    <div class="number">02 · A lighter room</div>
+    <h2>Window light</h2>
+    <p>A sparse felt-piano waltz with open chords and space between phrases. No percussion or rain effects.</p>
+    <audio controls preload="none" aria-label="Window light, full piece" src="window-light.m4a"></audio>
+    <audio controls preload="none" aria-label="Window light with interactions" src="window-light-flow.mp3"></audio><span class="caption">16 seconds · with interactions</span>
+  </article>
+  <article>
+    <div class="number">03 · A slower evening</div>
+    <h2>Small hours</h2>
+    <p>A lower piano melody over a gentle two-note accompaniment, with a full bar left to breathe.</p>
+    <audio controls preload="none" aria-label="Small hours, full piece" src="small-hours.m4a"></audio>
+    <audio controls preload="none" aria-label="Small hours with interactions" src="small-hours-flow.mp3"></audio><span class="caption">16 seconds · with interactions</span>
+  </article>
+  <details><summary>The existing umbrella-brush score</summary><audio controls preload="none" aria-label="Existing umbrella brush score" src="umbrella.m4a"></audio><audio controls preload="none" aria-label="Existing umbrella brush with interactions" src="umbrella-flow.mp3"></audio><p class="caption">Same playback level and interaction timing for comparison. One player speaks at a time.</p></details>
+  <p><a href="/?page=goals">Return to the app</a></p>
+</main>
+<script>
+  for (const player of document.querySelectorAll('audio')) {
+    // Match Flutter's same-origin fetch mode: the offline worker returns
+    // synthesized range responses, which native no-cors media requests reject.
+    player.crossOrigin = 'anonymous';
+    player.addEventListener('play', () => {
+      for (const other of document.querySelectorAll('audio')) if (other !== player) other.pause();
+    });
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) for (const player of document.querySelectorAll('audio')) player.pause();
+  });
+</script>
+</html>

@@ -1,0 +1,30 @@
+00:00 +0: loading C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart
+00:00 +0: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: (setUpAll)
+00:00 +0: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +1: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +2: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +3: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +4: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +5: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +6: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: a compact row selects its exact Quest and only its named action completes
+00:01 +7: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +8: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +9: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +10: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +11: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +12: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +13: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:01 +14: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:02 +15: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:02 +16: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:02 +17: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: opening and leaving the prompt empty earns nothing
+00:03 +18: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/quest_selection_flow_test.dart: quick reflection keeps its Quest source and settles full undo
+00:03 +19: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: a Journal quest stays silent and inactive on drag
+00:03 +20: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: catching a coasting quest board remains silent
+00:03 +21: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: an ordinary completion voices one accepted composite
+00:04 +22: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: saved writing keeps Quest context and completes through the normal reward once
+00:04 +23: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: typing then immediately backing out still saves and completes
+00:05 +24: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: a second tap that day resumes the linked draft
+00:05 +25: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: Journal Quest and editor fit a 320px phone at 2x text
+00:05 +26: C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/test/journal_quest_entry_test.dart: (tearDownAll)
+00:05 +26: All tests passed!

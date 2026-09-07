@@ -10,6 +10,7 @@ import '../content/momentum_kits.dart';
 import '../content/routines.dart';
 import '../engine.dart';
 import '../goal_planner.dart';
+import '../goal_adjustment.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/day_picker.dart';
@@ -20,11 +21,11 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/goal_primary_button.dart';
 import '../widgets/goal_room_route.dart';
-import '../widgets/goal_threshold_scene.dart';
 import '../widgets/goal_world.dart';
-import '../widgets/luxe_depth.dart';
 import '../widgets/pressable.dart';
 import '../widgets/top_three_wizard.dart';
+import '../widgets/working_surface.dart';
+import '../widgets/goal_adjustment_review.dart';
 import 'goal_detail.dart';
 import 'goal_opening.dart';
 import 'goal_plan_check_in.dart';
@@ -146,10 +147,11 @@ String _goalProgressCopy(Goal goal) {
     return '${goal.progress} of ${goal.target} actions';
   }
   final remaining = (goal.target - goal.progress).clamp(0, goal.target);
+  final kept = '${goal.progress} action${goal.progress == 1 ? '' : 's'} kept';
   if (goal.milestones == 0) {
-    return '${goal.progress} actions kept · $remaining to the first milestone';
+    return '$kept · $remaining to the first milestone';
   }
-  return '${goal.progress} actions kept · $remaining to the next milestone';
+  return '$kept · $remaining to the next milestone';
 }
 
 /// A conservative first move used only when a person deliberately leaves the
@@ -339,7 +341,7 @@ class _GoalsPageState extends State<GoalsPage> {
     });
   }
 
-  Future<void> _openWorkshop(BuildContext context, Goal initialGoal) async {
+  Future<void> _openWorkshop(BuildContext context, [Goal? initialGoal]) async {
     _arrivingGoalTitle = null;
     await Navigator.of(context).push<void>(
       goalRoomRoute<void>(
@@ -349,7 +351,7 @@ class _GoalsPageState extends State<GoalsPage> {
         builder: (workshopContext) => GoalWorkshopScreen(
           state: state,
           quests: quests,
-          initialGoalTitle: initialGoal.title,
+          initialGoalTitle: initialGoal?.title,
           onOpenGoal: (goal) => _openGoalOpening(
             this.context,
             goal,
@@ -391,10 +393,9 @@ class _GoalsPageState extends State<GoalsPage> {
   /// existing date-scoped priority markers that tell the board what leads.
   Future<void> _chooseToday(BuildContext context) async {
     final today = Clock.now();
-    final candidates = planningQuestsForDay(
-      quests,
-      today,
-    ).where((quest) => !quest.allDay && !quest.isEvent).toList(growable: false);
+    final candidates = quests
+        .where((quest) => !quest.allDay && !quest.isEvent)
+        .toList(growable: false);
     if (candidates.isEmpty) return;
 
     final chosen = await showTopThreeWizard(
@@ -404,6 +405,8 @@ class _GoalsPageState extends State<GoalsPage> {
           'Pick up to three quests to carry. Everything else stays open if the day has more in it.',
       dayLabel: 'Today’s field',
       candidates: candidates,
+      goals: state.goals,
+      day: today,
       initialTitles: selectedDailyFieldForDay(
         quests,
         today,
@@ -976,25 +979,10 @@ class _GoalsPageState extends State<GoalsPage> {
     } else {
       revised = GoalPlanner.recalibrate(goal, signal, Clock.now());
     }
-    final oldRevision = goal.plan!.revision;
-    quests.removeWhere(
-      (quest) =>
-          _questTitleKey(quest.goalTitle ?? '') == _questTitleKey(goal.title) &&
-          quest.goalPlanStepId != null &&
-          quest.goalPlanRevision == oldRevision &&
-          !quest.doneFor(Clock.now()),
-    );
-    state.updateGoalPlan(goal, revised);
-    onPersist();
-    if (!mounted) return;
-    setState(() {
-      _selectedGoalTitle = goal.title;
-      _arrivingGoalTitle = null;
-    });
-    await _openGoalOpening(
-      this.context,
+    await _reviewGoalAdjustment(
       goal,
-      startInWorkshop: true,
+      signal,
+      revisedPlan: revised,
       onBeforeQuestHandoff: onBeforeQuestHandoff,
     );
   }
@@ -1027,18 +1015,51 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   Future<void> _applyGoalRecovery(Goal goal, GoalPlanSignal signal) async {
-    final plan = goal.plan;
-    if (plan == null || plan.complete || plan.currentStep == null) return;
-    final revised = GoalPlanner.recalibrate(goal, signal, Clock.now());
-    _discardUnfinishedOpeningRevision(goal, plan.revision);
-    state.updateGoalPlan(goal, revised);
+    if (goal.plan?.currentStep == null || goal.plan!.complete) return;
+    await _reviewGoalAdjustment(goal, signal);
+  }
+
+  Future<void> _reviewGoalAdjustment(
+    Goal goal,
+    GoalPlanSignal signal, {
+    GoalPlan? revisedPlan,
+    VoidCallback? onBeforeQuestHandoff,
+  }) async {
+    if (goal.plan?.currentStep == null || goal.plan!.complete) return;
+    final draft = GoalAdjustment.buildDraft(
+      state: state,
+      goal: goal,
+      quests: quests,
+      signal: signal,
+      now: Clock.now(),
+      revisedPlan: revisedPlan,
+    );
+    final reviewed = await showGoalAdjustmentReview(context, draft: draft);
+    if (!mounted || reviewed == null) return;
+    final result = GoalAdjustment.accept(
+      draft: reviewed,
+      state: state,
+      goal: goal,
+      quests: quests,
+      now: Clock.now(),
+    );
+    if (!result.accepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This goal changed while you were reviewing. Open it again to see the current action.',
+          ),
+        ),
+      );
+      return;
+    }
     onPersist();
-    if (!mounted) return;
     setState(() {
       _selectedGoalTitle = goal.title;
       _arrivingGoalTitle = null;
     });
-    await _openGoalOpening(context, goal, startInWorkshop: true);
+    onBeforeQuestHandoff?.call();
+    onOpenQuest(result.replacement!);
   }
 
   Future<void> _buildGoalPlan(BuildContext context, Goal goal) async {
@@ -1201,18 +1222,11 @@ class _GoalsPageState extends State<GoalsPage> {
         final otherGoals = activeGoals
             .where((goal) => !identical(goal, focus))
             .toList(growable: false);
-        final still =
-            state.reduceMotion ||
-            (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-        final surface = MediaQuery.sizeOf(context);
-        final compactHero =
-            MediaQuery.sizeOf(context).width < 360 ||
-            MediaQuery.sizeOf(context).height < 700 ||
-            MediaQuery.textScalerOf(context).scale(1) > 1.2;
         final todayField = _TodayFieldFolio(
           quests: quests,
           day: Clock.now(),
           onChoose: () => _chooseToday(context),
+          onOpenQuests: widget.onOpenQuests,
         );
         if (focus != null) {
           final focusScene = _LivingGoalFocus(
@@ -1225,7 +1239,6 @@ class _GoalsPageState extends State<GoalsPage> {
             onAddQuest: onAdd,
             onOpenQuest: onOpenQuest,
             onOpenOpening: () => _openGoalOpening(context, focus),
-            onOpenWorkshop: () => _openWorkshop(context, focus),
             onOpenWorkshopGoal: () =>
                 _openGoalOpening(context, focus, startInWorkshop: true),
             light: lightDirection ?? parallax,
@@ -1244,6 +1257,11 @@ class _GoalsPageState extends State<GoalsPage> {
             onChooseToday: () => _chooseToday(context),
           );
           return _GoalsThresholdPage(
+            heading: _GoalsHeading(
+              focus: null,
+              onNewGoal: () => _openQuickCreate(context),
+              onWorkshop: () => _openWorkshop(context, focus),
+            ),
             reduceMotion: state.reduceMotion,
             focus: focusScene,
             todayField: todayField,
@@ -1293,105 +1311,37 @@ class _GoalsPageState extends State<GoalsPage> {
             reduceMotion: state.reduceMotion,
           ),
         );
-        return LuxePageList(
-          assetPath: goalsRoomContinuousAsset,
-          title: 'Goals',
-          subtitle: '',
-          icon: Icons.explore_outlined,
-          parallax: parallax,
-          reduceMotion: state.reduceMotion,
-          heroHeight: surface.height - 24,
-          headingTop: compactHero
-              ? 106
-              : (surface.height * 0.28).clamp(220.0, 272.0).toDouble(),
-          heroAlignment: Alignment.center,
-          heroScale: goalsRoomRestScale,
-          heroTranslation: goalsRoomRestTranslation,
-          heroScrim: goalsOverviewScrim,
-          bodyTextureAsset: 'assets/room/wall_grain.png',
+        return _GoalsThresholdPage(
           heading: _GoalsHeading(
-            focus: focus,
+            focus: null,
+            onWorkshop: () => _openWorkshop(context),
             onNewGoal: state.goals.isEmpty
                 ? null
                 : () => _openQuickCreate(context),
           ),
-          children: [
-            AnimatedSwitcher(
-              duration: still ? Motion.ack : Motion.settle,
-              reverseDuration: still ? Motion.ack : Motion.quick,
-              switchInCurve: Motion.respond,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                if (still) {
-                  return FadeTransition(opacity: animation, child: child);
-                }
-                final response = CurvedAnimation(
-                  parent: animation,
-                  curve: Motion.respond,
-                  reverseCurve: Curves.easeInCubic,
-                );
-                return FadeTransition(
-                  opacity: response,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.035, 0.012),
-                      end: Offset.zero,
-                    ).animate(response),
-                    child: ScaleTransition(
-                      scale: Tween<double>(
-                        begin: 0.985,
-                        end: 1,
-                      ).animate(response),
-                      child: child,
-                    ),
-                  ),
-                );
-              },
-              child: focusOrEmpty,
-            ),
-            const SizedBox(height: 18),
-            todayField,
-            const SizedBox(height: 18),
-            _GoalSupportTray(
-              initiallyExpanded: false,
-              reduceMotion: state.reduceMotion,
-              hasGoalContext: focus != null,
-              onUnstick: () => _openUnstick(context, focus),
-              onWorkout: _openGuidedWorkout,
-            ),
-            if (otherGoals.isNotEmpty) ...[
-              // The first parked frame belongs to the focused commitment, but
-              // the next section should arrive as a deliberate doorway at the
-              // fold rather than a clipped row after an empty desk band.
-              SizedBox(height: compactHero ? 38 : 48),
-              _YourGoals(
-                state: state,
-                goals: otherGoals,
-                sectionLabel: 'OTHER GOALS',
-                onRemoveGoal: onRemoveGoal,
-                onPersist: onPersist,
-                onAddQuest: onAdd,
-                quests: quests,
-                onOpenQuest: onOpenQuest,
-                onSelectGoal: _selectGoal,
-                collapsed: true,
-              ),
-            ],
-            if (arrivals.isNotEmpty) ...[
-              const SizedBox(height: 18),
-              _YourGoals(
-                state: state,
-                goals: arrivals,
-                sectionLabel: 'COMPLETED',
-                onRemoveGoal: onRemoveGoal,
-                onPersist: onPersist,
-                onAddQuest: onAdd,
-                quests: quests,
-                onOpenQuest: onOpenQuest,
-                collapsed: true,
-              ),
-            ],
-          ],
+          reduceMotion: state.reduceMotion,
+          todayField: todayField,
+          focus: WorkingSurface(child: focusOrEmpty),
+          support: _GoalSupportTray(
+            initiallyExpanded: false,
+            reduceMotion: state.reduceMotion,
+            hasGoalContext: false,
+            onUnstick: () => _openUnstick(context, null),
+            onWorkout: _openGuidedWorkout,
+          ),
+          arrivals: arrivals.isEmpty
+              ? null
+              : _YourGoals(
+                  state: state,
+                  goals: arrivals,
+                  sectionLabel: 'COMPLETED',
+                  onRemoveGoal: onRemoveGoal,
+                  onPersist: onPersist,
+                  onAddQuest: onAdd,
+                  quests: quests,
+                  onOpenQuest: onOpenQuest,
+                  collapsed: true,
+                ),
         );
       },
     );
@@ -1457,16 +1407,21 @@ class _GoalsPageState extends State<GoalsPage> {
 }
 
 class _GoalsHeading extends StatelessWidget {
-  const _GoalsHeading({required this.focus, required this.onNewGoal});
+  const _GoalsHeading({
+    required this.focus,
+    required this.onNewGoal,
+    required this.onWorkshop,
+  });
 
   final Goal? focus;
   final VoidCallback? onNewGoal;
+  final VoidCallback onWorkshop;
 
   @override
   Widget build(BuildContext context) {
     final goal = focus;
     final accent = goal?.stat.color ?? Palette.xpLight;
-    return Row(
+    final title = Row(
       children: [
         FacetMedallion(
           size: 32,
@@ -1484,23 +1439,46 @@ class _GoalsHeading extends StatelessWidget {
             style:
                 const TextStyle(
                   fontFamily: 'EBGaramond',
-                  fontSize: 17,
+                  fontSize: 34,
                   height: 1.05,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: 0.12,
                 ).copyWith(
                   color: goal == null
-                      ? Palette.textMid
+                      ? Palette.textHi
                       : accent.withValues(alpha: 0.92),
                   shadows: _goalsRoomTextShadows,
                 ),
           ),
         ),
-        if (onNewGoal case final create?) ...[
-          const SizedBox(width: 10),
-          _NewGoalButton(onTap: create),
-        ],
       ],
+    );
+    final workshop = WorkingAction(
+      key: const Key('goals-open-workshop'),
+      label: 'Workshop',
+      onTap: onWorkshop,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked =
+            constraints.maxWidth < 360 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.2;
+        final heading = Row(
+          children: [
+            Expanded(child: title),
+            if (!stacked) workshop,
+            if (onNewGoal case final create?) ...[
+              const SizedBox(width: 6),
+              _NewGoalButton(onTap: create),
+            ],
+          ],
+        );
+        if (!stacked) return heading;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [heading, workshop],
+        );
+      },
     );
   }
 }
@@ -1949,6 +1927,7 @@ class _ReadyMadeGoalsScreen extends StatelessWidget {
 
 class _GoalsThresholdPage extends StatelessWidget {
   const _GoalsThresholdPage({
+    required this.heading,
     required this.reduceMotion,
     required this.focus,
     required this.todayField,
@@ -1956,100 +1935,40 @@ class _GoalsThresholdPage extends StatelessWidget {
     this.otherGoals,
     this.arrivals,
   });
-
   final bool reduceMotion;
-  final Widget focus;
-  final Widget todayField;
-  final Widget support;
-  final Widget? otherGoals;
-  final Widget? arrivals;
-
+  final Widget heading, focus, todayField, support;
+  final Widget? otherGoals, arrivals;
   @override
-  Widget build(BuildContext context) {
-    final still =
-        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    final belowRoom = <Widget>[
-      todayField,
-      const SizedBox(height: 18),
-      support,
-      if (otherGoals case final goals?) ...[const SizedBox(height: 30), goals],
-      if (arrivals case final completed?) ...[
-        const SizedBox(height: 18),
-        completed,
-      ],
-    ];
-
-    return ColoredBox(
-      color: const Color(0xFF100D0B),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: 0.055,
-                child: Image.asset(
-                  'assets/room/wall_grain.png',
-                  fit: BoxFit.none,
-                  repeat: ImageRepeat.repeat,
-                  alignment: Alignment.topLeft,
-                  color: const Color(0xFF6A3F26),
-                  colorBlendMode: BlendMode.modulate,
-                  filterQuality: FilterQuality.low,
-                  excludeFromSemantics: true,
-                ),
-              ),
+  Widget build(BuildContext context) => WorkingScene(
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          key: const Key('goals-threshold-scroll'),
+          padding: const EdgeInsets.fromLTRB(18, 62, 18, 132),
+          children: [
+            heading,
+            const SizedBox(height: 24),
+            todayField,
+            const SizedBox(height: 30),
+            Text(
+              'YOUR GOALS',
+              style: Type.label.copyWith(color: Palette.xpLight, fontSize: 11),
             ),
-          ),
-          CustomScrollView(
-            key: const Key('goals-threshold-scroll'),
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              SliverToBoxAdapter(
-                child: AnimatedSwitcher(
-                  duration: still
-                      ? Motion.ack
-                      : const Duration(milliseconds: 440),
-                  reverseDuration: still
-                      ? Motion.ack
-                      : const Duration(milliseconds: 360),
-                  switchInCurve: Motion.respond,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    if (still) {
-                      return FadeTransition(opacity: animation, child: child);
-                    }
-                    final response = CurvedAnimation(
-                      parent: animation,
-                      curve: Motion.respond,
-                      reverseCurve: Curves.easeInCubic,
-                    );
-                    return FadeTransition(
-                      opacity: response,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.04, 0),
-                          end: Offset.zero,
-                        ).animate(response),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: focus,
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 130),
-                sliver: SliverList.list(children: belowRoom),
-              ),
+            const SizedBox(height: 12),
+            focus,
+            if (otherGoals != null) ...[
+              const SizedBox(height: 18),
+              otherGoals!,
             ],
-          ),
-        ],
+            const SizedBox(height: 24),
+            support,
+            if (arrivals != null) ...[const SizedBox(height: 20), arrivals!],
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// A useful, ordinary-day control that deliberately sits below the room. The
@@ -2061,106 +1980,106 @@ class _TodayFieldFolio extends StatelessWidget {
     required this.quests,
     required this.day,
     required this.onChoose,
+    this.onOpenQuests,
   });
-
   final List<Quest> quests;
   final DateTime day;
   final VoidCallback onChoose;
+  final VoidCallback? onOpenQuests;
 
   @override
   Widget build(BuildContext context) {
     final field = selectedDailyFieldForDay(quests, day);
-    final candidates = planningQuestsForDay(
-      quests,
-      day,
-    ).where((quest) => !quest.allDay && !quest.isEvent).toList(growable: false);
-    final canChoose = candidates.isNotEmpty;
-    final hasField = field.isNotEmpty;
-    final label = hasField
-        ? '${field.length} IN TODAY\'S FIELD'
-        : 'TODAY\'S FIELD';
-    final heading = hasField
-        ? 'Today has a shape.'
-        : 'Choose what leads today.';
-    final supporting = hasField
-        ? 'Everything else stays open for when you have the time or energy.'
-        : canChoose
-        ? 'Pick up to three quests to carry. The rest stays open if the day has more in it.'
-        : 'Nothing ordinary is waiting. A clear day is allowed.';
-
-    return Semantics(
-      container: true,
-      label: hasField
-          ? 'Today’s field, ${field.length} quest${field.length == 1 ? '' : 's'} chosen'
-          : 'Today’s field, not shaped yet',
-      child: GlassPanel(
-        key: const Key('goals-today-field'),
-        radius: 16,
-        tint: const Color(0xED211811),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.filter_list_rounded,
-                  size: 17,
-                  color: Palette.xpLight,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.xpLight,
-                    ),
-                  ),
-                ),
-                if (hasField)
-                  Text(
-                    'UP TO 3',
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.textLo,
-                    ),
-                  ),
-              ],
+    final canChoose =
+        field.isNotEmpty ||
+        planningQuestsForDay(quests, day).any((q) => !q.allDay && !q.isEvent);
+    final complete = field.where((q) => q.doneFor(day)).length;
+    return WorkingSurface(
+      key: const Key('goals-today-field'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            MaterialLocalizations.of(
+              context,
+            ).formatMediumDate(day).toUpperCase(),
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.xpLight,
             ),
-            const SizedBox(height: 7),
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stackHeader =
+                  constraints.maxWidth < 300 ||
+                  MediaQuery.textScalerOf(context).scale(1) > 1.2;
+              final heading = Text(
+                'Today’s three',
+                style: WorkingType.title.copyWith(
+                  fontSize: 31,
+                  height: 1.05,
+                  fontWeight: FontWeight.w400,
+                ),
+              );
+              final change = field.isEmpty
+                  ? null
+                  : WorkingAction(
+                      key: const Key('goals-reshape-today'),
+                      label: 'Change',
+                      onTap: onChoose,
+                    );
+              if (!stackHeader) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: heading),
+                    ?change,
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  heading,
+                  if (change != null) ...[
+                    const SizedBox(height: 4),
+                    Align(alignment: Alignment.centerRight, child: change),
+                  ],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 9),
+          Text(
+            field.isEmpty
+                ? 'Pick up to three. One or two is enough.'
+                : '$complete of ${field.length} complete · the rest of the day stays open',
+            style: Type.body.copyWith(fontSize: 13, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          for (final (index, quest) in field.indexed)
+            _TodayFieldRow(index: index + 1, quest: quest),
+          const SizedBox(height: 16),
+          if (field.isNotEmpty && onOpenQuests != null)
+            WorkingAction(
+              label: 'Open today’s quests',
+              primary: true,
+              icon: Icons.arrow_forward,
+              onTap: onOpenQuests!,
+            )
+          else if (canChoose)
+            _TodayFieldAction(
+              key: const Key('goals-choose-today'),
+              label: 'Choose today',
+              onTap: onChoose,
+            )
+          else
             Text(
-              heading,
-              style: Type.display.copyWith(fontSize: 23, height: 1.04),
+              'A clear day. Add a quest whenever you have something in mind.',
+              style: Type.body.copyWith(fontSize: 14, height: 1.45),
             ),
-            const SizedBox(height: 5),
-            Text(
-              supporting,
-              style: Type.body.copyWith(
-                fontSize: 13.5,
-                height: 1.35,
-                color: Palette.textMid,
-              ),
-            ),
-            if (hasField) ...[
-              const SizedBox(height: 13),
-              for (var index = 0; index < field.length; index++) ...[
-                _TodayFieldRow(index: index + 1, quest: field[index]),
-                if (index != field.length - 1) const SizedBox(height: 7),
-              ],
-            ],
-            if (canChoose) ...[
-              const SizedBox(height: 14),
-              _TodayFieldAction(
-                key: Key(
-                  hasField ? 'goals-reshape-today' : 'goals-choose-today',
-                ),
-                label: hasField ? 'RESHAPE TODAY' : 'CHOOSE TODAY',
-                onTap: onChoose,
-              ),
-            ],
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -2168,42 +2087,56 @@ class _TodayFieldFolio extends StatelessWidget {
 
 class _TodayFieldRow extends StatelessWidget {
   const _TodayFieldRow({required this.index, required this.quest});
-
   final int index;
   final Quest quest;
-
   @override
   Widget build(BuildContext context) {
+    final done = quest.doneFor(Clock.now());
     return Container(
       key: ValueKey<String>('goals-today-field-${_questTitleKey(quest.title)}'),
-      constraints: const BoxConstraints(minHeight: 44),
-      padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
-      decoration: facetedDecoration(
-        cut: 9,
-        color: Palette.xpLight.withValues(alpha: 0.075),
-        borderColor: Palette.xpLight.withValues(alpha: 0.34),
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0x55795835), width: .7)),
       ),
       child: Row(
         children: [
-          Text(
-            '$index',
-            style: Type.numerals.copyWith(fontSize: 18, color: Palette.xpLight),
+          SizedBox(
+            width: 31,
+            child: done
+                ? const Icon(Icons.check, color: Palette.xpLight, size: 21)
+                : Text(
+                    '$index',
+                    style: WorkingType.title.copyWith(
+                      fontSize: 27,
+                      fontWeight: FontWeight.w400,
+                      color: Palette.xpLight,
+                    ),
+                  ),
           ),
-          const SizedBox(width: 11),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              quest.displayTitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Type.body.copyWith(
-                fontSize: 13.5,
-                height: 1.22,
-                color: Palette.textHi,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  quest.displayTitle,
+                  style: WorkingType.title.copyWith(
+                    fontSize: 22,
+                    height: 1.1,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                if (quest.goalTitle != null || done) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    done ? 'Done today' : quest.goalTitle!,
+                    style: Type.body.copyWith(fontSize: 12.5),
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(width: 9),
-          Icon(Icons.arrow_forward_rounded, size: 17, color: Palette.textLo),
         ],
       ),
     );
@@ -2275,7 +2208,6 @@ class _LivingGoalFocus extends StatelessWidget {
     required this.onAddQuest,
     required this.onOpenQuest,
     required this.onOpenOpening,
-    required this.onOpenWorkshop,
     required this.onOpenWorkshopGoal,
     required this.onAddAction,
     required this.onPrepareFallback,
@@ -2296,7 +2228,6 @@ class _LivingGoalFocus extends StatelessWidget {
   final bool Function(Quest quest) onAddQuest;
   final void Function(Quest quest) onOpenQuest;
   final VoidCallback onOpenOpening;
-  final VoidCallback onOpenWorkshop;
   final VoidCallback onOpenWorkshopGoal;
   final ValueChanged<String?> onAddAction;
   final Quest? Function(String fallback) onPrepareFallback;
@@ -2436,13 +2367,6 @@ class _LivingGoalFocus extends StatelessWidget {
     return 'Whenever you are ready';
   }
 
-  String get _evidenceCopy {
-    if (goal.complete) return 'You kept this in your history.';
-    if (goal.progress == 0) return 'Your first return can begin here.';
-    final times = goal.progress == 1 ? 'time' : 'times';
-    return 'You have found your way back ${goal.progress} $times.';
-  }
-
   @override
   Widget build(BuildContext context) {
     final linked = _questsForGoal(goal, quests);
@@ -2450,12 +2374,6 @@ class _LivingGoalFocus extends StatelessWidget {
     final next = decision?.quest ?? _nextQuestToday(goal, quests);
     final fallback = _kept(goal.fallbackAction);
     final fallbackCue = _kept(goal.fallbackCue);
-    final today = Clock.now();
-    final todayFieldCount = selectedDailyFieldForDay(quests, today).length;
-    final canChooseToday = planningQuestsForDay(
-      quests,
-      today,
-    ).any((quest) => !quest.allDay && !quest.isEvent);
     final still =
         state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -2493,37 +2411,81 @@ class _LivingGoalFocus extends StatelessWidget {
           }
         : () => onAddAction(null);
 
-    final content = GoalThresholdScene(
-      goalTitle: goal.title,
-      evidenceCopy: _evidenceCopy,
-      routePosition: decision?.routePosition,
-      cue: decision?.whyThisOne ?? _cueFor(next, fallbackCue),
-      actionTitle: actionTitle,
-      actionLabel: actionLabel,
-      actionIcon: actionIcon,
-      actionSemanticHint: decision != null && decision.quest == null
-          ? 'Cross the room and inspect this cut before it reaches the Quest board.'
-          : 'Cross the room and open this exact Quest.',
-      onReview: () => _openDetail(context),
-      onNewGoal: onNewGoal,
-      todayFieldCount: todayFieldCount,
-      onChooseToday: canChooseToday ? onChooseToday : null,
-      onOpenWorkshop: onOpenWorkshop,
-      workshopStatus: decision != null && decision.quest == null
-          ? 'cut waiting'
-          : decision?.quest != null || next != null
-          ? 'Quest on board'
-          : goal.plan == null
-          ? 'route needed'
-          : 'route kept',
-      onAction: action,
-      recoveryAction: decision?.quest == null ? null : 'this doesn’t fit today',
-      recoverySemanticHint: decision?.quest == null
-          ? null
-          : 'Ask the steward to make, prepare, or leave today’s route alone.',
-      onRecovery: decision?.quest == null ? null : onRecoverToday,
-      light: light,
-      reduceMotion: state.reduceMotion,
+    final content = WorkingSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(goal.stat.icon, color: Palette.xpLight, size: 20),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  goal.title,
+                  style: WorkingType.title.copyWith(
+                    fontSize: 27,
+                    height: 1.12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Text(
+            _goalProgressCopy(goal),
+            style: Type.body.copyWith(fontSize: 13),
+          ),
+          if (decision != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              decision.routePosition,
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.xpLight,
+              ),
+            ),
+          ],
+          const WorkingRule(),
+          Text(
+            next == null ? 'READY TO SHAPE' : 'CURRENT QUEST',
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.xpLight,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            actionTitle,
+            style: WorkingType.title.copyWith(
+              fontSize: 23,
+              height: 1.2,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            decision?.whyThisOne ?? _cueFor(next, fallbackCue),
+            style: Type.body.copyWith(fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 13),
+          WorkingAction(label: actionLabel, icon: actionIcon, onTap: action),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            children: [
+              WorkingAction(
+                label: 'Review goal',
+                onTap: () => _openDetail(context),
+              ),
+              if (decision?.quest != null)
+                WorkingAction(
+                  label: 'Make this smaller',
+                  onTap: onRecoverToday,
+                ),
+            ],
+          ),
+        ],
+      ),
     );
 
     if (!arriving) return content;
@@ -2614,15 +2576,12 @@ class _GoalsEmptyBoard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  GoalPrimaryButton(
+                  WorkingAction(
                     key: const Key('goals-create-first'),
                     label: 'Create a goal',
                     icon: Icons.add_rounded,
                     onTap: onStart,
-                    expand: true,
-                    glow: false,
-                    light: light,
-                    reduceMotion: reduceMotion,
+                    primary: true,
                   ),
                   const SizedBox(height: 6),
                   Align(
@@ -2658,7 +2617,7 @@ class _GoalsEmptyBoard extends StatelessWidget {
                           vertical: 10,
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisSize: MainAxisSize.max,
                           children: [
                             const Icon(
                               Icons.auto_awesome_outlined,
@@ -2666,11 +2625,13 @@ class _GoalsEmptyBoard extends StatelessWidget {
                               color: Palette.textLo,
                             ),
                             const SizedBox(width: 7),
-                            Text(
-                              'Browse starting points',
-                              style: Type.body.copyWith(
-                                fontSize: 12.5,
-                                color: Palette.textLo,
+                            Expanded(
+                              child: Text(
+                                'Browse starting points',
+                                style: Type.body.copyWith(
+                                  fontSize: 12.5,
+                                  color: Palette.textLo,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 5),

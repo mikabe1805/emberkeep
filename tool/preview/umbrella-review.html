@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Room of Days · Umbrella comparison</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme:dark; background:#191619; color:#eee1cc; font:16px/1.6 system-ui,sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:radial-gradient(ellipse at 12% 0,#49352770,transparent 60%); }
+  main { max-width:800px; margin:auto; padding:48px 24px 64px; }
+  .brand, .label { color:#cfb882; font:11px/1.5 monospace; letter-spacing:.12em; text-transform:uppercase; }
+  h1 { font:400 clamp(36px,7vw,54px)/1.15 Georgia,serif; margin:22px 0; }
+  h2 { font:400 27px/1.2 Georgia,serif; margin:10px 0 22px; }
+  p { color:#bcae9b; margin:12px 0 24px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:30px; margin:34px 0 24px; }
+  article { border-top:1px solid #b9995550; padding-top:24px; min-width:0; }
+  audio { display:block; width:100%; height:44px; margin:12px 0; }
+  .caption { font-size:13px; color:#bcae9b; }
+  details { margin-top:22px; }
+  summary { cursor:pointer; color:#cfb882; padding:8px 0; }
+  a { color:#cfb882; text-underline-offset:4px; }
+  footer { margin-top:36px; border-top:1px solid #b9995530; padding-top:20px; }
+  @media(max-width:560px) { .pair { grid-template-columns:1fr; gap:30px; } main { padding-top:28px; } }
+</style>
+<main>
+  <div class="brand">Room of Days · Listening room</div>
+  <h1>Beside the umbrella.</h1>
+  <p>The original score and one new piece using its instruments, bass, brush rhythm, and room sound. Start with the short excerpts, or play either full piece.</p>
+  <p id="loading" role="status">Loading music…</p>
+  <div class="pair">
+    <article>
+      <div class="label">The existing score</div>
+      <h2>Umbrella-brush</h2>
+      <audio controls preload="none" aria-label="Original umbrella brush, 18 second excerpt" data-src="umbrella-hook.m4a"></audio>
+      <div class="caption">Opening · 18 seconds</div>
+      <details><summary>Full piece · 1:36</summary><audio controls preload="none" aria-label="Original umbrella brush, full piece" data-src="umbrella.m4a"></audio></details>
+      <details><summary>With app interactions · 16 seconds</summary><audio controls preload="none" aria-label="Original umbrella brush with app interactions" data-src="umbrella-flow.mp3"></audio></details>
+    </article>
+    <article>
+      <div class="label">New piece · now in the app</div>
+      <h2>Lamp left on</h2>
+      <audio controls preload="none" aria-label="Lamp left on, 18 second excerpt" data-src="new-hook.m4a"></audio>
+      <div class="caption">Opening · 18 seconds</div>
+      <details><summary>Full piece · 1:36</summary><audio controls preload="none" aria-label="Lamp left on, full piece" data-src="new.m4a"></audio></details>
+      <details><summary>With app interactions · 16 seconds</summary><audio controls preload="none" aria-label="Lamp left on with app interactions" data-src="new-flow.mp3"></audio></details>
+    </article>
+  </div>
+  <p class="caption">The same playback level, with the same taps and completion timing in both interaction samples. One player plays at a time.</p>
+  <footer><p class="caption">Both pieces now rotate in the app. The earlier studies have been set aside.</p><a href="/refresh-working-preview-20260906.html">Open the updated app</a></footer>
+</main>
+<script>
+  const players = [...document.querySelectorAll('audio')];
+  for (const player of players) {
+    player.addEventListener('play', () => {
+      for (const other of players) if (other !== player) other.pause();
+    });
+  }
+  // Fetch complete files as Flutter does, then let native players seek locally.
+  // This avoids first-load range responses from the app offline worker.
+  Promise.all(players.map(async player => {
+    const response = await fetch(player.dataset.src);
+    if (!response.ok) throw new Error('Music could not be loaded');
+    player.src = URL.createObjectURL(await response.blob());
+  })).then(() => document.getElementById('loading')?.remove()).catch(() => {
+    const message = document.getElementById('loading');
+    if (message) message.textContent = 'Music could not load. Refresh to try again.';
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) for (const player of players) player.pause();
+  });
+</script>
+</html>

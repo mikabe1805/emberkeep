@@ -305,9 +305,7 @@ void main() {
     });
     final now = DateTime(2026, 7, 29, 10);
     Clock.freeze(now);
-    final state = GameState()
-      ..reduceMotion = true
-      ..focusMode = true;
+    final state = GameState()..reduceMotion = true;
     _quietOtherMantelCards(state, now);
     final quests = [
       _quest('Small reset', 2),
@@ -317,6 +315,18 @@ void main() {
     await tester.pumpWidget(_board(state, quests));
     await tester.pump(const Duration(milliseconds: 500));
     await _precacheQuestBoardArt(tester);
+
+    final focusToggle = find.bySemanticsLabel(
+      'Focus mode — one quest at a time',
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, -260),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(focusToggle);
+    await tester.pumpAndSettle();
+    expect(state.focusMode, isTrue);
 
     final focusList = tester.widget<ListView>(
       find.byKey(const ValueKey('focus-quest-list')),
@@ -347,7 +357,7 @@ void main() {
     expect(find.bySemanticsLabel('Show the full quest board'), findsOneWidget);
   });
 
-  testWidgets('planning Ember opens a real two-step tomorrow chooser', (
+  testWidgets('planning Ember saves tomorrow choices in one chooser', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -382,8 +392,11 @@ void main() {
     await tester.ensureVisible(plan);
     await tester.pump(const Duration(milliseconds: 150));
     await tester.tap(plan);
-    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pumpAndSettle();
     expect(find.text('Shape tomorrow'), findsOneWidget);
+
+    await tester.tap(find.text('Browse all quests (4)'));
+    await tester.pump();
 
     for (final title in ['Lead with this', 'Then this', 'And this']) {
       final choice = find.byKey(ValueKey('top-three-$title'));
@@ -392,11 +405,9 @@ void main() {
       await tester.tap(choice);
       await tester.pump(const Duration(milliseconds: 100));
     }
-    await tester.tap(find.text('REVIEW 3 CHOICES'));
-    await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('Your day has a shape'), findsOneWidget);
-
-    await tester.tap(find.text('SET TOMORROW’S THREE'));
+    final save = find.byKey(const Key('top-three-save'));
+    await tester.ensureVisible(save);
+    await tester.tap(save);
     await tester.pump(const Duration(milliseconds: 450));
 
     final tomorrowKey = Days.key(day.add(const Duration(days: 1)));

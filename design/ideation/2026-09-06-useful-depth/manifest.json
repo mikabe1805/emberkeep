@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-06",
+  "threadId": "01a07394-f3dd-7423-842b-44b7d5b9b9fc",
+  "sourceOwnerLiked": "C:/Users/mikus/Downloads/experimentProject/app/.worktrees/build41-authored-continuation/design/ideation/2026-09-06-top-three-room/02-choose-today.png",
+  "status": "three useful-depth concepts displayed; new concepts not yet selected",
+  "productionChanges": false,
+  "priorityRecommendation": [
+    1,
+    2
+  ],
+  "concepts": [
+    {
+      "displayOrder": 1,
+      "name": "Choices with a reason",
+      "file": "01-reasoned-choices.png",
+      "source": "C:/Users/mikus/.codex/generated_images/01a07394-f3dd-7423-842b-44b7d5b9b9fc/exec-66fdcb51-b80e-4790-ac1a-f98d8483ee9d.png"
+    },
+    {
+      "displayOrder": 2,
+      "name": "A session ready to begin",
+      "file": "02-session-workspace.png",
+      "source": "C:/Users/mikus/.codex/generated_images/01a07394-f3dd-7423-842b-44b7d5b9b9fc/exec-ffee4e77-2655-466a-9527-c6c22cb979c4.png"
+    },
+    {
+      "displayOrder": 3,
+      "name": "A smaller attempt, clearly chosen",
+      "file": "03-smaller-attempt.png",
+      "source": "C:/Users/mikus/.codex/generated_images/01a07394-f3dd-7423-842b-44b7d5b9b9fc/exec-8731de75-0464-4373-afc9-2c817fb29fa4.png"
+    }
+  ]
+}

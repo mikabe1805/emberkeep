@@ -59,10 +59,22 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
 
-      await tester.tap(find.byKey(const ValueKey('goals-support-toggle')));
+      final support = find.byKey(const ValueKey('goals-support-toggle'));
+      await tester.scrollUntilVisible(
+        support,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(support);
+      await tester.pumpAndSettle();
+      await tester.tap(support);
       await tester.pump(const Duration(milliseconds: 200));
       final card = find.byKey(const ValueKey('goals-guided-workouts'));
-      await tester.ensureVisible(card);
+      await tester.scrollUntilVisible(
+        card,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(card);
       await tester.pump();

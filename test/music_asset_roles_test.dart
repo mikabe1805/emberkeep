@@ -18,23 +18,46 @@ const _mainDigests = <String, String>{
 
 const _focusDigest =
     'e4162909e9a5063e5d087b267346a9bf4383fcdb47a38e91fae1843271534d9e';
+const _lampLeftOnDigest =
+    'a1b84c0b850e03131e5a22269cac7aa2532ad6a0fce5a31dea21e17d40078cc3';
 
 String _digest(String path) =>
     sha256.convert(File(path).readAsBytesSync()).toString();
 
 void main() {
-  test('normal Room music is the eight approved umbrella-brush takes', () {
-    expect(MainRoomMusic.takeAssets, hasLength(8));
-    for (final entry in _mainDigests.entries) {
-      final path = 'assets/music/${entry.key}.m4a';
-      expect(File(path).existsSync(), isTrue, reason: 'missing $path');
-      expect(
-        _digest(path),
-        entry.value,
-        reason: '$path must remain the approved encoded take',
-      );
-      expect(MainRoomMusic.takeAssets, contains('music/${entry.key}.m4a'));
-    }
+  test(
+    'the original eight umbrella-brush takes retain their approved encodes',
+    () {
+      expect(MainRoomMusic.takeAssets, hasLength(9));
+      for (final entry in _mainDigests.entries) {
+        final path = 'assets/music/${entry.key}.m4a';
+        expect(File(path).existsSync(), isTrue, reason: 'missing $path');
+        expect(
+          _digest(path),
+          entry.value,
+          reason: '$path must remain the approved encoded take',
+        );
+        expect(MainRoomMusic.takeAssets, contains('music/${entry.key}.m4a'));
+      }
+    },
+  );
+
+  test('Lamp left on is the approved ninth normal-room take', () {
+    const asset = 'music/lamp-left-on.m4a';
+    const path = 'assets/$asset';
+    expect(File(path).existsSync(), isTrue, reason: 'missing $path');
+    expect(_digest(path), _lampLeftOnDigest);
+    expect(MainRoomMusic.takeCount, 9);
+    expect(MainRoomMusic.assetForTake(9), asset);
+    expect(MainRoomMusic.takeAssets, contains(asset));
+    expect(MainRoomMusic.takeAssets, [
+      for (var take = 1; take <= MainRoomMusic.takeCount; take++)
+        MainRoomMusic.assetForTake(take),
+    ]);
+    expect(
+      File('pubspec.yaml').readAsStringSync(),
+      contains('- assets/music/'),
+    );
   });
 
   test(
@@ -52,27 +75,30 @@ void main() {
     },
   );
 
-  test('main rotation plays every take before a non-adjacent repeat', () {
-    for (var seed = 0; seed < 32; seed++) {
-      final rotation = MusicRotation(random: math.Random(seed));
-      final draws = [for (var i = 0; i < 64; i++) rotation.next()];
-      for (var i = 1; i < draws.length; i++) {
-        expect(draws[i], isNot(draws[i - 1]));
+  test(
+    'an explicit umbrella-only rotation plays every take before a repeat',
+    () {
+      for (var seed = 0; seed < 32; seed++) {
+        final rotation = MusicRotation(random: math.Random(seed), takeCount: 8);
+        final draws = [for (var i = 0; i < 64; i++) rotation.next()];
+        for (var i = 1; i < draws.length; i++) {
+          expect(draws[i], isNot(draws[i - 1]));
+        }
+        for (var bag = 0; bag < 8; bag++) {
+          expect(draws.sublist(bag * 8, bag * 8 + 8).toSet(), {
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+          });
+        }
       }
-      for (var bag = 0; bag < 8; bag++) {
-        expect(draws.sublist(bag * 8, bag * 8 + 8).toSet(), {
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-        });
-      }
-    }
-  });
+    },
+  );
 
   test('all long-form music stays out of the web first-frame core', () {
     final offline = File('tool/prepare_web_offline.dart').readAsStringSync();
@@ -80,6 +106,7 @@ void main() {
     for (final name in _mainDigests.keys) {
       expect(offline, contains('assets/assets/music/$name.m4a'));
     }
+    expect(offline, contains('assets/assets/music/lamp-left-on.m4a'));
     expect(
       offline.indexOf('if (_musicDeferred.contains(relative)) return false;'),
       greaterThanOrEqualTo(0),

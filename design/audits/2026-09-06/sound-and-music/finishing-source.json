@@ -1,0 +1,51 @@
+{
+  "base_commit": "fd584564c6889f8aff891b5e5a8d8f4602d957d0",
+  "date": "2026-09-06",
+  "state": "uncommitted working source; music audition pending",
+  "sources": [
+    {
+      "path": "lib/widgets/gold_surface.dart",
+      "sha256": "f2fcf06f01b19d085458ba4f9c91aa4de6442b53cb8bb8872c2f1dd844e2504f"
+    },
+    {
+      "path": "lib/tokens.dart",
+      "sha256": "ce6c22a29a3dbab23dd5cc1e240ca2e86d47dfbd4800cf388fa5abf8b0d149f8"
+    },
+    {
+      "path": "lib/widgets/glass_switch.dart",
+      "sha256": "520acddce6b99266f51d0590867fb7f573f2e1e483f7d90a0962fd64c3a40759"
+    },
+    {
+      "path": "lib/screens/me.dart",
+      "sha256": "f71861a0cf4dd415dcb70c1fe28208fc3ad19bc728a87619d4dfdff8e6434731"
+    },
+    {
+      "path": "lib/widgets/top_three_wizard.dart",
+      "sha256": "b2e7e04d23be229891bc47fade5d612f394c3e75c821149f20c877a91d57818f"
+    },
+    {
+      "path": "lib/screens/goals.dart",
+      "sha256": "1f60e0cdcbebad3b86e41bc37c28bd1c9e9fa5d4882e2e3ccde3c9ab00e4a150"
+    },
+    {
+      "path": "lib/screens/quests.dart",
+      "sha256": "9469c89ca8a6294b5d69c7edc5e7c1e87f002bfef6928edac7f5b9cdabfae598"
+    },
+    {
+      "path": "lib/main_room_music.dart",
+      "sha256": "4fee0cddf9d166d0cf0a15a7fd751a1358e13eafcac1d5f4ea949a7c18a98d5b"
+    },
+    {
+      "path": "tool/author_room_music_new_theme.py",
+      "sha256": "023aafe059118ca6664edf5ee6844250a052fe481d83da6706384adb6d2aa16b"
+    },
+    {
+      "path": "tool/preview/umbrella-review.html",
+      "sha256": "3f0693721f45dac1b3eda695599107a5cac2b4d0cec61ba4e46fb67caf7cfc0a"
+    },
+    {
+      "path": "tool/prepare_web_offline.dart",
+      "sha256": "2d44642c265d6f1f293caa0e38183424e70268d85ab6f5bcdbd5a37d0eba85e6"
+    }
+  ]
+}

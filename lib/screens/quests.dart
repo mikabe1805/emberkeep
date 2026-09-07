@@ -29,6 +29,7 @@ import '../storage.dart';
 import '../tokens.dart';
 import '../widgets/workout_flow.dart';
 import 'journal_entry.dart';
+import 'domain_detail.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/domain_hint.dart';
@@ -52,6 +53,7 @@ import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
 import '../widgets/timer_overlay.dart';
 import '../widgets/top_three_wizard.dart';
+import '../widgets/working_surface.dart';
 import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/streak_freeze_status.dart';
@@ -255,6 +257,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   String? _undoTitle;
   String? _undoSnapshot;
 
+  /// The quest the keeper deliberately brought forward. Keeping this local to
+  /// the board makes selection immediate without turning a glance into saved
+  /// progress. A completed selection remains the acknowledged identity until
+  /// the keeper chooses another row.
+  String? _selectedQuestTitle;
+
   /// When a weekly quest is cleared on a day other than its anchor, we offer
   /// (gently, inline) to make THIS the day going forward. The candidate quest
   /// and the day it was done on; null when there's no pending offer.
@@ -402,6 +410,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       subtitle:
           'Choose up to three things worth carrying. Everything else rests without penalty.',
       dayLabel: 'Gentle Mode · Today',
+      goals: _state.goals,
+      day: now,
       candidates: candidates.where((q) => !q.allDay),
       initialTitles: initial,
       accent: Stat.vit.color,
@@ -417,16 +427,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   Future<void> _chooseToday() async {
     final now = Clock.now();
-    final candidates = planningQuestsForDay(
-      widget.quests,
-      now,
-    ).where((q) => !q.allDay && !q.isEvent);
+    final candidates = widget.quests.where((q) => !q.allDay && !q.isEvent);
     final chosen = await showTopThreeWizard(
       context,
       title: 'Choose today',
       subtitle:
           'Pick up to three quests to carry. Everything else stays open if the day has room.',
       dayLabel: 'Today’s field',
+      goals: _state.goals,
+      day: now,
       candidates: candidates,
       initialTitles: selectedDailyFieldForDay(
         widget.quests,
@@ -457,6 +466,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       subtitle:
           'Pick up to three quests to lead the morning. This is a compass, not another obligation.',
       dayLabel: 'Tomorrow’s Three',
+      goals: _state.goals,
+      day: tomorrow,
       candidates: candidates,
       initialTitles: initial,
       accent: Palette.xpLight,
@@ -510,6 +521,33 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     });
     ScaffoldMessenger.of(context).clearSnackBars();
     widget.onRestore(snap);
+  }
+
+  void _selectQuest(Quest quest) {
+    if (_selectedQuestTitle == quest.title) return;
+    setState(() => _selectedQuestTitle = quest.title);
+  }
+
+  void _activateQuest(Quest quest, Offset tapPosition) {
+    if (_selectedQuestTitle != quest.title) {
+      setState(() => _selectedQuestTitle = quest.title);
+    }
+    _completeQuest(quest, tapPosition);
+  }
+
+  String? _goalThreadLabel(Quest quest) {
+    final title = quest.goalTitle?.trim();
+    if (title == null || title.isEmpty) return null;
+    Goal? linked;
+    for (final goal in _state.goals) {
+      if (goal.title.trim().toLowerCase() == title.toLowerCase()) {
+        linked = goal;
+        break;
+      }
+    }
+    if (linked == null) return 'GOAL · $title';
+    if (linked.complete) return 'GOAL · ${linked.title} · COMPLETE';
+    return 'GOAL · ${linked.title} · ${linked.progress}/${linked.target}';
   }
 
   void _syncLocalMotion() {
@@ -623,10 +661,42 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
   }
 
-  /// Apply any in-flight completion's rewards NOW (mounted path). Called
-  /// before each new completion so a fresh snapshot reflects prior
-  /// completions fully committed, never half-applied — the rapid-double-tap
-  /// data-loss trap.
+  void _settleUndoBeforeLaterEdit() {
+    if (_undoSnapshot == null) return;
+    setState(() {
+      _undoTitle = null;
+      _undoSnapshot = null;
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+  }
+
+  void _exploreStat(Stat stat) {
+    // History must include the reward whose animation is still settling.
+    _flushCommit();
+    Haptics.tap();
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => DomainDetailScreen(
+          stat: stat,
+          state: _state,
+          quests: widget.quests,
+          onPersist: () {
+            _settleUndoBeforeLaterEdit();
+            widget.onPersist();
+          },
+          onAddQuest: (quest) {
+            final added = widget.onAdd(quest);
+            if (added) _settleUndoBeforeLaterEdit();
+            return added;
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Apply any in-flight completion's rewards now. A fresh snapshot must
+  /// include prior completions fully committed, never half-applied.
   void _flushCommit() {
     _commitTimer?.cancel();
     _commitTimer = null;
@@ -855,25 +925,65 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       return;
     }
     if (q.verification == Verification.timer && q.effectiveTimerMinutes > 0) {
-      late final OverlayEntry timer;
-      timer = OverlayEntry(
-        builder: (_) => TimerOverlay(
-          questTitle: q.title,
-          minutes: q.effectiveTimerMinutes,
-          musicController: widget.musicController,
-          onFinished: () {
-            timer.remove();
-            if (mounted) _runCompletion(q, tapPos, verified: true);
-          },
-          // honor path: did it without the timer → full base, no ×1.2
-          onHonor: () {
-            timer.remove();
-            if (mounted) _runCompletion(q, tapPos);
-          },
-          onCancel: () => timer.remove(),
+      final linkedGoal = _state.goals
+          .where(
+            (goal) =>
+                goal.title.trim().toLowerCase() ==
+                q.goalTitle?.trim().toLowerCase(),
+          )
+          .firstOrNull;
+      final step = linkedGoal?.plan?.currentStep;
+      final currentStep =
+          step != null &&
+              q.goalPlanStepId == step.id &&
+              q.goalPlanRevision == linkedGoal?.plan?.revision &&
+              (q.goalPlanAttempt ?? 1) == step.completions + 1
+          ? step
+          : null;
+      final notes =
+          linkedGoal?.notes
+              .where((note) => note.text.trim().isNotEmpty)
+              .toList()
+            ?..sort((a, b) => b.at.compareTo(a.at));
+      var settled = false;
+      final navigator = Navigator.of(context, rootNavigator: true);
+      unawaited(
+        navigator.push<void>(
+          RawDialogRoute<void>(
+            barrierDismissible: false,
+            barrierColor: Colors.transparent,
+            transitionDuration: Duration.zero,
+            traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+            requestFocus: true,
+            pageBuilder: (dialogContext, _, _) => TimerOverlay(
+              questTitle: q.title,
+              minutes: q.effectiveTimerMinutes,
+              musicController: widget.musicController,
+              goalTitle: linkedGoal?.title,
+              guidance: currentStep?.whyNow,
+              note: notes?.firstOrNull?.text,
+              onFinished: () {
+                if (settled) return;
+                settled = true;
+                Navigator.of(dialogContext).pop();
+                if (mounted) _runCompletion(q, tapPos, verified: true);
+              },
+              // honor path: did it without the timer → full base, no ×1.2
+              onHonor: () {
+                if (settled) return;
+                settled = true;
+                Navigator.of(dialogContext).pop();
+                if (mounted) _runCompletion(q, tapPos);
+              },
+              onCancel: () {
+                if (settled) return;
+                settled = true;
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ),
         ),
       );
-      Overlay.of(context).insert(timer);
       Sfx.instance.playInteraction(InteractionSound.open);
       return;
     }
@@ -891,8 +1001,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       text: text,
       context: state.buildTitle,
       trace: state.todayJournalTrace(widget.quests),
+      sourceQuestKey: quest.title,
     );
     state.setJournal([...state.journal, note]);
+    // A full-save undo would also erase the line just written. Once the keeper
+    // adds later context, settle that completion and remove its undo affordance
+    // rather than pretending the two histories can be separated safely.
+    setState(() {
+      _undoTitle = null;
+      _undoSnapshot = null;
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
     widget.onPersist();
     Storage.logEvent('quick_reflection', [quest.stat.index]);
   }
@@ -1974,7 +2093,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
   }
 
-  /// First-session nudge: highlight that the loop starts with one tap.
+  /// First-session nudge: invite one concrete choice before its action.
   Widget _firstEmberPanel() {
     final open = widget.quests.where((q) {
       final now = Clock.now();
@@ -2014,7 +2133,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tap “$tip” and see what changes.',
+                    'Choose “$tip” to get started.',
                     style: Type.body.copyWith(
                       fontSize: 13.5,
                       color: Palette.textHi,
@@ -2649,8 +2768,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             reduceMotion: _state.reduceMotion,
             lightDirection: _activeLight,
             scrollPosition: _scrollLight,
-            onComplete: (pos) => _completeQuest(q, pos),
+            onComplete: (pos) => _activateQuest(q, pos),
             onManage: () => _manageQuest(q),
+            goalThreadLabel: _goalThreadLabel(q),
           ),
         ),
         const SizedBox(height: 16),
@@ -2943,6 +3063,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final firstVisibleActionable = visible.indexWhere(
       (q) => !q.doneFor(now) && !q.allDay,
     );
+    final selectedVisible = _selectedQuestTitle == null
+        ? null
+        : visible.cast<Quest?>().firstWhere(
+            (q) => q?.title == _selectedQuestTitle,
+            orElse: () => null,
+          );
+    final featuredQuest = selectedVisible != null
+        ? (!selectedVisible.doneFor(now) ? selectedVisible : null)
+        : (firstVisibleActionable >= 0
+              ? visible[firstVisibleActionable]
+              : null);
     final boardItemCount = visible.isEmpty
         ? 1
         : visible.length + (remaining == 0 ? 1 : 0);
@@ -3021,113 +3152,118 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // ── Level + XP ──────────────────────────────────
-                                // Its own slab, the way the approved board art has
-                                // it: medallion, LEVEL as a small caps label, the
-                                // level itself as a display numeral, honey track
-                                // underneath. One string of grey mono carried all
-                                // three jobs before and no hierarchy survived it.
+                                // One instrument panel: earned progress above,
+                                // six doors into the life it is building below.
                                 _QuestHudPanel(
                                   padding: const EdgeInsets.fromLTRB(
-                                    10,
-                                    2,
-                                    12,
+                                    8,
+                                    5,
+                                    8,
                                     2,
                                   ),
-                                  child: SizedBox(
-                                    height: largePhoneType ? 80 : 45,
-                                    child: Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        Positioned(
-                                          left: 0,
-                                          top: -4.5,
-                                          child: QuestDeskStyleButton(
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          QuestDeskStyleButton(
                                             look: deskLook,
                                             onTap: _openQuestDeskStyle,
                                             compact: true,
                                           ),
-                                        ),
-                                        Positioned(
-                                          left: 64,
-                                          right: 0,
-                                          top: 0,
-                                          bottom: 0,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 5,
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(
-                                                    'LEVEL',
-                                                    style: Type.display
-                                                        .copyWith(
-                                                          fontSize: 13,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          letterSpacing: 0.8,
-                                                          color:
-                                                              Palette.textMid,
-                                                        ),
-                                                  ),
-                                                  const SizedBox(width: 7),
-                                                  Text(
-                                                    '${_state.level}',
-                                                    style: Type.numerals
-                                                        .copyWith(
-                                                          fontSize: 23,
-                                                          color: Palette.textHi,
-                                                        ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Align(
-                                                      alignment:
-                                                          Alignment.centerRight,
-                                                      child: KeyedSubtree(
-                                                        key: _xpNumberKey,
-                                                        child: RollingNumber(
-                                                          min(_state.xp, next),
-                                                          suffix: ' / $next XP',
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: Type.numerals
-                                                              .copyWith(
-                                                                fontSize: 15.5,
-                                                                color:
-                                                                    Palette.xp,
+                                                  SizedBox(
+                                                    width: double.infinity,
+                                                    child: Wrap(
+                                                      alignment: WrapAlignment
+                                                          .spaceBetween,
+                                                      crossAxisAlignment:
+                                                          WrapCrossAlignment
+                                                              .center,
+                                                      spacing: 16,
+                                                      children: [
+                                                        Text.rich(
+                                                          TextSpan(
+                                                            children: [
+                                                              TextSpan(
+                                                                text: 'LEVEL ',
+                                                                style: Type.label.copyWith(
+                                                                  fontSize: 12,
+                                                                  letterSpacing:
+                                                                      1,
+                                                                  color: Palette
+                                                                      .textMid,
+                                                                ),
                                                               ),
+                                                              TextSpan(
+                                                                text:
+                                                                    '${_state.level}',
+                                                                style: Type
+                                                                    .numerals
+                                                                    .copyWith(
+                                                                      fontSize:
+                                                                          23,
+                                                                      color: Palette
+                                                                          .textHi,
+                                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
-                                                      ),
+                                                        KeyedSubtree(
+                                                          key: _xpNumberKey,
+                                                          child: RollingNumber(
+                                                            min(
+                                                              _state.xp,
+                                                              next,
+                                                            ),
+                                                            suffix:
+                                                                ' / $next XP',
+                                                            style: Type.numerals
+                                                                .copyWith(
+                                                                  fontSize:
+                                                                      15.5,
+                                                                  color: Palette
+                                                                      .xp,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  _QuestXpTrack(
+                                                    progress: _state.xp / next,
                                                   ),
                                                 ],
                                               ),
-                                              const SizedBox(height: 2),
-                                              _QuestXpTrack(
-                                                progress: _state.xp / next,
-                                              ),
-                                            ],
+                                            ),
                                           ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Divider(
+                                        height: 1,
+                                        color: Palette.brass.withValues(
+                                          alpha: 0.24,
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 7),
-                                // ── The six domains ─────────────────────────────
-                                _QuestHudPanel(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  child: SizedBox(
-                                    height: largePhoneType ? 120 : 106,
-                                    child: StatChips(
-                                      values: _state.stats,
-                                      reduceMotion: _state.reduceMotion,
-                                    ),
+                                        indent: 7,
+                                        endIndent: 7,
+                                      ),
+                                      StatChips(
+                                        values: _state.stats,
+                                        reduceMotion: _state.reduceMotion,
+                                        onSelect: _exploreStat,
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 // ── Progression + desk finish ───────────────────
@@ -3216,9 +3352,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
                               child: _DailyFieldRail(
                                 hasField: hasDailyField,
-                                commitments: commitmentsVisible.length,
+                                chosenTotal: chosenField.length,
                                 commitmentsRemaining: commitmentsRemaining,
-                                chosen: chosenField.length,
                                 chosenRemaining: fieldRemaining,
                                 setAside: setAside,
                                 optionalOpen: optionalOpen,
@@ -3246,33 +3381,34 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        dayResting
-                                            ? 'THE DAY IS KEPT'
-                                            : showFocus
-                                            ? 'FOCUS MODE'
-                                            : lowFlame
-                                            ? (_showFullLowFlame
-                                                  ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
-                                                  : 'GENTLE MODE · $remaining LEFT')
-                                            : showingDailyField
-                                            ? (largePhoneType
-                                                  ? (remaining == 0
-                                                        ? 'FIELD · ENOUGH'
-                                                        : '$remaining TO CARRY')
-                                                  : (remaining == 0
-                                                        ? 'TODAY’S FIELD · ENOUGH'
-                                                        : 'TODAY’S FIELD · $remaining TO CARRY'))
-                                            : 'TODAY · $remaining OPEN',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Type.label.copyWith(
-                                          fontSize: 12,
-                                          color: showFocus
-                                              ? Palette.streak
-                                              : null,
+                                      if (!showingDailyField || showFocus)
+                                        Text(
+                                          dayResting
+                                              ? 'THE DAY IS KEPT'
+                                              : showFocus
+                                              ? 'FOCUS MODE'
+                                              : lowFlame
+                                              ? (_showFullLowFlame
+                                                    ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+                                                    : 'GENTLE MODE · $remaining LEFT')
+                                              : showingDailyField
+                                              ? (largePhoneType
+                                                    ? (remaining == 0
+                                                          ? 'FIELD · ENOUGH'
+                                                          : '$remaining TO CARRY')
+                                                    : (remaining == 0
+                                                          ? 'TODAY’S FIELD · ENOUGH'
+                                                          : 'TODAY’S FIELD · $remaining TO CARRY'))
+                                              : 'TODAY · $remaining OPEN',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Type.label.copyWith(
+                                            fontSize: 12,
+                                            color: showFocus
+                                                ? Palette.streak
+                                                : null,
+                                          ),
                                         ),
-                                      ),
                                       StreakFreezeStatus(state: _state),
                                     ],
                                   ),
@@ -3561,10 +3697,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             }
                             final q = visible[remaining == 0 ? i - 1 : i];
                             final isDone = q.doneFor(now);
-                            final isFeatured =
-                                !isDone &&
-                                firstVisibleActionable >= 0 &&
-                                identical(q, visible[firstVisibleActionable]);
+                            final isFeatured = identical(q, featuredQuest);
                             final Widget card = QuestCard(
                               // stable key so a card's squash/state follows it as the list
                               // re-sorts a finished quest down to the bottom
@@ -3580,8 +3713,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               reduceMotion: _state.reduceMotion,
                               lightDirection: _activeLight,
                               scrollPosition: _scrollLight,
-                              onComplete: (pos) => _completeQuest(q, pos),
+                              onSelect: isDone ? null : () => _selectQuest(q),
+                              onComplete: (pos) => _activateQuest(q, pos),
                               onManage: () => _manageQuest(q),
+                              goalThreadLabel: _goalThreadLabel(q),
                               // a finished, still-climbable quest offers the next rung
                               // right on the card
                               onEncore:
@@ -4253,9 +4388,8 @@ class _DeskSwatch extends StatelessWidget {
 class _DailyFieldRail extends StatelessWidget {
   const _DailyFieldRail({
     required this.hasField,
-    required this.commitments,
+    required this.chosenTotal,
     required this.commitmentsRemaining,
-    required this.chosen,
     required this.chosenRemaining,
     required this.setAside,
     required this.optionalOpen,
@@ -4263,153 +4397,79 @@ class _DailyFieldRail extends StatelessWidget {
     required this.onChoose,
     required this.onToggleOptional,
   });
-
-  final bool hasField;
-  final int commitments;
-  final int commitmentsRemaining;
-  final int chosen;
-  final int chosenRemaining;
-  final int setAside;
-  final int optionalOpen;
-  final bool showingOptional;
+  final bool hasField, showingOptional;
+  final int chosenTotal,
+      commitmentsRemaining,
+      chosenRemaining,
+      setAside,
+      optionalOpen;
   final VoidCallback onChoose;
   final VoidCallback? onToggleOptional;
-
   @override
-  Widget build(BuildContext context) {
-    final heading = hasField ? 'TODAY’S FIELD' : 'CHOOSE TODAY';
-    final detail = !hasField
-        ? 'Pick up to three quests to carry. Everything else stays open if the day has room.'
-        : setAside > 0
-        ? '$setAside chosen quest${setAside == 1 ? ' is' : 's are'} set aside for today. It still counts as part of the field.'
-        : commitmentsRemaining + chosenRemaining == 0
-        ? 'The commitments and field you chose are kept. Other quests remain open if it fits.'
-        : '$commitmentsRemaining commitment${commitmentsRemaining == 1 ? '' : 's'} · $chosenRemaining chosen quest${chosenRemaining == 1 ? '' : 's'} to carry.';
-    return Material(
-      color: Colors.transparent,
-      shape: const FacetedBorder(cut: 9),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: const Key('daily-field-rail'),
-        onTap: onChoose,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(13, 10, 12, 9),
-          decoration: facetedDecoration(
-            cut: 9,
-            color: const Color(0xED241B17),
-            borderColor: Palette.brass.withValues(alpha: 0.50),
-            shadows: const [
-              BoxShadow(
-                color: Color(0x42000000),
-                blurRadius: 11,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    hasField
-                        ? Icons.bookmark_added_outlined
-                        : Icons.bookmark_add_outlined,
-                    size: 17,
-                    color: Palette.xpLight,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      heading,
-                      style: Type.label.copyWith(
-                        fontSize: Type.minLabel,
-                        color: Palette.xpLight,
-                        letterSpacing: 1.05,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    hasField ? 'EDIT' : 'CHOOSE',
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.textHi,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Text(
-                detail,
-                style: Type.body.copyWith(
-                  fontSize: 13,
-                  height: 1.28,
-                  color: Palette.textMid,
-                ),
-              ),
-              if (hasField) ...[
-                const SizedBox(height: 7),
-                Text(
-                  'COMMITMENTS $commitments  ·  FIELD $chosen',
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: Palette.textMid,
-                    letterSpacing: 0.75,
-                  ),
-                ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 12, 4, 2),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final stackHeader =
+                constraints.maxWidth < 300 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.2;
+            final heading = Text(
+              hasField ? 'Today’s three' : 'What matters today?',
+              style: WorkingType.title.copyWith(fontSize: 30),
+            );
+            final action = WorkingAction(
+              key: const Key('daily-field-rail'),
+              label: hasField ? 'Change' : 'Choose',
+              onTap: onChoose,
+            );
+            if (!stackHeader) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [Expanded(child: heading), action],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                heading,
+                const SizedBox(height: 4),
+                Align(alignment: Alignment.centerRight, child: action),
               ],
-              if (onToggleOptional != null) ...[
-                const SizedBox(height: 9),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Semantics(
-                    button: true,
-                    label: showingOptional
-                        ? 'Hide optional quests'
-                        : 'Open $optionalOpen optional quests if they fit',
-                    child: InkWell(
-                      onTap: onToggleOptional,
-                      borderRadius: BorderRadius.circular(4),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 2,
-                          vertical: 3,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              showingOptional
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              size: 18,
-                              color: Palette.streak,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              showingOptional
-                                  ? 'HIDE OPTIONAL QUESTS'
-                                  : 'OPEN IF IT FITS · $optionalOpen',
-                              style: Type.label.copyWith(
-                                fontSize: Type.minLabel,
-                                color: Palette.streak,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+            );
+          },
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 4),
+        Text(
+          hasField
+              ? '${chosenTotal - chosenRemaining} of $chosenTotal complete${setAside > 0 ? ' · $setAside set aside' : ''}'
+              : 'Choose up to three quests to bring into focus.',
+          style: Type.body.copyWith(fontSize: 13, height: 1.4),
+        ),
+        if (commitmentsRemaining > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              '$commitmentsRemaining dated commitment${commitmentsRemaining == 1 ? '' : 's'} also waiting',
+              style: Type.body.copyWith(fontSize: 12.5, color: Palette.xpLight),
+            ),
+          ),
+        if (onToggleOptional != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: WorkingAction(
+              label: showingOptional
+                  ? 'Hide optional quests'
+                  : 'Open if it fits · $optionalOpen',
+              icon: showingOptional ? Icons.expand_less : Icons.expand_more,
+              onTap: onToggleOptional!,
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _CloseDayRail extends StatelessWidget {
@@ -4422,7 +4482,7 @@ class _CloseDayRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final detail = remaining == 0
         ? 'Nothing else needs doing.'
-        : '$remaining quest${remaining == 1 ? '' : 's'} still open — close whenever you’re ready.';
+        : 'Close whenever you’re ready.';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 7),
       child: Semantics(
@@ -4438,38 +4498,14 @@ class _CloseDayRail extends StatelessWidget {
             child: InkWell(
               onTap: onTap,
               child: Container(
-                constraints: const BoxConstraints(minHeight: 52),
-                padding: const EdgeInsets.fromLTRB(13, 8, 11, 8),
-                decoration: facetedDecoration(
-                  cut: 9,
-                  color: const Color(0xE6241B17),
-                  borderColor: Palette.brass.withValues(alpha: 0.58),
-                  shadows: const [
-                    BoxShadow(
-                      color: Color(0x52000000),
-                      blurRadius: 12,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
                 child: Row(
                   children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Palette.brass.withValues(alpha: 0.10),
-                        border: Border.all(
-                          color: Palette.brass.withValues(alpha: 0.42),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.nightlight_outlined,
-                        size: 18,
-                        color: Palette.xpLight,
-                      ),
+                    const Icon(
+                      Icons.nightlight_outlined,
+                      size: 20,
+                      color: Palette.xpLight,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -4491,7 +4527,7 @@ class _CloseDayRail extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: Type.body.copyWith(
-                              fontSize: 11.5,
+                              fontSize: 12,
                               height: 1.2,
                               color: Palette.textMid,
                             ),

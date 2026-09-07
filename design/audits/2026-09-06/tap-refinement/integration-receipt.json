@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-06",
+  "selection": {
+    "family": "refined",
+    "owner_quote": "go for refined!",
+    "meaning": "Owner audition choice for the exact frozen Refined snapshot."
+  },
+  "source": {
+    "snapshot": "design/audits/2026-09-06/tap-refinement/refined",
+    "recipe_sha256": "18fe8ce2f0cd7f6abdf4e1017726ddd8ad354d001a3886d6ce535b8a9d93a9a1",
+    "locks": ["manifest.json", "paired-manifest.json", "source-manifest.json"],
+    "archived_originals_preserved": true
+  },
+  "installation": {
+    "destination": "assets/sfx/room",
+    "base_masters": {"count": 47, "sha256_tree": "1738c73b8151d389b638f3e2034fae044b51d84048cf955127ad958091328730"},
+    "paired_return_masters": {"count": 60, "sha256_tree": "8d610b4aeb665fb1765acc0db555b9250ac0a605a13e268ae0a9dacf41678711"},
+    "manifest_hash_mismatches": 0,
+    "completion_or_unrelated_asset_changes": 0,
+    "runtime_audio_logic_changed": false
+  },
+  "acceptance_boundary": {
+    "owner_audition_choice": "recorded",
+    "physical_output_route": "not recorded",
+    "release_or_testflight_outcome": "not established by this receipt"
+  }
+}

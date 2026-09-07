@@ -112,6 +112,7 @@ class BackgroundMusicController {
   bool _sessionMuted = false;
   bool _foreground = true;
   bool _focusPlaying = false;
+  bool _focusFadeNeedsRetry = false;
   bool _disposed = false;
   int _fadeEpoch = 0;
   RoomMusicRole? _currentRole;
@@ -191,7 +192,7 @@ class BackgroundMusicController {
       if (_disposed || _desiredRole == null) return;
       if (_desiredRole == RoomMusicRole.main) {
         await _mainMusic.retryAfterUserGesture();
-      } else if (!_focusPlaying) {
+      } else if (!_focusPlaying || _focusFadeNeedsRetry) {
         await _startFocus();
       }
     });
@@ -222,6 +223,7 @@ class BackgroundMusicController {
         try {
           await _focusTransport.pause();
           _focusPlaying = false;
+          _focusFadeNeedsRetry = false;
         } catch (_) {
           // Keep the known playing state so the next reconciliation retries
           // the pause instead of starting another role over a loop that may
@@ -257,6 +259,7 @@ class BackgroundMusicController {
         return;
       }
       _focusPlaying = true;
+      _focusFadeNeedsRetry = false;
       _currentRole = RoomMusicRole.focus;
       _fadeInFocus();
     } catch (_) {
@@ -280,6 +283,15 @@ class BackgroundMusicController {
         try {
           await _focusTransport.setVolume(focusVolume * step / steps);
         } catch (_) {
+          // A fade can fail after an earlier step already made this source
+          // audible. Keep ownership so lifecycle changes still pause it, and
+          // let the next real user gesture resume this one source at zero and
+          // retry the fade rather than starting another Focus player.
+          if (epoch == _fadeEpoch &&
+              _desiredRole == RoomMusicRole.focus &&
+              _focusPlaying) {
+            _focusFadeNeedsRetry = true;
+          }
           return;
         }
       }

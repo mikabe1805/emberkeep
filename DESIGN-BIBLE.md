@@ -639,16 +639,21 @@ same room camera.
   slabs; parchment = travel between pages/tabs/modes and journal surfaces;
   glass = translucent switches, dialogs, and previews; brass = gold surfaces
   only; wood = everything else.
-- X is the production ordinary anchor. Its complete 60 ms gesture and common
-  `+1.5 dB` phone level are byte-locked from the physical iPhone study. Five
-  close takes move through one global no-repeat walk, creating slight physical
-  variation without making ordinary navigation sing.
+- X remains the ordinary anchor. The owner-selected Refined masters (2026-09-06,
+  "go for refined!") preserve its complete 60 ms gesture, five close takes,
+  and source-relative level while subtly adjusting body and high grain. The
+  original `+1.5 dB` iPhone-approved masters remain archived; the selected
+  Refined snapshots are now byte-locked for production. The latest audition's
+  output device was not recorded. One global no-repeat walk creates slight
+  physical variation without making ordinary navigation sing.
 - Everyday sounds begin with a clean, close, modern transient and park fully
   inside 60 ms. Audible room tone, codec swish, literal prop-library tails,
   long resonance, and an added reverb fingerprint are faults.
 - Plain X with slight take variation is the default. The physically approved
   `paired-return` easter egg appears only after four accepted actions spaced
-  180–700 ms apart, as D5 → A5 → E5 → D5 over the unchanged X mechanism. It is
+  180–700 ms apart, as D5 → A5 → E5 → D5 over the same X mechanism. Refined
+  substitutes only the plain base; the original meaning resonance remains
+  unchanged. It is
   limited to once per stable screen and a global 90-second cooldown. Rapid
   input below 180 ms and completion clear the phrase without melodic catch-up.
 - A person's broader music taste is evidence that nuance matters, not

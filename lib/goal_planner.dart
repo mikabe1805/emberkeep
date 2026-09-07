@@ -233,6 +233,15 @@ abstract final class GoalPlanner {
           ..['rung'] = 0
           ..['rising'] = false;
       }
+      // A recovery cut is the one place where the route's minutes describe
+      // the countdown the person is explicitly accepting. Keep ordinary
+      // route estimates informational, and only resize an already configured
+      // timer Quest; an honor Quest must never acquire verification from an
+      // estimate alone.
+      if (decision.step.kind == GoalPlanStepKind.recover &&
+          template.verification == Verification.timer) {
+        data['timerMinutes'] = decision.step.minutes;
+      }
       return Quest.fromJson(data);
     }
     return Quest(
@@ -443,6 +452,39 @@ abstract final class GoalPlanner {
         ),
       ],
     );
+  }
+
+  /// Edits a proposed current action without opening another route revision.
+  ///
+  /// Adjustment review owns one stable revision and attempt from preview
+  /// through acceptance. This keeps the person's wording editable inside the
+  /// review while retaining recovery restoration, route identity, and the
+  /// adjustment record that was already drafted.
+  static GoalPlan editCurrentActionDraft({
+    required GoalPlan plan,
+    required String actionTitle,
+  }) {
+    final current = plan.currentStep;
+    final clean = _clean(actionTitle);
+    if (current == null || plan.complete || clean.isEmpty) {
+      throw StateError('A live draft and a concrete action are required.');
+    }
+    final steps = [...plan.steps];
+    steps[plan.currentStepIndex] = current.copyWith(
+      actionTitle: clean,
+      ctaLabel: _ctaForAction(clean),
+    );
+    final adjustments = [...plan.adjustments];
+    if (adjustments.isNotEmpty) {
+      final previous = adjustments.last;
+      adjustments[adjustments.length - 1] = GoalPlanAdjustment(
+        day: previous.day,
+        signal: previous.signal,
+        fromAction: previous.fromAction,
+        toAction: clean,
+      );
+    }
+    return plan.copyWith(steps: steps, adjustments: adjustments);
   }
 
   static List<GoalPlanStep> _finishSteps(
