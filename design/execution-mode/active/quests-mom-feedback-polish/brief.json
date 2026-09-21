@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "id": "quests-mom-feedback-polish-2026-09-18",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "visual_evidence_ready",
+  "locked_at": "2026-09-18T16:54:14-04:00",
+  "surface": "Quest board day rail, compact Quest completion affordance, and relationship-oriented starter content",
+  "scope": "Separate the Quest board's blended middle region, make ordinary side-Quest one-tap completion visually unambiguous without changing special Quest flows, and strengthen the existing PEOPLE starter path with inclusive relationship examples.",
+  "user_job": "Understand the board at a glance, complete any ordinary Quest in one deliberate tap, and find concrete ways to show up for someone without inventing every step from scratch.",
+  "active_sources": [
+    {
+      "id": "mom-feedback-owner-direction",
+      "kind": "owner_direction",
+      "location": "design/execution-mode/active/quests-mom-feedback-polish/source.md",
+      "content_sha256": "61ecdd2d34d6ce209af4389e73719f802335232537e007e4982ef378f547a8e3",
+      "approved_at": "2026-09-18",
+      "judged_state": "The supplied phone capture, the mother's one-tap and relationship-goal feedback, and the owner's request for middle-region hierarchy polish plus nearby improvements.",
+      "viewport": "Supplied 588x1280 iPhone capture plus the production-equivalent 390x844 Quest story",
+      "priority": 1
+    },
+    {
+      "id": "quest-visual-interaction-canon",
+      "kind": "visual_target",
+      "location": "DESIGN-BIBLE.md",
+      "content_sha256": "ef6046946a20efe3a9ccb14293a9ad181a1e84660b42c1b9ffb7e2cc95b3f82a",
+      "approved_at": "2026-08-03",
+      "judged_state": "The room remains the world, status and tools stay quieter than the Quest, and MARK COMPLETE remains the single luminous action while ordinary touch acknowledges immediately.",
+      "viewport": "Quest board across 430x932 and 320x568 phone states",
+      "priority": 2
+    }
+  ],
+  "delegated_creative_authority": {
+    "source_id": "mom-feedback-owner-direction",
+    "scope": "Bounded reversible hierarchy, affordance, and starter-copy decisions on the Quest day rail, compact Quest rows, and the existing PEOPLE goal path; no release, migration, account, privacy, or new social-system authority."
+  },
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "Every ordinary non-special Quest remains directly completable in one deliberate tap, while relationship starters live inside the existing PEOPLE path and do not create a partner-only domain or social subsystem.",
+      "proof": "A non-main ordinary Quest completes and rewards exactly once from one tap; Journal, timer, workout, and all-day Quests still open or defer to their authored flows; the Reach out catalog exposes concrete inclusive relationship actions."
+    },
+    "interaction": {
+      "decision": "The whole compact Quest row and its visible check affordance route to the same canonical completion callback after the tap wins the scroll arena, with drag cancellation, undo, semantics, sound, haptic, and reward dedupe preserved.",
+      "proof": "Focused widget journeys cover pointer tap, semantic activation, drag-without-completion, rapid repeat protection, and one reward through the existing QuestsPage pipeline."
+    },
+    "visual": {
+      "decision": "TODAY becomes a chapter break, board tools share one quiet functional plane, Freeze Reserve reads as subordinate status, and compact rows use completion language rather than a navigation chevron; MARK COMPLETE remains the sole luminous action.",
+      "proof": "Fresh full-frame and focused phone renders show a distinct context-to-tools-to-Quest reading order, with a narrow enlarged-text regression and Reduced Motion fixture covering the dense phone state."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Add a confirmation sheet or make a compact Quest expand before it can complete",
+      "why": "That would recreate the exact two-step burden reported by the tester and weaken the app's direct everyday loop."
+    },
+    {
+      "fallback": "Brighten every middle control or put each icon in a stronger independent glass tile",
+      "why": "More equal outlines would preserve the blending problem and compete with the featured Quest's earned completion action."
+    },
+    {
+      "fallback": "Create a dedicated Partner stat, relationship meter, or partner-only goal category",
+      "why": "It would exclude other meaningful relationships, add unsupported product machinery, and duplicate the existing PEOPLE and Reach out model."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A keeper scans TODAY, sees the quiet status and labelled tools, then taps a compact ordinary PEOPLE Quest once and receives the canonical completion result.",
+    "real_inputs": "Production GameState with a featured Quest, a non-main ordinary Quest, ready freezes, Focus off, Add available, and an optional Close Day action, plus the current Reach out catalog.",
+    "user_action": "Read the day rail, tap the compact Quest once, then open the existing PEOPLE starter path to inspect the relationship examples.",
+    "expected_outcome": "The day rail separates status from actions, the compact row clearly means complete rather than navigate, one tap completes exactly once, and the relationship ideas cover a message and a thoughtful act without assuming a partner.",
+    "state_boundary": "Completion passes through GameState roll and persisted Quest state; starter adoption remains the existing goal-linked Quest path; special Quest routes and day rituals stay unchanged.",
+    "required_states": [
+      {
+        "id": "ordinary-side-quest",
+        "state": "Featured Main Quest plus one open ordinary non-main Quest",
+        "why_can_disprove": "A correct callback can still fail if the compact affordance promises navigation or requires a second action."
+      },
+      {
+        "id": "special-quest-boundaries",
+        "state": "Journal, timer, workout, and all-day Quest activation",
+        "why_can_disprove": "A broad one-tap shortcut could falsely award work before its authored proof or writing boundary."
+      },
+      {
+        "id": "dense-day-rail",
+        "state": "Freeze status, Focus, Add, and one or two contextual day actions at 320x568 and enlarged text",
+        "why_can_disprove": "Persistent labels can collide or push the primary Quest below the fold if the hierarchy only works in the spacious fixture."
+      },
+      {
+        "id": "relationship-starters",
+        "state": "Collapsed and expanded PEOPLE ready-made path plus PEOPLE chips in the goal composer",
+        "why_can_disprove": "The new examples could crowd first use, assume a partner, or attach care-for-others work to the wrong domain."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "day-rail",
+      "surface_or_primitive": "Quest board TODAY header, Freeze Reserve status, and header actions",
+      "state": "Normal, Focus on, morning available, wind-down available, stale freeze, and day resting",
+      "expected_effect": "Status, persistent tools, and contextual ritual doors read as distinct roles without another bright action.",
+      "verification_plan": "Fresh 390x844 and 320x568 renders plus widget geometry and semantics checks.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "compact-quest",
+      "surface_or_primitive": "Compact QuestCard completion ring and trailing affordance",
+      "state": "Open ordinary, completed, long title, large text, drag, semantic activation, and rapid repeat",
+      "expected_effect": "The row unmistakably offers completion and still commits through the canonical one-tap path exactly once.",
+      "verification_plan": "Focused QuestCard and full-board interaction regressions plus phone render inspection.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "people-starters",
+      "surface_or_primitive": "Reach out goal catalog and PEOPLE goal-composer suggestions",
+      "state": "Catalog inspection and adoption with no duplicate Quest titles",
+      "expected_effect": "Concrete message and thoughtful-act ideas are discoverable without a partner-only assumption or new domain.",
+      "verification_plan": "Catalog contract assertions plus source and analyzer review of the PEOPLE goal-composer suggestions.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "special-completion",
+      "surface_or_primitive": "QuestsPage canonical completion dispatcher",
+      "state": "Journal, timer, workout, all-day, goal-linked, and already-completed Quest",
+      "expected_effect": "Every exception retains its current proof boundary and no rapid duplicate reward is introduced.",
+      "verification_plan": "Existing focused suites plus a canonical already-done guard regression.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Green callbacks and a handsome isolated control do not prove that the middle region has a clear reading order or that a tester will understand a compact Quest as a one-tap completion target on the real phone.",
+  "decisive_check": {
+    "method": "Render and inspect the production-equivalent Quest board before and after, then perform the ordinary side-Quest tap, drag cancellation, semantic activation, special-Quest, and relationship-starter journeys.",
+    "target": "390x844 and 320x568 Quest boards at default and enlarged text, Focus and contextual day states, one ordinary side Quest, all special Quest types, and the PEOPLE starter path.",
+    "pass_condition": "The board reads context then tools then task in three seconds, no secondary element rivals MARK COMPLETE, one ordinary side-Quest tap grants one result, scroll does not complete, special flows remain truthful, and relationship examples are concrete and inclusive."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/quests.dart",
+      "lib/widgets/quest_card.dart",
+      "lib/widgets/streak_freeze_status.dart",
+      "lib/content/goal_catalog.dart",
+      "lib/screens/goal_wizard.dart",
+      "test/quests_feedback_test.dart",
+      "test/streak_freeze_widget_test.dart",
+      "test/goldens/quest_board.png",
+      "test/goldens/quest_board_compact_rows.png",
+      "test/goldens/streak_freeze_sheet.png"
+    ],
+    "exclude": []
+  }
+}

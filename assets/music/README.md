@@ -3,16 +3,18 @@
 Normal Room music and Focus music are different authored roles. Do not point
 both controls at one file again.
 
-## Normal Room music — umbrella-brush and Lamp left on
+## Normal Room music — dry rotation and Lamp left on
 
-`take_01.m4a` through `take_08.m4a` are 96-second performances of the
+`take_01.m4a` through `take_16.m4a` are 96-second performances of the
 owner-selected umbrella-brush grammar: jazzy/lofi B-minor harmony, 72 BPM,
 swung eighths, and the dark brush replacing the rejected fake-rain droplets.
-Runtime alternates the two compositions and crossfades their seams, so the
-eight umbrella performances do not crowd out the new piece. Within umbrella,
-all eight performances play before one repeats. `take_01` is byte-derived
-from the audition winner; the remaining seven
-are deterministic performance variations of the same approved grammar.
+`take_17.m4a` through `take_22.m4a` add the approved dry-windowseat register:
+the same quiet room role, but a second mood with no rain or droplet voice.
+Runtime alternates the three normal-room composition families and crossfades
+their seams, so the twenty-two dry takes and the new piece each keep their
+own presence. Within a family, every take plays before one repeats.
+`take_01` is byte-derived from the audition winner; the remaining umbrella
+takes are deterministic performance variations of the same approved grammar.
 
 Owner evidence, preserved verbatim in the audit records:
 

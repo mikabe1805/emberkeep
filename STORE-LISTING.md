@@ -18,17 +18,20 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 42)
+## App Store What's New — Version 1.0.4 (Build 43)
 
 > Submission hold: paste this only after the signed iPhone archive, real Home
 > Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
 > boundary refresh checks pass. Remove any sentence whose device gate fails.
 
-Goals and Quests now keep today’s three close at hand, with suggested next
-steps you can choose to bring into focus. Workshop has a permanent entrance
-on Goals and clearer actions for reviewing a next step or returning to a Quest.
-Refined taps keep the familiar Room gestures, and the original piece Lamp left
-on joins the umbrella-brush music.
+Quests now make the direct action easier to see. A straightforward Quest can
+be completed from its card in one tap, while Manage stays separate for the
+times you actually need it. Today’s count, Freeze Reserve, board tools, and the
+Quest in front of you read as distinct parts instead of one crowded block.
+
+People goals include more ordinary ways to care for someone, from sending a
+message to sharing a meal or making a small gesture. Goals also arrives as a
+place in the Room, with a transition that respects Reduce Motion.
 
 Plans makes room for school too. Review and import a class `.ics` schedule,
 choose a reminder only when you want one, and keep the next class beside the
@@ -38,7 +41,7 @@ On iPhone, the Day Ledger widget can keep your next class and up to three
 unfinished Quests close at hand. It advances through the classes you imported
 without putting rooms, locations, or notes in the widget.
 
-Background music now has two clear roles: a lively, jazzy rotation around the
+Background music has two clear roles: a wider lively, jazzy rotation around the
 room and a peaceful meditation theme inside Focus. Focus can be made quiet in
 one tap, and closing it restores your ordinary choice.
 
@@ -105,15 +108,19 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 42 is an internal candidate for the updated Goals and Quests experience,
-Workshop polish, Refined taps, and the new Lamp left on room music. It includes:
+Build 43 is an internal candidate for clearer Quests, broader People starters,
+Goals room travel, and a wider normal-Room music rotation. It includes:
 
-- Choose today’s three from Goals or Quests, consider suggested Quests, and
-  leave the rest of the day open. Smaller steps keep their link to the goal.
-- Open Workshop from the Goals heading, including when a Quest is already on
-  the board. Review the next step explicitly before adding it.
-- Hear Refined material taps and their familiar completion and musical accents.
-  Lamp left on alternates with the existing umbrella-brush compositions.
+- Complete a straightforward Quest directly from its card in one tap. Manage
+  remains a separate secondary action, and special flows keep their honest
+  action labels.
+- Read Today’s count, Freeze Reserve, board tools, and the active Quest as
+  distinct layers rather than one crowded middle block.
+- Start People goals around a partner, a message, a shared meal, or a small
+  gesture of care.
+- Move into Goals as a place in the Room, with Reduced Motion respected.
+- Hear a 22-take dry umbrella-brush rotation plus Lamp left on around the Room;
+  Focus retains its own peaceful theme and separate quiet control.
 
 The class-plan and Day Ledger widget changes remain included:
 
@@ -249,7 +256,11 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 42 additions:** Plans can review and locally import a compatible
+- **Build 43 additions:** Quests expose a clearer direct-completion action and
+  separate Manage path, People has broader relationship starters, Goals uses
+  room travel with Reduced Motion support, and the normal Room music rotation
+  now has 22 dry umbrella-brush takes plus Lamp left on. Plans can still review
+  and locally import a compatible
   class `.ics` file received through the picker or system Open In/share flow.
   The editable starter documents comma-separated meeting days. Class reminders
   are off unless explicitly enabled during review. The iPhone widget reads a
@@ -700,7 +711,7 @@ device frame and tell these ten moments in one consistent visual language:
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
 - Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
-  A Build 42 submission requires a fresh capture, visual inspection, export,
+  A Build 43 submission requires a fresh capture, visual inspection, export,
   and final manifest-only binding commit after the signed-device gates above;
   the real Home Screen frame must show the new launcher icon and signed widget.
 - The App Store sequence adds three production Goals frames before Plans so the

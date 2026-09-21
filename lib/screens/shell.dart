@@ -42,6 +42,7 @@ import '../widgets/home_room.dart'
 import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/pressable.dart';
+import '../widgets/room_travel.dart';
 import '../widgets/routine_flows.dart';
 import 'calendar.dart';
 import 'goal_wizard.dart';
@@ -1868,6 +1869,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       state.reduceMotion ||
           (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
     );
+    RoomTravel.reduceMotion =
+        state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     const parkedMotion = AlwaysStoppedAnimation<Offset>(Offset.zero);
     ValueListenable<Offset> cameraFor(int index) =>
         _tab == index ? _luxeMotion.parallax : parkedMotion;
@@ -1927,15 +1931,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: IndexedStack(
+                            child: RoomTravelStack(
                               index: _tab,
-                              // IndexedStack keeps all five tabs alive, and nothing about
-                              // being un-indexed stops a ticker — so before this the
-                              // keep's hearth, the fireflies, the sky and every other
-                              // ambient loop ran on ALL FIVE tabs at once, forever, four
-                              // of them invisible. TickerMode mutes the vsync for the
-                              // subtrees you can't see; each controller resumes exactly
-                              // where it was when its tab comes forward. Free battery.
+                              // The travel stack retains IndexedStack's state/lifecycle
+                              // contract while giving the dock's parchment contact a
+                              // restrained camera pan to inhabit.
                               children: [
                                 for (final (i, page) in <Widget>[
                                   _visitedTabs.contains(0)

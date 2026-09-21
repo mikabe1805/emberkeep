@@ -14,6 +14,20 @@ const _mainDigests = <String, String>{
   'take_06': '7c54e66c31774e1f78ea2116d76edc226d13c84489f89380f99e34b98691e785',
   'take_07': '6e50ac28a2d11c4bc4deab32ebfd7c8ad679ee7999d1b9bbccfa24d3d6e438da',
   'take_08': 'da90a51fbd0f405b7e8901004420ecab028a159365c4989c8df709304b07aa77',
+  'take_09': 'cf2bed4bdec77502b1b0f8846774585e6c896d5c652b86af5a407d1243ca9aa7',
+  'take_10': '931e1ebea56474a35c2c0df7b621b2356dfdeb07895fe4131c4a60fc211f202d',
+  'take_11': '4b759e1b06f88212d01e2946ded3f1be4ac272cfca1acbaadee99deb630ffed6',
+  'take_12': '5591454bcad778635fad984d769a906fbb8a97b512ca9cb17b006af05f13091a',
+  'take_13': '1ce6d7ec435fa6131509b3f497db820a02da5987db135c4f9f8b7a77ca7a0cf4',
+  'take_14': '5fef299dd0bc802ea9ee11c5c0407fc81680e7fa5fe687a0842172cd9809de57',
+  'take_15': '0a2fe545443ef4aaa95841245a817df8cf93ad5ed16501cabeb15258cfc993c1',
+  'take_16': 'b445f79dc863ffbcc3471a47531157becf097db27d0e2393cc9cb7668f2b4383',
+  'take_17': 'f5d91102c290e7fd1029b4e9bfa236f1b868454193d37d9de1fd8e4440082b99',
+  'take_18': '7e77e233ba981336ee7120ec7d312c3677312b692da0a9bc7ddb3c251dbd1e38',
+  'take_19': '2bcc4e80025f1a37a7e7e9b643d352d06d8b312441ea39135570b6c2b8c814d4',
+  'take_20': '1813f0cc8dbe465b7039e8f87022b1490d46873deef290d886c361cc67abf8de',
+  'take_21': 'b2456693e5b7d7787c2305521791f2977dd2b3460cd86ba50f01d951b572f3b7',
+  'take_22': 'd62a28549b4c98edb19b8949853a509e491976905e2d6da13c48c69f7c8b4f7c',
 };
 
 const _focusDigest =
@@ -25,30 +39,28 @@ String _digest(String path) =>
     sha256.convert(File(path).readAsBytesSync()).toString();
 
 void main() {
-  test(
-    'the original eight umbrella-brush takes retain their approved encodes',
-    () {
-      expect(MainRoomMusic.takeAssets, hasLength(9));
-      for (final entry in _mainDigests.entries) {
-        final path = 'assets/music/${entry.key}.m4a';
-        expect(File(path).existsSync(), isTrue, reason: 'missing $path');
-        expect(
-          _digest(path),
-          entry.value,
-          reason: '$path must remain the approved encoded take',
-        );
-        expect(MainRoomMusic.takeAssets, contains('music/${entry.key}.m4a'));
-      }
-    },
-  );
+  test('the approved dry rotation takes retain their approved encodes', () {
+    expect(MainRoomMusic.dryTakeCount, 22);
+    expect(MainRoomMusic.takeAssets, hasLength(23));
+    for (final entry in _mainDigests.entries) {
+      final path = 'assets/music/${entry.key}.m4a';
+      expect(File(path).existsSync(), isTrue, reason: 'missing $path');
+      expect(
+        _digest(path),
+        entry.value,
+        reason: '$path must remain the approved encoded take',
+      );
+      expect(MainRoomMusic.takeAssets, contains('music/${entry.key}.m4a'));
+    }
+  });
 
-  test('Lamp left on is the approved ninth normal-room take', () {
+  test('Lamp left on stays the approved distinct normal-room composition', () {
     const asset = 'music/lamp-left-on.m4a';
     const path = 'assets/$asset';
     expect(File(path).existsSync(), isTrue, reason: 'missing $path');
     expect(_digest(path), _lampLeftOnDigest);
-    expect(MainRoomMusic.takeCount, 9);
-    expect(MainRoomMusic.assetForTake(9), asset);
+    expect(MainRoomMusic.takeCount, 23);
+    expect(MainRoomMusic.assetForTake(MainRoomMusic.lampLeftOnTake), asset);
     expect(MainRoomMusic.takeAssets, contains(asset));
     expect(MainRoomMusic.takeAssets, [
       for (var take = 1; take <= MainRoomMusic.takeCount; take++)
@@ -75,30 +87,23 @@ void main() {
     },
   );
 
-  test(
-    'an explicit umbrella-only rotation plays every take before a repeat',
-    () {
-      for (var seed = 0; seed < 32; seed++) {
-        final rotation = MusicRotation(random: math.Random(seed), takeCount: 8);
-        final draws = [for (var i = 0; i < 64; i++) rotation.next()];
-        for (var i = 1; i < draws.length; i++) {
-          expect(draws[i], isNot(draws[i - 1]));
-        }
-        for (var bag = 0; bag < 8; bag++) {
-          expect(draws.sublist(bag * 8, bag * 8 + 8).toSet(), {
-            1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-          });
-        }
+  test('an explicit dry rotation plays every take before a repeat', () {
+    for (var seed = 0; seed < 32; seed++) {
+      final rotation = MusicRotation(
+        random: math.Random(seed),
+        takeCount: MainRoomMusic.dryTakeCount,
+      );
+      final draws = [for (var i = 0; i < 88; i++) rotation.next()];
+      for (var i = 1; i < draws.length; i++) {
+        expect(draws[i], isNot(draws[i - 1]));
       }
-    },
-  );
+      for (var bag = 0; bag < 4; bag++) {
+        expect(draws.sublist(bag * 22, bag * 22 + 22).toSet(), {
+          for (var take = 1; take <= MainRoomMusic.dryTakeCount; take++) take,
+        });
+      }
+    }
+  });
 
   test('all long-form music stays out of the web first-frame core', () {
     final offline = File('tool/prepare_web_offline.dart').readAsStringSync();

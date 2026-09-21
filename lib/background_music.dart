@@ -11,7 +11,7 @@ import 'platform/audio_support_stub.dart'
 enum RoomMusicRole { main, focus }
 
 /// Transport for the single peaceful Focus loop. The normal room uses
-/// [MainRoomMusicPlayback], whose approved eight-take rotation has different
+/// [MainRoomMusicPlayback], whose approved dry rotation has different
 /// playback and crossfade needs.
 abstract interface class BackgroundMusicTransport {
   Future<void> startOrResumeLoop(String asset, {required double volume});

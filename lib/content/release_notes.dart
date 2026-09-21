@@ -52,6 +52,45 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+43',
+    versionLabel: 'VERSION 1.0.4 · BUILD 43',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'A clearer way through the room.',
+    introduction:
+        'See what one tap will finish, keep each part of the day distinct, '
+        'and move through a Room with a little more range.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'ONE TAP MEANS DONE',
+        body:
+            'A straightforward Quest now completes from its card in one tap. '
+            'Manage stays separate for the times you actually need it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'MORE ROOM ON THE BOARD',
+        body:
+            'Today’s count, Freeze Reserve, board tools, and the Quest in '
+            'front of you now read as distinct parts instead of one block.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'MORE WAYS TO SHOW UP',
+        body:
+            'New People starters make room for someone you care about: a '
+            'thoughtful message, a shared meal, or a small gesture.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'THE ROOM OPENS WIDER',
+        body:
+            'Goals now arrives as a place in the Room, while a wider original '
+            'music rotation keeps ordinary time from settling into one loop.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+42',
     versionLabel: 'VERSION 1.0.4 · BUILD 42',
     dateLabel: 'SEPTEMBER 2026',

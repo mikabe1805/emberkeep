@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
-import '../content/creature_skins.dart';
 import '../content/momentum_kits.dart';
 import '../engine.dart';
 import '../models.dart';
@@ -113,11 +112,11 @@ class MomentumKitsPage extends StatelessWidget {
                 pill: 'OPTIONAL',
               ),
               Expanded(
+                // The header above already introduced this surface; the page
+                // opens straight onto the choices instead of a second pitch.
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 40),
                   children: [
-                    _KitsHero(state: state),
-                    const SizedBox(height: 22),
                     const _SectionTitle(
                       title: 'RIGHT NOW',
                       subtitle: 'for the kind of day you are actually having',
@@ -171,166 +170,6 @@ class MomentumKitsPage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _KitsHero extends StatelessWidget {
-  const _KitsHero({required this.state});
-  final GameState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final flame = flameHueFor(state);
-    return GlassPanel(
-      glow: true,
-      padding: EdgeInsets.zero,
-      child: SizedBox(
-        height: 168,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(painter: _KitMapPainter(accent: flame)),
-            ),
-            Positioned(
-              top: 18,
-              left: 18,
-              right: 125,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'What kind of help\nwould feel useful?',
-                    style: Type.display.copyWith(fontSize: 23, height: 1.04),
-                  ),
-                  const SizedBox(height: 9),
-                  Text(
-                    'Meet the day where it is.\nStill grow the same world.',
-                    style: Type.body.copyWith(
-                      fontSize: 12.5,
-                      height: 1.35,
-                      color: Palette.textMid,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              right: 30,
-              top: 37,
-              child: FacetMedallion(
-                size: 78,
-                // Aged brass, not the hearth's own hue: on sunstone this
-                // medallion came out hot terracotta and became the loudest
-                // object on a page whose real actions are the kit rows below.
-                accent: Palette.brass,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0x2EFFF4D9), Color(0x4A2A1B12)],
-                ),
-                // The room's tapestry raster used to sit here, shrunk into a
-                // rounded-square chip — a photoreal object in a page made
-                // entirely of chamfered brass and glass, and the one place it
-                // was doing a job it wasn't authored for.
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Palette.xp,
-                  size: 42,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 18,
-              right: 18,
-              bottom: 15,
-              child: Row(
-                children: [
-                  _HeroRune(color: Stat.vit.color, icon: Icons.spa_outlined),
-                  const SizedBox(width: 8),
-                  _HeroRune(
-                    color: Stat.dis.color,
-                    icon: Icons.cottage_outlined,
-                  ),
-                  const SizedBox(width: 8),
-                  _HeroRune(
-                    color: Stat.foc.color,
-                    icon: Icons.auto_awesome_outlined,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'ONE WORLD · MANY DOORWAYS',
-                      maxLines: 1,
-                      textAlign: TextAlign.right,
-                      style: Type.label.copyWith(
-                        fontSize: Type.minLabel,
-                        letterSpacing: 0.75,
-                        color: Palette.xpLight,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _KitMapPainter extends CustomPainter {
-  const _KitMapPainter({required this.accent});
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final plane = Paint()
-      ..color = accent.withValues(alpha: 0.055)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width * 0.55, 0)
-        ..lineTo(size.width, 0)
-        ..lineTo(size.width, size.height * 0.72)
-        ..lineTo(size.width * 0.68, size.height * 0.46)
-        ..close(),
-      plane,
-    );
-    final line = Paint()
-      ..color = accent.withValues(alpha: 0.24)
-      ..strokeWidth = 1.15
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width * 0.12, size.height * 0.74)
-        ..lineTo(size.width * 0.48, size.height * 0.74)
-        ..lineTo(size.width * 0.68, size.height * 0.48)
-        ..lineTo(size.width * 0.83, size.height * 0.48),
-      line,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.68, size.height * 0.48),
-      Offset(size.width * 0.70, size.height * 0.86),
-      line,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_KitMapPainter oldDelegate) =>
-      oldDelegate.accent != accent;
-}
-
-class _HeroRune extends StatelessWidget {
-  const _HeroRune({required this.color, required this.icon});
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) => FacetMedallion(
-    size: 27,
-    accent: color,
-    child: Icon(icon, size: 14, color: color),
-  );
 }
 
 class _SectionTitle extends StatelessWidget {

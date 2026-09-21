@@ -253,7 +253,7 @@ Future<_ReleaseManifest> _releaseManifest(Directory root) async {
   );
 }
 
-/// Long-form music is optional and totals roughly 12 MB. Keep it available
+/// Long-form music is optional and totals roughly 27 MB. Keep it available
 /// offline without making first-frame readiness wait for the music library.
 const _musicDeferred = <String>{
   'assets/assets/music/focus-meditation.m4a',
@@ -265,6 +265,20 @@ const _musicDeferred = <String>{
   'assets/assets/music/take_06.m4a',
   'assets/assets/music/take_07.m4a',
   'assets/assets/music/take_08.m4a',
+  'assets/assets/music/take_09.m4a',
+  'assets/assets/music/take_10.m4a',
+  'assets/assets/music/take_11.m4a',
+  'assets/assets/music/take_12.m4a',
+  'assets/assets/music/take_13.m4a',
+  'assets/assets/music/take_14.m4a',
+  'assets/assets/music/take_15.m4a',
+  'assets/assets/music/take_16.m4a',
+  'assets/assets/music/take_17.m4a',
+  'assets/assets/music/take_18.m4a',
+  'assets/assets/music/take_19.m4a',
+  'assets/assets/music/take_20.m4a',
+  'assets/assets/music/take_21.m4a',
+  'assets/assets/music/take_22.m4a',
   'assets/assets/music/lamp-left-on.m4a',
 };
 

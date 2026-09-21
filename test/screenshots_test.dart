@@ -936,6 +936,19 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/streak_freeze_sheet.png'),
       );
+      await tester.tapAt(const Offset(12, 12));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.drag(
+        find.byKey(const ValueKey('quest-board-scroll')),
+        const Offset(0, -560),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quest_board_compact_rows.png'),
+      );
     }
   });
 
@@ -1828,16 +1841,8 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.textContaining('Guided workout').last);
-    await tester.pump(const Duration(milliseconds: 350));
-    final workoutAction = find.byKey(const ValueKey('quest-primary-action'));
-    await Scrollable.ensureVisible(
-      tester.element(workoutAction),
-      alignment: 0.72,
-      duration: Duration.zero,
-    );
-    await tester.pump();
-    await tester.tap(workoutAction);
     await tester.pump(const Duration(milliseconds: 450));
+    expect(find.text('Wake-Up Snack'), findsOneWidget);
     await _storeShot(tester, '08_workout_picker_1290x2796');
 
     await tester.tap(find.text('Wake-Up Snack'));
@@ -3293,9 +3298,7 @@ void main() {
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/goals_recovery_smaller_review_430x932.png',
-        ),
+        matchesGoldenFile('goldens/goals_recovery_smaller_review_430x932.png'),
       );
     }
     expect(
@@ -3824,7 +3827,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('goals personal index: active exact Quest handoff', (tester) async {
+  testWidgets('goals personal index: active exact Quest handoff', (
+    tester,
+  ) async {
     final storeCapture = _captureStore && !_capture;
     tester.view.devicePixelRatio = storeCapture ? 3 : 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));

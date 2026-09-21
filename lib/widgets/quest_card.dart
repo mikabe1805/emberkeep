@@ -128,6 +128,14 @@ class _QuestCardState extends State<QuestCard>
     widget.onComplete(origin);
   }
 
+  void _handleCompactActivate(Offset globalPosition) {
+    // Keep the board's existing selection bookkeeping (and its scroll/hero
+    // relationship) while making this same deliberate tap the completion
+    // action for an ordinary compact quest.
+    widget.onSelect?.call();
+    _handleComplete(globalPosition);
+  }
+
   @override
   void dispose() {
     _encoreTimer?.cancel();
@@ -148,14 +156,27 @@ class _QuestCardState extends State<QuestCard>
     final quest = widget.quest;
     final done = widget.done;
     final opensJournal = quest.journalPrompt != null;
+    final opensWorkout = quest.workout;
+    final opensTimer =
+        quest.verification == Verification.timer &&
+        quest.effectiveTimerMinutes > 0;
+    final holdsUntilNight = quest.allDay;
+    final directCompletion =
+        !opensJournal && !opensWorkout && !opensTimer && !holdsUntilNight;
+    final flowIcon = opensJournal
+        ? Icons.menu_book_rounded
+        : opensWorkout
+        ? Icons.fitness_center_rounded
+        : opensTimer
+        ? Icons.timer_outlined
+        : Icons.nightlight_outlined;
     final primaryActionLabel = opensJournal
         ? 'OPEN JOURNAL'
-        : quest.allDay
+        : holdsUntilNight
         ? 'CHECK TONIGHT'
-        : quest.workout
+        : opensWorkout
         ? 'BEGIN SESSION'
-        : quest.verification == Verification.timer &&
-              quest.effectiveTimerMinutes > 0
+        : opensTimer
         ? 'Open ${quest.effectiveTimerMinutes}-minute session'
         : 'MARK COMPLETE';
     final isMain = quest.priorityOn(Clock.now());
@@ -169,6 +190,8 @@ class _QuestCardState extends State<QuestCard>
     final featured = widget.featured && !done;
     final resolvedFeature = done && _holdResolvedFeature;
     final heroLayout = featured || resolvedFeature;
+    final compactActivates = !heroLayout && !done && widget.onSelect != null;
+    final directCompletionAffordance = directCompletion && compactActivates;
     final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.25;
     final still =
         widget.reduceMotion ||
@@ -216,13 +239,15 @@ class _QuestCardState extends State<QuestCard>
                       ? 'completed'
                       : opensJournal
                       ? 'Open Journal, ${widget.xpPreview} XP'
-                      : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
+                      : '$primaryActionLabel, ${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
               semanticHint: done
                   ? (widget.onManage == null ? null : 'Use Manage to edit')
                   : heroLayout
                   ? 'Use the named action below${widget.onManage == null ? '' : '; use Manage to edit'}'
-                  : 'Activate to select this quest${widget.onManage == null ? '' : '; use Manage to edit'}',
-              onSelect: widget.onSelect,
+                  : compactActivates
+                  ? 'Activate to ${primaryActionLabel.toLowerCase()}${widget.onManage == null ? '' : '; use Manage to edit'}'
+                  : null,
+              onComplete: compactActivates ? _handleCompactActivate : null,
               onLongPress: widget.onManage,
               child: AnimatedContainer(
                 duration: Motion.settle,
@@ -371,7 +396,11 @@ class _QuestCardState extends State<QuestCard>
                                       reduceMotion: widget.reduceMotion,
                                       accent: featured ? Palette.xpLight : null,
                                       size: heroLayout ? 54 : 40,
-                                      showReadyCheck: featured,
+                                      showReadyCheck:
+                                          !done &&
+                                          directCompletion &&
+                                          (heroLayout ||
+                                              directCompletionAffordance),
                                       masteryTier: mastery,
                                       // Only the featured open orbit carries reactive
                                       // light. Repainting every compact ring on every
@@ -419,11 +448,15 @@ class _QuestCardState extends State<QuestCard>
                                         dim: done,
                                         featured: heroLayout,
                                       ),
-                                    if (!heroLayout && !done) ...[
+                                    if (!heroLayout &&
+                                        !done &&
+                                        !directCompletionAffordance) ...[
                                       const SizedBox(width: 5),
                                       Icon(
-                                        Icons.chevron_right_rounded,
-                                        size: 19,
+                                        compactActivates
+                                            ? flowIcon
+                                            : Icons.chevron_right_rounded,
+                                        size: compactActivates ? 17 : 19,
                                         color: Palette.textLo.withValues(
                                           alpha: 0.72,
                                         ),
@@ -544,7 +577,7 @@ class _QuestCardInteraction extends StatelessWidget {
     required this.enabled,
     required this.semanticLabel,
     required this.semanticHint,
-    required this.onSelect,
+    required this.onComplete,
     required this.onLongPress,
     required this.child,
   });
@@ -553,7 +586,7 @@ class _QuestCardInteraction extends StatelessWidget {
   final bool enabled;
   final String semanticLabel;
   final String? semanticHint;
-  final VoidCallback? onSelect;
+  final void Function(Offset globalPosition)? onComplete;
   final VoidCallback? onLongPress;
   final Widget child;
 
@@ -578,14 +611,14 @@ class _QuestCardInteraction extends StatelessWidget {
       );
     }
     return Pressable(
-      enabled: enabled && onSelect != null,
+      enabled: enabled && onComplete != null,
       semanticLabel: semanticLabel,
       semanticHint: semanticHint,
-      onTapUp: onSelect == null ? null : (_) => onSelect!(),
+      onTapUp: onComplete,
       onLongPress: onLongPress,
       soundEnabled: true,
       material: MaterialSound.wood,
-      interactionSound: InteractionSound.select,
+      interactionSound: InteractionSound.open,
       shape: const FacetedBorder(cut: 11),
       child: child,
     );

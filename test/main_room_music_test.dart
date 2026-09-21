@@ -142,31 +142,34 @@ void main() {
         ..debugBypassPlayback = true
         ..debugOnStartTake = starts.add;
 
-      for (var index = 0; index < 16; index++) {
+      for (var index = 0; index < 18; index++) {
         await music.setEnabled(true);
-        if (index < 15) await music.setEnabled(false);
+        if (index < 17) await music.setEnabled(false);
       }
 
       expect(music.isPlaying, isTrue);
-      expect(starts, hasLength(16));
+      expect(starts, hasLength(18));
       expect(MainRoomMusic.compositionGroups, const [
-        [1, 2, 3, 4, 5, 6, 7, 8],
-        [9],
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        [17, 18, 19, 20, 21, 22],
+        [MainRoomMusic.lampLeftOnTake],
       ]);
-      for (var index = 1; index < starts.length; index++) {
-        final previousIsNewComposition =
-            starts[index - 1] == MainRoomMusic.assetForTake(9);
-        final currentIsNewComposition =
-            starts[index] == MainRoomMusic.assetForTake(9);
-        expect(currentIsNewComposition, isNot(previousIsNewComposition));
+      final familyForAsset = <String, int>{
+        for (
+          var family = 0;
+          family < MainRoomMusic.compositionGroups.length;
+          family++
+        )
+          for (final take in MainRoomMusic.compositionGroups[family])
+            MainRoomMusic.assetForTake(take): family,
+      };
+      final families = [for (final asset in starts) familyForAsset[asset]!];
+      for (var index = 1; index < families.length; index++) {
+        expect(families[index], isNot(families[index - 1]));
       }
-      expect(
-        starts.where((asset) => asset != MainRoomMusic.assetForTake(9)).toSet(),
-        {
-          for (final take in MainRoomMusic.compositionGroups.first)
-            MainRoomMusic.assetForTake(take),
-        },
-      );
+      for (var cycle = 0; cycle < 6; cycle++) {
+        expect(families.sublist(cycle * 3, cycle * 3 + 3).toSet(), {0, 1, 2});
+      }
       await music.dispose();
     },
   );

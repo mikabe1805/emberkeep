@@ -80,50 +80,38 @@ void main() {
     Sfx.instance.soundEnabled = true;
   });
 
-  testWidgets(
-    'a compact row selects its exact Quest and only its named action completes',
-    (tester) async {
-      final state = GameState();
-      final first = Quest(
-        title: 'Clear one surface',
-        stat: Stat.dis,
-        difficulty: 2,
-      );
-      final second = Quest(
-        title: 'Read ten pages',
-        stat: Stat.intl,
-        difficulty: 3,
-      );
-      await _pumpBoard(tester, state: state, quests: [first, second]);
+  testWidgets('a compact ordinary row completes its exact Quest in one tap', (
+    tester,
+  ) async {
+    final state = GameState();
+    final first = Quest(
+      title: 'Clear one surface',
+      stat: Stat.dis,
+      difficulty: 2,
+    );
+    final second = Quest(
+      title: 'Read ten pages',
+      stat: Stat.intl,
+      difficulty: 3,
+    );
+    await _pumpBoard(tester, state: state, quests: [first, second]);
+    final expectedXp = state.xpPreview(second);
 
-      expect(_actionIn(first), findsOneWidget);
-      expect(_actionIn(second), findsNothing);
-      await _show(tester, _card(second));
-      await tester.tap(_card(second));
-      await tester.pump(const Duration(milliseconds: 350));
+    expect(_actionIn(first), findsOneWidget);
+    expect(_actionIn(second), findsNothing);
+    await _show(tester, _card(second));
+    await tester.tap(_card(second));
+    await tester.pump(const Duration(milliseconds: 350));
 
-      expect(first.doneFor(Clock.now()), isFalse);
-      expect(second.doneFor(Clock.now()), isFalse);
-      expect(state.totalXp, 0);
-      expect(_actionIn(first), findsNothing);
-      expect(_actionIn(second), findsOneWidget);
-      await tester.tap(_actionIn(second));
-      await tester.pump();
-      expect(first.doneFor(Clock.now()), isFalse);
-      expect(second.doneFor(Clock.now()), isTrue);
-      expect(
-        find.descendant(
-          of: _card(second),
-          matching: find.text('QUEST COMPLETE'),
-        ),
-        findsOneWidget,
-      );
-      expect(_actionIn(first), findsNothing);
+    expect(first.doneFor(Clock.now()), isFalse);
+    expect(second.doneFor(Clock.now()), isTrue);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(state.totalXp, expectedXp);
+    expect(find.byKey(ValueKey('undo-${second.title}')), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 8));
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('dragging a compact row neither selects nor completes it', (
     tester,

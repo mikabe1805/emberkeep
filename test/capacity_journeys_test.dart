@@ -316,21 +316,36 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await _precacheQuestBoardArt(tester);
 
+    final board = find.byKey(const ValueKey('quest-board-scroll'));
+    final visibleFocus = find.text('FOCUS');
+    for (
+      var attempt = 0;
+      attempt < 8 && visibleFocus.hitTestable().evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(board, const Offset(0, -80));
+      await tester.pump(const Duration(milliseconds: 80));
+    }
+    expect(visibleFocus.hitTestable(), findsOneWidget);
     final focusToggle = find.bySemanticsLabel(
       'Focus mode — one quest at a time',
     );
-    await tester.drag(
-      find.byKey(const ValueKey('quest-board-scroll')),
-      const Offset(0, -260),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(focusToggle);
+    expect(focusToggle, findsOneWidget);
+    await tester.tap(focusToggle.hitTestable());
     await tester.pumpAndSettle();
     expect(state.focusMode, isTrue);
 
-    final focusList = tester.widget<ListView>(
-      find.byKey(const ValueKey('focus-quest-list')),
-    );
+    final focusListFinder = find.byKey(const ValueKey('focus-quest-list'));
+    for (
+      var attempt = 0;
+      attempt < 8 && focusListFinder.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(board, const Offset(0, -80));
+      await tester.pump(const Duration(milliseconds: 80));
+    }
+    expect(focusListFinder, findsOneWidget);
+    final focusList = tester.widget<ListView>(focusListFinder);
     expect(focusList.padding, const EdgeInsets.fromLTRB(16, 4, 16, 130));
     expect(find.bySemanticsLabel('Order quests: Ease in'), findsOneWidget);
     expect(
@@ -338,7 +353,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.bySemanticsLabel('Order quests: Hardest first'));
+    final hardest = find.bySemanticsLabel('Order quests: Hardest first');
+    await tester.ensureVisible(hardest);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tap(hardest.hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('Write the difficult opening'), findsWidgets);
 

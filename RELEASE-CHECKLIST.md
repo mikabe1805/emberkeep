@@ -1,19 +1,34 @@
 # Room of Days Release Checklist
 
-Updated September 1, 2026. “Repository-ready” means the source is prepared; it does
+Updated September 21, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+42 authored continuation internal candidate
+## 1.0.4+43 current-experience internal candidate
 
-Build 42 is reserved for the authored continuation after Build 41's completed
-Codemagic/TestFlight publishing run. The exact source commit remains to be
-frozen, followed immediately by a manifest-only receipt child and the tag
-`room-of-days-1.0.4-build-42-internal-candidate-retry-1`.
+Build 43 carries the current approved experience forward from Build 42: the
+clearer Quest hierarchy and truthful one-tap completion path, broader People
+starters, Goals room travel, and the wider dry Room music rotation. Its exact
+receipt tag is
+`room-of-days-1.0.4-build-43-internal-candidate-retry-1`.
 
-- [ ] Freeze the complete Build 42 source with `pubspec.yaml` at `1.0.4+42`.
-- [ ] Add only `release-evidence/internal-testflight/1.0.4+42/CANDIDATE-MANIFEST.json`
+- [ ] Freeze the complete Build 43 source with `pubspec.yaml` at `1.0.4+43`.
+- [ ] Add only `release-evidence/internal-testflight/1.0.4+43/CANDIDATE-MANIFEST.json`
   in the receipt child, binding its `sourceRevision` to that source commit.
 - [ ] Push the exact receipt tag once. Confirm Codemagic completes, Apple
+  processes the upload, and the build attaches to internal group `Me`.
+- [ ] Install that exact processed build for the acceptance runbook before any
+  App Store review action.
+
+## 1.0.4+42 authored continuation — superseded
+
+Build 42 is immutable history after its successful Codemagic/TestFlight run.
+Its manifest-only receipt child is tagged
+`room-of-days-1.0.4-build-42-internal-candidate-retry-1`.
+
+- [x] Freeze the complete Build 42 source with `pubspec.yaml` at `1.0.4+42`.
+- [x] Add only `release-evidence/internal-testflight/1.0.4+42/CANDIDATE-MANIFEST.json`
+  in the receipt child, binding its `sourceRevision` to that source commit.
+- [x] Push the exact receipt tag once. Confirm Codemagic completes, Apple
   processes the upload, and the build attaches to internal group `Me`.
 - [ ] Install that exact processed build for the acceptance runbook before any
   App Store review action.

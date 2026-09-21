@@ -17,6 +17,7 @@ import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/glass_switch.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:emberkeep/widgets/pressable.dart';
+import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:emberkeep/widgets/reward_receipt.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
@@ -94,9 +95,11 @@ Future<void> revealBoardText(WidgetTester tester, String text) async {
   final board = find.byKey(const ValueKey('quest-board-scroll'));
   final target = find.text(text);
   await returnQuestBoardToTop(tester);
-  for (var attempt = 0;
-      attempt < 8 && target.hitTestable().evaluate().isEmpty;
-      attempt++) {
+  for (
+    var attempt = 0;
+    attempt < 8 && target.hitTestable().evaluate().isEmpty;
+    attempt++
+  ) {
     await tester.drag(board, const Offset(0, -220));
     await tester.pump(const Duration(milliseconds: 80));
   }
@@ -104,17 +107,25 @@ Future<void> revealBoardText(WidgetTester tester, String text) async {
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-/// A compact row only selects an action. Its featured card then exposes the
-/// explicit completion control, which is the only path that earns a reward.
+/// A compact ordinary row completes directly. The featured card keeps its
+/// explicit luminous action, so this helper follows whichever shape is live.
 Future<void> completeQuest(WidgetTester tester, String title) async {
   await revealQuest(tester, title);
+  final card = find.byWidgetPredicate(
+    (widget) => widget is QuestCard && widget.quest.title == title,
+  );
+  expect(card, findsOneWidget);
+  final wasFeatured = tester.widget<QuestCard>(card).featured;
   await tester.tap(find.text(title));
   await tester.pump(const Duration(milliseconds: 120));
+  if (!wasFeatured) return;
   final action = find.byKey(const ValueKey('quest-primary-action'));
   final board = find.byKey(const ValueKey('quest-board-scroll'));
-  for (var attempt = 0;
-      attempt < 4 && action.hitTestable().evaluate().isEmpty;
-      attempt++) {
+  for (
+    var attempt = 0;
+    attempt < 4 && action.hitTestable().evaluate().isEmpty;
+    attempt++
+  ) {
     await tester.drag(board, const Offset(0, 160));
     await tester.pump(const Duration(milliseconds: 80));
   }
@@ -125,9 +136,11 @@ Future<void> completeQuest(WidgetTester tester, String title) async {
 
 Future<void> revealGoalsAction(WidgetTester tester, Finder target) async {
   final surface = find.byKey(const Key('goals-threshold-scroll'));
-  for (var attempt = 0;
-      attempt < 8 && target.hitTestable().evaluate().isEmpty;
-      attempt++) {
+  for (
+    var attempt = 0;
+    attempt < 8 && target.hitTestable().evaluate().isEmpty;
+    attempt++
+  ) {
     await tester.drag(surface, const Offset(0, -180));
     await tester.pump(const Duration(milliseconds: 80));
   }
@@ -165,8 +178,8 @@ void main() {
     ) async {
       await pumpApp(tester, timeShape: shape);
 
-    await revealBoardText(tester, 'TODAY · $count OPEN');
-    expect(find.text('TODAY · $count OPEN'), findsOneWidget);
+      await revealBoardText(tester, 'TODAY · $count OPEN');
+      expect(find.text('TODAY · $count OPEN'), findsOneWidget);
     });
   }
 
@@ -622,16 +635,12 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await pumpApp(tester);
 
-      // Select A and use its named action, then do the same for B before A's
-      // deferred commit fires. This deliberately bypasses the scrolling helper
-      // so the two acceptance beats remain inside the race window.
+      // Complete two compact ordinary Quests directly before A's deferred
+      // commit fires. This deliberately bypasses the scrolling helper so the
+      // two acceptance beats remain inside the race window.
       await tester.tap(find.text('Walk 10 minutes'));
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
       await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.text('Read one page'));
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('quest-primary-action')));
       await tester.pump(const Duration(milliseconds: 150));
 
       // wait for B's commit (arms swipe-to-undo on B's card), then undo B
@@ -1173,7 +1182,8 @@ void main() {
   testWidgets('quick-add puts a one-time quest on today', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await revealBoardText(tester, 'ADD');
+    await tester.tap(find.text('ADD').hitTestable());
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('NEW QUEST'), findsOneWidget);
 
@@ -1223,6 +1233,9 @@ void main() {
 
     // due today → leads the quest list
     await tester.tap(find.byIcon(Icons.task_alt));
+    // The first frame begins the room-travel pan; a second pump reaches the
+    // parked Quest room before asserting its live board.
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('TODAY · 6 OPEN'), findsOneWidget);
     expect(find.text('Finish the essay draft'), findsOneWidget);

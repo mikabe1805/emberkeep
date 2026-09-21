@@ -328,8 +328,8 @@ const goalCatalog = <GoalIdea>[
   GoalIdea(
     title: 'Reach out',
     blurb:
-        'Connection is a health behavior — it ranks with exercise in the '
-        'longevity studies. One message counts.',
+        'Small acts of care keep a relationship warm. A real message, a meal, '
+        'or one thoughtful surprise counts.',
     finishLine:
         'You have a small rhythm for staying in touch with the people you want in your life.',
     frictionCue:
@@ -338,15 +338,17 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.soc,
     quests: [
       QuestTemplate(
-        title: 'Message someone you miss',
+        title: 'Send a thoughtful message',
         stat: Stat.soc,
-        difficulty: 3,
+        difficulty: 2,
+        ladderHint: 'A REAL CHECK-IN · NOT JUST A REACTION',
       ),
       QuestTemplate(
-        title: 'Plan a hangout',
+        title: 'Do one thoughtful thing',
         stat: Stat.soc,
-        difficulty: 5,
+        difficulty: 4,
         schedule: QuestSchedule.weekly,
+        ladderHint: 'DINNER · FLOWERS · A SMALL FAVOR',
       ),
     ],
   ),

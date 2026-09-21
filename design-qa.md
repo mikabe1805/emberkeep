@@ -1,5 +1,25 @@
 # Room of Days design QA
 
+## Goals deduplication and felt room travel — 2026-08-28
+
+This remains the governing visual correction for the Goals support surface:
+each promise is named once on either side of a movement. Support stays a quiet
+disclosure beneath an active goal rather than becoming a second hero, and the
+ready-made paths catalog remains behind its deliberate disclosure.
+
+`RoomTravelStack` now replaces the shell's bare `IndexedStack`: it retains
+each room's state while staging only the outgoing and incoming rooms for a
+380ms, 26px camera pan with a short horizontal motion blur. The parked frame
+is sharp and has no blur cost. Route builders retain native iOS/macOS edge
+swipes and provide a restrained depth settle elsewhere; Reduced Motion parks
+the tab change and uses a plain route fade. The established parchment contact
+remains the travel sound; no unheard whoosh was introduced.
+
+This is local implementation evidence only. Physical phone pacing, iOS
+interactive-swipe behavior, and haptic/sound synchrony remain device gates.
+
+---
+
 ## Goals, choices and session experience — 2026-09-06
 
 **final result: passed** for the implemented local experience and rendered

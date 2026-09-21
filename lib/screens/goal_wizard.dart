@@ -43,10 +43,10 @@ const _questIdeas = <Stat, List<String>>{
     'Plan tomorrow tonight',
   ],
   Stat.soc: [
-    'Text someone you miss',
-    'Call a friend',
-    'Check in on family',
-    'Plan a hangout',
+    'Send a thoughtful message',
+    'Call someone you care about',
+    'Make dinner for someone',
+    'Bring a small surprise',
   ],
   Stat.dis: [
     'Make your bed',

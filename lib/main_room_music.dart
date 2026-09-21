@@ -236,9 +236,9 @@ class _MusicVoice {
       _fadeTo == 0 && now.difference(_fadeStart) >= _fadeLength;
 }
 
-/// The owner-approved normal-room scores: eight umbrella-brush performances
-/// and Lamp left on, each 96 seconds at 72 BPM. Compositions alternate while
-/// umbrella performances rotate, with a crossfade at each seam.
+/// The owner-approved normal-room scores: twenty-two dry rotation takes and
+/// Lamp left on, each 96 seconds. Composition families alternate while their
+/// internal performances rotate, with a crossfade at each seam.
 /// The masters carry their auditioned level in-file, so playback stays at
 /// unity apart from fades and interaction ducking.
 class MainRoomMusic implements MainRoomMusicPlayback {
@@ -253,14 +253,20 @@ class MainRoomMusic implements MainRoomMusicPlayback {
 
   static final MainRoomMusic instance = MainRoomMusic._();
 
-  static const takeCount = 9;
+  /// The approved dry rotation is kept separate from Lamp left on so the
+  /// latter remains its own authored normal-room composition rather than an
+  /// anonymous extra variation.
+  static const dryTakeCount = 22;
+  static const lampLeftOnTake = dryTakeCount + 1;
+  static const takeCount = lampLeftOnTake;
   static const compositionGroups = <List<int>>[
-    [1, 2, 3, 4, 5, 6, 7, 8],
-    [9],
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    [17, 18, 19, 20, 21, 22],
+    [lampLeftOnTake],
   ];
   static String assetForTake(int take) {
     RangeError.checkValueInInterval(take, 1, takeCount, 'take');
-    return take == 9
+    return take == lampLeftOnTake
         ? 'music/lamp-left-on.m4a'
         : 'music/take_${take.toString().padLeft(2, '0')}.m4a';
   }

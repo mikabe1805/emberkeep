@@ -897,6 +897,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Entry point from a card tap: timer-proof quests run their countdown
   /// first (proof multiplies, never gates — cancel just backs out).
   void _completeQuest(Quest q, Offset tapPos) {
+    // Completion is also exposed from Goals. Keep the canonical entry point
+    // idempotent so a stale or rapid second invocation cannot roll twice.
+    if (q.doneFor(Clock.now())) return;
     if (q.journalPrompt != null) {
       unawaited(_openQuestJournal(q, tapPos));
       return;
@@ -2125,7 +2128,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TRY THIS',
+                    'ONE TAP',
                     style: Type.label.copyWith(
                       fontSize: 11,
                       color: Palette.xpLight,
@@ -2133,7 +2136,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Choose “$tip” to get started.',
+                    'When “$tip” is done, one tap marks it complete.',
                     style: Type.body.copyWith(
                       fontSize: 13.5,
                       color: Palette.textHi,
@@ -3093,14 +3096,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             MediaQuery.textScalerOf(context).scale(1) >= 1.25 &&
             bounds.maxWidth <= 360;
         // Compact-height windows sacrifice the cinematic reveal before they
-        // sacrifice the board's primary task. Normal phones retain the full
-        // room; short landscape/split-screen surfaces begin almost collapsed.
+        // sacrifice the board's primary task. On normal phones the labelled
+        // day rail borrows one touch-target of height from the reveal so MARK
+        // COMPLETE remains visible without scrolling.
         final roomHeight = bounds.maxHeight < 700
             ? 48.0
-            : min(
-                bounds.maxWidth / 1.70,
-                bounds.maxHeight * 0.28,
-              ).clamp(168.0, 270.0).toDouble();
+            : (min(bounds.maxWidth / 1.70, bounds.maxHeight * 0.28) - 44)
+                  .clamp(152.0, 226.0)
+                  .toDouble();
         _localMotion?.setReduceMotion(reduceMotion);
         return Listener(
           behavior: HitTestBehavior.translucent,
@@ -3370,102 +3373,39 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             ),
 
                           // ── Quest list ──────────────────────────────────────────
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(18, 7, 13, 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (!showingDailyField || showFocus)
-                                        Text(
-                                          dayResting
-                                              ? 'THE DAY IS KEPT'
-                                              : showFocus
-                                              ? 'FOCUS MODE'
-                                              : lowFlame
-                                              ? (_showFullLowFlame
-                                                    ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
-                                                    : 'GENTLE MODE · $remaining LEFT')
-                                              : showingDailyField
-                                              ? (largePhoneType
-                                                    ? (remaining == 0
-                                                          ? 'FIELD · ENOUGH'
-                                                          : '$remaining TO CARRY')
-                                                    : (remaining == 0
-                                                          ? 'TODAY’S FIELD · ENOUGH'
-                                                          : 'TODAY’S FIELD · $remaining TO CARRY'))
-                                              : 'TODAY · $remaining OPEN',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Type.label.copyWith(
-                                            fontSize: 12,
-                                            color: showFocus
-                                                ? Palette.streak
-                                                : null,
-                                          ),
-                                        ),
-                                      StreakFreezeStatus(state: _state),
-                                    ],
-                                  ),
-                                ),
-                                if (!dayResting)
-                                  Row(
-                                    children: [
-                                      // one-quest-at-a-time toggle (round-21): tames the overwhelm
-                                      _HeaderAction(
-                                        icon: _state.focusMode
-                                            ? Icons.center_focus_strong
-                                            : Icons.center_focus_weak,
-                                        color: _state.focusMode
-                                            ? Palette.streak
-                                            : Palette.xpLight,
-                                        label: _state.focusMode
-                                            ? 'Leave focus mode'
-                                            : 'Focus mode — one quest at a time',
-                                        onTap: _toggleFocus,
-                                      ),
-                                      _HeaderAction(
-                                        icon: Icons.add_circle_outline,
-                                        color: Palette.xpLight,
-                                        label: 'Add a quest',
-                                        onTap: _quickAdd,
-                                      ),
-                                      // Morning and night are independent doors:
-                                      // an unviewed morning must not hide tonight.
-                                      if (_state.morningAvailable)
-                                        _HeaderAction(
-                                          icon: Icons.wb_twilight,
-                                          color: Palette.streak,
-                                          label: 'Morning briefing',
-                                          onTap: _openMorning,
-                                        ),
-                                      if (nightOpen && !showCloseDayRail)
-                                        _HeaderAction(
-                                          icon: Icons.nightlight_outlined,
-                                          color: Palette.xpLight,
-                                          label: 'Close the day',
-                                          onTap: _openNight,
-                                        ),
-                                      // the momentum spark: cleared something? push further.
-                                      Offstage(
-                                        offstage: true,
-                                        child: _HeaderAction(
-                                          icon: Icons.bolt,
-                                          color: Palette.xpLight,
-                                          label:
-                                              'Take one more step — encores & variety',
-                                          onTap: _openMomentum,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
+                          _QuestBoardRail(
+                            dayLabel: showingDailyField && !showFocus
+                                ? null
+                                : dayResting
+                                ? 'THE DAY IS KEPT'
+                                : showFocus
+                                ? 'FOCUS MODE'
+                                : lowFlame
+                                ? (_showFullLowFlame
+                                      ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+                                      : 'GENTLE MODE · $remaining LEFT')
+                                : showingDailyField
+                                ? (largePhoneType
+                                      ? (remaining == 0
+                                            ? 'FIELD · ENOUGH'
+                                            : '$remaining TO CARRY')
+                                      : (remaining == 0
+                                            ? 'TODAY’S FIELD · ENOUGH'
+                                            : 'TODAY’S FIELD · $remaining TO CARRY'))
+                                : 'TODAY · $remaining OPEN',
+                            state: _state,
+                            focusMode: showFocus,
+                            onFocus: dayResting ? null : _toggleFocus,
+                            onAdd: dayResting ? null : _quickAdd,
+                            // Morning and night are independent doors: an
+                            // unviewed morning must not hide tonight.
+                            onMorning: !dayResting && _state.morningAvailable
+                                ? _openMorning
+                                : null,
+                            onCloseDay:
+                                !dayResting && nightOpen && !showCloseDayRail
+                                ? _openNight
+                                : null,
                           ),
                           if (showCloseDayRail)
                             _CloseDayRail(
@@ -4428,7 +4368,10 @@ class _DailyFieldRail extends StatelessWidget {
             if (!stackHeader) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [Expanded(child: heading), action],
+                children: [
+                  Expanded(child: heading),
+                  action,
+                ],
               );
             }
             return Column(
@@ -4552,11 +4495,203 @@ class _CloseDayRail extends StatelessWidget {
   }
 }
 
+/// A chapter break between the room HUD and the work itself. Persistent board
+/// tools share one quiet plane; reserve status and contextual ritual doors sit
+/// beneath it. This keeps the middle readable without creating three equal,
+/// competing tiles.
+class _QuestBoardRail extends StatelessWidget {
+  const _QuestBoardRail({
+    required this.dayLabel,
+    required this.state,
+    required this.focusMode,
+    this.onFocus,
+    this.onAdd,
+    this.onMorning,
+    this.onCloseDay,
+  });
+
+  final String? dayLabel;
+  final GameState state;
+  final bool focusMode;
+  final VoidCallback? onFocus;
+  final VoidCallback? onAdd;
+  final VoidCallback? onMorning;
+  final VoidCallback? onCloseDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final doorCount =
+        (onMorning == null ? 0 : 1) + (onCloseDay == null ? 0 : 1);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 7, 13, 4),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Color(0x59483B30), width: 0.7),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 5),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  if (dayLabel != null) ...[
+                    Container(
+                      width: 3,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFE0B56E), Color(0xFF73502D)],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          dayLabel!,
+                          maxLines: textScale >= 1.4 ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.label.copyWith(
+                            fontSize: 12.5,
+                            height: 1.15,
+                            letterSpacing: 2.15,
+                            color: focusMode
+                                ? Palette.streak
+                                : Palette.textHi.withValues(alpha: 0.92),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ] else
+                    const Spacer(),
+                  if (onFocus != null && onAdd != null) ...[
+                    if (dayLabel != null) const SizedBox(width: 10),
+                    _BoardToolGroup(
+                      focusMode: focusMode,
+                      onFocus: onFocus!,
+                      onAdd: onAdd!,
+                    ),
+                  ],
+                ],
+              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final stackDoors = doorCount > 1;
+                  final doors = <Widget>[
+                    if (onMorning != null)
+                      _DayDoorAction(
+                        icon: Icons.wb_twilight,
+                        label: 'MORNING',
+                        semanticLabel: 'Open morning briefing',
+                        color: Palette.streak,
+                        onTap: onMorning!,
+                      ),
+                    if (onCloseDay != null)
+                      _DayDoorAction(
+                        icon: Icons.nightlight_outlined,
+                        label: 'CLOSE DAY',
+                        semanticLabel: 'Close the day',
+                        color: Palette.xpLight,
+                        onTap: onCloseDay!,
+                      ),
+                  ];
+
+                  if (stackDoors && doors.isNotEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        StreakFreezeStatus(state: state),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Wrap(spacing: 5, children: doors),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: StreakFreezeStatus(state: state)),
+                      ...doors,
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BoardToolGroup extends StatelessWidget {
+  const _BoardToolGroup({
+    required this.focusMode,
+    required this.onFocus,
+    required this.onAdd,
+  });
+
+  final bool focusMode;
+  final VoidCallback onFocus;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: facetedDecoration(
+        cut: 7,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xC71E1916), Color(0xB8110E0C)],
+        ),
+        borderColor: const Color(0x8055483C),
+        borderWidth: 0.75,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _HeaderAction(
+            icon: focusMode
+                ? Icons.center_focus_strong
+                : Icons.center_focus_weak,
+            color: focusMode ? Palette.streak : Palette.textMid,
+            label: focusMode
+                ? 'Leave focus mode and show all quests'
+                : 'Focus mode — one quest at a time',
+            visibleLabel: focusMode ? 'ALL' : 'FOCUS',
+            selected: focusMode,
+            onTap: onFocus,
+          ),
+          Container(width: 1, height: 24, color: const Color(0x6655483C)),
+          _HeaderAction(
+            icon: Icons.add_rounded,
+            color: Palette.xpLight,
+            label: 'Add a quest',
+            visibleLabel: 'ADD',
+            onTap: onAdd,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HeaderAction extends StatelessWidget {
   const _HeaderAction({
     required this.icon,
     required this.color,
     required this.label,
+    required this.visibleLabel,
+    this.selected = false,
     this.onTap,
   });
   final IconData icon;
@@ -4565,6 +4700,8 @@ class _HeaderAction extends StatelessWidget {
   /// What this glyph does — a long-press tooltip for everyone and the
   /// VoiceOver name (a11y pass: five mystery icons, zero labels before).
   final String label;
+  final String visibleLabel;
+  final bool selected;
   final VoidCallback? onTap;
 
   @override
@@ -4572,27 +4709,91 @@ class _HeaderAction extends StatelessWidget {
     return Semantics(
       button: onTap != null,
       label: label,
+      excludeSemantics: true,
       child: Tooltip(
         message: label,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: Container(
-            width: 44,
-            height: 44,
-            margin: const EdgeInsets.only(left: 5),
-            alignment: Alignment.center,
-            decoration: facetedDecoration(
-              cut: 8,
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF241D18), Color(0xFF13100E)],
-              ),
-              borderColor: const Color(0xFF4D4035),
-              borderWidth: 0.9,
+          child: AnimatedContainer(
+            duration: Motion.quick,
+            constraints: const BoxConstraints(minWidth: 58, minHeight: 44),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: selected
+                  ? Palette.streak.withValues(alpha: 0.09)
+                  : Colors.transparent,
             ),
-            child: Icon(icon, size: 20, color: color),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 5),
+                Text(
+                  visibleLabel,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 1.1,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DayDoorAction extends StatelessWidget {
+  const _DayDoorAction({
+    required this.icon,
+    required this.label,
+    required this.semanticLabel,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String semanticLabel;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: semanticLabel,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 14, color: color.withValues(alpha: 0.82)),
+                  const SizedBox(width: 5),
+                  Text(
+                    label,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.0,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

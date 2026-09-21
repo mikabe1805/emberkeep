@@ -55,14 +55,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('A few new things'), findsOneWidget);
-    expect(find.text('Your day, in focus.'), findsOneWidget);
-    expect(find.text('TODAY’S THREE, CLOSE AT HAND'), findsOneWidget);
-    expect(find.text('RETURN TO THE WORKSHOP'), findsOneWidget);
-    expect(find.text('A FINER TOUCH'), findsOneWidget);
-    expect(find.text('LAMP LEFT ON'), findsOneWidget);
+    expect(find.text('A clearer way through the room.'), findsOneWidget);
+    expect(find.text('ONE TAP MEANS DONE'), findsOneWidget);
+    expect(find.text('MORE ROOM ON THE BOARD'), findsOneWidget);
+    expect(find.text('MORE WAYS TO SHOW UP'), findsOneWidget);
+    expect(find.text('THE ROOM OPENS WIDER'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+42')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+43')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -154,7 +154,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+42')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+43')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),
@@ -238,7 +238,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-06/build42/whats-new/whats_new_430x932.png',
+          '../design/audits/2026-09-21/build43/whats-new/whats_new_430x932.png',
         ),
       );
     }
@@ -252,7 +252,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-06/build42/whats-new/whats_new_320x568_text_2x.png',
+          '../design/audits/2026-09-21/build43/whats-new/whats_new_320x568_text_2x.png',
         ),
       );
       await tester.scrollUntilVisible(
@@ -264,7 +264,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-06/build42/whats-new/whats_new_320x568_text_2x_scrolled.png',
+          '../design/audits/2026-09-21/build43/whats-new/whats_new_320x568_text_2x_scrolled.png',
         ),
       );
     }

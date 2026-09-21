@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'a11y.dart';
 import 'academic_calendar/import/academic_schedule_file_inbox.dart';
 import 'audio.dart';
+import 'main_room_music.dart';
 import 'social.dart';
 import 'storage.dart';
 import 'platform/persist_stub.dart'
@@ -14,6 +15,7 @@ import 'platform/persist_stub.dart'
 import 'screens/shell.dart';
 import 'tokens.dart';
 import 'widgets/morrow_tapestry_glyph.dart';
+import 'widgets/room_travel.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +64,12 @@ void main() {
       // restore the saved in-app text size before the first frame settles
       appTextScale.value = pair.$1.textScale;
     }
+    // The normal-room bed waits for the save so it never opens against a
+    // just-loaded musicEnabled=false. No save preserves the established
+    // opt-in default; Focus owns its separate meditation role.
+    unawaited(
+      MainRoomMusic.instance.setEnabled(pair?.$1.musicEnabled ?? false),
+    );
   });
   // Ask the browser to make storage durable (exempts an installed PWA from
   // iOS's storage eviction — the save's first line of defense).
@@ -210,6 +218,20 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
+        // Every pushed surface travels the same way — a settle out of the
+        // room's depth with a blur that lands sharp — instead of the stock
+        // platform zoom. iOS/macOS keep their native slide and edge-swipe
+        // with the motion blur riding on top (room_travel.dart).
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: RoomPageTransitionsBuilder(),
+            TargetPlatform.fuchsia: RoomPageTransitionsBuilder(),
+            TargetPlatform.linux: RoomPageTransitionsBuilder(),
+            TargetPlatform.windows: RoomPageTransitionsBuilder(),
+            TargetPlatform.iOS: RoomCupertinoPageTransitionsBuilder(),
+            TargetPlatform.macOS: RoomCupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       // Accessibility text sizing: honor BOTH the phone's Text Size setting and
       // the in-app control (Me → Settings). The in-app choice is a minimum; the

@@ -1,0 +1,472 @@
+{
+  "schema_version": 1,
+  "brief_id": "quests-mom-feedback-polish-2026-09-18",
+  "brief_sha256": "8a1407698047eebda12d5d48500a5cbb9129c2a80293c02df25948f0fab2d377",
+  "phase": "handoff",
+  "implementation_revision": "worktree:5b9f31f5fb2b:3a0e3c8f3ab4af3b048238e6",
+  "revision_captured_at": "2026-09-21T17:05:00-04:00",
+  "checks": [
+    {
+      "id": "edge-product-one-tap-and-people",
+      "requirement_id": "edge.product",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run the production Quest pipeline and catalog contracts, then review the scoped source diff.",
+      "input_state": "Featured Quest, ordinary side Quest, special Quest routes, and current Reach out catalog.",
+      "inspected_by": "Root implementation pass and independent regression auditor",
+      "observation": "An ordinary side Quest completes from one tap while special proof boundaries remain intact; inclusive message and thoughtful-action starters stay inside PEOPLE.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Quest, Goals, Journal, Freeze, and catalog regressions",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "critique",
+          "state": "Independent product boundary and regression review",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/COUNCIL-SYNTHESIS.md",
+          "content_sha256": "00fed02d09032bfebef6eebdb6a250811400a22fe8f0f11e61f5d63d9d352632",
+          "data_source": "production_equivalent"
+        }
+      ]
+    },
+    {
+      "id": "edge-interaction-canonical-completion",
+      "requirement_id": "edge.interaction",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Exercise direct row taps, semantics, drag cancellation, dedupe, and special-flow activation through focused widget tests.",
+      "input_state": "Open compact ordinary Quest plus Journal, timer, workout, all-day, and already-completed variants.",
+      "inspected_by": "Flutter widget harness and independent regression auditor",
+      "observation": "The entire ordinary row and its visible check affordance share the canonical callback; the already-done guard prevents duplicate work and special rows disclose their authored route.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "One-tap completion and special-flow interaction suite",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "edge-visual-board-hierarchy",
+      "requirement_id": "edge.visual",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Inspect the supplied-phone/current-build comparison and full plus scrolled deterministic renders.",
+      "input_state": "390 x 844 Quest board with featured Quest, ordinary side Quest, Freeze reserve, Focus, Add, and Close Day.",
+      "inspected_by": "Original project council, independent Build 43 integration reviewer, and root final visual pass",
+      "observation": "TODAY, visibly labelled Focus/Add tools, inline reserve status, subordinate Close Day door, and the Quest form distinct layers; MARK COMPLETE remains fully visible as the only luminous action and the side Quest reads as directly checkable.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Supplied phone Quest board versus current build",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/comparisons/2026-09-18/evidence-quests-mom-feedback.png",
+          "content_sha256": "e9f2be2f0f742fb40db2aa619b6ba3ddec3b90202cbfdde9d9c39b2dcfb2741b",
+          "data_source": "production_equivalent"
+        },
+        {
+          "kind": "render",
+          "state": "Current full Quest board at 390 x 844",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board.png",
+          "content_sha256": "2c2f1919c123407cabf8e2c6629df7555394844349225a9792d33792d3f58b59",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Scrolled compact ordinary Quest row",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board_compact_rows.png",
+          "content_sha256": "3f09d1b03caebba5c04c54b79e794f6aa9624a69c8e36f46f42081964cec4165",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "critique",
+          "state": "Independent hierarchy and affordance review",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/COUNCIL-SYNTHESIS.md",
+          "content_sha256": "00fed02d09032bfebef6eebdb6a250811400a22fe8f0f11e61f5d63d9d352632",
+          "data_source": "production_equivalent"
+        }
+      ]
+    },
+    {
+      "id": "state-ordinary-side-quest",
+      "requirement_id": "state:ordinary-side-quest",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Tap the visible title in a real compact QuestCard and in the full QuestsPage fixture.",
+      "input_state": "Featured Main Quest followed by an open ordinary non-main Quest.",
+      "inspected_by": "Flutter widget harness",
+      "observation": "One tap completes the side Quest once, the chevron is absent, and Complete semantics are present.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Ordinary compact Quest one-tap regression",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "render",
+          "state": "Compact ordinary Quest ready to complete",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board_compact_rows.png",
+          "content_sha256": "3f09d1b03caebba5c04c54b79e794f6aa9624a69c8e36f46f42081964cec4165",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-special-quest-boundaries",
+      "requirement_id": "state:special-quest-boundaries",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run existing Journal, timer, workout, and all-day Quest activation suites after the affordance change.",
+      "input_state": "Each authored special Quest type in its open state.",
+      "inspected_by": "Flutter widget harness and source audit",
+      "observation": "Special Quests keep their writing, timer, workout, or tonight boundary and use truthful flow labels rather than premature completion language.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Special Quest boundary regressions",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-dense-day-rail",
+      "requirement_id": "state:dense-day-rail",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Render the populated board and run the 320 x 568 fixture at 1.3x text scale.",
+      "input_state": "Freeze status, Focus, Add, Close Day, featured Quest, and enlarged narrow-phone typography.",
+      "inspected_by": "Root visual pass and Flutter widget harness",
+      "observation": "The status and contextual door remain subordinate, Focus and Add remain labelled, and the narrow fixture reports no layout exception.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Populated current Quest board",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board.png",
+          "content_sha256": "2c2f1919c123407cabf8e2c6629df7555394844349225a9792d33792d3f58b59",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Narrow phone enlarged-text layout regression",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-relationship-starters",
+      "requirement_id": "state:relationship-starters",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Assert Reach out template titles, PEOPLE stat, weekly cadence, and inspect the PEOPLE composer suggestions.",
+      "input_state": "Current goal catalog and GoalWizard PEOPLE domain.",
+      "inspected_by": "Dart test harness and scoped source review",
+      "observation": "Concrete message, dinner, surprise, and thoughtful-action ideas are available without introducing a partner-only category.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "PEOPLE and Reach out starter contract",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "ripple-day-rail",
+      "requirement_id": "ripple:day-rail",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Compare the old and current board and inspect the Freeze details overlay on the new rail.",
+      "input_state": "Normal populated day rail with a contextual Close Day action.",
+      "inspected_by": "Original project council, independent Build 43 integration reviewer, and root visual pass",
+      "observation": "Persistent labelled tools share one plane, reserve status stays tappable, Close Day remains subordinate, and the details sheet remains legible without restoring an equal-weight tile.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Old and current middle-region hierarchy",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/comparisons/2026-09-18/evidence-quests-mom-feedback.png",
+          "content_sha256": "e9f2be2f0f742fb40db2aa619b6ba3ddec3b90202cbfdde9d9c39b2dcfb2741b",
+          "data_source": "production_equivalent"
+        },
+        {
+          "kind": "render",
+          "state": "Freeze details over revised day rail",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/streak_freeze_sheet.png",
+          "content_sha256": "90b04d5b247487036b4fd77bc9622a93897f107f6f134f084956b3d70930a9a4",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "ripple-compact-quest",
+      "requirement_id": "ripple:compact-quest",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Exercise compact open and completed states, drag cancellation, semantics, and enlarged text, then inspect the focused render.",
+      "input_state": "Ordinary compact Quest with reward preview and check-clasp.",
+      "inspected_by": "Flutter widget harness and independent regression auditor",
+      "observation": "The row remains a one-tap target, retains reward context at large text, and presents completion rather than navigation.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Compact Quest interaction regressions",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "render",
+          "state": "Focused compact Quest completion affordance",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board_compact_rows.png",
+          "content_sha256": "3f09d1b03caebba5c04c54b79e794f6aa9624a69c8e36f46f42081964cec4165",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "ripple-people-starters",
+      "requirement_id": "ripple:people-starters",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Validate the Reach out catalog and analyze the GoalWizard PEOPLE starter source.",
+      "input_state": "Existing PEOPLE domain and ready-made Reach out goal.",
+      "inspected_by": "Dart analyzer and test harness",
+      "observation": "Relationship examples are concrete, inclusive, correctly statted, and use the existing adoption path.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Relationship starter validation",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "ripple-special-completion",
+      "requirement_id": "ripple:special-completion",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run the canonical completion and special-route regression suites after adding the already-done guard.",
+      "input_state": "Journal, timer, workout, all-day, goal-linked, ordinary, and already-completed Quests.",
+      "inspected_by": "Flutter widget harness and source audit",
+      "observation": "Ordinary completion remains direct and idempotent while every authored exception keeps its existing proof boundary.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Canonical completion route regressions",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "final-current-build-comparison",
+      "requirement_id": "final:comparison",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Inspect the current build beside the supplied owner screenshot and inspect the scrolled compact row.",
+      "input_state": "Current production-equivalent 390 x 844 Quest board and original phone capture.",
+      "inspected_by": "Independent Build 43 integration reviewer and root final visual pass",
+      "observation": "The blended middle band is replaced by legible labelled role separation, MARK COMPLETE remains above the dock, and the compact row plus ONE TAP guidance visibly advertise the promised direct completion.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final supplied-phone versus current-build comparison",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/comparisons/2026-09-18/evidence-quests-mom-feedback.png",
+          "content_sha256": "e9f2be2f0f742fb40db2aa619b6ba3ddec3b90202cbfdde9d9c39b2dcfb2741b",
+          "data_source": "production_equivalent"
+        },
+        {
+          "kind": "render",
+          "state": "Final compact one-tap affordance",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "test/goldens/quest_board_compact_rows.png",
+          "content_sha256": "3f09d1b03caebba5c04c54b79e794f6aa9624a69c8e36f46f42081964cec4165",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "final-code-complete",
+      "requirement_id": "final:code-complete",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run scoped analysis, broad related regressions, focused independent regressions, and golden captures.",
+      "input_state": "Current scoped implementation revision across Quest, Goal, Journal, and Freeze surfaces.",
+      "inspected_by": "Flutter analyzer, Flutter test harness, and independent regression auditor",
+      "observation": "Full analysis is clean, the complete suite passes 1,415 tests with zero failures, the final Quest and screenshot packet passes 71 tests, and current deterministic captures pass.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Final analysis and automated test report",
+          "generated_at": "2026-09-21T17:10:18.6231942-04:00",
+          "path": "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+          "content_sha256": "28442b0112f65d8393d8f3678dc7b9e9014dfeea12c9217a83efba704430dd61",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Original Project Council: Fable and Gemini 3.6 Flash; final independent Build 43 integration reviewer",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "edge-product-one-tap-and-people",
+      "edge-interaction-canonical-completion",
+      "edge-visual-board-hierarchy"
+    ],
+    "reviewed_artifacts": [
+      "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+      "design/audits/2026-09-18/quests-mom-feedback-polish/COUNCIL-SYNTHESIS.md",
+      "design/comparisons/2026-09-18/evidence-quests-mom-feedback.png",
+      "test/goldens/quest_board.png",
+      "test/goldens/quest_board_compact_rows.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The compact completion clasp was initially too delicate and missing from the first evidence frame.",
+        "disposition": "resolved",
+        "evidence": "The ring and check strokes were strengthened and the scrolled compact-row golden now shows the final affordance."
+      },
+      {
+        "finding": "Freeze Reserve initially repeated chapter anatomy and competed with the board tools.",
+        "disposition": "resolved",
+        "evidence": "The rail and mini-card were removed; a quiet inline status retains its 44-point details target."
+      },
+      {
+        "finding": "A new partner-only category would narrow the existing PEOPLE model and add unsupported machinery.",
+        "disposition": "accepted",
+        "evidence": "The implementation keeps inclusive relationship starters inside PEOPLE and the existing Reach out goal."
+      },
+      {
+        "finding": "The first Build 43 integration reduced Focus, Add, and Close Day to glyph-only tiles.",
+        "disposition": "resolved",
+        "evidence": "Release was held; Focus and Add now carry visible 11sp labels in one shared plane, and Close Day is a separate subordinate labelled door."
+      },
+      {
+        "finding": "Restoring the labelled rail initially pushed most of MARK COMPLETE behind the dock.",
+        "disposition": "resolved",
+        "evidence": "One touch-target of cinematic reveal height was reassigned to the rail, keeping the full primary action visible at 390 x 844."
+      },
+      {
+        "finding": "The first-session nudge still used selection language beside a completion action.",
+        "disposition": "resolved",
+        "evidence": "The current ONE TAP copy truthfully explains direct completion and the compact-row render shows the final wording."
+      }
+    ],
+    "no_material_findings_observation": ""
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-09-21T17:12:07.0470006-04:00",
+    "decided_at": "2026-09-21T17:14:15.1687960-04:00",
+    "reviewed_revision": "worktree:5b9f31f5fb2b:3a0e3c8f3ab4af3b048238e6",
+    "reviewed_brief_sha256": "8a1407698047eebda12d5d48500a5cbb9129c2a80293c02df25948f0fab2d377",
+    "reviewed_check_ids": [
+      "edge-product-one-tap-and-people",
+      "edge-interaction-canonical-completion",
+      "edge-visual-board-hierarchy"
+    ],
+    "reviewed_artifacts": [
+      "design/audits/2026-09-18/quests-mom-feedback-polish/VALIDATION.md",
+      "design/comparisons/2026-09-18/evidence-quests-mom-feedback.png",
+      "test/goldens/quest_board.png"
+    ],
+    "decision": "accepted",
+    "exact_feedback_or_waiver_reason": "Mika explicitly accepted the exact rendered revision and authorized the internal build: \"approve and build\"."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Flutter renders and host input tests cannot establish the exact installed iPhone's thumb feel, haptic timing, or whether the revised hierarchy reads clearly in ordinary use."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-phone-hierarchy-feel",
+      "gate": "Owner review and physical iPhone interaction check",
+      "why": "The final visual hierarchy and one-tap confidence are lived phone properties even after deterministic renders and interaction tests pass.",
+      "owner_or_system": "Mika on the exact installed iPhone candidate",
+      "next_action": "Scan the Quest board, tap one compact ordinary Quest, and scroll past another in normal and Reduced Motion states.",
+      "blocking": true
+    }
+  ]
+}

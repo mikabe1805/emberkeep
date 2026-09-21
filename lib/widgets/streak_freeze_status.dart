@@ -28,55 +28,40 @@ class StreakFreezeStatus extends StatelessWidget {
         ? '$ready ${ready == 1 ? "freeze" : "freezes"} ready. Best streak $best kept.'
         : '$ready ${ready == 1 ? "freeze" : "freezes"} ready. '
               '${state.streakDays} day streak.';
+    Widget reserveValue() => Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Type.label.copyWith(
+        fontSize: 9.8,
+        color: stale ? Palette.textLo : Palette.info,
+        letterSpacing: 0.58,
+      ),
+    );
 
     return Padding(
-      padding: const EdgeInsets.only(top: 5, right: 8, bottom: 3),
+      padding: const EdgeInsets.only(top: 2, right: 8),
       child: Pressable(
         material: MaterialSound.glass,
-        pressDepth: 1,
+        pressDepth: 0.7,
         edgeColor: Colors.transparent,
         shape: const FacetedBorder(cut: 5),
         semanticLabel: 'Freeze reserve. $spokenStatus Open details.',
         onTapUp: (_) => showStreakFreezeDetails(context, state),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Icon(
-                  stale ? Icons.history_rounded : Icons.ac_unit_rounded,
-                  size: 15,
-                  color: Palette.textLo,
+          child: Row(
+            children: [
+              Icon(
+                stale ? Icons.history_rounded : Icons.ac_unit_rounded,
+                size: 13,
+                color: (stale ? Palette.textLo : Palette.info).withValues(
+                  alpha: 0.82,
                 ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'FREEZE RESERVE',
-                        style: Type.label.copyWith(
-                          fontSize: 9.5,
-                          color: Palette.textLo,
-                          letterSpacing: .5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        value,
-                        style: Type.body.copyWith(
-                          fontSize: 11.5,
-                          height: 1.2,
-                          color: Palette.textMid,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: reserveValue()),
+            ],
           ),
         ),
       ),

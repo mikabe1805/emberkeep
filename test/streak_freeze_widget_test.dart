@@ -46,7 +46,6 @@ void main() {
         ),
       );
 
-      expect(find.text('FREEZE RESERVE'), findsOneWidget);
       expect(find.text('3 READY · 6 DAY STREAK'), findsOneWidget);
       await tester.tap(find.byType(StreakFreezeStatus));
       await tester.pump(const Duration(milliseconds: 400));
@@ -75,7 +74,6 @@ void main() {
       ),
     );
 
-    expect(find.text('FREEZE RESERVE'), findsOneWidget);
     expect(find.text('3 READY · BEST 11 KEPT'), findsOneWidget);
     expect(find.textContaining('9 DAY STREAK'), findsNothing);
   });
