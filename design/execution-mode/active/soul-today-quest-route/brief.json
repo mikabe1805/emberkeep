@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "soul-today-quest-route-2026-09-26",
+  "project": "Room of Days",
+  "change_class": "new_direction",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-09-26T19:18:44-04:00",
+  "surface": "Goals, Today's three when there is no active Goal",
+  "scope": "In the selected daily field, open the exact available unfinished Quest from its row. Keep completed and set-aside rows informational, preserve selected field and Quest state, and demote the general Quest-board route. Carry exact Quest identity through the existing Goals-to-Quests handoff, including duplicate titles. Do not change the chooser, Goal focus, Quest completion, or persistence model.",
+  "user_job": "After choosing up to three things for today, enter one chosen unfinished Quest directly and keep completed work visible without doing it twice.",
+  "active_sources": [
+    {
+      "id": "current-owner-request-and-soul-translation",
+      "kind": "owner_request",
+      "location": "design/execution-mode/active/soul-today-quest-route/source.md",
+      "content_sha256": "6317770ee3eecd0abe46bfc864006c311aad80cf8920496e0cb54770a83b01f0",
+      "approved_at": "2026-09-26",
+      "judged_state": "The current no-active-Goal daily field has selected Quest rows that cannot enter their exact work.",
+      "viewport": "430x932 normal and 320x568 at 1.5x text",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The chosen available row leads to the same Quest instance already in today's field, including when another Quest has the same title. Completed and set-aside rows remain visible records; no row completes or mutates a Quest.",
+      "proof": "Use open, completed, and set-aside selected Quests; assert only the available row dispatches, with no persistence or general-board navigation. On the board, use duplicate titles and assert the exact requested instance owns the arrival and first card."
+    },
+    "interaction": {
+      "decision": "The whole available row responds at pointer down and exposes an Open Quest semantic action. Completed and set-aside rows have no action. The general board link stays available but quiet.",
+      "proof": "Exercise row touch and semantics, including a set-aside row; verify at least a 44 px available-row target at enlarged text, and inspect both selected states for a clear route without an extra bright control."
+    },
+    "visual": {
+      "decision": "Keep the existing smoked-glass field and typographic hierarchy. A small directional mark identifies available rows; completed rows retain a check, and set-aside rows show their state. The field does not become a stack of bright buttons.",
+      "proof": "Compare same-state before and after 430x932 and 320x568/1.5x renders, including one open and one completed row."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Send every row to the general Quest board.",
+      "why": "It loses the exact item the person chose and asks them to find it again."
+    },
+    {
+      "fallback": "Make completed rows open a second completion path.",
+      "why": "A completed row is proof for today, not another task."
+    },
+    {
+      "fallback": "Turn every row into a new gold button.",
+      "why": "Equal bright actions would flatten the field's hierarchy and color every item."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person with no active Goal has chosen Read ten pages, Clear the desk, and Take a walk. The desk Quest is complete and the walk is set aside. They tap Read ten pages from Today's three.",
+    "real_inputs": "Three real Quest instances in the existing dated field, one lastDoneDay stamped and one snoozedDay stamped for today; the existing GoalsPage onOpenQuest callback and no active Goal.",
+    "user_action": "Tap the available selected row, then the completed and set-aside rows.",
+    "expected_outcome": "The first tap opens the exact Read ten pages Quest instance; the other rows do nothing; field selection and persistence remain unchanged.",
+    "state_boundary": "This slice dispatches navigation only. It never marks a Quest done or writes daily-field state.",
+    "required_states": [
+      {
+        "id": "selected-open-and-done",
+        "state": "430x932 Goals field with one unfinished and one completed selected Quest",
+        "why_can_disprove": "A general board route or bright rows could still overshadow the selected work."
+      },
+      {
+        "id": "narrow-large-text",
+        "state": "320x568 with 1.5x text, the same selected field, and Reduced Motion",
+        "why_can_disprove": "The new directional mark could squeeze the title or leave a small target."
+      },
+      {
+        "id": "set-aside-visible",
+        "state": "430x932 Goals field with an available, completed, and set-aside selected Quest",
+        "why_can_disprove": "A nonactionable set-aside row could look like another route or lose its state explanation."
+      },
+      {
+        "id": "exact-navigation-boundary",
+        "state": "Tap available, completed, and set-aside rows, then hand off among duplicate-title Quest cards",
+        "why_can_disprove": "A plausible tap affordance could route to an absent or wrong Quest or alter selection."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "selected-field-row",
+      "surface_or_primitive": "_TodayFieldRow in the no-active-Goal Goals page",
+      "state": "Available, completed, and set-aside dated Quest rows",
+      "expected_effect": "Only available rows open their exact Quest; completed and set-aside rows remain informational.",
+      "verification_plan": "Focused exact-instance widget journey and selected-field renders.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "exact-board-handoff",
+      "surface_or_primitive": "AppShell Goals-to-Quests request and QuestsPage arrival card",
+      "state": "Two visible Quest objects with the same title",
+      "expected_effect": "The exact object chosen in Goals is the first and featured arrival card, regardless of title collision.",
+      "verification_plan": "Focused board widget journey using duplicate-title Quest instances and inspected card identity.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "general-board-link",
+      "surface_or_primitive": "Footer route from Today's three to Quests",
+      "state": "Selected field with an unfinished Quest",
+      "expected_effect": "Board navigation remains available without competing visually with the selected row.",
+      "verification_plan": "Inspect same-state before and after captures and confirm callback separation.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "accessibility-and-reflow",
+      "surface_or_primitive": "Selected-field row semantics and hit target",
+      "state": "320x568, 1.5x text, Reduced Motion, long Quest titles",
+      "expected_effect": "The whole row stays operable and its text remains readable without clipping.",
+      "verification_plan": "Focused widget assertions and a fresh narrow capture.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether direct row entry and its quiet directional mark feel obvious, comfortable, and cohesive on the owner's physical phone.",
+  "decisive_check": {
+    "method": "Use today's selected field on a physical phone: open the unfinished Quest by tapping its title or row edge, return, then inspect the completed row and general board link.",
+    "target": "A day with one available, one completed, and one set-aside selected Quest at ordinary and enlarged text.",
+    "pass_condition": "The available work is the obvious next route, its row responds under the finger, completed and set-aside work do not reopen as actions, and the field still feels like one authored surface."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/goals.dart",
+      "lib/screens/quests.dart",
+      "lib/screens/shell.dart",
+      "test/goals_choose_today_test.dart",
+      "test/goals_quest_management_test.dart",
+      "test/goals_today_field_visual_test.dart",
+      "test/goldens/goals_selected_field_430x932.png",
+      "test/goldens/goals_selected_field_320x568_large.png",
+      "test/goldens/goals_selected_field_set_aside_430x932.png"
+    ],
+    "exclude": ["test/failures"]
+  }
+}

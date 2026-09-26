@@ -14,6 +14,8 @@ Future<void> _pumpGoals(
   required GameState state,
   required List<Quest> quests,
   required VoidCallback onPersist,
+  void Function(Quest quest)? onOpenQuest,
+  VoidCallback? onOpenQuests,
   Size size = const Size(430, 932),
   double textScale = 1,
 }) async {
@@ -38,7 +40,8 @@ Future<void> _pumpGoals(
           onRemoveQuest: quests.remove,
           onRemoveGoal: state.removeGoal,
           onPersist: onPersist,
-          onOpenQuest: (_) {},
+          onOpenQuest: onOpenQuest ?? (_) {},
+          onOpenQuests: onOpenQuests,
         ),
       ),
     ),
@@ -158,6 +161,83 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Today’s field opens only the exact available Quest', (tester) async {
+    final today = DateTime(2026, 8, 30, 10);
+    Clock.freeze(today);
+    final state = GameState()..reduceMotion = true;
+    final open = Quest(title: 'Read ten pages', stat: Stat.intl, difficulty: 2);
+    final done = Quest(title: 'Clear the desk', stat: Stat.dis, difficulty: 1);
+    final setAside = Quest(title: 'Take a walk', stat: Stat.str, difficulty: 2);
+    final quests = <Quest>[open, done, setAside];
+    applyDailyField(quests, today, {open.title, done.title, setAside.title});
+    done.lastDoneDay = Days.key(today);
+    setAside.snoozedDay = Days.key(today);
+    final opened = <Quest>[];
+    var boardOpens = 0;
+    var persistCount = 0;
+
+    await _pumpGoals(
+      tester,
+      state: state,
+      quests: quests,
+      onPersist: () => persistCount++,
+      onOpenQuest: opened.add,
+      onOpenQuests: () => boardOpens++,
+    );
+
+    final openRow = find.byKey(
+      const ValueKey('goals-today-field-read ten pages'),
+    );
+    final doneRow = find.byKey(
+      const ValueKey('goals-today-field-clear the desk'),
+    );
+    final setAsideRow = find.byKey(
+      const ValueKey('goals-today-field-take a walk'),
+    );
+    expect(openRow, findsOneWidget);
+    expect(doneRow, findsOneWidget);
+    expect(setAsideRow, findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Open Read ten pages Quest',
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(openRow);
+    await tester.tap(openRow);
+    await tester.pumpAndSettle();
+    expect(opened, hasLength(1));
+    expect(identical(opened.single, open), isTrue);
+    expect(boardOpens, 0);
+    expect(persistCount, 0);
+
+    await tester.ensureVisible(doneRow);
+    await tester.tap(doneRow);
+    await tester.pumpAndSettle();
+    expect(opened, hasLength(1));
+    expect(boardOpens, 0);
+    expect(persistCount, 0);
+    await tester.ensureVisible(setAsideRow);
+    await tester.tap(setAsideRow);
+    await tester.pumpAndSettle();
+    expect(opened, hasLength(1));
+    expect(boardOpens, 0);
+    expect(persistCount, 0);
+    expect(find.text('Set aside today'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Take a walk, set aside today',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('See all quests'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -84,6 +84,7 @@ class QuestsPage extends StatefulWidget {
     this.lightDirection,
     this.roomIgniting = false,
     this.roomHearthLit = true,
+    this.focusQuest,
     this.focusQuestTitle,
     this.focusRequestId = 0,
     this.workoutRequestId = 0,
@@ -144,9 +145,12 @@ class QuestsPage extends StatefulWidget {
   /// Direct page previews retain a lit hearth; the real shell starts dark.
   final bool roomHearthLit;
 
-  /// A one-shot handoff from Goals. The requested Quest becomes the first
-  /// actionable card and the board returns to its top so the tap has a visible
-  /// destination rather than merely changing tabs.
+  /// A one-shot handoff from Goals. [focusQuest] keeps the exact live Quest
+  /// when duplicate titles exist; [focusQuestTitle] remains for older callers.
+  /// The requested Quest becomes the first actionable card and the board
+  /// returns to its top so the tap has a visible destination rather than merely
+  /// changing tabs.
+  final Quest? focusQuest;
   final String? focusQuestTitle;
   final int focusRequestId;
 
@@ -261,7 +265,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// the board makes selection immediate without turning a glance into saved
   /// progress. A completed selection remains the acknowledged identity until
   /// the keeper chooses another row.
-  String? _selectedQuestTitle;
+  Quest? _selectedQuest;
+  int _handledFocusRequestId = 0;
+  bool _manualQuestSelection = false;
 
   /// When a weekly quest is cleared on a day other than its anchor, we offer
   /// (gently, inline) to make THIS the day going forward. The candidate quest
@@ -524,13 +530,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _selectQuest(Quest quest) {
-    if (_selectedQuestTitle == quest.title) return;
-    setState(() => _selectedQuestTitle = quest.title);
+    if (identical(_selectedQuest, quest)) return;
+    setState(() {
+      _selectedQuest = quest;
+      _manualQuestSelection = true;
+    });
   }
 
   void _activateQuest(Quest quest, Offset tapPosition) {
-    if (_selectedQuestTitle != quest.title) {
-      setState(() => _selectedQuestTitle = quest.title);
+    if (!identical(_selectedQuest, quest)) {
+      setState(() {
+        _selectedQuest = quest;
+        _manualQuestSelection = true;
+      });
     }
     _completeQuest(quest, tapPosition);
   }
@@ -587,7 +599,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     widget.onBindComplete?.call(_completeQuest);
     widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     Haptics.reduceMotion = _state.reduceMotion;
-    if (widget.focusRequestId > 0) _showFocusedQuest();
+    _acceptFocusRequest();
     if (widget.workoutRequestId > 0) _showRequestedWorkout();
   }
 
@@ -604,6 +616,31 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         );
       }
     });
+  }
+
+  Quest? _requestedQuest() {
+    if (widget.focusQuest != null) {
+      for (final quest in widget.quests) {
+        if (identical(quest, widget.focusQuest)) return quest;
+      }
+      return null;
+    }
+    final title = widget.focusQuestTitle?.trim().toLowerCase();
+    if (title == null || title.isEmpty) return null;
+    for (final quest in widget.quests) {
+      if (quest.title.trim().toLowerCase() == title) return quest;
+    }
+    return null;
+  }
+
+  void _acceptFocusRequest() {
+    if (widget.focusRequestId == _handledFocusRequestId) return;
+    _handledFocusRequestId = widget.focusRequestId;
+    _manualQuestSelection = false;
+    _selectedQuest = _requestedQuest();
+    if (widget.focusRequestId > 0 && _selectedQuest != null) {
+      _showFocusedQuest();
+    }
   }
 
   void _showRequestedWorkout() {
@@ -641,7 +678,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (old.onBindOpenWorkout != widget.onBindOpenWorkout) {
       widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     }
-    if (old.focusRequestId != widget.focusRequestId) _showFocusedQuest();
+    if (old.focusRequestId != widget.focusRequestId) _acceptFocusRequest();
     if (old.workoutRequestId != widget.workoutRequestId) {
       _showRequestedWorkout();
     }
@@ -2991,19 +3028,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             if (_showOptionalField) ...optionalVisible,
           ]
         : List<Quest>.of(fullVisible);
-    final requestedTitle = widget.focusQuestTitle?.trim().toLowerCase();
-    if (requestedTitle != null && requestedTitle.isNotEmpty) {
-      Quest? requested;
-      for (final quest in fullVisible) {
-        if (quest.title.trim().toLowerCase() == requestedTitle) {
-          requested = quest;
-          break;
-        }
-      }
-      if (requested != null && !requested.doneFor(now) && !requested.allDay) {
-        visible.remove(requested);
-        visible.insert(0, requested);
-      }
+    final requestedQuest = _requestedQuest();
+    if (requestedQuest != null &&
+        !_manualQuestSelection &&
+        !requestedQuest.doneFor(now) &&
+        !requestedQuest.allDay) {
+      visible.remove(requestedQuest);
+      visible.insert(0, requestedQuest);
     }
     final visibleRemaining = visible.where((q) => !q.doneFor(now)).length;
     final remaining = showingDailyField ? _remainingToday() : visibleRemaining;
@@ -3066,12 +3097,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final firstVisibleActionable = visible.indexWhere(
       (q) => !q.doneFor(now) && !q.allDay,
     );
-    final selectedVisible = _selectedQuestTitle == null
-        ? null
-        : visible.cast<Quest?>().firstWhere(
-            (q) => q?.title == _selectedQuestTitle,
-            orElse: () => null,
-          );
+    final selectedVisible =
+        _selectedQuest != null &&
+            visible.any((quest) => identical(quest, _selectedQuest))
+        ? _selectedQuest
+        : null;
     final featuredQuest = selectedVisible != null
         ? (!selectedVisible.doneFor(now) ? selectedVisible : null)
         : (firstVisibleActionable >= 0
@@ -3638,10 +3668,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             final q = visible[remaining == 0 ? i - 1 : i];
                             final isDone = q.doneFor(now);
                             final isFeatured = identical(q, featuredQuest);
+                            final titleOccurrences = visible
+                                .where((quest) => quest.title == q.title)
+                                .length;
+                            final cardKey = titleOccurrences == 1
+                                ? 'card-${q.title}'
+                                : 'card-${q.title}-${widget.quests.indexOf(q)}';
                             final Widget card = QuestCard(
                               // stable key so a card's squash/state follows it as the list
                               // re-sorts a finished quest down to the bottom
-                              key: ValueKey('card-${q.title}'),
+                              key: ValueKey(cardKey),
                               featuredAnchor: isFeatured
                                   ? _featuredAnchor
                                   : null,
@@ -3669,11 +3705,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             );
                             final requested =
                                 widget.focusRequestId > 0 &&
-                                widget.focusQuestTitle != null &&
-                                q.title.trim().toLowerCase() ==
-                                    widget.focusQuestTitle!
-                                        .trim()
-                                        .toLowerCase();
+                                identical(q, requestedQuest);
                             final deliveredCard = requested
                                 ? _QuestArrival(
                                     key: ValueKey(

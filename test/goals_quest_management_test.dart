@@ -11,6 +11,7 @@ import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/screens/goal_wizard.dart';
 import 'package:emberkeep/screens/goals.dart';
 import 'package:emberkeep/screens/quests.dart';
+import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/goal_primary_button.dart';
 import 'package:emberkeep/widgets/workout_flow.dart';
@@ -2467,6 +2468,84 @@ void main() {
       tester.getTopLeft(requestedCard).dy,
       lessThan(tester.getTopLeft(otherCard).dy),
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('quest-board handoff keeps duplicate-title Quest identity', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 8, 25, 10));
+    addTearDown(Clock.reset);
+    final state = GameState()..reduceMotion = true;
+    final first = Quest(title: 'Same task', stat: Stat.dis, difficulty: 1);
+    final requested = Quest(title: 'Same task', stat: Stat.foc, difficulty: 5);
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: QuestsPage(
+            state: state,
+            quests: [first, requested],
+            focusQuest: requested,
+            focusQuestTitle: requested.title,
+            focusRequestId: 1,
+            onRefresh: () => 0,
+            onPersist: () {},
+            onAdd: (_) => true,
+            onRemove: (_) {},
+            onSnapshot: () => '',
+            onRestore: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final requestedCard = find.byKey(const ValueKey('card-Same task-1'));
+    final firstCard = find.byKey(const ValueKey('card-Same task-0'));
+    expect(requestedCard, findsOneWidget);
+    expect(firstCard, findsOneWidget);
+    expect(find.byKey(const ValueKey('quest-arrival-1')), findsOneWidget);
+    expect(
+      tester.getTopLeft(requestedCard).dy,
+      lessThan(tester.getTopLeft(firstCard).dy),
+    );
+    final featured = tester
+        .widgetList<QuestCard>(find.byType(QuestCard))
+        .singleWhere((card) => card.featured);
+    expect(identical(featured.quest, requested), isTrue);
+
+    tester.widget<QuestCard>(firstCard).onSelect!();
+    await tester.pumpAndSettle();
+    final selected = tester
+        .widgetList<QuestCard>(find.byType(QuestCard))
+        .singleWhere((card) => card.featured);
+    expect(identical(selected.quest, first), isTrue);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: QuestsPage(
+            state: state,
+            quests: [first, requested],
+            focusRequestId: 2,
+            onRefresh: () => 0,
+            onPersist: () {},
+            onAdd: (_) => true,
+            onRemove: (_) {},
+            onSnapshot: () => '',
+            onRestore: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final reopened = tester
+        .widgetList<QuestCard>(find.byType(QuestCard))
+        .singleWhere((card) => card.featured);
+    expect(identical(reopened.quest, first), isTrue);
+    expect(find.byKey(const ValueKey('quest-arrival-2')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

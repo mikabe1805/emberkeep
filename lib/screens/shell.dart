@@ -185,6 +185,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
   final Set<int> _visitedTabs = {1};
+  Quest? _focusedQuest;
   String? _focusedQuestTitle;
   String? _pendingGoalOpeningTitle;
   int _questFocusRequest = 0;
@@ -1824,6 +1825,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // one decoded tens of megabytes the person had not asked to see yet.
     Sfx.instance.setInteractionScreen(_soundTabScopes[i]);
     setState(() {
+      if (i == 1 && _focusedQuest != null) {
+        _focusedQuest = null;
+        _focusedQuestTitle = null;
+        _questFocusRequest++;
+      }
       _visitedTabs.add(i);
       _tab = i;
     });
@@ -1833,6 +1839,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void _openQuestFromGoals(Quest quest) {
     Sfx.instance.setInteractionScreen(_soundTabScopes[1]);
     setState(() {
+      _focusedQuest = quest;
       _focusedQuestTitle = quest.title;
       _questFocusRequest++;
       _visitedTabs.add(1);
@@ -1844,6 +1851,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void _openWorkoutFromGoals(Quest launcher) {
     Sfx.instance.setInteractionScreen(_soundTabScopes[1]);
     setState(() {
+      _focusedQuest = launcher;
       _focusedQuestTitle = launcher.title;
       _questFocusRequest++;
       _workoutRequest++;
@@ -1994,6 +2002,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           lightDirection: lightFor(1),
                                           roomIgniting: _roomIgniting,
                                           roomHearthLit: _roomHearthLit,
+                                          focusQuest: _focusedQuest,
                                           focusQuestTitle: _focusedQuestTitle,
                                           focusRequestId: _questFocusRequest,
                                           workoutRequestId: _workoutRequest,

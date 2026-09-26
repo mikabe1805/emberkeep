@@ -1226,6 +1226,7 @@ class _GoalsPageState extends State<GoalsPage> {
           quests: quests,
           day: Clock.now(),
           onChoose: () => _chooseToday(context),
+          onOpenQuest: onOpenQuest,
           onOpenQuests: widget.onOpenQuests,
         );
         final todayFieldCount = selectedDailyFieldForDay(
@@ -2079,11 +2080,13 @@ class _TodayFieldFolio extends StatelessWidget {
     required this.quests,
     required this.day,
     required this.onChoose,
+    required this.onOpenQuest,
     this.onOpenQuests,
   });
   final List<Quest> quests;
   final DateTime day;
   final VoidCallback onChoose;
+  final void Function(Quest quest) onOpenQuest;
   final VoidCallback? onOpenQuests;
 
   @override
@@ -2158,19 +2161,23 @@ class _TodayFieldFolio extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           for (final (index, quest) in field.indexed)
-            _TodayFieldRow(index: index + 1, quest: quest),
+            _TodayFieldRow(
+              index: index + 1,
+              quest: quest,
+              day: day,
+              onOpenQuest: () => onOpenQuest(quest),
+            ),
           const SizedBox(height: 16),
           if (field.isNotEmpty && onOpenQuests != null)
             WorkingAction(
-              label: 'Open today’s quests',
-              primary: true,
+              label: 'See all quests',
               icon: Icons.arrow_forward,
               onTap: onOpenQuests!,
             )
           else if (canChoose)
             _TodayFieldAction(
               key: const Key('goals-choose-today'),
-              label: 'Choose today',
+              label: field.isEmpty ? 'Choose today' : 'Change today',
               onTap: onChoose,
             )
           else
@@ -2185,14 +2192,23 @@ class _TodayFieldFolio extends StatelessWidget {
 }
 
 class _TodayFieldRow extends StatelessWidget {
-  const _TodayFieldRow({required this.index, required this.quest});
+  const _TodayFieldRow({
+    required this.index,
+    required this.quest,
+    required this.day,
+    required this.onOpenQuest,
+  });
   final int index;
   final Quest quest;
+  final DateTime day;
+  final VoidCallback onOpenQuest;
+
   @override
   Widget build(BuildContext context) {
-    final done = quest.doneFor(Clock.now());
-    return Container(
-      key: ValueKey<String>('goals-today-field-${_questTitleKey(quest.title)}'),
+    final done = quest.doneFor(day);
+    final setAside = !done && quest.snoozedDay == Days.key(day);
+    final actionable = !done && !setAside;
+    final row = Container(
       constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: const BoxDecoration(
@@ -2226,18 +2242,65 @@ class _TodayFieldRow extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                if (quest.goalTitle != null || done) ...[
+                if (quest.goalTitle != null || done || setAside) ...[
                   const SizedBox(height: 5),
                   Text(
-                    done ? 'Done today' : quest.goalTitle!,
+                    done
+                        ? 'Done today'
+                        : setAside
+                        ? 'Set aside today'
+                        : quest.goalTitle!,
                     style: Type.body.copyWith(fontSize: 12.5),
                   ),
                 ],
               ],
             ),
           ),
+          if (actionable) ...[
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              size: 19,
+              color: Palette.textMid,
+            ),
+          ],
         ],
       ),
+    );
+    final key = ValueKey<String>(
+      'goals-today-field-${_questTitleKey(quest.title)}',
+    );
+    if (!actionable) {
+      return Semantics(
+        key: key,
+        label:
+            '${quest.displayTitle}, ${done ? 'done today' : 'set aside today'}',
+        child: ExcludeSemantics(child: row),
+      );
+    }
+    return Pressable(
+      key: key,
+      material: MaterialSound.glass,
+      interactionSound: InteractionSound.navigate,
+      pressDepth: 1,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(4),
+      guardRapidReentry: true,
+      semanticLabel: 'Open ${quest.displayTitle} Quest',
+      semanticHint: 'Open this Quest from today’s three.',
+      onTapUp: (_) => onOpenQuest(),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          AnimatedContainer(
+            duration: pressed ? Duration.zero : Motion.ack,
+            curve: Motion.respond,
+            color: pressed
+                ? Palette.xpLight.withValues(alpha: 0.10)
+                : focused || hovered
+                ? Palette.xpLight.withValues(alpha: 0.05)
+                : Colors.transparent,
+            child: child,
+          ),
+      child: ExcludeSemantics(child: row),
     );
   }
 }
