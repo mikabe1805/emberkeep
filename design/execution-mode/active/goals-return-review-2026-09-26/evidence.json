@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-return-review-2026-09-26",
+  "brief_sha256": "fc1e5527b94d0524f2efa5a80e94a39a4ff5a0458bc894e388c0d9e555d15675",
+  "phase": "slice",
+  "implementation_revision": "commit:29e1993d3cf21ea44e2449baebb5e8326672ed24",
+  "revision_captured_at": "2026-09-26T14:16:18-04:00",
+  "checks": [
+    {
+      "id": "slice-return-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the focused daily-field widget journey from an active Goal through review and Cancel, then inspect the active return capture.",
+      "input_state": "Active Goal, current Quest, selected daily field, persisted quest list, and existing recovery control.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "The active Goal keeps the current Quest first and exposes one Today’s three entry without a duplicated field card; Cancel preserves priority and persistence.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Active return, review entry, and Cancel/no-mutation boundary",
+          "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
+          "generated_at": "2026-09-26T14:32:50-04:00",
+          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-return-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Exercise normal and compact entry, selected state, Cancel/back, and the focused recovery regression tests.",
+      "input_state": "320x568 at 1.5x text with one selected Quest and Reduced Motion; active recovery fixtures.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "The selected compact entry has a count-aware semantic label, Today and Workshop targets are each at least 44 by 44, and existing recovery behavior remains green.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Compact selected field, accessibility geometry, Cancel, and focused recovery",
+          "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
+          "generated_at": "2026-09-26T14:32:50-04:00",
+          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-return-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect freshly regenerated active and narrow selected Goals captures from the changed branch.",
+      "input_state": "430x932 active Goal with two selected field items; 320x568 at 1.5x text with one selected field item.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "The ordinary view has one focused surface with an inline Today’s three review action; the narrow view keeps full Goal and Quest copy and uses a restrained walnut/brass count chip rather than a red badge.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Active Goal with inline Today’s three review entry",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-09-26T14:33:32-04:00",
+          "content_sha256": "46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Narrow 1.5x selected-field header with count chip",
+          "path": "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
+          "generated_at": "2026-09-26T14:33:29-04:00",
+          "content_sha256": "c32480c22dc1df6a54cc112d72c744f52ef2641f3ce2936a56406b48db6e1e95",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-active-return",
+      "requirement_id": "state:active-return",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the fresh 430x932 active Goal capture.",
+      "input_state": "Current Quest, two selected daily-field items, and existing recovery action.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "Today's three is an inline contextual action beside Review goal and Make this smaller; field rows are not duplicated above the current Quest.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "430x932 active return hierarchy",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-09-26T14:33:32-04:00",
+          "content_sha256": "46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-narrow-selected-return",
+      "requirement_id": "state:narrow-selected-return",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the fresh selected 320x568/1.5x Goal capture and focused geometry/semantics assertions.",
+      "input_state": "Reduced Motion, one selected daily-field Quest, and large accessibility text.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "The header retains usable Today and Workshop controls, announces one selected item, and leaves the full Goal and current Quest readable without a text-scale cap.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "320x568/1.5x selected return",
+          "path": "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
+          "generated_at": "2026-09-26T14:33:29-04:00",
+          "content_sha256": "c32480c22dc1df6a54cc112d72c744f52ef2641f3ce2936a56406b48db6e1e95",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "44 px target and count-label assertions",
+          "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
+          "generated_at": "2026-09-26T14:32:50-04:00",
+          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-review-cancel-boundary",
+      "requirement_id": "state:review-cancel-boundary",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Open the existing picker from both return entries, cancel, and assert persistence and priority remain unchanged.",
+      "input_state": "Active Goal and existing Quest list before any daily-field save.",
+      "inspected_by": "slice author and independent root QA reviewer",
+      "observation": "Cancel returns to the active Goal without changing priority or calling persistence; selected field state remains reviewable when present.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Cancel/back state boundary",
+          "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
+          "generated_at": "2026-09-26T14:32:50-04:00",
+          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Independent root QA reviewer",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-return-product",
+      "slice-return-interaction",
+      "slice-return-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_narrow_large_text_320x568.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The initial compact icon padding could produce less than a 44 px touch target, while the default count badge could read generic bright red and did not communicate selection count accessibly.",
+        "disposition": "resolved",
+        "evidence": "Commit 29e1993 adds explicit 44 by 44 targets, dark walnut/brass count chip, count-aware semantic label, assertions, and the refreshed narrow selected render."
+      }
+    ]
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "Owner checkpoint is pending: no explicit owner decision has been made on this current exploratory direction."
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-physical-return-review",
+      "gate": "Owner review of the current active and narrow selected return journey on a physical phone",
+      "why": "Desktop captures and deterministic tests cannot establish thumb hierarchy, OLED value separation, real scrolling, or whether the first frame feels useful on return.",
+      "owner_or_system": "Owner and physical device",
+      "next_action": "Review the two current captures and use the same journey on the owner's phone before any expansion or release decision.",
+      "blocking": true
+    }
+  ],
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Physical-phone review is pending."
+    }
+  }
+}

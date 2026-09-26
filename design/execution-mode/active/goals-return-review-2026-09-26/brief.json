@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "goals-return-review-2026-09-26",
+  "project": "Room of Days",
+  "change_class": "new_direction",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-09-26T14:32:00-04:00",
+  "surface": "Active Goals return surface and today's three review entry",
+  "scope": "Explore one production-equivalent return slice only: the active Goal keeps the exact current Quest and its quiet recovery action in one focused surface; Today's three is reachable once, inline at ordinary size and by one compact header control at narrow large text. Do not add a duplicate field card, change the recovery state model, or expand into goal creation and other Goals routes.",
+  "user_job": "When returning to an active Goal, immediately see the exact current Quest, understand that today's three can be reviewed or chosen, and recover quietly when that Quest does not fit.",
+  "active_sources": [
+    {
+      "id": "current-owner-request",
+      "kind": "owner_request",
+      "location": "design/execution-mode/active/goals-return-review-2026-09-26/source.md",
+      "content_sha256": "d62b1bc29e0e84c4b46434b59034761ebb25b3340791b92f468bf9b324d68459",
+      "approved_at": "2026-09-26",
+      "judged_state": "A request to begin harness-informed UI and UX improvements in Room of Days, scoped here to Goals return and review.",
+      "viewport": "430x932 normal and 320x568 at 1.5x text",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/execution-mode/active/goals-recovery-loop/brief.json",
+      "reason": "Its locked raw source digest no longer matches the durable source, so this exploratory return slice cannot inherit that record or its checkpoint."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The active Goal shows the exact current Quest first. Today's three remains a single choose-or-review destination, while the existing recovery relationship stays beside the Quest.",
+      "proof": "Drive an active Goal with a selected daily field and confirm the current Quest, review entry, and recovery action coexist without a second field summary or changed Quest state."
+    },
+    "interaction": {
+      "decision": "At ordinary size, Today's three is a quiet inline action in the focused Goal. At 320x568 with 1.5x text, one 44 px calendar control opens the same existing picker and states its selected count semantically.",
+      "proof": "Exercise choose, review, Cancel/back, and narrow large-text entry; assert Cancel leaves priority and persistence unchanged, controls are 44 px, and selected count is exposed."
+    },
+    "visual": {
+      "decision": "There is one focused return surface. The exact Quest keeps the honey action; Today's three stays subdued, and a selected compact count uses walnut and brass rather than a generic bright-red badge.",
+      "proof": "Inspect fresh 430x932 and selected 320x568/1.5x renders for first-frame hierarchy, readable untruncated Goal and Quest copy, one Today destination, and restrained count treatment."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Place a standalone Today’s Field card above the active Goal and repeat the full field lower on the page.",
+      "why": "It repeats the destination, pushes the exact Quest below the fold, and recreates the prior rearranged-furniture failure."
+    },
+    {
+      "fallback": "Hide Today's three behind a generic overflow route at narrow text sizes.",
+      "why": "A returner cannot discover or review the chosen field when it matters most."
+    },
+    {
+      "fallback": "Clamp text scale or ellipsize the Goal and current Quest to make the header fit.",
+      "why": "It hides the exact recovery-relevant content at the user's chosen accessibility size."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person returns to an active apartment Goal with one selected daily Quest, sees the exact current Quest first, reviews today's three from the compact calendar control, then cancels and returns without a priority or persistence mutation.",
+    "real_inputs": "An active Goal, a current Quest, one selected daily-field Quest, the existing persisted quest list, Reduced Motion, and a 320x568 logical phone at 1.5x text.",
+    "user_action": "Open Today's three from the active Goal or compact header, inspect the existing chooser, then choose Cancel/back.",
+    "expected_outcome": "The person retains the same selected field and current Quest, sees no duplicate field card, and can still use the existing quiet recovery action.",
+    "state_boundary": "Cancel/back must leave the selected Quest priority and persistence count unchanged; choosing a field continues to use the existing daily-field authority.",
+    "required_states": [
+      {
+        "id": "active-return",
+        "state": "430x932 active Goal with current Quest, review entry, and recovery action.",
+        "why_can_disprove": "A second field card or a competing first-frame action would make the return surface less useful."
+      },
+      {
+        "id": "narrow-selected-return",
+        "state": "320x568 at 1.5x text with a selected daily field and compact header control.",
+        "why_can_disprove": "The exact Quest can fall below the fold, text can be hidden, or the compact control can be too small or visually generic."
+      },
+      {
+        "id": "review-cancel-boundary",
+        "state": "Existing daily-field picker opened from return, then dismissed without saving.",
+        "why_can_disprove": "A visually plausible review entry could silently change priority or persistence on cancellation."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "active-goal-return",
+      "surface_or_primitive": "Focused active Goal card",
+      "state": "Current Quest with selected or unselected daily field",
+      "expected_effect": "One quiet review entry sits with the exact Quest and recovery action without repeating field rows.",
+      "verification_plan": "Inspect the 430x932 active Goals capture and focused choose-today widget test.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "compact-header-access",
+      "surface_or_primitive": "Goals heading controls",
+      "state": "320x568 at 1.5x text, selected field, and Reduced Motion",
+      "expected_effect": "Workshop and Today controls remain 44 px; Today announces and shows its selected count without a red badge.",
+      "verification_plan": "Assert target geometry and semantics, then inspect the narrow selected render.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "recovery-continuity",
+      "surface_or_primitive": "Existing Make this smaller recovery action",
+      "state": "Focused recovery interaction before and after return review work",
+      "expected_effect": "The return slice retains the exact Quest/recovery relationship and no-op recovery behavior.",
+      "verification_plan": "Run the focused recovery tests against the changed branch.",
+      "disposition": "inherits",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the new first-frame ordering and compact count feel more useful than distracting on the owner's physical phone while returning on a real difficult day.",
+  "decisive_check": {
+    "method": "Use the active Goal in hand on a physical phone at ordinary and enlarged text, review Today's three, cancel, and compare the first-frame action hierarchy with the exact Quest and recovery control.",
+    "target": "One active Goal, one selected daily-field Quest, 430x932 normal and 320x568/1.5x-equivalent physical-phone use, plus the existing recovery path.",
+    "pass_condition": "The current Quest is immediately useful, Today’s three is available once and reads as a quiet review destination, recovery remains discoverable, and neither copy nor touch targets feel compromised."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/goals.dart",
+      "test/goals_choose_today_test.dart",
+      "test/goals_quest_management_test.dart",
+      "test/screenshots_test.dart",
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
+      "test/goldens/goals_return_2x_text_top_320x568.png",
+      "test/goldens/goals_today_field_narrow_large_text_320x568.png",
+      "test/goldens/goals_workshop_owned_narrow_large_text_320x568.png"
+    ],
+    "exclude": [
+      "test/failures"
+    ]
+  }
+}
