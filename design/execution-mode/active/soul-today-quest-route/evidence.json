@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "brief_id": "soul-today-quest-route-2026-09-26",
+  "brief_sha256": "5d98f3841425904adf95eb3baa948fb5e1f9f257ead782ae29ac5e923712a7e0",
+  "phase": "slice",
+  "implementation_revision": "commit:a35a41b6c9859e692f5c5ea694938b0e800b76c0",
+  "revision_captured_at": "2026-09-26T19:54:23-04:00",
+  "checks": [
+    {
+      "id": "slice-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run selected-field, board identity, and full AppShell journey tests; inspect ordinary after capture.",
+      "input_state": "Saved dated field with available, completed and set-aside Quests; duplicate-title board; stored AppShell Goals to Quests roundtrip.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "Only the available row enters work. The actual selected live Quest arrives first and featured; a later ordinary visit restores commitment-first ordering. Completion and set-aside rows do not navigate.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "comparison",
+          "state": "430x932 selected field with an available and completed Quest, same-state before and after",
+          "path": "design/comparisons/2026-09-26/evidence-selected-field-430.png",
+          "generated_at": "2026-09-26T19:54:55-04:00",
+          "content_sha256": "966d23bbef61f9f5ecd8c88b7f734d32977303533fece88bcd544562db9f5183",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Exercise whole-row tap, semantic action, exact callback, duplicate-title selection, and one-shot focus consumption.",
+      "input_state": "430x932 selected field and stored AppShell journey; 320x568 large-text target; set-aside accessibility node.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "Available row has an Open Quest action and a large-text hit area above 44 px. Completed and set-aside rows have no tap action. Selection and persistence remain unchanged by route taps.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect regenerated same-state before and after captures plus the three-row set-aside capture.",
+      "input_state": "430x932 ordinary selected field, 320x568 at 1.5x text, and 430x932 set-aside variant.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "A quiet row arrow leads to the selected work and the generic board footer is visually secondary; titles and statuses remain readable without a stacked gold footer.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "430x932 selected field with an available and completed Quest, same-state before and after",
+          "path": "design/comparisons/2026-09-26/evidence-selected-field-430.png",
+          "generated_at": "2026-09-26T19:54:55-04:00",
+          "content_sha256": "966d23bbef61f9f5ecd8c88b7f734d32977303533fece88bcd544562db9f5183",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "320x568 at 1.5x text selected field, same-state before and after",
+          "path": "design/comparisons/2026-09-26/evidence-selected-field-320-large.png",
+          "generated_at": "2026-09-26T19:54:59-04:00",
+          "content_sha256": "64514cee6974c58fdea9ddde2306bfbf623124ca7988b52c762a007792e07af0",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "430x932 selected field with available, completed, and set-aside Quest rows",
+          "path": "test/goldens/goals_selected_field_set_aside_430x932.png",
+          "generated_at": "2026-09-26T19:54:41-04:00",
+          "content_sha256": "ae5be31694c8a64c28faa90a9104a77a1c58085923e55183d1fdcaa6e96390bc",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-selected-open-and-done",
+      "requirement_id": "state:selected-open-and-done",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect same-state 430x932 before and after comparison.",
+      "input_state": "No active Goal; one available and one completed selected Quest.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "The available row signals onward entry, the completed row retains its check and Done today status, and the field remains one surface.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "430x932 selected field with an available and completed Quest, same-state before and after",
+          "path": "design/comparisons/2026-09-26/evidence-selected-field-430.png",
+          "generated_at": "2026-09-26T19:54:55-04:00",
+          "content_sha256": "966d23bbef61f9f5ecd8c88b7f734d32977303533fece88bcd544562db9f5183",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-narrow-large-text",
+      "requirement_id": "state:narrow-large-text",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect same-state 320x568 at 1.5x text and verify target size in visual fixture.",
+      "input_state": "Reduced Motion, 1.5x text, one available and one completed selected Quest.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "Both Quest titles remain readable; the available row is at least 44 px high and the oversized three-line general CTA is gone.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "320x568 at 1.5x text selected field, same-state before and after",
+          "path": "design/comparisons/2026-09-26/evidence-selected-field-320-large.png",
+          "generated_at": "2026-09-26T19:54:59-04:00",
+          "content_sha256": "64514cee6974c58fdea9ddde2306bfbf623124ca7988b52c762a007792e07af0",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-set-aside-visible",
+      "requirement_id": "state:set-aside-visible",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect final three-row capture and no-tap semantics assertion.",
+      "input_state": "430x932 Goals field with available, completed, and set-aside selected Quests.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "Set-aside row says Set aside today, has no directional arrow, and exposes no tap action.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "430x932 selected field with available, completed, and set-aside Quest rows",
+          "path": "test/goldens/goals_selected_field_set_aside_430x932.png",
+          "generated_at": "2026-09-26T19:54:41-04:00",
+          "content_sha256": "ae5be31694c8a64c28faa90a9104a77a1c58085923e55183d1fdcaa6e96390bc",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-exact-navigation-boundary",
+      "requirement_id": "state:exact-navigation-boundary",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Tap available, completed, and set-aside rows; test duplicate-title board arrival by Quest instance.",
+      "input_state": "Dated field Quest objects and two same-title board Quest objects.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "Only the available Quest routes, and the exact requested instance owns the arrival and featured card even with a title collision.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-shell-roundtrip",
+      "requirement_id": "state:shell-roundtrip",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Restore local save into AppShell, tap selected Goals row, return by dock, then revisit Quests.",
+      "input_state": "Due commitment and selected ordinary Quest loaded into actual shell from local storage.",
+      "inspected_by": "slice author and independent read-only reviewer",
+      "observation": "The live selected instance arrives first and featured; later ordinary Quests visit removes arrival and restores commitment-first order.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Selected-row route, exact live Quest handoff, duplicate titles, set-aside and completed boundaries, and normal return",
+          "path": "design/execution-mode/active/soul-today-quest-route/test-report.md",
+          "generated_at": "2026-09-26T19:55:07-04:00",
+          "content_sha256": "b33099a36a4216353a4d9416e2a019152703852d35a4af6d8c4b454348dcc31b",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "soul_sources read-only subagent",
+    "authored_implementation": false,
+    "result": "pass",
+    "reviewed_check_ids": [
+      "slice-product",
+      "slice-interaction",
+      "slice-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/execution-mode/active/soul-today-quest-route/test-report.md",
+      "design/comparisons/2026-09-26/evidence-selected-field-430.png",
+      "design/comparisons/2026-09-26/evidence-selected-field-320-large.png",
+      "test/goldens/goals_selected_field_set_aside_430x932.png"
+    ],
+    "report_path": "design/execution-mode/active/soul-today-quest-route/independent-critique.md",
+    "findings": [
+      {
+        "finding": "At 320x568 and 1.5x text, the arrow at the far edge of a three-line title feels slightly detached from the row.",
+        "disposition": "accepted",
+        "evidence": "The whole-row target and focus surface are present, titles remain readable, and phone feel remains an explicit owner gate."
+      },
+      {
+        "finding": "The existing Create a goal card remains visually brighter than the selected work in the full Goals frame.",
+        "disposition": "accepted",
+        "evidence": "This is an upstream empty-state hierarchy outside the bounded selected-row route; it is recorded for broader Goals review."
+      }
+    ]
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The owner has not yet reviewed this specific selected-row direction and final visual evidence."
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-slice-verdict",
+      "gate": "Owner review of selected-row direction",
+      "why": "A new direction requires explicit owner feedback on the current slice before expansion.",
+      "owner_or_system": "Mika",
+      "next_action": "Review the 430x932 and narrow comparison and decide whether the row route feels right.",
+      "blocking": true
+    },
+    {
+      "id": "physical-phone-feel",
+      "gate": "Physical phone interaction acceptance",
+      "why": "Widget tests and static captures cannot establish under-finger response, sound, or cohesive feel.",
+      "owner_or_system": "Mika on physical phone",
+      "next_action": "When a build is delivered, tap the available row, return, and inspect completed and set-aside rows.",
+      "blocking": true
+    },
+    {
+      "id": "android-emulator-crash",
+      "gate": "Android virtual-device journey",
+      "why": "The Windows headless QEMU process crashed before the app route could be observed.",
+      "owner_or_system": "Android emulator host",
+      "next_action": "Retry device journey after emulator host crash is resolved; do not count APK build as interaction acceptance.",
+      "blocking": false
+    }
+  ],
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  }
+}

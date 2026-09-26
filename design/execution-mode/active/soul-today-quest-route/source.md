@@ -11,7 +11,7 @@ route is a general Quest-board action. This bounded slice joins a selected
 unfinished row to its exact Quest and leaves completion with the existing
 Quest screen. A completed row stays a record, not a second completion action.
 The daily field also retains a Quest set aside until tomorrow, while the Quest
-board hides it today. That row must say "Set aside today" and stay informational
+board hides it today. That row must say `Set aside today` and stay informational
 so it cannot route to an absent card. The board may contain different Quests
 with the same title; the handoff must preserve the actual Quest instance.
 
