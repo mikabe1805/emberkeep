@@ -4,6 +4,14 @@
 
 > sounds good, can you get that started on the two projects?
 
+> Yes, continue this direction
+
+> Yes, internal TestFlight
+
+The owner gave these approvals on 2026-09-26 at approximately 14:56 EDT after
+reviewing the concrete Goals preview. The first approves this current Goals
+direction; the second authorizes a new internal TestFlight candidate only.
+
 ## Scope interpretation
 
 This exploratory Room of Days slice is limited to the Goals return and review

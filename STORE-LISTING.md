@@ -18,7 +18,7 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 43)
+## App Store What's New — Version 1.0.4 (Build 44)
 
 > Submission hold: paste this only after the signed iPhone archive, real Home
 > Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
@@ -108,7 +108,7 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 43 is an internal candidate for clearer Quests, broader People starters,
+Build 44 is an internal candidate for clearer Quests, broader People starters,
 Goals room travel, and a wider normal-Room music rotation. It includes:
 
 - Complete a straightforward Quest directly from its card in one tap. Manage
@@ -256,7 +256,7 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 43 additions:** Quests expose a clearer direct-completion action and
+- **Build 44 additions:** Quests expose a clearer direct-completion action and
   separate Manage path, People has broader relationship starters, Goals uses
   room travel with Reduced Motion support, and the normal Room music rotation
   now has 22 dry umbrella-brush takes plus Lamp left on. Plans can still review
@@ -711,7 +711,7 @@ device frame and tell these ten moments in one consistent visual language:
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
 - Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
-  A Build 43 submission requires a fresh capture, visual inspection, export,
+  A Build 44 submission requires a fresh capture, visual inspection, export,
   and final manifest-only binding commit after the signed-device gates above;
   the real Home Screen frame must show the new launcher icon and signed widget.
 - The App Store sequence adds three production Goals frames before Plans so the
