@@ -79,9 +79,22 @@ void main() {
       onPersist: () => persistCount++,
     );
 
-    final choose = find.byKey(const Key('goals-choose-today'));
+    expect(find.byKey(const Key('goals-return-ledger')), findsOneWidget);
+    expect(find.text('TODAY’S FIELD'), findsOneWidget);
+    expect(find.byKey(const Key('goals-return-review-today')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('goals-return-ledger'))).dy,
+      lessThan(
+        tester
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('goal-folio-keep a journal')),
+            )
+            .dy,
+      ),
+    );
+
+    final choose = find.byKey(const Key('goals-return-review-today'));
     expect(choose, findsOneWidget);
-    expect(find.text('Choose today'), findsOneWidget);
     await tester.tap(choose);
     await tester.pumpAndSettle();
 
