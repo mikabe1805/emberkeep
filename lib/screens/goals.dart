@@ -1477,7 +1477,7 @@ class _GoalsHeading extends StatelessWidget {
         final compactWorkshop = Pressable(
           key: const Key('goals-open-workshop'),
           material: MaterialSound.glass,
-          interactionSound: InteractionSound.navigate,
+          interactionSound: InteractionSound.select,
           pressDepth: 1,
           edgeColor: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -1502,7 +1502,7 @@ class _GoalsHeading extends StatelessWidget {
         final compactToday = Pressable(
           key: const Key('goals-today-field-header'),
           material: MaterialSound.glass,
-          interactionSound: InteractionSound.navigate,
+          interactionSound: InteractionSound.select,
           pressDepth: 1,
           edgeColor: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -1543,7 +1543,7 @@ class _GoalsHeading extends StatelessWidget {
                         '$todayFieldCount',
                         textAlign: TextAlign.center,
                         style: Type.label.copyWith(
-                          fontSize: 9,
+                          fontSize: Type.minLabel,
                           height: 1,
                           color: Palette.textHi,
                         ),

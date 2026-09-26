@@ -62,7 +62,7 @@ void main() {
     expect(find.text('THE ROOM OPENS WIDER'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+43')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+44')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -154,7 +154,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+43')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+44')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),
