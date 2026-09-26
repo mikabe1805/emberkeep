@@ -212,6 +212,17 @@ def current_revision(root: Path, brief: dict[str, Any]) -> str:
     if not specs:
         raise ValueError("brief.revision_scope.include must name implementation paths")
 
+    # Evidence and review notes are normally committed after the implementation
+    # they describe. Use the last commit that changed the declared scope so a
+    # documentation-only commit cannot invalidate an unchanged slice.
+    scoped_result = subprocess.run(
+        ["git", "-C", str(root), "log", "-1", "--format=%H", "HEAD", "--", *specs],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    scoped_head = scoped_result.stdout.strip() or ("0" * 40)
+
     diff = subprocess.run(
         ["git", "-C", str(root), "diff", "--binary", "HEAD", "--", *specs],
         check=True,
@@ -232,13 +243,36 @@ def current_revision(root: Path, brief: dict[str, Any]) -> str:
         check=True,
         capture_output=True,
     ).stdout
-    untracked = sorted(path for path in untracked_raw.split(b"\0") if path)
+    ignored_raw = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "ls-files",
+            "--others",
+            "--ignored",
+            "--exclude-standard",
+            "-z",
+            "--",
+            *specs,
+        ],
+        check=True,
+        capture_output=True,
+    ).stdout
+    untracked = sorted(
+        {
+            path
+            for raw_paths in (untracked_raw, ignored_raw)
+            for path in raw_paths.split(b"\0")
+            if path
+        }
+    )
 
     if not diff and not untracked:
-        return f"commit:{head}"
+        return f"commit:{scoped_head}"
 
     digest = hashlib.sha256()
-    digest.update(head.encode("ascii"))
+    digest.update(scoped_head.encode("ascii"))
     digest.update(b"\0tracked-diff\0")
     digest.update(diff)
     digest.update(b"\0untracked\0")
