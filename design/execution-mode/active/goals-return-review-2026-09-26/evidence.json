@@ -2,7 +2,7 @@
   "schema_version": 1,
   "brief_id": "goals-return-review-2026-09-26",
   "brief_sha256": "01ad154477bac4171f707d662c1f4a14eee8c53f2de207f3ae0527a1e8fc2710",
-  "phase": "slice",
+  "phase": "handoff",
   "implementation_revision": "commit:29e1993d3cf21ea44e2449baebb5e8326672ed24",
   "revision_captured_at": "2026-09-26T14:16:18-04:00",
   "checks": [
@@ -153,6 +153,71 @@
           "data_source": "test_output"
         }
       ]
+    },
+    {
+      "id": "ripple-active-goal-return",
+      "requirement_id": "ripple:active-goal-return",
+      "phase": "expansion",
+      "evidence_layer": "rendered",
+      "method": "Reinspect the active return capture against the single-surface contract.",
+      "input_state": "430x932 active Goal with a selected daily field and current Quest.",
+      "inspected_by": "slice author",
+      "observation": "The active Goal retains one inline Today’s three route and the existing recovery action without a second field card.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [{"kind":"render","state":"Active Goal return","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T14:33:32-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
+    },
+    {
+      "id": "ripple-compact-header-access",
+      "requirement_id": "ripple:compact-header-access",
+      "phase": "expansion",
+      "evidence_layer": "automated",
+      "method": "Run compact target and semantics assertions, then inspect the selected narrow capture.",
+      "input_state": "320x568 at 1.5x text with one selected daily-field Quest.",
+      "inspected_by": "slice author",
+      "observation": "Both compact controls are 44 px and Today announces selected count with a restrained count chip.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [{"kind":"test_report","state":"Compact accessibility assertions","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
+    },
+    {
+      "id": "ripple-recovery-continuity",
+      "requirement_id": "ripple:recovery-continuity",
+      "phase": "expansion",
+      "evidence_layer": "automated",
+      "method": "Run the focused recovery regression suite on this branch.",
+      "input_state": "Focused leave-unchanged and reviewed-smaller-cut recovery fixtures.",
+      "inspected_by": "slice author",
+      "observation": "Both focused recovery paths pass and retain their established current-Quest relationship.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [{"kind":"test_report","state":"Focused recovery regression","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
+    },
+    {
+      "id": "final-comparison",
+      "requirement_id": "final:comparison",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Directly inspect fresh active and narrow selected Goals captures from the unchanged scoped implementation.",
+      "input_state": "430x932 active return and 320x568/1.5x selected return.",
+      "inspected_by": "slice author",
+      "observation": "The captured implementation has one return surface, readable full text, and the compact count treatment described by the locked brief.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [{"kind":"render","state":"Final active return comparison","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T14:33:32-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
+    },
+    {
+      "id": "final-code-complete",
+      "requirement_id": "final:code-complete",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run analyzer, focused daily-field, focused recovery, and the six-state Goals capture suite.",
+      "input_state": "Current scoped Goals source at commit 29e1993.",
+      "inspected_by": "slice author",
+      "observation": "All named deterministic checks passed; no analyzer issues were reported.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [{"kind":"test_report","state":"Final scoped deterministic receipt","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
     }
   ],
   "independent_critique": {
