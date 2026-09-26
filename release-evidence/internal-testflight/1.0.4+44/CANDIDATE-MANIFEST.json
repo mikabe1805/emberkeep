@@ -2,8 +2,8 @@
   "schema": 1,
   "candidate": {
     "version": "1.0.4+44",
-    "sourceRevision": "8f425339fe53ffaa25cdce5412166d74469afa24",
-    "tag": "room-of-days-1.0.4-build-44-internal-candidate-retry-1"
+    "sourceRevision": "a4f86a31869b8cfb8f0194f05028e73f05f85c31",
+    "tag": "room-of-days-1.0.4-build-44-internal-candidate-retry-2"
   },
   "purpose": "internal_testflight_device_evidence"
 }
