@@ -26,7 +26,7 @@
   "edge_contract": {
     "product": {
       "decision": "The chosen available row leads to the same Quest instance already in today's field, including when another Quest has the same title. Completed and set-aside rows remain visible records; no row completes or mutates a Quest.",
-      "proof": "Use open, completed, and set-aside selected Quests; assert only the available row dispatches, with no persistence or general-board navigation. On the board, use duplicate titles and assert the exact requested instance owns the arrival and first card."
+      "proof": "Use open, completed, and set-aside selected Quests; assert only the available row dispatches, with no persistence or general-board navigation. Exercise the actual AppShell Goals-to-Quests route and return, and use duplicate titles on the board to prove the requested instance owns the arrival and first card."
     },
     "interaction": {
       "decision": "The whole available row responds at pointer down and exposes an Open Quest semantic action. Completed and set-aside rows have no action. The general board link stays available but quiet.",
@@ -77,6 +77,11 @@
         "id": "exact-navigation-boundary",
         "state": "Tap available, completed, and set-aside rows, then hand off among duplicate-title Quest cards",
         "why_can_disprove": "A plausible tap affordance could route to an absent or wrong Quest or alter selection."
+      },
+      {
+        "id": "shell-roundtrip",
+        "state": "Stored selected Quest enters Quests from Goals, then a later ordinary Quests tab visit",
+        "why_can_disprove": "The shell could drop live Quest identity or leave a one-shot arrival permanently featured."
       }
     ]
   },
@@ -95,7 +100,7 @@
       "surface_or_primitive": "AppShell Goals-to-Quests request and QuestsPage arrival card",
       "state": "Two visible Quest objects with the same title",
       "expected_effect": "The exact object chosen in Goals is the first and featured arrival card, regardless of title collision.",
-      "verification_plan": "Focused board widget journey using duplicate-title Quest instances and inspected card identity.",
+      "verification_plan": "Focused board widget journey using duplicate-title Quest instances, plus full AppShell stored-state tap and return.",
       "disposition": "update",
       "reason": ""
     },
@@ -131,6 +136,7 @@
       "lib/screens/shell.dart",
       "test/goals_choose_today_test.dart",
       "test/goals_quest_management_test.dart",
+      "test/goals_shell_route_test.dart",
       "test/goals_today_field_visual_test.dart",
       "test/goldens/goals_selected_field_430x932.png",
       "test/goldens/goals_selected_field_320x568_large.png",
