@@ -658,7 +658,7 @@ void main() {
     expect(workflow, contains('routine source/docs pushes remain inert'));
     expect(
       workflow,
-      contains('room-of-days-1.0.4-build-44-internal-candidate-retry-1'),
+      contains('room-of-days-1.0.4-build-44-internal-candidate-retry-2'),
     );
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('submit_to_app_store: false'));

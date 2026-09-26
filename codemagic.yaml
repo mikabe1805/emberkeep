@@ -4,7 +4,7 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. Both Build 40 tags remain
-# immutable history. This corrected candidate permits one exact Build 44 receipt
+# immutable history. This corrected candidate permits one exact Build 44 retry-2 receipt
 # tag so the signed device-evidence build can start without broadening the release
 # channel. No other tag or branch push matches. The final App Store screenshot
 # receipt remains a separate, non-binary gate after the installed widget has been
@@ -53,7 +53,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-44-internal-candidate-retry-1"
+        - pattern: "room-of-days-1.0.4-build-44-internal-candidate-retry-2"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -85,7 +85,7 @@ workflows:
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
           MANIFEST=release-evidence/internal-testflight/1.0.4+44/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-44-internal-candidate-retry-1"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-44-internal-candidate-retry-2"
           test "$(jq -er '.candidate.tag' "$MANIFEST")" = "$CM_TAG"
           test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+44"
           test "$(jq -er '.purpose' "$MANIFEST")" = "internal_testflight_device_evidence"

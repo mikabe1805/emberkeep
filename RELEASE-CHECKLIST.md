@@ -1,9 +1,34 @@
 # Room of Days Release Checklist
 
-Updated September 21, 2026. “Repository-ready” means the source is prepared; it does
+Updated September 26, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+43 current-experience internal candidate
+## 1.0.4+44 corrected internal candidate — retry 2
+
+This candidate carries the approved Goals return work and corrects the compact
+Today control and the release-blocking test contracts. The exact permitted tag
+is `room-of-days-1.0.4-build-44-internal-candidate-retry-2`. Retry 1 failed
+before signing or Apple upload, so the Apple build number remains 44.
+
+- [x] Pass the complete regression suite on the corrected source (1,190 tests
+  on September 26), then freeze that source revision.
+- [ ] Update only
+  `release-evidence/internal-testflight/1.0.4+44/CANDIDATE-MANIFEST.json`
+  in a receipt child, binding `sourceRevision` to that source and its tag to
+  retry 2. The retry-1 receipt stays available at its immutable tag.
+- [ ] Push the exact retry-2 receipt tag once. Confirm Codemagic completes,
+  Apple processes the upload, and the build attaches to internal group `Me`.
+- [ ] Install that exact processed build for the acceptance runbook before any
+  App Store review action.
+
+## 1.0.4+44 retry-1 internal candidate — failed, superseded
+
+The source `8f425339fe53ffaa25cdce5412166d74469afa24` and receipt
+`524d22b781d41223ed144ec5bcb08ff55eb44d24` remain bound to the immutable
+tag `room-of-days-1.0.4-build-44-internal-candidate-retry-1`. Codemagic failed
+at the complete app regression step; no signed IPA reached Apple.
+
+## 1.0.4+43 current-experience internal candidate — superseded
 
 Build 43 carries the current approved experience forward from Build 42: the
 clearer Quest hierarchy and truthful one-tap completion path, broader People
