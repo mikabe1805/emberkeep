@@ -2863,40 +2863,20 @@ void main() {
           'goldens/goals_personal_index_narrow_large_text_320x568.png',
         ),
       );
-      await tester.scrollUntilVisible(
-        find.byKey(const Key('goals-today-field')),
-        220,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.tap(find.byKey(const Key('goals-today-field-header')));
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
           'goldens/goals_today_field_narrow_large_text_320x568.png',
         ),
       );
-      tester
-          .state<ScrollableState>(find.byType(Scrollable).first)
-          .position
-          .jumpTo(0);
+      await tester.ensureVisible(find.text('Cancel'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
     }
     expect(tester.takeException(), isNull);
-    final workshop = find.text('Workshop');
-    await tester.scrollUntilVisible(
-      workshop,
-      220,
-      scrollable: find.descendant(
-        of: find.byKey(const Key('goals-threshold-scroll')),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await Scrollable.ensureVisible(
-      tester.element(workshop),
-      alignment: 0.35,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    final workshop = find.byKey(const Key('goals-open-workshop'));
     await tester.tap(workshop);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
@@ -3964,20 +3944,13 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/goals_personal_index_active_430x932.png'),
       );
-      await tester.scrollUntilVisible(
-        find.byKey(const Key('goals-today-field')),
-        260,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pump(const Duration(milliseconds: 120));
+      await tester.tap(find.byKey(const Key('goals-today-field-action')));
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/goals_today_field_430x932.png'),
       );
-      tester
-          .state<ScrollableState>(find.byType(Scrollable).first)
-          .position
-          .jumpTo(0);
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
     }
     if (storeCapture) {

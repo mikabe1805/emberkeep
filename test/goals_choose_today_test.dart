@@ -79,22 +79,16 @@ void main() {
       onPersist: () => persistCount++,
     );
 
-    expect(find.byKey(const Key('goals-return-ledger')), findsOneWidget);
-    expect(find.text('TODAY’S FIELD'), findsOneWidget);
-    expect(find.byKey(const Key('goals-return-review-today')), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.byKey(const Key('goals-return-ledger'))).dy,
-      lessThan(
-        tester
-            .getTopLeft(
-              find.byKey(const ValueKey<String>('goal-folio-keep a journal')),
-            )
-            .dy,
-      ),
-    );
-
-    final choose = find.byKey(const Key('goals-return-review-today'));
+    final choose = find.byKey(const Key('goals-today-field-action'));
     expect(choose, findsOneWidget);
+    await tester.tap(choose);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(persistCount, 0);
+    expect(quests.every((quest) => quest.priorityDay == null), isTrue);
+
     await tester.tap(choose);
     await tester.pumpAndSettle();
 
@@ -115,25 +109,8 @@ void main() {
     expect(quests[2].priorityDay, Days.key(today));
     expect(quests[2].priorityRank, 2);
     expect(quests[0].priorityDay, isNull);
-    expect(
-      find.text('0 of 2 complete · the rest of the day stays open'),
-      findsOneWidget,
-    );
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('goals-today-field')),
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(find.byKey(const Key('goals-reshape-today')), findsOneWidget);
-    expect(find.text('Today’s three'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('goals-today-field-read ten pages')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('goals-today-field-clear the desk')),
-      findsOneWidget,
-    );
+    expect(find.text('Today’s three · 2'), findsOneWidget);
+    expect(find.byKey(const Key('goals-today-field')), findsNothing);
   });
 
   testWidgets('Today’s field reflows on a narrow large-text phone', (
@@ -162,15 +139,9 @@ void main() {
       size: const Size(320, 568),
       textScale: 1.5,
     );
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('goals-today-field')),
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-
-    expect(find.text('Today’s three'), findsOneWidget);
-    expect(find.byKey(const Key('goals-choose-today')), findsOneWidget);
+    final choose = find.byKey(const Key('goals-today-field-header'));
+    expect(choose, findsOneWidget);
+    expect(tester.getCenter(choose).dy, lessThan(568));
     expect(tester.takeException(), isNull);
   });
 }

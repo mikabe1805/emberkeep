@@ -1228,12 +1228,11 @@ class _GoalsPageState extends State<GoalsPage> {
           onChoose: () => _chooseToday(context),
           onOpenQuests: widget.onOpenQuests,
         );
+        final todayFieldCount = selectedDailyFieldForDay(
+          quests,
+          Clock.now(),
+        ).length;
         if (focus != null) {
-          final returnLedger = _GoalsReturnLedger(
-            quests: quests,
-            day: Clock.now(),
-            onReviewToday: () => _chooseToday(context),
-          );
           final focusScene = _LivingGoalFocus(
             key: ValueKey<String>('goal-folio-${_questTitleKey(focus.title)}'),
             state: state,
@@ -1266,11 +1265,11 @@ class _GoalsPageState extends State<GoalsPage> {
               focus: null,
               onNewGoal: () => _openQuickCreate(context),
               onWorkshop: () => _openWorkshop(context, focus),
+              onChooseToday: () => _chooseToday(context),
+              todayFieldCount: todayFieldCount,
             ),
             reduceMotion: state.reduceMotion,
-            returnLedger: returnLedger,
             focus: focusScene,
-            todayField: todayField,
             support: _GoalSupportTray(
               initiallyExpanded: false,
               reduceMotion: state.reduceMotion,
@@ -1321,6 +1320,8 @@ class _GoalsPageState extends State<GoalsPage> {
           heading: _GoalsHeading(
             focus: null,
             onWorkshop: () => _openWorkshop(context),
+            onChooseToday: () => _chooseToday(context),
+            todayFieldCount: todayFieldCount,
             onNewGoal: state.goals.isEmpty
                 ? null
                 : () => _openQuickCreate(context),
@@ -1417,11 +1418,15 @@ class _GoalsHeading extends StatelessWidget {
     required this.focus,
     required this.onNewGoal,
     required this.onWorkshop,
+    this.onChooseToday,
+    this.todayFieldCount = 0,
   });
 
   final Goal? focus;
   final VoidCallback? onNewGoal;
   final VoidCallback onWorkshop;
+  final VoidCallback? onChooseToday;
+  final int todayFieldCount;
 
   @override
   Widget build(BuildContext context) {
@@ -1469,21 +1474,57 @@ class _GoalsHeading extends StatelessWidget {
         final stacked =
             constraints.maxWidth < 360 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.2;
+        final compactWorkshop = Pressable(
+          key: const Key('goals-open-workshop'),
+          material: MaterialSound.glass,
+          interactionSound: InteractionSound.navigate,
+          pressDepth: 1,
+          edgeColor: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          semanticLabel: 'Workshop',
+          semanticHint: 'Open the steward’s workshop.',
+          onTapUp: (_) => onWorkshop(),
+          child: const Padding(
+            padding: EdgeInsets.all(8),
+            child: Icon(
+              Icons.storefront_outlined,
+              size: 20,
+              color: Palette.textMid,
+            ),
+          ),
+        );
+        final compactToday = Pressable(
+          key: const Key('goals-today-field-header'),
+          material: MaterialSound.glass,
+          interactionSound: InteractionSound.navigate,
+          pressDepth: 1,
+          edgeColor: Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          semanticLabel: 'Choose today’s three',
+          semanticHint:
+              'Choose up to three quests to carry. Everything else stays optional.',
+          onTapUp: (_) => onChooseToday?.call(),
+          child: const Padding(
+            padding: EdgeInsets.all(8),
+            child: Icon(Icons.today_outlined, size: 20, color: Palette.xpLight),
+          ),
+        );
+        final compactTodayWithCount = todayFieldCount == 0
+            ? compactToday
+            : Badge.count(count: todayFieldCount, child: compactToday);
         final heading = Row(
           children: [
             Expanded(child: title),
             if (!stacked) workshop,
+            if (stacked) compactWorkshop,
+            if (stacked && onChooseToday != null) compactTodayWithCount,
             if (onNewGoal case final create?) ...[
               const SizedBox(width: 6),
               _NewGoalButton(onTap: create),
             ],
           ],
         );
-        if (!stacked) return heading;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [heading, workshop],
-        );
+        return heading;
       },
     );
   }
@@ -1936,124 +1977,49 @@ class _GoalsThresholdPage extends StatelessWidget {
     required this.heading,
     required this.reduceMotion,
     required this.focus,
-    required this.todayField,
     required this.support,
-    this.returnLedger,
+    this.todayField,
     this.otherGoals,
     this.arrivals,
   });
   final bool reduceMotion;
-  final Widget heading, focus, todayField, support;
-  final Widget? returnLedger, otherGoals, arrivals;
-  @override
-  Widget build(BuildContext context) => WorkingScene(
-    child: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          key: const Key('goals-threshold-scroll'),
-          padding: const EdgeInsets.fromLTRB(18, 62, 18, 132),
-          children: [
-            heading,
-            if (returnLedger != null) ...[
-              const SizedBox(height: 18),
-              returnLedger!,
-            ],
-            const SizedBox(height: 24),
-            Text(
-              'THE NEXT THING',
-              style: Type.label.copyWith(color: Palette.xpLight, fontSize: 11),
-            ),
-            const SizedBox(height: 12),
-            focus,
-            const SizedBox(height: 24),
-            todayField,
-            if (otherGoals != null) ...[
-              const SizedBox(height: 18),
-              otherGoals!,
-            ],
-            const SizedBox(height: 24),
-            support,
-            if (arrivals != null) ...[const SizedBox(height: 20), arrivals!],
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// The first small decision when returning to Goals: glance at the day before
-/// the current Quest asks for anything. The full field remains below the
-/// focused goal, where its rows can stay readable and the room's one primary
-/// action remains the exact Quest.
-class _GoalsReturnLedger extends StatelessWidget {
-  const _GoalsReturnLedger({
-    required this.quests,
-    required this.day,
-    required this.onReviewToday,
-  });
-
-  final List<Quest> quests;
-  final DateTime day;
-  final VoidCallback onReviewToday;
-
+  final Widget heading, focus, support;
+  final Widget? todayField, otherGoals, arrivals;
   @override
   Widget build(BuildContext context) {
-    final field = selectedDailyFieldForDay(quests, day);
-    final label = field.isEmpty
-        ? 'Choose today’s three'
-        : 'Review today’s three';
-    final summary = field.isEmpty
-        ? 'Choose up to three quests'
-        : '${field.length} carried quest${field.length == 1 ? '' : 's'}';
-    return WorkingSurface(
-      key: const Key('goals-return-ledger'),
-      child: Pressable(
-        key: const Key('goals-return-review-today'),
-        material: MaterialSound.parchment,
-        soundEnabled: false,
-        pressDepth: 1,
-        edgeColor: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        guardRapidReentry: true,
-        semanticLabel: label,
-        semanticHint:
-            'Open today’s field to choose up to three quests. Everything else stays optional.',
-        onTapUp: (_) => onReviewToday(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Row(
+    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
+    return WorkingScene(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            key: const Key('goals-threshold-scroll'),
+            padding: EdgeInsets.fromLTRB(18, compact ? 36 : 62, 18, 132),
             children: [
-              const Icon(
-                Icons.menu_book_outlined,
-                size: 19,
-                color: Palette.xpLight,
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TODAY’S FIELD',
-                      style: Type.label.copyWith(
-                        fontSize: Type.minLabel,
-                        color: Palette.xpLight,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      summary,
-                      style: Type.body.copyWith(fontSize: 12.5, height: 1.35),
-                    ),
-                  ],
+              heading,
+              SizedBox(height: compact ? 14 : 24),
+              if (!compact) ...[
+                Text(
+                  'THE NEXT THING',
+                  style: Type.label.copyWith(
+                    color: Palette.xpLight,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Palette.textLo,
-                size: 20,
-              ),
+                const SizedBox(height: 12),
+              ],
+              focus,
+              if (todayField != null) ...[
+                const SizedBox(height: 24),
+                todayField!,
+              ],
+              if (otherGoals != null) ...[
+                const SizedBox(height: 18),
+                otherGoals!,
+              ],
+              const SizedBox(height: 24),
+              support,
+              if (arrivals != null) ...[const SizedBox(height: 20), arrivals!],
             ],
           ),
         ),
@@ -2463,11 +2429,13 @@ class _LivingGoalFocus extends StatelessWidget {
     final linked = _questsForGoal(goal, quests);
     final decision = GoalPlanner.decide(goal, quests, Clock.now());
     final next = decision?.quest ?? _nextQuestToday(goal, quests);
+    final todayField = selectedDailyFieldForDay(quests, Clock.now());
     final fallback = _kept(goal.fallbackAction);
     final fallbackCue = _kept(goal.fallbackCue);
     final still =
         state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final compactType = MediaQuery.textScalerOf(context).scale(1) > 1.2;
 
     final actionTitle =
         decision?.actionTitle ??
@@ -2514,7 +2482,7 @@ class _LivingGoalFocus extends StatelessWidget {
                 child: Text(
                   goal.title,
                   style: WorkingType.title.copyWith(
-                    fontSize: 27,
+                    fontSize: compactType ? 23 : 27,
                     height: 1.12,
                     fontWeight: FontWeight.w400,
                   ),
@@ -2549,7 +2517,7 @@ class _LivingGoalFocus extends StatelessWidget {
           Text(
             actionTitle,
             style: WorkingType.title.copyWith(
-              fontSize: 23,
+              fontSize: compactType ? 20 : 23,
               height: 1.2,
               fontWeight: FontWeight.w400,
             ),
@@ -2563,7 +2531,17 @@ class _LivingGoalFocus extends StatelessWidget {
           WorkingAction(label: actionLabel, icon: actionIcon, onTap: action),
           Wrap(
             alignment: WrapAlignment.spaceBetween,
+            spacing: 2,
+            runSpacing: 0,
             children: [
+              if (!compactType)
+                WorkingAction(
+                  key: const Key('goals-today-field-action'),
+                  label: todayField.isEmpty
+                      ? 'Choose today’s three'
+                      : 'Today’s three · ${todayField.length}',
+                  onTap: onChooseToday,
+                ),
               WorkingAction(
                 label: 'Review goal',
                 onTap: () => _openDetail(context),

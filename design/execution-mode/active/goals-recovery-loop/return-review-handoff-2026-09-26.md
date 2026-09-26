@@ -9,11 +9,13 @@
   exact Quest does not fit, the existing quiet recovery control stays beside
   it.
 
-The existing recovery loop remains the state authority. This slice changes
-the entry hierarchy only: a compact `TODAY'S FIELD` doorway sits above the
-focused Goal, and the complete field remains below it. The doorway intentionally
-does not repeat the field's individual Quests, completion count, or action;
-those live in the one detailed field surface.
+The existing recovery loop remains the state authority. This slice makes the
+focused Goal the single return surface: `Today's three · count` opens the
+existing picker from beside Review and recovery, so the page does not repeat a
+second field card and its Quest rows. At compact large text, the same picker is
+available from the calendar icon in the header; a selected field receives its
+count badge. The Goal and current-Quest text retain the user's chosen text
+scale and may grow or scroll rather than being truncated.
 
 ## Fresh rendered evidence
 
@@ -22,12 +24,21 @@ Generated from this branch with
 
 | State | Viewport | Artifact | SHA-256 |
 | --- | --- | --- | --- |
-| Active Goal and carried field | 430x932 | `test/goldens/goals_personal_index_active_430x932.png` | `17fd7e09cb4061de40c7acdf2177b454bc13bd0e5f0b436803772e433805d9b6` |
-| No carried field, 1.5x text | 320x568 | `test/goldens/goals_personal_index_narrow_large_text_320x568.png` | `611e41aec0acf52547bae4cd339e153e0848659796c2193d7b6a226527741b30` |
+| Active Goal and carried field | 430x932 | `test/goldens/goals_personal_index_active_430x932.png` | `46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d` |
+| No carried field, 1.5x text | 320x568 | `test/goldens/goals_personal_index_narrow_large_text_320x568.png` | `190bf57d21f352a0f7ee954eee765f87f024a151af9ac89479f60fd7913079a5` |
 
-The first frame keeps the detailed Goal and its one honey action ahead of the
-full field. The doorway has no luminous treatment and opens the existing
-choose/review flow.
+The first frame keeps the exact Quest as the one honey action. Today's three
+is a quiet contextual status and opens the existing choose/review flow. The
+compact header reduces navigation to icons and preserves the full text scale in
+the Goal surface.
+
+## Baseline note
+
+The tracked Build 43 painted-room golden was stale. A detached worktree at the
+same `ea3b0ae` revision ran the identical capture command and rendered the
+existing stacked-card Goals UI instead. The baseline capture lives at
+`app/.worktrees/goals-render-baseline/test/goldens/goals_personal_index_active_430x932.png`.
+Only the Goals screenshot states exercised by this changed route were rebased.
 
 ## Checks run
 
@@ -35,6 +46,9 @@ choose/review flow.
 - `flutter test test/goals_choose_today_test.dart`
 - `flutter test test/goals_quest_management_test.dart --name "focused recovery"`
 - focused visual capture suite above (six Goals states)
+
+The day-field test covers header/card entry, Cancel returning without priority
+or persistence mutation, selection, and the compact Reduced Motion fixture.
 
 ## Remaining gate
 
