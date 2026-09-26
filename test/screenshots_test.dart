@@ -2819,6 +2819,7 @@ void main() {
         goalTitle: 'Build a walking habit',
       ),
     ];
+    applyDailyField(quests, Clock.now(), {'Clear the kitchen counter'});
 
     await tester.pumpWidget(
       MaterialApp(

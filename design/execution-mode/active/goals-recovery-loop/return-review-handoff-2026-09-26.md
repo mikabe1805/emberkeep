@@ -13,8 +13,10 @@ The existing recovery loop remains the state authority. This slice makes the
 focused Goal the single return surface: `Today's three · count` opens the
 existing picker from beside Review and recovery, so the page does not repeat a
 second field card and its Quest rows. At compact large text, the same picker is
-available from the calendar icon in the header; a selected field receives its
-count badge. The Goal and current-Quest text retain the user's chosen text
+available from the calendar icon in the header; a selected field receives a
+dark walnut and brass count chip. The compact controls each reserve a 44 px
+target, and the calendar control says how many Quests are selected. The Goal
+and current-Quest text retain the user's chosen text
 scale and may grow or scroll rather than being truncated.
 
 ## Fresh rendered evidence
@@ -25,7 +27,7 @@ Generated from this branch with
 | State | Viewport | Artifact | SHA-256 |
 | --- | --- | --- | --- |
 | Active Goal and carried field | 430x932 | `test/goldens/goals_personal_index_active_430x932.png` | `46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d` |
-| No carried field, 1.5x text | 320x568 | `test/goldens/goals_personal_index_narrow_large_text_320x568.png` | `190bf57d21f352a0f7ee954eee765f87f024a151af9ac89479f60fd7913079a5` |
+| Selected carried field, 1.5x text | 320x568 | `test/goldens/goals_personal_index_narrow_large_text_320x568.png` | `c32480c22dc1df6a54cc112d72c744f52ef2641f3ce2936a56406b48db6e1e95` |
 
 The first frame keeps the exact Quest as the one honey action. Today's three
 is a quiet contextual status and opens the existing choose/review flow. The
@@ -48,7 +50,8 @@ Only the Goals screenshot states exercised by this changed route were rebased.
 - focused visual capture suite above (six Goals states)
 
 The day-field test covers header/card entry, Cancel returning without priority
-or persistence mutation, selection, and the compact Reduced Motion fixture.
+or persistence mutation, selection, a selected-count semantic label, 44 px
+compact targets, and the compact Reduced Motion fixture.
 
 ## Remaining gate
 

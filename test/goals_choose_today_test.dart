@@ -1,5 +1,6 @@
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/day_planning.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/goals.dart';
@@ -130,6 +131,7 @@ void main() {
     final quests = <Quest>[
       Quest(title: 'Name three good things', stat: Stat.intl, difficulty: 1),
     ];
+    applyDailyField(quests, today, {'Name three good things'});
 
     await _pumpGoals(
       tester,
@@ -142,6 +144,20 @@ void main() {
     final choose = find.byKey(const Key('goals-today-field-header'));
     expect(choose, findsOneWidget);
     expect(tester.getCenter(choose).dy, lessThan(568));
+    expect(tester.getSize(choose).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(choose).height, greaterThanOrEqualTo(44));
+    final workshop = find.byKey(const Key('goals-open-workshop'));
+    expect(tester.getSize(workshop).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(workshop).height, greaterThanOrEqualTo(44));
+    expect(selectedDailyFieldForDay(quests, today), hasLength(1));
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Review today’s three, 1 selected',
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

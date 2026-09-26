@@ -1484,15 +1484,21 @@ class _GoalsHeading extends StatelessWidget {
           semanticLabel: 'Workshop',
           semanticHint: 'Open the steward’s workshop.',
           onTapUp: (_) => onWorkshop(),
-          child: const Padding(
-            padding: EdgeInsets.all(8),
-            child: Icon(
-              Icons.storefront_outlined,
-              size: 20,
-              color: Palette.textMid,
+          child: const SizedBox(
+            width: 44,
+            height: 44,
+            child: Center(
+              child: Icon(
+                Icons.storefront_outlined,
+                size: 20,
+                color: Palette.textMid,
+              ),
             ),
           ),
         );
+        final todayLabel = todayFieldCount == 0
+            ? 'Choose today’s three'
+            : 'Review today’s three, $todayFieldCount selected';
         final compactToday = Pressable(
           key: const Key('goals-today-field-header'),
           material: MaterialSound.glass,
@@ -1500,24 +1506,60 @@ class _GoalsHeading extends StatelessWidget {
           pressDepth: 1,
           edgeColor: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          semanticLabel: 'Choose today’s three',
+          semanticLabel: todayLabel,
           semanticHint:
               'Choose up to three quests to carry. Everything else stays optional.',
           onTapUp: (_) => onChooseToday?.call(),
-          child: const Padding(
-            padding: EdgeInsets.all(8),
-            child: Icon(Icons.today_outlined, size: 20, color: Palette.xpLight),
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.today_outlined,
+                  size: 20,
+                  color: Palette.xpLight,
+                ),
+                if (todayFieldCount > 0)
+                  Positioned(
+                    top: 3,
+                    right: 2,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4A321E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Palette.brass.withValues(alpha: 0.72),
+                        ),
+                      ),
+                      child: Text(
+                        '$todayFieldCount',
+                        textAlign: TextAlign.center,
+                        style: Type.label.copyWith(
+                          fontSize: 9,
+                          height: 1,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
-        final compactTodayWithCount = todayFieldCount == 0
-            ? compactToday
-            : Badge.count(count: todayFieldCount, child: compactToday);
         final heading = Row(
           children: [
             Expanded(child: title),
             if (!stacked) workshop,
             if (stacked) compactWorkshop,
-            if (stacked && onChooseToday != null) compactTodayWithCount,
+            if (stacked && onChooseToday != null) compactToday,
             if (onNewGoal case final create?) ...[
               const SizedBox(width: 6),
               _NewGoalButton(onTap: create),
