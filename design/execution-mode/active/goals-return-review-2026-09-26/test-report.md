@@ -1,17 +1,17 @@
 # Goals return and review — current-branch evidence
 
-Recorded 2026-09-26 against implementation commit
-`29e1993d3cf21ea44e2449baebb5e8326672ed24` on
+Refreshed 2026-09-26 against scoped implementation revision
+`commit:ba316fa36f809ee257204f522b6499f744681e7e` on
 `codex/goals-return-harness`. The exploratory implementation preceded this
 record; this file documents the current source and current branch rather than
 claiming that it was built from an earlier accepted record.
 
 ## Deterministic checks
 
-- `flutter analyze lib/screens/goals.dart test/goals_choose_today_test.dart test/screenshots_test.dart` — passed with no issues.
-- `flutter test test/goals_choose_today_test.dart` — passed. It covers card and compact-header entry, Cancel returning without priority or persistence mutation, selected field state, a count-aware semantic label, 44 by 44 compact Today and Workshop targets, and a Reduced Motion 320 by 568/1.5x fixture.
-- `flutter test test/goals_quest_management_test.dart --name "focused recovery"` — passed. It preserves the existing exact recovery behavior, including leave-today-unchanged and reviewed smaller-cut paths.
-- `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/screenshots_test.dart --name "goals personal index"` — passed six Goals states, including the active return surface and selected narrow large-text state.
+- Focused regression set — 61 tests passed: `readability_tokens_test`, `release_native_privacy_test`, `whats_new_screen_test`, `working_experience_visual_test`, `interaction_sound_quality_test`, and `goals_choose_today_test`. It covers the readable floor, sound lane, Build 44 metadata and What's New record, one-doorway return behavior, Cancel/no-mutation, count-aware semantics, 44 by 44 compact controls, and the Reduced Motion 320 by 568/1.5x fixture.
+- `flutter test --no-pub --update-goldens --dart-define=CAPTURE_GOLDENS=true test/screenshots_test.dart --name "goals personal index: narrow large text"` — passed and refreshed the exact 320 by 568/1.5x selected return capture.
+- `flutter test --no-pub --update-goldens --dart-define=CAPTURE_GOLDENS=true test/working_experience_visual_test.dart` — passed 9 working-route captures, including 2x text reachability.
+- `flutter test --no-pub` — passed all 1,190 tests in 2:41. Captured terminal receipt: `C:\Users\mikus\Documents\Codex\2026-09-26\can-x20\work\days-full-after-goals-fix.log`.
 
 ## Visual inspection
 
@@ -27,7 +27,9 @@ semantics. Commit `29e1993` resolves the finding with explicit 44 by 44 Today
 and Workshop children, a dark walnut/brass count chip, and the semantic label
 `Review today’s three, 1 selected`. The focused widget test asserts the target
 geometry and label; the fresh narrow selected render was inspected after that
-change.
+change. The release repair also changes both compact contacts to the existing
+`glass/select` lane and raises the chip text from 9 px to `Type.minLabel`; the
+focused sound and readability tests pass against those exact changes.
 
 ## Known evidence boundary
 
@@ -38,6 +40,7 @@ goldens exercised by the changed route were refreshed.
 
 ## Owner checkpoint
 
-No owner acceptance or physical-device review is recorded. The next action is
-to review the active and narrow selected captures on the owner's phone before
-expanding this exploratory direction or treating it as release-ready.
+The owner accepted the direction with `Yes, continue this direction`. Physical
+phone review remains pending; the next action is to review the active and
+narrow selected captures on the owner's phone before treating this as device
+accepted or release-ready.

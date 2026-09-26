@@ -3,8 +3,8 @@
   "brief_id": "goals-return-review-2026-09-26",
   "brief_sha256": "01ad154477bac4171f707d662c1f4a14eee8c53f2de207f3ae0527a1e8fc2710",
   "phase": "handoff",
-  "implementation_revision": "commit:29e1993d3cf21ea44e2449baebb5e8326672ed24",
-  "revision_captured_at": "2026-09-26T14:16:18-04:00",
+  "implementation_revision": "commit:ba316fa36f809ee257204f522b6499f744681e7e",
+  "revision_captured_at": "2026-09-26T16:13:53-04:00",
   "checks": [
     {
       "id": "slice-return-product",
@@ -22,8 +22,8 @@
           "kind": "test_report",
           "state": "Active return, review entry, and Cancel/no-mutation boundary",
           "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
-          "generated_at": "2026-09-26T14:32:50-04:00",
-          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "generated_at": "2026-09-26T16:14:25-04:00",
+          "content_sha256": "481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a",
           "data_source": "test_output"
         }
       ]
@@ -44,8 +44,8 @@
           "kind": "test_report",
           "state": "Compact selected field, accessibility geometry, Cancel, and focused recovery",
           "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
-          "generated_at": "2026-09-26T14:32:50-04:00",
-          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "generated_at": "2026-09-26T16:14:25-04:00",
+          "content_sha256": "481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a",
           "data_source": "test_output"
         }
       ]
@@ -66,7 +66,7 @@
           "kind": "render",
           "state": "Active Goal with inline Today’s three review entry",
           "path": "test/goldens/goals_personal_index_active_430x932.png",
-          "generated_at": "2026-09-26T14:33:32-04:00",
+          "generated_at": "2026-09-26T16:19:03-04:00",
           "content_sha256": "46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d",
           "data_source": "deterministic_fixture"
         },
@@ -74,8 +74,8 @@
           "kind": "render",
           "state": "Narrow 1.5x selected-field header with count chip",
           "path": "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
-          "generated_at": "2026-09-26T14:33:29-04:00",
-          "content_sha256": "c32480c22dc1df6a54cc112d72c744f52ef2641f3ce2936a56406b48db6e1e95",
+          "generated_at": "2026-09-26T16:17:53-04:00",
+          "content_sha256": "6fcf40ef565c9182da143e9ab2439ae04f760c1e454dcfd390806beadeb28831",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -96,7 +96,7 @@
           "kind": "render",
           "state": "430x932 active return hierarchy",
           "path": "test/goldens/goals_personal_index_active_430x932.png",
-          "generated_at": "2026-09-26T14:33:32-04:00",
+          "generated_at": "2026-09-26T16:19:03-04:00",
           "content_sha256": "46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d",
           "data_source": "deterministic_fixture"
         }
@@ -118,16 +118,16 @@
           "kind": "render",
           "state": "320x568/1.5x selected return",
           "path": "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
-          "generated_at": "2026-09-26T14:33:29-04:00",
-          "content_sha256": "c32480c22dc1df6a54cc112d72c744f52ef2641f3ce2936a56406b48db6e1e95",
+          "generated_at": "2026-09-26T16:17:53-04:00",
+          "content_sha256": "6fcf40ef565c9182da143e9ab2439ae04f760c1e454dcfd390806beadeb28831",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "test_report",
           "state": "44 px target and count-label assertions",
           "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
-          "generated_at": "2026-09-26T14:32:50-04:00",
-          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "generated_at": "2026-09-26T16:14:25-04:00",
+          "content_sha256": "481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a",
           "data_source": "test_output"
         }
       ]
@@ -148,8 +148,8 @@
           "kind": "test_report",
           "state": "Cancel/back state boundary",
           "path": "design/execution-mode/active/goals-return-review-2026-09-26/test-report.md",
-          "generated_at": "2026-09-26T14:32:50-04:00",
-          "content_sha256": "721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb",
+          "generated_at": "2026-09-26T16:14:25-04:00",
+          "content_sha256": "481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a",
           "data_source": "test_output"
         }
       ]
@@ -165,7 +165,7 @@
       "observation": "The active Goal retains one inline Today’s three route and the existing recovery action without a second field card.",
       "production_equivalent_input": true,
       "result": "pass",
-      "artifacts": [{"kind":"render","state":"Active Goal return","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T14:33:32-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
+      "artifacts": [{"kind":"render","state":"Active Goal return","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T16:19:03-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
     },
     {
       "id": "ripple-compact-header-access",
@@ -178,7 +178,7 @@
       "observation": "Both compact controls are 44 px and Today announces selected count with a restrained count chip.",
       "production_equivalent_input": true,
       "result": "pass",
-      "artifacts": [{"kind":"test_report","state":"Compact accessibility assertions","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
+      "artifacts": [{"kind":"test_report","state":"Compact accessibility assertions","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T16:14:25-04:00","content_sha256":"481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a","data_source":"test_output"}]
     },
     {
       "id": "ripple-recovery-continuity",
@@ -191,7 +191,7 @@
       "observation": "Both focused recovery paths pass and retain their established current-Quest relationship.",
       "production_equivalent_input": true,
       "result": "pass",
-      "artifacts": [{"kind":"test_report","state":"Focused recovery regression","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
+      "artifacts": [{"kind":"test_report","state":"Focused recovery regression","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T16:14:25-04:00","content_sha256":"481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a","data_source":"test_output"}]
     },
     {
       "id": "final-comparison",
@@ -204,7 +204,7 @@
       "observation": "The captured implementation has one return surface, readable full text, and the compact count treatment described by the locked brief.",
       "production_equivalent_input": true,
       "result": "pass",
-      "artifacts": [{"kind":"render","state":"Final active return comparison","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T14:33:32-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
+      "artifacts": [{"kind":"render","state":"Final active return comparison","path":"test/goldens/goals_personal_index_active_430x932.png","generated_at":"2026-09-26T16:19:03-04:00","content_sha256":"46c02a8c97267a50fe92f7aeca2b9964a16530a8af6bd969e91056ea15c36e1d","data_source":"deterministic_fixture"}]
     },
     {
       "id": "final-code-complete",
@@ -217,7 +217,7 @@
       "observation": "All named deterministic checks passed; no analyzer issues were reported.",
       "production_equivalent_input": true,
       "result": "pass",
-      "artifacts": [{"kind":"test_report","state":"Final scoped deterministic receipt","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T14:32:50-04:00","content_sha256":"721889beac0fc6085de53d743f2ac049d74028e42b71a2503c2a2db3ac4a0fdb","data_source":"test_output"}]
+      "artifacts": [{"kind":"test_report","state":"Final scoped deterministic receipt","path":"design/execution-mode/active/goals-return-review-2026-09-26/test-report.md","generated_at":"2026-09-26T16:14:25-04:00","content_sha256":"481bc081908ea72d16a2a00e9c22438e51ab75d6a7a9d00773bf46754627029a","data_source":"test_output"}]
     }
   ],
   "independent_critique": {
