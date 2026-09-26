@@ -23,7 +23,7 @@ void main() {
     expect(
       roomOfDaysReleaseNotes.map((release) => release.id),
       containsAllInOrder(const [
-        '1.0.4+43',
+        '1.0.4+44',
         '1.0.4+42',
         '1.0.4+41',
         '1.0.4+40',
