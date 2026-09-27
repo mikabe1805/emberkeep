@@ -4645,7 +4645,8 @@ class _TodaysThreeTracker extends StatelessWidget {
       key: const Key('daily-field-rail'),
       onTapUp: onChoose == null ? null : (_) => onChoose!(),
       enabled: onChoose != null,
-      material: MaterialSound.glass,
+      // Opens the chooser page: the shipped page/navigate lane.
+      material: MaterialSound.parchment,
       interactionSound: InteractionSound.navigate,
       pressDepth: 1,
       borderRadius: BorderRadius.circular(6),

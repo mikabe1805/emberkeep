@@ -117,7 +117,10 @@ class _StewardEncounterScreenState extends State<StewardEncounterScreen> {
     final scale = MediaQuery.textScalerOf(context).scale(1);
     final viewport = MediaQuery.sizeOf(context);
     final landscape = viewport.width > viewport.height * 1.25;
-    final roomWidth = math.min(viewport.width * .44, viewport.height * (948 / 1659));
+    final roomWidth = math.min(
+      viewport.width * .44,
+      viewport.height * (948 / 1659),
+    );
     final artwork = StewardRoomArtwork(
       offeringBread: line.finishes || _nodeId == null,
       reduceMotion: still,

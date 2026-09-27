@@ -131,7 +131,11 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
         )
         .toList();
     final reasons = {for (final s in suggestions) s.quest.title: s.reason};
-    final shown = _browseAll
+    // With nothing to suggest, the list itself is the choice. Hiding every
+    // Quest behind a "Browse all" tap only added a step before picking.
+    final nothingToSuggest = suggestions.isEmpty && _minutes == null;
+    final browsing = _browseAll || nothingToSuggest;
+    final shown = browsing
         ? available
         : suggestions.take(3).map((s) => s.quest).toList();
     final compact =
@@ -294,7 +298,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                                 _sessionFilters(),
                                 const SizedBox(height: 16),
                                 Text(
-                                  _browseAll
+                                  browsing
                                       ? 'ALL AVAILABLE QUESTS'
                                       : 'WORTH CONSIDERING',
                                   style: Type.label.copyWith(
@@ -309,7 +313,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                                       vertical: 14,
                                     ),
                                     child: Text(
-                                      _browseAll
+                                      browsing
                                           ? 'Everything available is already chosen.'
                                           : _minutes == null
                                           ? 'Browse your available quests to choose what fits.'
@@ -326,7 +330,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                                     selected: false,
                                     reason: reasons[quest.title],
                                   ),
-                                if (available.isNotEmpty)
+                                if (available.isNotEmpty && !nothingToSuggest)
                                   WorkingAction(
                                     label: _browseAll
                                         ? 'Show suggestions'
@@ -520,7 +524,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                         ? 'Done today · kept in your three'
                         : aside
                         ? 'Set aside · still chosen'
-                        : reason ?? quest.goalTitle ?? 'A quest for you',
+                        : reason ?? quest.goalTitle ?? _plainContext(quest),
                     style: Type.body.copyWith(fontSize: 12.5, height: 1.4),
                   ),
                 ],
@@ -559,4 +563,16 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
       ),
     );
   }
+}
+
+/// Without a goal or a suggestion reason, say something true about the Quest
+/// (its domain and rhythm) instead of the same filler line on every row.
+String _plainContext(Quest quest) {
+  final rhythm = switch (quest.schedule) {
+    QuestSchedule.once => 'once',
+    QuestSchedule.daily => 'every day',
+    QuestSchedule.weekly => 'this week',
+    QuestSchedule.monthly => 'this month',
+  };
+  return '${quest.stat.label} · $rhythm';
 }

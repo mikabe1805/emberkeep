@@ -88,6 +88,8 @@ void main() {
     await tester.tap(choose);
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Cancel'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(persistCount, 0);
@@ -96,8 +98,9 @@ void main() {
     await tester.tap(choose);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Browse all quests (4)'));
-    await tester.pump();
+    // Nothing to suggest: the chooser lists every available Quest directly.
+    expect(find.text('ALL AVAILABLE QUESTS'), findsOneWidget);
+    expect(find.textContaining('Browse all quests'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('top-three-Read ten pages')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('top-three-Clear the desk')));
@@ -164,7 +167,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Today’s field opens only the exact available Quest', (tester) async {
+  testWidgets('Today’s field opens only the exact available Quest', (
+    tester,
+  ) async {
     final today = DateTime(2026, 8, 30, 10);
     Clock.freeze(today);
     final state = GameState()..reduceMotion = true;

@@ -623,7 +623,9 @@ void main() {
       expect(rules, contains('validPublicRoomPhoto(d, code)'));
       expect(
         rules,
-        contains("validSharedPhotoPath(d.roomPhotoPath, d.ownerKey, code, 'room')"),
+        contains(
+          "validSharedPhotoPath(d.roomPhotoPath, d.ownerKey, code, 'room')",
+        ),
       );
       expect(
         rules,

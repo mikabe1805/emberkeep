@@ -17,7 +17,10 @@ void main() {
     final walnut = GameState()..wallStyle = 'wall_walnut';
     final listening = GameState()..wallStyle = 'wall_listening';
 
-    expect(isQuestDeskLookOwned(walnut, questDeskLookById('wall_walnut')), isTrue);
+    expect(
+      isQuestDeskLookOwned(walnut, questDeskLookById('wall_walnut')),
+      isTrue,
+    );
     expect(
       isQuestDeskLookOwned(listening, questDeskLookById('wall_listening')),
       isTrue,

@@ -2662,7 +2662,7 @@ class MePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 7),
                 Text(
-                  '${state.totalCompletions} QUESTS DONE  ·  ${state.streakDays} DAY STREAK',
+                  '${state.totalCompletions} QUEST${state.totalCompletions == 1 ? '' : 'S'} DONE  ·  ${state.streakDays} DAY STREAK',
                   style: Type.label.copyWith(
                     fontSize: Type.minLabel,
                     color: Palette.textLo,
@@ -5487,27 +5487,25 @@ class _ShareButton extends StatelessWidget {
           ),
         );
       },
+      // Change Space owns this page's one luminous action. Sharing the build
+      // is a real door, but a quieter one: brass edge, honey ink, no glow.
       child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
         decoration: facetedDecoration(
           cut: 9,
-          gradient: Palette.honeyGradient,
-          shadows: const [
-            BoxShadow(
-              color: Palette.honeyGlow,
-              blurRadius: 18,
-              offset: Offset(0, 5),
-            ),
-          ],
+          color: const Color(0x33120C08),
+          borderColor: Palette.xp.withValues(alpha: 0.55),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.ios_share, size: 15, color: Palette.onHoney),
+            const Icon(Icons.ios_share, size: 15, color: Palette.xpLight),
             const SizedBox(width: 7),
             Text(
               'SHARE MY BUILD',
-              style: Type.label.copyWith(fontSize: 11, color: Palette.onHoney),
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
             ),
           ],
         ),

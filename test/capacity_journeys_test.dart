@@ -419,8 +419,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Shape tomorrow'), findsOneWidget);
 
-    await tester.tap(find.text('Browse all quests (4)'));
-    await tester.pump();
+    // Nothing to suggest: the chooser lists every available Quest directly.
+    expect(find.text('ALL AVAILABLE QUESTS'), findsOneWidget);
+    expect(find.textContaining('Browse all quests'), findsNothing);
 
     for (final title in ['Lead with this', 'Then this', 'And this']) {
       final choice = find.byKey(ValueKey('top-three-$title'));

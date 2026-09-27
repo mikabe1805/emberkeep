@@ -2280,7 +2280,8 @@ class _TodayFieldRow extends StatelessWidget {
     }
     return Pressable(
       key: key,
-      material: MaterialSound.glass,
+      // Opening the Quest travels to another page: the page/navigate lane.
+      material: MaterialSound.parchment,
       interactionSound: InteractionSound.navigate,
       pressDepth: 1,
       edgeColor: Colors.transparent,
