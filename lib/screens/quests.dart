@@ -3128,11 +3128,20 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         final largePhoneType =
             MediaQuery.textScalerOf(context).scale(1) >= 1.25 &&
             bounds.maxWidth <= 360;
+        final shortFeatured =
+            bounds.maxHeight < 700 &&
+            largePhoneType &&
+            !dayResting &&
+            !showFocus &&
+            !lowFlame &&
+            featuredQuest != null;
         // Compact-height windows sacrifice the cinematic reveal before they
         // sacrifice the board's primary task. On normal phones the labelled
         // day rail borrows one touch-target of height from the reveal so MARK
         // COMPLETE remains visible without scrolling.
-        final roomHeight = bounds.maxHeight < 700
+        final roomHeight = shortFeatured
+            ? 24.0
+            : bounds.maxHeight < 700
             ? 48.0
             : (bounds.maxWidth * 0.35).clamp(126.0, 156.0).toDouble();
         // Keep the first Quest close enough to act on, but let the actual room
@@ -3140,12 +3149,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // the HUD and made the board look pasted onto an unrelated black page.
         final sceneHeight = roomHeight + (bounds.maxHeight < 700 ? 44 : 116);
         final deferBoardRail =
-            bounds.maxHeight >= 700 &&
-            !largePhoneType &&
+            (shortFeatured || (bounds.maxHeight >= 700 && !largePhoneType)) &&
             !dayResting &&
             !showFocus &&
             !lowFlame &&
             featuredQuest != null;
+        final deferOptionalField =
+            shortFeatured && showingDailyField && optionalOpen > 0;
+        void toggleOptionalField() =>
+            setState(() => _showOptionalField = !_showOptionalField);
         final showPlanningEmber =
             _state.emberDue && emberOfDay(now).title == planTomorrowEmber;
         final deferPlanningEmber =
@@ -3275,7 +3287,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                                           TextSpan(
                                                             children: [
                                                               TextSpan(
-                                                                text: 'LEVEL ',
+                                                                text:
+                                                                    shortFeatured
+                                                                    ? 'LVL '
+                                                                    : 'LEVEL ',
                                                                 style: Type.label.copyWith(
                                                                   fontSize: 12,
                                                                   letterSpacing:
@@ -3301,20 +3316,31 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                                         ),
                                                         KeyedSubtree(
                                                           key: _xpNumberKey,
-                                                          child: RollingNumber(
-                                                            min(
-                                                              _state.xp,
-                                                              next,
+                                                          child: Semantics(
+                                                            label: shortFeatured
+                                                                ? '${_state.xp} of $next XP'
+                                                                : null,
+                                                            excludeSemantics:
+                                                                shortFeatured,
+                                                            child: RollingNumber(
+                                                              min(
+                                                                _state.xp,
+                                                                next,
+                                                              ),
+                                                              suffix:
+                                                                  shortFeatured
+                                                                  ? '/$next'
+                                                                  : ' / $next XP',
+                                                              style: Type
+                                                                  .numerals
+                                                                  .copyWith(
+                                                                    fontSize:
+                                                                        15.5,
+                                                                    color:
+                                                                        Palette
+                                                                            .xp,
+                                                                  ),
                                                             ),
-                                                            suffix:
-                                                                ' / $next XP',
-                                                            style: Type.numerals
-                                                                .copyWith(
-                                                                  fontSize:
-                                                                      15.5,
-                                                                  color: Palette
-                                                                      .xp,
-                                                                ),
                                                           ),
                                                         ),
                                                       ],
@@ -3330,21 +3356,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Divider(
-                                        height: 1,
-                                        color: Palette.brass.withValues(
-                                          alpha: 0.24,
+                                      if (!shortFeatured) ...[
+                                        const SizedBox(height: 4),
+                                        Divider(
+                                          height: 1,
+                                          color: Palette.brass.withValues(
+                                            alpha: 0.24,
+                                          ),
+                                          indent: 7,
+                                          endIndent: 7,
                                         ),
-                                        indent: 7,
-                                        endIndent: 7,
-                                      ),
-                                      StatChips(
-                                        values: _state.stats,
-                                        reduceMotion: _state.reduceMotion,
-                                        onSelect: _exploreStat,
-                                        compact: true,
-                                      ),
+                                        StatChips(
+                                          values: _state.stats,
+                                          reduceMotion: _state.reduceMotion,
+                                          onSelect: _exploreStat,
+                                          compact: true,
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -3439,14 +3467,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 setAside: setAside,
                                 optionalOpen: optionalOpen,
                                 showingOptional: _showOptionalField,
+                                deferOptional: deferOptionalField,
                                 onChoose: _chooseToday,
                                 onToggleOptional:
                                     !showingDailyField || optionalOpen == 0
                                     ? null
-                                    : () => setState(
-                                        () => _showOptionalField =
-                                            !_showOptionalField,
-                                      ),
+                                    : toggleOptionalField,
                               ),
                             ),
 
@@ -3787,6 +3813,43 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   deliveredCard,
+                                  if (shortFeatured)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        4,
+                                        8,
+                                        4,
+                                        0,
+                                      ),
+                                      child: _QuestHudPanel(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        child: StatChips(
+                                          values: _state.stats,
+                                          reduceMotion: _state.reduceMotion,
+                                          onSelect: _exploreStat,
+                                          compact: true,
+                                        ),
+                                      ),
+                                    ),
+                                  if (deferOptionalField)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: WorkingAction(
+                                          label: _showOptionalField
+                                              ? 'Hide optional quests'
+                                              : 'Open if it fits · $optionalOpen',
+                                          icon: _showOptionalField
+                                              ? Icons.expand_less
+                                              : Icons.expand_more,
+                                          onTap: toggleOptionalField,
+                                        ),
+                                      ),
+                                    ),
                                   const SizedBox(height: 8),
                                   boardRail,
                                 ],
@@ -4442,10 +4505,11 @@ class _DailyFieldRail extends StatelessWidget {
     required this.setAside,
     required this.optionalOpen,
     required this.showingOptional,
+    this.deferOptional = false,
     required this.onChoose,
     required this.onToggleOptional,
   });
-  final bool hasField, showingOptional;
+  final bool hasField, showingOptional, deferOptional;
   final int chosenTotal,
       commitmentsRemaining,
       chosenRemaining,
@@ -4545,7 +4609,7 @@ class _DailyFieldRail extends StatelessWidget {
               style: Type.body.copyWith(fontSize: 11.5, color: Palette.xpLight),
             ),
           ),
-        if (onToggleOptional != null)
+        if (onToggleOptional != null && !deferOptional)
           Align(
             alignment: Alignment.centerLeft,
             child: WorkingAction(

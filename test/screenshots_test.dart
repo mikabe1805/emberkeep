@@ -1137,6 +1137,15 @@ void main() {
     second.lastDoneDay = null;
     await tester.pumpWidget(board(textScale: 1.5));
     await tester.pump(const Duration(milliseconds: 350));
+    final narrowPrimaryAction = find.byKey(
+      const ValueKey('quest-primary-action'),
+    );
+    expect(narrowPrimaryAction.hitTestable(), findsOneWidget);
+    expect(
+      tester.getRect(narrowPrimaryAction).bottom,
+      lessThan(568 - 8),
+      reason: 'The short large-text board must show its Quest action first.',
+    );
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -1159,6 +1168,12 @@ void main() {
         ),
       );
     }
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Open if it fits · 2')),
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     await tester.tap(find.text('Open if it fits · 2'));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(
