@@ -18,16 +18,16 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 44)
+## App Store What's New — Version 1.0.4 (Build 45)
 
 > Submission hold: paste this only after the signed iPhone archive, real Home
 > Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
 > boundary refresh checks pass. Remove any sentence whose device gate fails.
 
-Quests now make the direct action easier to see. A straightforward Quest can
-be completed from its card in one tap, while Manage stays separate for the
-times you actually need it. Today’s count, Freeze Reserve, board tools, and the
-Quest in front of you read as distinct parts instead of one crowded block.
+Today’s three now sit on the Quest panel as three small rings that close as
+you finish what you chose, and everything else waits behind one Side quests
+line. A straightforward Quest still completes from its card in one tap, and a
+new level fills the screen again with the quests that got you there.
 
 People goals include more ordinary ways to care for someone, from sending a
 message to sharing a meal or making a small gesture. Goals also arrives as a
@@ -108,14 +108,14 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 44 is an internal candidate for clearer Quests, broader People starters,
-Goals room travel, and a wider normal-Room music rotation. It includes:
+Build 45 is an internal candidate for Today’s three on the Quest panel, Side
+quests, a full-screen level-up, and a calmer My Space. It includes:
 
 - Complete a straightforward Quest directly from its card in one tap. Manage
   remains a separate secondary action, and special flows keep their honest
   action labels.
-- Read Today’s count, Freeze Reserve, board tools, and the active Quest as
-  distinct layers rather than one crowded middle block.
+- See Today’s three as rings on the Quest panel; other Quests wait behind one
+  Side quests line. A new level takes the whole screen again.
 - Start People goals around a partner, a message, a shared meal, or a small
   gesture of care.
 - Move into Goals as a place in the Room, with Reduced Motion respected.
@@ -256,7 +256,9 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 44 additions:** Quests expose a clearer direct-completion action and
+- **Build 45 additions:** Today’s three live on the Quest panel, Side quests
+  sit behind one divider, level-ups fill the screen, and My Space cards share one
+  finish. Quests keep the direct-completion action and
   separate Manage path, People has broader relationship starters, Goals uses
   room travel with Reduced Motion support, and the normal Room music rotation
   now has 22 dry umbrella-brush takes plus Lamp left on. Plans can still review
@@ -711,7 +713,7 @@ device frame and tell these ten moments in one consistent visual language:
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
 - Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
-  A Build 44 submission requires a fresh capture, visual inspection, export,
+  A Build 45 submission requires a fresh capture, visual inspection, export,
   and final manifest-only binding commit after the signed-device gates above;
   the real Home Screen frame must show the new launcher icon and signed widget.
 - The App Store sequence adds three production Goals frames before Plans so the
