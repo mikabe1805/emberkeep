@@ -108,7 +108,7 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 46 is an internal candidate focused on returning to an active Goal. The
+Build 47 is an internal candidate focused on returning to an active Goal. The
 current Quest gets a clearer first read, while Today’s three, goal review, and a
 smaller next step stay close without competing for the same moment. Goals also
 keeps its page title and controls readable at larger text.
@@ -128,7 +128,7 @@ after a break.
 
 ## Reviewer notes
 
-- **Build 46 additions:** This internal candidate focuses on the active Goals
+- **Build 47 additions:** This internal candidate focuses on the active Goals
   return folio: the exact current Quest leads, Today’s three, review, and a
   smaller next step remain secondary, and the Goals heading has a dedicated
   large-text layout. Plans can still review and locally import a compatible

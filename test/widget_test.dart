@@ -1001,6 +1001,11 @@ void main() {
   });
 
   testWidgets('night routine opens, recaps and closes', (tester) async {
+    // At wind-down time Close Day moves from the footer to the evening rail.
+    // This test exercises the footer route, so hold its clock outside that
+    // window instead of depending on the build machine's local time.
+    Clock.freeze(DateTime(2026, 9, 27, 14));
+    addTearDown(Clock.reset);
     await pumpApp(tester);
 
     // CLOSE DAY follows the work it closes, in the board footer.

@@ -658,7 +658,7 @@ void main() {
     expect(workflow, contains('routine source/docs pushes remain inert'));
     expect(
       workflow,
-      contains('room-of-days-1.0.4-build-46-internal-candidate'),
+      contains('room-of-days-1.0.4-build-47-internal-candidate'),
     );
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('submit_to_app_store: false'));
@@ -682,7 +682,7 @@ void main() {
     expect(
       workflow,
       contains(
-        'release-evidence/internal-testflight/1.0.4+46/CANDIDATE-MANIFEST.json',
+        'release-evidence/internal-testflight/1.0.4+47/CANDIDATE-MANIFEST.json',
       ),
     );
     expect(
@@ -876,7 +876,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+46'));
+    expect(pubspec, contains('version: 1.0.4+47'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

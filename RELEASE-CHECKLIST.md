@@ -3,6 +3,32 @@
 Updated September 27, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+47 internal candidate — the active Goals return retry
+
+This retry keeps the same active Goals return scope: the exact current Quest
+leads, Today’s three, review, and a smaller next step remain secondary, and the
+Goals heading remains readable at larger text. Build 46 failed before IPA
+construction, so it is retained below as an immutable failed record. The exact
+permitted tag is `room-of-days-1.0.4-build-47-internal-candidate`. This is
+authorized for internal TestFlight only; owner and physical-phone acceptance
+remain open, and it is not App Store submission authority.
+
+- [x] Run the complete regression suite and focused Goals return visual states
+  on the corrected candidate source, then freeze that source revision. The
+  fixed night-routine test, all 1,201 Flutter tests, clean analyzer, feature-on
+  discovery packet (28 passed, 1 expected skip), and web release build passed
+  locally. The Goals return states were checked in the unchanged app slice.
+- [ ] Add only
+  `release-evidence/internal-testflight/1.0.4+47/CANDIDATE-MANIFEST.json` in
+  a receipt child, binding `sourceRevision` to the frozen parent and the exact
+  Build 47 tag. Run the local receipt and TestFlight metadata verifiers on that
+  clean checkout.
+- [ ] Push the exact receipt tag once, then verify signing, internal `Me`
+  upload, and Apple processing.
+- [ ] Mika installs it on a physical phone: return to an active Goal on an
+  ordinary and difficult day, open the current Quest, review/cancel Today’s
+  three, try Make this smaller, and repeat at Larger Text and Reduce Motion.
+
 ## 1.0.4+46 internal candidate — the active Goals return
 
 This candidate is limited to the active Goals return folio: the exact current
@@ -27,9 +53,13 @@ it is not App Store submission authority.
 - [x] Push the exact receipt tag once. Codemagic build
   `6ab97af03f90aeed96692569` ran September 27 (20:22–20:28 UTC) and failed
   at the complete app regression suite before signing or IPA construction.
-  The public check reports only step 8 exit status 1; the precise test log
-  requires Codemagic sign-in. No Build 46 IPA reached Apple. This tag is
-  immutable; a source correction needs a new build number and candidate tag.
+  The public check reports only step 8 exit status 1. Mika's copied log tail
+  names `widget_test.dart: night routine opens, recaps and closes`; its exact
+  assertion remains behind Codemagic sign-in. At the CI clock time, a local
+  reproduction of that named test failed because `CLOSE DAY` moves from the
+  footer to the evening rail. A clock-scoped test correction is in Build 47.
+  No Build 46 IPA reached Apple. This tag is immutable; a source correction
+  needs a new build number and candidate tag.
 - [ ] Diagnose the Mac test failure, then verify signing, internal `Me` upload,
   and Apple processing on a corrected candidate.
 - [ ] Mika installs it on a physical phone: return to an active Goal on an
