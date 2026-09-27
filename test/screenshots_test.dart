@@ -1114,7 +1114,7 @@ void main() {
       260,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('2 of 2 complete'), findsOneWidget);
+    expect(find.text('Field kept'), findsOneWidget);
     expect(find.text('Open if it fits · 2'), findsOneWidget);
     if (_capture) {
       await expectLater(
@@ -1168,12 +1168,19 @@ void main() {
         ),
       );
     }
-    await Scrollable.ensureVisible(
-      tester.element(find.text('Open if it fits · 2')),
-      alignment: 0.5,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    // The ledger now follows the featured card inside the nested list. Bring
+    // its own optional action fully into the compact viewport before tapping.
+    for (var attempt = 0;
+        attempt < 5 &&
+            find.text('Open if it fits · 2').hitTestable().evaluate().isEmpty;
+        attempt++) {
+      await tester.drag(
+        find.byKey(const ValueKey('quest-board-scroll')),
+        const Offset(0, -110),
+      );
+      await tester.pump(const Duration(milliseconds: 180));
+    }
+    expect(find.text('Open if it fits · 2').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Open if it fits · 2'));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(

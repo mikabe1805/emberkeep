@@ -45,6 +45,7 @@ import '../widgets/levelup_overlay.dart';
 import '../widgets/share_moment_card.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/particles.dart';
+import '../widgets/pressable.dart';
 import '../widgets/home_room.dart';
 import '../widgets/notes_sheet.dart';
 import '../widgets/quest_card.dart';
@@ -3154,8 +3155,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             !showFocus &&
             !lowFlame &&
             featuredQuest != null;
-        final deferOptionalField =
-            shortFeatured && showingDailyField && optionalOpen > 0;
         void toggleOptionalField() =>
             setState(() => _showOptionalField = !_showOptionalField);
         final showPlanningEmber =
@@ -3195,6 +3194,27 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           onCloseDay: !dayResting && nightOpen && !showCloseDayRail
               ? _openNight
               : null,
+        );
+        // Planning belongs to the work it shapes. When a Quest is ready, the
+        // room and instrument lead straight into that Quest; this quieter
+        // ledger follows it instead of becoming a second headline above it.
+        final showDayLedger = !lowFlame && !dayResting && !showFocus;
+        final dayLedgerAfterFeatured = showDayLedger && featuredQuest != null;
+        Widget dayLedger() => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 3, 16, 4),
+          child: _DailyFieldRail(
+            hasField: hasDailyField,
+            chosenTotal: chosenField.length,
+            commitmentsRemaining: commitmentsRemaining,
+            chosenRemaining: fieldRemaining,
+            setAside: setAside,
+            optionalOpen: optionalOpen,
+            showingOptional: _showOptionalField,
+            onChoose: _chooseToday,
+            onToggleOptional: !showingDailyField || optionalOpen == 0
+                ? null
+                : toggleOptionalField,
+          ),
         );
         _localMotion?.setReduceMotion(reduceMotion);
         return Listener(
@@ -3450,31 +3470,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           if (showPlanningEmber && !deferPlanningEmber)
                             _emberPanel(),
 
-                          // A shaped day earns a useful distinction that the
-                          // old beautiful board did not provide: commitments,
-                          // the few quests deliberately carried, and every
-                          // other open possibility. Gentle Mode has its own
-                          // shelter above and is intentionally not folded into
-                          // this ordinary planning surface.
-                          if (!lowFlame && !dayResting)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
-                              child: _DailyFieldRail(
-                                hasField: hasDailyField,
-                                chosenTotal: chosenField.length,
-                                commitmentsRemaining: commitmentsRemaining,
-                                chosenRemaining: fieldRemaining,
-                                setAside: setAside,
-                                optionalOpen: optionalOpen,
-                                showingOptional: _showOptionalField,
-                                deferOptional: deferOptionalField,
-                                onChoose: _chooseToday,
-                                onToggleOptional:
-                                    !showingDailyField || optionalOpen == 0
-                                    ? null
-                                    : toggleOptionalField,
-                              ),
-                            ),
+                          if (showDayLedger && !dayLedgerAfterFeatured)
+                            dayLedger(),
 
                           // ── Quest list ──────────────────────────────────────────
                           if (!deferBoardRail) boardRail,
@@ -3808,11 +3805,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 child: deliveredCard,
                               );
                             }
-                            if (deferBoardRail && i == featuredIndex) {
+                            if (isFeatured && dayLedgerAfterFeatured) {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   deliveredCard,
+                                  dayLedger(),
                                   if (shortFeatured)
                                     Padding(
                                       padding: const EdgeInsets.fromLTRB(
@@ -3834,24 +3832,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                         ),
                                       ),
                                     ),
-                                  if (deferOptionalField)
-                                    Padding(
-                                      padding: const EdgeInsets.only(left: 8),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: WorkingAction(
-                                          label: _showOptionalField
-                                              ? 'Hide optional quests'
-                                              : 'Open if it fits · $optionalOpen',
-                                          icon: _showOptionalField
-                                              ? Icons.expand_less
-                                              : Icons.expand_more,
-                                          onTap: toggleOptionalField,
-                                        ),
-                                      ),
-                                    ),
-                                  const SizedBox(height: 8),
-                                  boardRail,
+                                  if (deferBoardRail) ...[
+                                    const SizedBox(height: 8),
+                                    boardRail,
+                                  ],
                                 ],
                               );
                             }
@@ -4505,11 +4489,10 @@ class _DailyFieldRail extends StatelessWidget {
     required this.setAside,
     required this.optionalOpen,
     required this.showingOptional,
-    this.deferOptional = false,
     required this.onChoose,
     required this.onToggleOptional,
   });
-  final bool hasField, showingOptional, deferOptional;
+  final bool hasField, showingOptional;
   final int chosenTotal,
       commitmentsRemaining,
       chosenRemaining,
@@ -4518,111 +4501,121 @@ class _DailyFieldRail extends StatelessWidget {
   final VoidCallback onChoose;
   final VoidCallback? onToggleOptional;
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 7, 4, 0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.2;
-            // A chosen field has a short title. Keep its Change action beside
-            // it on compact phones so the current Quest arrives sooner.
-            final stackHeader =
-                constraints.maxWidth < (hasField ? 270 : 300) ||
-                (!hasField && largeText);
-            final Widget heading = hasField
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (!largeText) ...[
-                        for (var i = 0; i < chosenTotal; i++)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 3),
-                            child: Container(
-                              width: 3,
-                              height: 13,
-                              decoration: BoxDecoration(
-                                color: i < chosenTotal - chosenRemaining
-                                    ? Palette.xpLight
-                                    : const Color(0xFF766047),
-                                borderRadius: BorderRadius.circular(1),
-                              ),
+  Widget build(BuildContext context) {
+    final kept = chosenTotal - chosenRemaining;
+    final detail = [
+      if (setAside > 0) '$setAside set aside',
+      if (commitmentsRemaining > 0)
+        '$commitmentsRemaining dated commitment${commitmentsRemaining == 1 ? '' : 's'}',
+    ].join(' · ');
+    final status = !hasField
+        ? 'Choose up to three.'
+        : chosenRemaining == 0
+        ? 'Field kept'
+        : '$kept of $chosenTotal kept';
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0x6B291D16),
+        border: Border(
+          left: BorderSide(color: Color(0x827E5B3A), width: 2),
+          bottom: BorderSide(color: Color(0x3D765234), width: 0.8),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Pressable(
+            key: const Key('daily-field-rail'),
+            onTapUp: (_) => onChoose(),
+            material: MaterialSound.glass,
+            interactionSound: InteractionSound.navigate,
+            pressDepth: 1,
+            borderRadius: BorderRadius.zero,
+            edgeColor: Colors.transparent,
+            semanticLabel: hasField
+                ? 'Edit today’s field. $status${detail.isEmpty ? '' : '. $detail'}'
+                : 'Set today’s field. Choose up to three.',
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 58),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TODAY’S FIELD',
+                            style: Type.label.copyWith(
+                              fontSize: 10.5,
+                              letterSpacing: 1.15,
+                              color: Palette.textMid,
                             ),
                           ),
-                        const SizedBox(width: 7),
-                      ],
-                      Text(
-                        'TODAY’S THREE',
-                        style: Type.label.copyWith(
-                          fontSize: largeText ? 10.5 : 11.5,
-                          letterSpacing: largeText ? 1.2 : 1.7,
-                          color: Palette.textMid,
-                        ),
+                          const SizedBox(height: 3),
+                          Text(
+                            status,
+                            style: Type.body.copyWith(
+                              fontSize: 12.5,
+                              height: 1.2,
+                              color: Palette.textMid,
+                            ),
+                          ),
+                          if (detail.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              detail,
+                              style: Type.body.copyWith(
+                                fontSize: 11.5,
+                                height: 1.2,
+                                color: Palette.textLo,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                  )
-                : Text(
-                    'What matters today?',
-                    style: WorkingType.title.copyWith(fontSize: 23),
-                  );
-            final action = WorkingAction(
-              key: const Key('daily-field-rail'),
-              label: hasField ? 'Change' : 'Choose',
-              onTap: onChoose,
-            );
-            if (!stackHeader) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: heading),
-                  action,
-                ],
-              );
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                heading,
-                const SizedBox(height: 2),
-                Align(alignment: Alignment.centerRight, child: action),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 1),
-        Text(
-          hasField
-              ? (MediaQuery.textScalerOf(context).scale(1) > 1.2 &&
-                        commitmentsRemaining > 0
-                    ? '${chosenTotal - chosenRemaining}/$chosenTotal complete · $commitmentsRemaining commitment${commitmentsRemaining == 1 ? '' : 's'}${setAside > 0 ? ' · $setAside aside' : ''}'
-                    : '${chosenTotal - chosenRemaining} of $chosenTotal complete${setAside > 0 ? ' · $setAside set aside' : ''}')
-              : 'Choose up to three quests to bring into focus.',
-          style: Type.body.copyWith(fontSize: 12, height: 1.25),
-        ),
-        if (commitmentsRemaining > 0 &&
-            !(hasField && MediaQuery.textScalerOf(context).scale(1) > 1.2))
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              '$commitmentsRemaining dated commitment${commitmentsRemaining == 1 ? '' : 's'} also waiting',
-              style: Type.body.copyWith(fontSize: 11.5, color: Palette.xpLight),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      hasField ? 'EDIT' : 'SET',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        letterSpacing: 1.05,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 17,
+                      color: Palette.xpLight,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        if (onToggleOptional != null && !deferOptional)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: WorkingAction(
-              label: showingOptional
-                  ? 'Hide optional quests'
-                  : 'Open if it fits · $optionalOpen',
-              icon: showingOptional ? Icons.expand_less : Icons.expand_more,
-              onTap: onToggleOptional!,
+          if (onToggleOptional != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: WorkingAction(
+                  label: showingOptional
+                      ? 'Hide optional quests'
+                      : 'Open if it fits · $optionalOpen',
+                  icon: showingOptional ? Icons.expand_less : Icons.expand_more,
+                  onTap: onToggleOptional!,
+                ),
+              ),
             ),
-          ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _CloseDayRail extends StatelessWidget {

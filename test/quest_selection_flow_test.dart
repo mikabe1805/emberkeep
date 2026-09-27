@@ -5,6 +5,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
+import 'package:emberkeep/widgets/levelup_overlay.dart';
 import 'package:emberkeep/widgets/timer_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -110,6 +111,32 @@ void main() {
     expect(find.byKey(ValueKey('undo-${second.title}')), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 8));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('crossing the XP threshold opens the encouraging level-up', (
+    tester,
+  ) async {
+    final state = GameState()..xp = 104;
+    final quest = Quest(
+      title: 'Finish a small draft',
+      stat: Stat.foc,
+      difficulty: 3,
+      priority: true,
+    );
+    await _pumpBoard(tester, state: state, quests: [quest]);
+    expect(state.xpPreview(quest), greaterThan(1));
+
+    await tester.tap(_actionIn(quest));
+    await tester.pump(const Duration(milliseconds: 260));
+    await tester.pump(const Duration(milliseconds: 900));
+
+    expect(state.level, 2);
+    expect(find.byType(LevelUpOverlay), findsOneWidget);
+    expect(find.text('YOU DID IT.'), findsOneWidget);
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pump();
+    expect(find.byType(LevelUpOverlay), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

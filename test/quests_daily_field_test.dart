@@ -85,8 +85,8 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 350));
 
-      expect(find.text('TODAY’S THREE'), findsOneWidget);
-      expect(find.text('0 of 2 complete'), findsOneWidget);
+      expect(find.text('TODAY’S FIELD'), findsOneWidget);
+      expect(find.text('0 of 2 kept'), findsOneWidget);
       expect(find.text('Open if it fits · 2'), findsOneWidget);
       expect(find.text('First chosen'), findsOneWidget);
       expect(find.text('Second chosen'), findsOneWidget);
@@ -134,9 +134,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 180));
     await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-    expect(find.text('TODAY’S THREE'), findsOneWidget);
-    expect(find.text('0 of 1 complete · 1 set aside'), findsOneWidget);
-    expect(find.text('1 of 1 complete'), findsNothing);
+    expect(find.text('TODAY’S FIELD'), findsOneWidget);
+    expect(find.text('0 of 1 kept'), findsOneWidget);
+    expect(find.text('1 set aside'), findsOneWidget);
+    expect(find.text('Field kept'), findsNothing);
   });
 
   testWidgets(
@@ -169,8 +170,8 @@ void main() {
       await tester.pumpWidget(_board(state, [chosen, commitment, optional]));
       await tester.pump(const Duration(milliseconds: 350));
 
-      expect(find.text('TODAY’S THREE'), findsOneWidget);
-      expect(find.text('1 of 1 complete'), findsOneWidget);
+      expect(find.text('TODAY’S FIELD'), findsOneWidget);
+      expect(find.text('Field kept'), findsOneWidget);
       expect(find.text('Open if it fits · 1'), findsOneWidget);
       expect(find.text('Sketch if there is room'), findsNothing);
 

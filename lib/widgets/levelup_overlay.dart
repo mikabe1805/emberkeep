@@ -54,6 +54,10 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
     parent: _c,
     curve: const Interval(0.1, 0.55, curve: Motion.slam),
   );
+  late final Animation<double> _encouragementIn = CurvedAnimation(
+    parent: _c,
+    curve: const Interval(0.08, 0.48, curve: Motion.slam),
+  );
   late final Animation<double> _unlockIn = CurvedAnimation(
     parent: _c,
     curve: const Interval(0.55, 0.8, curve: Curves.easeOutCubic),
@@ -128,6 +132,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
             builder: (context, _) {
               final dim = still ? 1.0 : _dim.value;
               final slam = still ? 1.0 : _slam.value;
+              final encouragementIn = still ? 1.0 : _encouragementIn.value;
               final unlockIn = still ? 1.0 : _unlockIn.value;
               return Container(
                 // deep walnut night — warm dark, never grey-black
@@ -147,192 +152,250 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                         spread: 160,
                         reduce: false,
                       ),
-                    Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Opacity(
-                            opacity: dim,
-                            child: Text(
-                              'LEVEL UP',
-                              style: Type.label.copyWith(
-                                fontSize: 16,
-                                color: Palette.xpLight,
-                              ),
+                    LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 24,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: (constraints.maxHeight - 48).clamp(
+                              0,
+                              double.infinity,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Transform.scale(
-                            // elasticOut overshoots past 1.0 → the numeral slams in
-                            scale: still ? 1 : 0.4 + 0.6 * slam,
-                            child: Opacity(
-                              opacity: slam.clamp(0.0, 1.0),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Transform.rotate(
-                                    angle: 0.785,
-                                    child: Container(
-                                      width: 104,
-                                      height: 104,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            Palette.xpLight.withValues(
-                                              alpha: 0.13,
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Opacity(
+                                  opacity: dim,
+                                  child: Text(
+                                    'LEVEL UP',
+                                    style: Type.label.copyWith(
+                                      fontSize: 16,
+                                      color: Palette.xpLight,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Transform.scale(
+                                  scale: still
+                                      ? 1
+                                      : 0.58 + 0.42 * encouragementIn,
+                                  child: Opacity(
+                                    opacity: encouragementIn.clamp(0.0, 1.0),
+                                    child: Text(
+                                      'YOU DID IT.',
+                                      textAlign: TextAlign.center,
+                                      style: Type.display.copyWith(
+                                        fontSize: 46,
+                                        fontWeight: FontWeight.w700,
+                                        color: Palette.textHi,
+                                        shadows: [
+                                          Shadow(
+                                            color: Palette.xpLight.withValues(
+                                              alpha: 0.6,
                                             ),
-                                            Palette.unlock.withValues(
-                                              alpha: 0.025,
-                                            ),
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                          color: Palette.xpLight.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Palette.honeyGlow.withValues(
-                                              alpha: 0.35,
-                                            ),
-                                            blurRadius: 30,
+                                            blurRadius: still
+                                                ? 18
+                                                : 30 * encouragementIn,
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  Text(
-                                    '${widget.level}',
-                                    style: Type.numerals.copyWith(
-                                      fontSize: 120,
-                                      color: Palette.xpLight,
-                                      shadows: [
-                                        Shadow(
-                                          color: Palette.xpLight.withValues(
-                                            alpha: 0.7,
+                                ),
+                                const SizedBox(height: 14),
+                                Transform.scale(
+                                  // elasticOut overshoots past 1.0 → the numeral slams in
+                                  scale: still ? 1 : 0.4 + 0.6 * slam,
+                                  child: Opacity(
+                                    opacity: slam.clamp(0.0, 1.0),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Transform.rotate(
+                                          angle: 0.785,
+                                          child: Container(
+                                            width: 104,
+                                            height: 104,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Palette.xpLight.withValues(
+                                                    alpha: 0.13,
+                                                  ),
+                                                  Palette.unlock.withValues(
+                                                    alpha: 0.025,
+                                                  ),
+                                                ],
+                                              ),
+                                              border: Border.all(
+                                                color: Palette.xpLight
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Palette.honeyGlow
+                                                      .withValues(alpha: 0.35),
+                                                  blurRadius: 30,
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                          blurRadius: still ? 24 : 44 * slam,
+                                        ),
+                                        Text(
+                                          '${widget.level}',
+                                          style: Type.numerals.copyWith(
+                                            fontSize: 120,
+                                            color: Palette.xpLight,
+                                            shadows: [
+                                              Shadow(
+                                                color: Palette.xpLight
+                                                    .withValues(alpha: 0.7),
+                                                blurRadius: still
+                                                    ? 24
+                                                    : 44 * slam,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Opacity(
+                                  opacity: unlockIn * 0.78,
+                                  child: Text(
+                                    'LEVEL ${widget.level}',
+                                    style: Type.label.copyWith(
+                                      fontSize: 12,
+                                      color: Palette.xpLight,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                if (widget.unlock != null)
+                                  Opacity(
+                                    opacity: unlockIn,
+                                    child: Transform.translate(
+                                      offset: Offset(
+                                        0,
+                                        still ? 0 : 20 * (1 - unlockIn),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 18,
+                                          vertical: 10,
+                                        ),
+                                        decoration: facetedDecoration(
+                                          cut: 9,
+                                          color: Palette.unlock.withValues(
+                                            alpha: 0.05,
+                                          ),
+                                          borderColor: Palette.unlock,
+                                          shadows: [
+                                            BoxShadow(
+                                              color: Palette.unlock.withValues(
+                                                alpha: 0.3 * unlockIn,
+                                              ),
+                                              blurRadius: 18,
+                                            ),
+                                          ],
+                                        ),
+                                        child: Wrap(
+                                          alignment: WrapAlignment.center,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.lock_open,
+                                              size: 18,
+                                              color: Palette.unlock,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '${widget.unlock} UNLOCKED',
+                                              style: Type.label.copyWith(
+                                                fontSize: 14,
+                                                color: Palette.unlock,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (widget.nextUnlock != null) ...[
+                                  const SizedBox(height: 18),
+                                  Opacity(
+                                    opacity: unlockIn * 0.8,
+                                    child: Text(
+                                      'NEXT · ${widget.nextUnlock}',
+                                      style: Type.label.copyWith(fontSize: 11),
                                     ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (widget.unlock != null)
-                            Opacity(
-                              opacity: unlockIn,
-                              child: Transform.translate(
-                                offset: Offset(
-                                  0,
-                                  still ? 0 : 20 * (1 - unlockIn),
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 18,
-                                    vertical: 10,
-                                  ),
-                                  decoration: facetedDecoration(
-                                    cut: 9,
-                                    color: Palette.unlock.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                    borderColor: Palette.unlock,
-                                    shadows: [
-                                      BoxShadow(
-                                        color: Palette.unlock.withValues(
-                                          alpha: 0.3 * unlockIn,
-                                        ),
-                                        blurRadius: 18,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.lock_open,
-                                        size: 18,
-                                        color: Palette.unlock,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '${widget.unlock} UNLOCKED',
-                                        style: Type.label.copyWith(
-                                          fontSize: 14,
-                                          color: Palette.unlock,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (widget.nextUnlock != null) ...[
-                            const SizedBox(height: 18),
-                            Opacity(
-                              opacity: unlockIn * 0.8,
-                              child: Text(
-                                'NEXT · ${widget.nextUnlock}',
-                                style: Type.label.copyWith(fontSize: 11),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 40),
-                          if (widget.onShare != null) ...[
-                            Opacity(
-                              opacity: unlockIn,
-                              child: Semantics(
-                                button: true,
-                                label: 'Share this moment',
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: widget.onShare,
-                                  child: Container(
-                                    constraints: const BoxConstraints(
-                                      minHeight: 44,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.ios_share,
-                                          size: 15,
-                                          color: Palette.xpLight,
-                                        ),
-                                        const SizedBox(width: 7),
-                                        Text(
-                                          'SHARE THIS MOMENT',
-                                          style: Type.label.copyWith(
-                                            fontSize: 11,
-                                            color: Palette.xpLight,
+                                const SizedBox(height: 40),
+                                if (widget.onShare != null) ...[
+                                  Opacity(
+                                    opacity: unlockIn,
+                                    child: Semantics(
+                                      button: true,
+                                      label: 'Share this moment',
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: widget.onShare,
+                                        child: Container(
+                                          constraints: const BoxConstraints(
+                                            minHeight: 44,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 12,
+                                          ),
+                                          child: Wrap(
+                                            alignment: WrapAlignment.center,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
+                                              const Icon(
+                                                Icons.ios_share,
+                                                size: 15,
+                                                color: Palette.xpLight,
+                                              ),
+                                              const SizedBox(width: 7),
+                                              Text(
+                                                'SHARE THIS MOMENT',
+                                                style: Type.label.copyWith(
+                                                  fontSize: 11,
+                                                  color: Palette.xpLight,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ),
+                                  const SizedBox(height: 6),
+                                ],
+                                Opacity(
+                                  opacity: unlockIn * 0.6,
+                                  child: Text(
+                                    'onward →',
+                                    style: Type.label.copyWith(fontSize: 11),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                          Opacity(
-                            opacity: unlockIn * 0.6,
-                            child: Text(
-                              'onward →',
-                              style: Type.label.copyWith(fontSize: 11),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ],

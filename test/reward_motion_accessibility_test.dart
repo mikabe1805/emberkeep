@@ -15,6 +15,26 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    final display = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'));
+    final body = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'));
+    final numerals = FontLoader('JetBrainsMono')
+      ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    await Future.wait([
+      icons.load(),
+      display.load(),
+      body.load(),
+      numerals.load(),
+    ]);
+  });
+
   setUp(() {
     Sfx.instance.soundEnabled = false;
     Haptics.reduceMotion = false;
@@ -152,7 +172,7 @@ void main() {
   );
 
   testWidgets(
-    'OS Reduce Motion shows level-up final state without particles or a slam',
+    'OS Reduce Motion shows the encouraging level-up final state without particles or a slam',
     (tester) async {
       final haptics = <MethodCall>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -184,6 +204,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('LEVEL UP'), findsOneWidget);
+      expect(find.text('YOU DID IT.'), findsOneWidget);
+      expect(find.text('LEVEL 10'), findsOneWidget);
       expect(find.text('10'), findsOneWidget);
       expect(find.text('Sunlit Desk UNLOCKED'), findsOneWidget);
       expect(find.byType(ParticleBurst), findsNothing);
@@ -205,6 +227,108 @@ void main() {
       expect(find.byType(ParticleBurst), findsNothing);
       await tester.tapAt(const Offset(20, 20));
       expect(dismissed, isTrue);
+    },
+  );
+
+  testWidgets(
+    'level-up lands on an encouraging full-screen milestone before it can dismiss',
+    (tester) async {
+      var dismissed = false;
+
+      await tester.pumpWidget(
+        _rewardHost(
+          LevelUpOverlay(
+            level: 5,
+            unlock: 'Window Seat',
+            onDismiss: () => dismissed = true,
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 720));
+
+      expect(find.text('LEVEL UP'), findsOneWidget);
+      expect(find.text('YOU DID IT.'), findsOneWidget);
+      expect(find.text('LEVEL 5'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('Window Seat UNLOCKED'), findsOneWidget);
+      expect(find.byType(ParticleBurst), findsOneWidget);
+      expect(dismissed, isFalse);
+
+      await tester.tapAt(const Offset(20, 20));
+      expect(dismissed, isTrue);
+    },
+  );
+
+  testWidgets('level-up still frame fills a phone with the encouragement', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      _rewardHost(
+        LevelUpOverlay(
+          level: 10,
+          unlock: 'Sunlit Desk',
+          nextUnlock: 'Brass Shelf',
+          onDismiss: () {},
+          onShare: () {},
+          reduceMotion: true,
+        ),
+      ),
+    );
+    await tester.pump();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/levelup_you_did_it_390x844.png'),
+    );
+  });
+
+  testWidgets(
+    'level-up keeps its encouragement and exit doors on a narrow large-text phone',
+    (tester) async {
+      var shared = false;
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+
+      await tester.pumpWidget(
+        _rewardHost(
+          LevelUpOverlay(
+            level: 10,
+            unlock: 'Sunlit Desk',
+            nextUnlock: 'Brass Shelf',
+            onDismiss: () {},
+            onShare: () => shared = true,
+            reduceMotion: true,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('YOU DID IT.'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.text('Sunlit Desk UNLOCKED'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('SHARE THIS MOMENT'),
+        180,
+        scrollable: find.byType(Scrollable),
+      );
+      expect(find.text('SHARE THIS MOMENT'), findsOneWidget);
+      expect(find.text('onward →'), findsOneWidget);
+      await tester.tap(find.text('SHARE THIS MOMENT'));
+      expect(shared, isTrue);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -284,6 +408,7 @@ void main() {
 
 Widget _rewardHost(Widget child, {bool disableAnimations = false}) {
   return MaterialApp(
+    debugShowCheckedModeBanner: false,
     builder: (context, appChild) => MediaQuery(
       data: MediaQuery.of(
         context,
