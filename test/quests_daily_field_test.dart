@@ -84,14 +84,8 @@ void main() {
         _board(state, [first, second, optionalOne, optionalTwo, commitment]),
       );
       await tester.pump(const Duration(milliseconds: 350));
-      await tester.drag(
-        find.byKey(const ValueKey('quest-board-scroll')),
-        const Offset(0, -420),
-      );
-      await tester.pump(const Duration(milliseconds: 180));
-      await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-      expect(find.text('Today’s three'), findsOneWidget);
+      expect(find.text('TODAY’S THREE'), findsOneWidget);
       expect(find.text('0 of 2 complete'), findsOneWidget);
       expect(find.text('Open if it fits · 2'), findsOneWidget);
       expect(find.text('First chosen'), findsOneWidget);
@@ -102,6 +96,11 @@ void main() {
 
       await tester.tap(find.text('Open if it fits · 2'));
       await tester.pump(const Duration(milliseconds: 180));
+      await tester.scrollUntilVisible(
+        find.text('Optional walk'),
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       expect(find.text('Hide optional quests'), findsOneWidget);
       expect(find.text('Optional sketch'), findsOneWidget);
@@ -135,7 +134,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 180));
     await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-    expect(find.text('Today’s three'), findsOneWidget);
+    expect(find.text('TODAY’S THREE'), findsOneWidget);
     expect(find.text('0 of 1 complete · 1 set aside'), findsOneWidget);
     expect(find.text('1 of 1 complete'), findsNothing);
   });
@@ -169,20 +168,19 @@ void main() {
 
       await tester.pumpWidget(_board(state, [chosen, commitment, optional]));
       await tester.pump(const Duration(milliseconds: 350));
-      await tester.drag(
-        find.byKey(const ValueKey('quest-board-scroll')),
-        const Offset(0, -420),
-      );
-      await tester.pump(const Duration(milliseconds: 180));
-      await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
 
-      expect(find.text('Today’s three'), findsOneWidget);
+      expect(find.text('TODAY’S THREE'), findsOneWidget);
       expect(find.text('1 of 1 complete'), findsOneWidget);
       expect(find.text('Open if it fits · 1'), findsOneWidget);
       expect(find.text('Sketch if there is room'), findsNothing);
 
       await tester.tap(find.text('Open if it fits · 1'));
       await tester.pump(const Duration(milliseconds: 180));
+      await tester.scrollUntilVisible(
+        find.text('Sketch if there is room'),
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Sketch if there is room'), findsOneWidget);
     },
   );

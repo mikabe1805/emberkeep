@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "brief_id": "quests-authored-page-polish-2026-09-26",
+  "brief_sha256": "5160fa7e5d96a467f0b5aea6e9cc9e9ada305246a20f5d8d5db04c467698c54d",
+  "phase": "direction",
+  "implementation_revision": "",
+  "revision_captured_at": "",
+  "checks": [],
+  "independent_critique": null,
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "Pending: the owner must review the current first-slice product, interaction, and visual evidence before expansion."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pending",
+    "visual_evidence_ready": "pending",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Physical-phone interaction, haptic/audio timing, and visual cadence remain unverified."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-first-slice-review",
+      "gate": "Explicit owner checkpoint after current first-slice evidence",
+      "why": "This approved-direction execution still changes a distinctive visual and material surface; source language alone cannot accept the rendered result.",
+      "owner_or_system": "Mika reviewing the current implementation revision",
+      "next_action": "Review fresh same-state render/comparison and canonical interaction evidence, then record an explicit accepted or rejected decision before expansion.",
+      "blocking": true
+    },
+    {
+      "id": "owner-physical-phone-feel",
+      "gate": "Owner physical-phone acceptance",
+      "why": "Deterministic captures and host tests cannot establish thumb feel, haptic/audio timing, scrolling cadence, or lived visual cohesion on the installed app.",
+      "owner_or_system": "Mika on the exact installed iPhone candidate",
+      "next_action": "Use the populated Quests board and completion path on phone after a build is available, then record the observation against the final revision.",
+      "blocking": true
+    }
+  ]
+}

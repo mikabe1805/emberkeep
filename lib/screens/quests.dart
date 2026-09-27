@@ -3107,6 +3107,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         : (firstVisibleActionable >= 0
               ? visible[firstVisibleActionable]
               : null);
+    final featuredIndex = featuredQuest == null
+        ? -1
+        : visible.indexOf(featuredQuest);
     final boardItemCount = visible.isEmpty
         ? 1
         : visible.length + (remaining == 0 ? 1 : 0);
@@ -3131,9 +3134,56 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // COMPLETE remains visible without scrolling.
         final roomHeight = bounds.maxHeight < 700
             ? 48.0
-            : (min(bounds.maxWidth / 1.70, bounds.maxHeight * 0.28) - 44)
-                  .clamp(152.0, 226.0)
-                  .toDouble();
+            : (bounds.maxWidth * 0.35).clamp(126.0, 156.0).toDouble();
+        // Keep the first Quest close enough to act on, but let the actual room
+        // continue behind the glass instrument. The old crop ended exactly at
+        // the HUD and made the board look pasted onto an unrelated black page.
+        final sceneHeight = roomHeight + (bounds.maxHeight < 700 ? 44 : 116);
+        final deferBoardRail =
+            bounds.maxHeight >= 700 &&
+            !largePhoneType &&
+            !dayResting &&
+            !showFocus &&
+            !lowFlame &&
+            featuredQuest != null;
+        final showPlanningEmber =
+            _state.emberDue && emberOfDay(now).title == planTomorrowEmber;
+        final deferPlanningEmber =
+            showPlanningEmber &&
+            !dayResting &&
+            !showFocus &&
+            firstVisibleActionable >= 0;
+        final boardRail = _QuestBoardRail(
+          dayLabel: showingDailyField && !showFocus
+              ? null
+              : dayResting
+              ? 'THE DAY IS KEPT'
+              : showFocus
+              ? 'FOCUS MODE'
+              : lowFlame
+              ? (_showFullLowFlame
+                    ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+                    : 'GENTLE MODE · $remaining LEFT')
+              : showingDailyField
+              ? (largePhoneType
+                    ? (remaining == 0
+                          ? 'FIELD · ENOUGH'
+                          : '$remaining TO CARRY')
+                    : (remaining == 0
+                          ? 'TODAY’S FIELD · ENOUGH'
+                          : 'TODAY’S FIELD · $remaining TO CARRY'))
+              : 'TODAY · $remaining OPEN',
+          state: _state,
+          focusMode: showFocus,
+          onFocus: dayResting ? null : _toggleFocus,
+          onAdd: dayResting ? null : _quickAdd,
+          onMorning: !dayResting && _state.morningAvailable
+              ? _openMorning
+              : null,
+          onCloseDay: !dayResting && nightOpen && !showCloseDayRail
+              ? _openNight
+              : null,
+        );
         _localMotion?.setReduceMotion(reduceMotion);
         return Listener(
           behavior: HitTestBehavior.translucent,
@@ -3146,12 +3196,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const Positioned.fill(
-                  child: ColoredBox(color: Color(0xFF100D0B)),
-                ),
+                const Positioned.fill(child: _QuestDeskGround()),
                 _QuestRoomBackdrop(
                   state: _state,
-                  height: roomHeight,
+                  height: sceneHeight,
                   parallax: _activeParallax,
                   scrollPosition: _scrollLight,
                   igniting: widget.roomIgniting,
@@ -3161,7 +3209,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   state: _state,
                   controller: _boardScroll,
                   scrollPosition: _scrollLight,
-                  height: roomHeight,
+                  height: sceneHeight,
                   parallax: _activeParallax,
                 ),
                 NestedScrollView(
@@ -3295,6 +3343,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                         values: _state.stats,
                                         reduceMotion: _state.reduceMotion,
                                         onSelect: _exploreStat,
+                                        compact: true,
                                       ),
                                     ],
                                   ),
@@ -3367,11 +3416,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
-                          // Planning tomorrow is a deliberate, time-bound action rather
-                          // than an ordinary bonus. Keep that invitation at the room edge
-                          // instead of burying it after a long board.
-                          if (_state.emberDue &&
-                              emberOfDay(now).title == planTomorrowEmber)
+                          // Keep the planning invitation visible in an empty or
+                          // focused board. On a full board, it follows today's
+                          // work in the list footer.
+                          if (showPlanningEmber && !deferPlanningEmber)
                             _emberPanel(),
 
                           // A shaped day earns a useful distinction that the
@@ -3403,41 +3451,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             ),
 
                           // ── Quest list ──────────────────────────────────────────
-                          _QuestBoardRail(
-                            dayLabel: showingDailyField && !showFocus
-                                ? null
-                                : dayResting
-                                ? 'THE DAY IS KEPT'
-                                : showFocus
-                                ? 'FOCUS MODE'
-                                : lowFlame
-                                ? (_showFullLowFlame
-                                      ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
-                                      : 'GENTLE MODE · $remaining LEFT')
-                                : showingDailyField
-                                ? (largePhoneType
-                                      ? (remaining == 0
-                                            ? 'FIELD · ENOUGH'
-                                            : '$remaining TO CARRY')
-                                      : (remaining == 0
-                                            ? 'TODAY’S FIELD · ENOUGH'
-                                            : 'TODAY’S FIELD · $remaining TO CARRY'))
-                                : 'TODAY · $remaining OPEN',
-                            state: _state,
-                            focusMode: showFocus,
-                            onFocus: dayResting ? null : _toggleFocus,
-                            onAdd: dayResting ? null : _quickAdd,
-                            // Morning and night are independent doors: an
-                            // unviewed morning must not hide tonight.
-                            onMorning: !dayResting && _state.morningAvailable
-                                ? _openMorning
-                                : null,
-                            onCloseDay:
-                                !dayResting && nightOpen && !showCloseDayRail
-                                ? _openNight
-                                : null,
-                          ),
-                          if (showCloseDayRail)
+                          if (!deferBoardRail) boardRail,
+                          if (showCloseDayRail && !deferBoardRail)
                             _CloseDayRail(
                               remaining: remaining,
                               onTap: _openNight,
@@ -3464,15 +3479,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   const InstallHint(),
-                                  if (!(_state.emberDue &&
-                                      emberOfDay(now).title ==
-                                          planTomorrowEmber))
-                                    _hearthPanel(),
+                                  if (!showPlanningEmber) _hearthPanel(),
                                   if (lowFlame)
                                     _lowFlameBar(
                                       chosen: shelteredQuestCount,
                                       resting: resting,
                                       showingAll: _showFullLowFlame,
+                                    ),
+                                  if (deferPlanningEmber) _emberPanel(),
+                                  // On a full board, close the day after the
+                                  // work it closes. Keeping this in the first
+                                  // card's wake left half the invitation under
+                                  // the fixed dock on ordinary phones.
+                                  if (showCloseDayRail && deferBoardRail)
+                                    _CloseDayRail(
+                                      remaining: remaining,
+                                      onTap: _openNight,
                                     ),
                                 ],
                               );
@@ -3760,6 +3782,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 child: deliveredCard,
                               );
                             }
+                            if (deferBoardRail && i == featuredIndex) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  deliveredCard,
+                                  const SizedBox(height: 8),
+                                  boardRail,
+                                ],
+                              );
+                            }
                             return deliveredCard;
                           },
                         ),
@@ -3861,6 +3893,50 @@ class _QuestArrival extends StatelessWidget {
       },
     );
   }
+}
+
+/// The room's two light sources continue into the working surface after its
+/// painted edge. This stays nearly black under long lists; it only carries
+/// enough walnut and moonlight to keep the first Quest in the same world.
+class _QuestDeskGround extends StatelessWidget {
+  const _QuestDeskGround();
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: const [
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF211914), Color(0xFF17110E), Color(0xFF100D0B)],
+            stops: [0, 0.55, 1],
+          ),
+        ),
+      ),
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(1.0, -0.62),
+            radius: 1.0,
+            colors: [Color(0x243F2719), Color(0x003F2719)],
+            stops: [0, 1],
+          ),
+        ),
+      ),
+      DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(-1.0, -0.9),
+            radius: 0.9,
+            colors: [Color(0x142E3740), Color(0x002E3740)],
+            stops: [0, 1],
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 /// A fixed slice of the player's selected complete room behind the quest board,
@@ -4091,7 +4167,7 @@ class _QuestHudPanel extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xEC27201A), Color(0xF2181411), Color(0xF5100D0B)],
+          colors: [Color(0xC827201A), Color(0xDD181411), Color(0xEA100D0B)],
           stops: [0, 0.58, 1],
         ),
         borderColor: const Color(0xFF584C40),
@@ -4379,19 +4455,53 @@ class _DailyFieldRail extends StatelessWidget {
   final VoidCallback? onToggleOptional;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 12, 4, 2),
+    padding: const EdgeInsets.fromLTRB(4, 7, 4, 0),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
+            final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.2;
+            // A chosen field has a short title. Keep its Change action beside
+            // it on compact phones so the current Quest arrives sooner.
             final stackHeader =
-                constraints.maxWidth < 300 ||
-                MediaQuery.textScalerOf(context).scale(1) > 1.2;
-            final heading = Text(
-              hasField ? 'Today’s three' : 'What matters today?',
-              style: WorkingType.title.copyWith(fontSize: 30),
-            );
+                constraints.maxWidth < (hasField ? 270 : 300) ||
+                (!hasField && largeText);
+            final Widget heading = hasField
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!largeText) ...[
+                        for (var i = 0; i < chosenTotal; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 3),
+                            child: Container(
+                              width: 3,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: i < chosenTotal - chosenRemaining
+                                    ? Palette.xpLight
+                                    : const Color(0xFF766047),
+                                borderRadius: BorderRadius.circular(1),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(width: 7),
+                      ],
+                      Text(
+                        'TODAY’S THREE',
+                        style: Type.label.copyWith(
+                          fontSize: largeText ? 10.5 : 11.5,
+                          letterSpacing: largeText ? 1.2 : 1.7,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'What matters today?',
+                    style: WorkingType.title.copyWith(fontSize: 23),
+                  );
             final action = WorkingAction(
               key: const Key('daily-field-rail'),
               label: hasField ? 'Change' : 'Choose',
@@ -4410,25 +4520,29 @@ class _DailyFieldRail extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 heading,
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Align(alignment: Alignment.centerRight, child: action),
               ],
             );
           },
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 1),
         Text(
           hasField
-              ? '${chosenTotal - chosenRemaining} of $chosenTotal complete${setAside > 0 ? ' · $setAside set aside' : ''}'
+              ? (MediaQuery.textScalerOf(context).scale(1) > 1.2 &&
+                        commitmentsRemaining > 0
+                    ? '${chosenTotal - chosenRemaining}/$chosenTotal complete · $commitmentsRemaining commitment${commitmentsRemaining == 1 ? '' : 's'}${setAside > 0 ? ' · $setAside aside' : ''}'
+                    : '${chosenTotal - chosenRemaining} of $chosenTotal complete${setAside > 0 ? ' · $setAside set aside' : ''}')
               : 'Choose up to three quests to bring into focus.',
-          style: Type.body.copyWith(fontSize: 13, height: 1.4),
+          style: Type.body.copyWith(fontSize: 12, height: 1.25),
         ),
-        if (commitmentsRemaining > 0)
+        if (commitmentsRemaining > 0 &&
+            !(hasField && MediaQuery.textScalerOf(context).scale(1) > 1.2))
           Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.only(top: 2),
             child: Text(
               '$commitmentsRemaining dated commitment${commitmentsRemaining == 1 ? '' : 's'} also waiting',
-              style: Type.body.copyWith(fontSize: 12.5, color: Palette.xpLight),
+              style: Type.body.copyWith(fontSize: 11.5, color: Palette.xpLight),
             ),
           ),
         if (onToggleOptional != null)

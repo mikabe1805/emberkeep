@@ -404,6 +404,12 @@ void main() {
 
     await tester.pumpWidget(_board(state, quests));
     await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Lead with this'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text(planTomorrowEmber),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text(planTomorrowEmber), findsOneWidget);
 
     final plan = find.text('PLAN');

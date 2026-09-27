@@ -23,7 +23,8 @@ import 'working_surface.dart' show WorkingType;
 /// The leading quest is allowed to become a generous game object with a
 /// luminous completion control. Everything after it returns to a compact,
 /// scan-friendly row. Both states share one material, one border language,
-/// one title treatment, and one XP badge.
+/// one title treatment. The featured reward has a plaque; supporting rewards
+/// read as quiet ink in the list.
 class QuestCard extends StatefulWidget {
   const QuestCard({
     super.key,
@@ -210,7 +211,7 @@ class _QuestCardState extends State<QuestCard>
         ? const Color(0xFFA97A41)
         : done
         ? const Color(0xFF806747)
-        : const Color(0xFF51463B);
+        : const Color(0xFF41372F);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -281,12 +282,12 @@ class _QuestCardState extends State<QuestCard>
                     stops: const [0, 0.44, 1],
                   ),
                   borderColor: edge,
-                  borderWidth: heroLayout ? 1.2 : 0.9,
+                  borderWidth: heroLayout ? 1.2 : 0.7,
                   shadows: [
                     BoxShadow(
                       color: const Color(0xC0090504),
-                      blurRadius: heroLayout ? 28 : 12,
-                      offset: Offset(0, heroLayout ? 16 : 5),
+                      blurRadius: heroLayout ? 28 : 7,
+                      offset: Offset(0, heroLayout ? 16 : 3),
                     ),
                     if (heroLayout)
                       const BoxShadow(
@@ -302,13 +303,13 @@ class _QuestCardState extends State<QuestCard>
                     children: [
                       if (heroLayout)
                         Positioned(
-                          top: 34,
-                          right: -18,
-                          width: 168,
-                          height: 96,
+                          top: 53,
+                          right: -10,
+                          width: 230,
+                          height: 120,
                           child: IgnorePointer(
                             child: Opacity(
-                              opacity: done ? 0.12 : 0.28,
+                              opacity: done ? 0.16 : 0.52,
                               child: _QuestCategoryVignette(
                                 stat: quest.stat,
                                 lightDirection: featured
@@ -917,7 +918,7 @@ class _QuestCategoryVignette extends StatelessWidget {
                 light.dy * 1.6 - drift * 0.45,
               ),
               child: Opacity(
-                opacity: 0.42,
+                opacity: 0.72,
                 child: Image.asset(
                   _asset,
                   fit: BoxFit.contain,
@@ -1979,6 +1980,16 @@ class _XpChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final alpha = dim ? 0.42 : 1.0;
+    if (!featured) {
+      return Text(
+        '+$xp XP',
+        maxLines: 1,
+        style: Type.numerals.copyWith(
+          fontSize: 13.5,
+          color: Palette.xp.withValues(alpha: alpha * 0.82),
+        ),
+      );
+    }
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: featured ? 10 : 7,

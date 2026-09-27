@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "id": "quests-authored-page-polish-2026-09-26",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-09-26T20:18:00-04:00",
+  "surface": "Quests main board first frame: earned room, optical-glass HUD, one active Main Quest, and its supporting board rail",
+  "scope": "Build and review one bounded visual slice that clarifies the existing Quests first-frame reading order and makes the Main Quest feel authored within the continuous room world. Preserve Quest data, completion semantics, special-Quest flows, navigation, persistence, and the established screen contract. Do not expand to a new screen-wide direction until the owner reviews the actual first slice.",
+  "user_job": "Open Quests, understand the next meaningful work at a glance, and move from the room into one Main Quest without the board reading as a generic dashboard.",
+  "active_sources": [
+    {
+      "id": "owner-request-and-current-baseline",
+      "kind": "owner_direction",
+      "location": "design/execution-mode/active/quests-authored-page-polish/source.md",
+      "content_sha256": "3c9596e05564674a67950b23d0c58d54adcea7e8a027d78c3b7d02829dceda12",
+      "approved_at": "2026-09-26",
+      "judged_state": "The owner asked to continue improving the main Quests page using soul, making it authored, cohesive, beautiful, and fun to interact with; the source records both exact requests, current baseline captures, and bounded authority.",
+      "viewport": "430x932 normal and 320x568 at enlarged text",
+      "priority": 1
+    },
+    {
+      "id": "quests-screen-contract",
+      "kind": "visual_interaction_canon",
+      "location": "DESIGN-BIBLE.md",
+      "content_sha256": "ef6046946a20efe3a9ccb14293a9ad181a1e84660b42c1b9ffb7e2cc95b3f82a",
+      "approved_at": "2026-08-03",
+      "judged_state": "The Quests contract requires an earned room, darker optical-glass HUD, one featured Main Quest, integrated low-set vignette, a single luminous MARK COMPLETE action, and crisp content over a deepening backdrop.",
+      "viewport": "Phone Quests board, including narrow and enlarged-text states",
+      "priority": 2
+    },
+    {
+      "id": "selected-quests-visual-target",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-07-30/quest-selected.png",
+      "content_sha256": "46771660de332cf91e3962edeca1ec930a0658b8ffdf228f6c1d2d28209c21fa",
+      "approved_at": "2026-07-30",
+      "judged_state": "The selected Quests target establishes one continuous moonlit study, warm smoke-black optical glass, selective brass and parchment, and a composition where the room remains the world.",
+      "viewport": "390x844 target reference",
+      "priority": 3
+    }
+  ],
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The first frame makes one active Main Quest the obvious next piece of meaningful work while the room, HUD, and supporting board tools explain context without competing for the same attention.",
+      "proof": "Inspect a populated production-equivalent board where a keeper enters Quests, identifies the Main Quest before secondary tools, and can still find XP, domains, and an ordinary supporting Quest."
+    },
+    "interaction": {
+      "decision": "The visual refinement preserves canonical Quest selection and completion: the existing Main Quest route and MARK COMPLETE affordance remain clear, immediate, and distinct from compact or special Quest flows.",
+      "proof": "Exercise Main Quest selection and completion plus one compact and one special Quest boundary through the existing pipeline, with semantics and drag behavior unchanged by the visual layer."
+    },
+    "visual": {
+      "decision": "Room, darker optical-glass HUD, one low-set integrated Main Quest vignette, and quiet board rail read as one authored world; only MARK COMPLETE carries luminous action weight, with live copy kept readable at ordinary and enlarged text.",
+      "proof": "Compare fresh same-state 430x932 and 320x568 enlarged-text renders against the current baseline and inspect a focused Main Quest frame, including the selected, completed, and scrolled boundaries."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Brighten, tint, or glass every card and board tool equally.",
+      "why": "Equal visual weight would recreate a dashboard and conceal the Main Quest instead of giving the first frame a clear authored order."
+    },
+    {
+      "fallback": "Use a category-sized color fill, sharp pasted thumbnail, or baked text as the Main Quest artwork.",
+      "why": "The Quests contract calls for a low-set integrated vignette with live, reflowing content rather than a color block or decorative image tile."
+    },
+    {
+      "fallback": "Add a second bright completion control, looping sparkle, or new completion route to make the screen feel premium.",
+      "why": "MARK COMPLETE already owns the action hierarchy; extra spectacle or interaction would break the existing completion grammar."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A keeper opens a populated Quests board with one active Main Quest, one ordinary supporting Quest, earned XP and six domains, then reads the first frame and starts or completes the Main Quest.",
+    "real_inputs": "Production-equivalent GameState containing an active Main Quest with live title, category, progress, XP and domain values, plus an ordinary supporting Quest and the existing completion pipeline.",
+    "user_action": "Enter Quests, scan the room, HUD, Main Quest, and nearby board rail, then use the existing Main Quest route and MARK COMPLETE control.",
+    "expected_outcome": "The Main Quest is the immediate next work, the HUD and rail remain legible context, the scene feels like one intentional room-world composition, and completion behavior remains canonical.",
+    "state_boundary": "This slice changes only the Quests visual composition and material hierarchy; it must not write Quest state differently, change reward calculation, or alter special-Quest proof boundaries.",
+    "required_states": [
+      {
+        "id": "populated-first-frame",
+        "state": "430x932 normal text board with an active Main Quest, HUD values, and one ordinary supporting Quest.",
+        "why_can_disprove": "The composition can look intentional in isolation yet still hide the next work or let HUD and rail compete with it."
+      },
+      {
+        "id": "narrow-enlarged-text",
+        "state": "320x568 at 1.5x text and Reduced Motion with a long Main Quest title and the same live board context.",
+        "why_can_disprove": "A visual hierarchy that only fits the spacious fixture can clip live copy, reduce targets, or push the completion control out of its reading relationship."
+      },
+      {
+        "id": "completion-and-scroll-boundary",
+        "state": "Selected and completed Main Quest plus a scrolled supporting-board state.",
+        "why_can_disprove": "The orbit, receipt, or backdrop can become unclear after completion or let scrolling turn the room and list into unrelated layers."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "quests-first-frame",
+      "surface_or_primitive": "Quests room hero, optical-glass HUD, and featured Main Quest card",
+      "state": "Populated normal board, selected Main Quest, long live title, and completed Main Quest",
+      "expected_effect": "One next action reads before context while the card, vignette, and HUD retain their separate material roles.",
+      "verification_plan": "Fresh 430x932 normal and focused Main Quest renders plus canonical Main Quest interaction regression.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "supporting-board-rail",
+      "surface_or_primitive": "Supporting Quest rows and nearby day-board rail below the featured card",
+      "state": "Ordinary supporting Quest, scrolled board, and compact completion affordance",
+      "expected_effect": "Supporting work remains available and legible without becoming a second visual owner or changing its direct completion semantics.",
+      "verification_plan": "Inspect scrolled and compact-row renders and run the existing ordinary Quest interaction boundary tests.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "motion-and-accessibility-boundary",
+      "surface_or_primitive": "Quest material response, readable receipt rail, large-text layout, and Reduced Motion behavior",
+      "state": "Completion receipt, 320x568 enlarged text, Reduced Motion, and a special Quest entry",
+      "expected_effect": "The visual changes preserve readable live content, use event-bound response rather than idle spectacle, and leave special flows intact.",
+      "verification_plan": "Inspect narrow and Reduced Motion fixtures, then exercise receipt and special-Quest route regressions.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the revised first-frame hierarchy, thumb response, haptic/audio timing, material depth, and scrolling cadence feel immediately clear and cohesive on the owner's installed physical phone.",
+  "decisive_check": {
+    "method": "On the owner’s installed phone, open Quests with a real populated day, identify the next work without hunting, start and complete it, then scroll through supporting work in normal and Reduced Motion states.",
+    "target": "One active Main Quest with long live copy, ordinary supporting work, earned HUD values, and a completion receipt at ordinary and enlarged text.",
+    "pass_condition": "The screen reads as one authored room-world, the Main Quest is obvious without overpowering context, completion feels deliberate and clear, and no state loses readability or route meaning."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/quests.dart",
+      "lib/widgets/quest_card.dart",
+      "lib/widgets/stat_chips.dart",
+      "test/screenshots_test.dart",
+      "test/goldens/quest_board.png",
+      "test/goldens/quest_board_compact_rows.png",
+      "test/goldens/quests_daily_field_collapsed_430x932.png",
+      "test/goldens/quests_daily_field_collapsed_large_text_320x568.png",
+      "test/goldens/quests_daily_field_enough_430x932.png",
+      "test/goldens/quests_daily_field_expanded_430x932.png",
+      "test/goldens/quests_daily_field_expanded_large_text_320x568.png",
+      "test/goldens/streak_freeze_sheet.png",
+      "test/goldens/quests_daily_field_first_frame_430x932.png",
+      "test/goldens/quests_daily_field_first_frame_large_text_320x568.png",
+      "test/quests_daily_field_test.dart",
+      "test/capacity_journeys_test.dart"
+    ],
+    "exclude": [
+      "test/failures"
+    ]
+  }
+}

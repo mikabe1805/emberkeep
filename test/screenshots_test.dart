@@ -923,7 +923,16 @@ void main() {
     await tester.pumpWidget(const LifeRpgApp());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
+    final primaryAction = find.byKey(const ValueKey('quest-primary-action'));
+    final dock = find.byKey(const ValueKey('app-bottom-dock-tab-1'));
+    expect(primaryAction, findsOneWidget);
+    expect(
+      tester.getRect(primaryAction).bottom,
+      lessThan(tester.getRect(dock).top - 8),
+      reason: 'The first Quest action must clear the fixed navigation dock.',
+    );
     if (_capture) {
+      await _precacheQuestBoardArt(tester);
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/quest_board.png'),
@@ -1057,6 +1066,12 @@ void main() {
     await _precacheQuestBoardArt(tester);
     await tester.pumpWidget(board());
     await tester.pump(const Duration(milliseconds: 500));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quests_daily_field_first_frame_430x932.png'),
+      );
+    }
     final rail = find.byKey(const Key('daily-field-rail'));
     await tester.scrollUntilVisible(
       rail,
@@ -1122,6 +1137,14 @@ void main() {
     second.lastDoneDay = null;
     await tester.pumpWidget(board(textScale: 1.5));
     await tester.pump(const Duration(milliseconds: 350));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/quests_daily_field_first_frame_large_text_320x568.png',
+        ),
+      );
+    }
     await tester.scrollUntilVisible(
       rail,
       220,

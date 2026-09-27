@@ -22,11 +22,15 @@ class StatChips extends StatefulWidget {
     required this.values,
     this.reduceMotion = false,
     this.onSelect,
+    this.compact = false,
   });
 
   final Map<Stat, int> values;
   final bool reduceMotion;
   final ValueChanged<Stat>? onSelect;
+
+  /// The Quest desk keeps the six domains readable in a shallow instrument row.
+  final bool compact;
 
   @override
   State<StatChips> createState() => _StatChipsState();
@@ -49,12 +53,13 @@ class _StatChipsState extends State<StatChips> {
           children: [
             for (var start = 0; start < Stat.values.length; start += columns)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: EdgeInsets.symmetric(vertical: widget.compact ? 1 : 4),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     for (final s in Stat.values.skip(start).take(columns)) ...[
-                      if (s.index != start) const _DomainRule(),
+                      if (s.index != start)
+                        _DomainRule(compact: widget.compact),
                       Expanded(
                         child: RepaintBoundary(
                           child: Semantics(
@@ -74,13 +79,14 @@ class _StatChipsState extends State<StatChips> {
                                     : () => widget.onSelect!(s),
                                 borderRadius: BorderRadius.circular(5),
                                 child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    minHeight: 76,
+                                  constraints: BoxConstraints(
+                                    minHeight: widget.compact ? 47 : 76,
                                   ),
                                   child: _StatChip(
                                     stat: s,
                                     value: widget.values[s] ?? 0,
                                     reduceMotion: widget.reduceMotion,
+                                    compact: widget.compact,
                                   ),
                                 ),
                               ),
@@ -102,14 +108,16 @@ class _StatChipsState extends State<StatChips> {
 /// The hairline between two domains: a short vertical rule that fades out at
 /// both ends, so it reads as light catching an edge rather than a drawn border.
 class _DomainRule extends StatelessWidget {
-  const _DomainRule();
+  const _DomainRule({this.compact = false});
+
+  final bool compact;
 
   // A fixed height rather than CrossAxisAlignment.stretch: with every child
   // stretching there is nothing left to size the row from.
   @override
   Widget build(BuildContext context) => Container(
     width: 1,
-    height: 48,
+    height: compact ? 31 : 48,
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topCenter,
@@ -130,11 +138,13 @@ class _StatChip extends StatefulWidget {
     required this.stat,
     required this.value,
     required this.reduceMotion,
+    required this.compact,
   });
 
   final Stat stat;
   final int value;
   final bool reduceMotion;
+  final bool compact;
 
   @override
   State<_StatChip> createState() => _StatChipState();
@@ -182,56 +192,101 @@ class _StatChipState extends State<_StatChip>
         return Transform.scale(
           scale: 1 + 0.08 * (active ? wave : 0),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  widget.stat.icon,
-                  size: 20,
-                  color: c.withValues(alpha: glyphAlpha),
-                  // the only place a domain is allowed to throw light, and
-                  // only while it is actually gaining
-                  shadows: active
-                      ? [
-                          Shadow(
-                            color: c.withValues(alpha: 0.55 * wave),
-                            blurRadius: 11,
-                          ),
-                        ]
-                      : const [],
-                ),
-                const SizedBox(height: 3),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    widget.stat.abbr,
-                    maxLines: 1,
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      letterSpacing: 0.7,
-                      color: c.withValues(alpha: 0.82),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 3),
-                TweenAnimationBuilder<int>(
-                  tween: IntTween(begin: _shownFrom, end: widget.value),
-                  duration: still ? Duration.zero : Motion.settle,
-                  builder: (_, v, _) => FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      '$v',
-                      maxLines: 1,
-                      style: Type.numerals.copyWith(
-                        fontSize: 18,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            padding: EdgeInsets.symmetric(
+              vertical: widget.compact ? 2 : 4,
+              horizontal: 2,
             ),
+            child: widget.compact
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.stat.icon,
+                            size: 15,
+                            color: c.withValues(alpha: glyphAlpha),
+                          ),
+                          const SizedBox(width: 3),
+                          TweenAnimationBuilder<int>(
+                            tween: IntTween(
+                              begin: _shownFrom,
+                              end: widget.value,
+                            ),
+                            duration: still ? Duration.zero : Motion.settle,
+                            builder: (_, v, _) => Text(
+                              '$v',
+                              style: Type.numerals.copyWith(
+                                fontSize: 16,
+                                color: Palette.textHi,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.stat.abbr,
+                        maxLines: 1,
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          letterSpacing: 0.6,
+                          color: c.withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.stat.icon,
+                        size: 20,
+                        color: c.withValues(alpha: glyphAlpha),
+                        // the only place a domain is allowed to throw light, and
+                        // only while it is actually gaining
+                        shadows: active
+                            ? [
+                                Shadow(
+                                  color: c.withValues(alpha: 0.55 * wave),
+                                  blurRadius: 11,
+                                ),
+                              ]
+                            : const [],
+                      ),
+                      const SizedBox(height: 3),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          widget.stat.abbr,
+                          maxLines: 1,
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            letterSpacing: 0.7,
+                            color: c.withValues(alpha: 0.82),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      TweenAnimationBuilder<int>(
+                        tween: IntTween(begin: _shownFrom, end: widget.value),
+                        duration: still ? Duration.zero : Motion.settle,
+                        builder: (_, v, _) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '$v',
+                            maxLines: 1,
+                            style: Type.numerals.copyWith(
+                              fontSize: 18,
+                              color: Palette.textMid,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         );
       },
