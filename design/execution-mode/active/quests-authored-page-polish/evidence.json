@@ -2,11 +2,246 @@
   "schema_version": 1,
   "brief_id": "quests-authored-page-polish-2026-09-26",
   "brief_sha256": "5160fa7e5d96a467f0b5aea6e9cc9e9ada305246a20f5d8d5db04c467698c54d",
-  "phase": "direction",
-  "implementation_revision": "",
-  "revision_captured_at": "",
-  "checks": [],
-  "independent_critique": null,
+  "phase": "slice",
+  "implementation_revision": "commit:b8950307410ff72b98bf0266ab36bd81b86974ac",
+  "revision_captured_at": "2026-09-27T03:21:18Z",
+  "checks": [
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "d612b25f3eb841834aa3afc23857008da8c8b1122dea5ada62b2e7f1de60627e",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-first-board-final.png",
+          "state": "Current installed Android Quests first frame before completion",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:25:55.754Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "5de62c584b826a9bd755e1a37d57c5b6f5aaf1af0f949bbfa8ba56729ed95c72",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-featured-main-390x844-final.png",
+          "state": "Populated 390x844 board with a starred Main Quest and earned values",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.767Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "e38cfde223ec308e96958604aefaccc8458306c5c930dfdf94ff7f36cceaf183",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-footer-final.png",
+          "state": "Android board footer with supporting work, tomorrow planning, and Close the Day",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:25:37.306Z",
+          "kind": "render"
+        }
+      ],
+      "input_state": "Starter Android board with five open Quests, plus a deterministic 390x844 board with one starred Main Quest and earned HUD values.",
+      "result": "pass",
+      "requirement_id": "edge.product",
+      "evidence_layer": "rendered",
+      "method": "Inspect current normal first frame and populated Main Quest fixture, then scroll the installed Android board to its footer.",
+      "id": "slice-product-reading-order",
+      "observation": "The room, dark-glass HUD, today field, and one featured actionable Quest form a readable order. Supporting work and optional tomorrow planning remain available after the featured action."
+    },
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "0fa34077087e38197ff6332a40281602dfc2b96b1d26d4a31c42579cea5d03b4",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/focused-checks.md",
+          "state": "Focused 43-test Quests regression and analyzer report for this revision",
+          "data_source": "test_output",
+          "generated_at": "2026-09-27T03:21:32.331Z",
+          "kind": "test_report"
+        },
+        {
+          "content_sha256": "40bc5b72cd545ad49337af2d361803c4dc0870571b961c6d31d2739384b75dc6",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-completion-final.png",
+          "state": "Installed Android post-completion board with earned XP and banked row",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:24:19.179Z",
+          "kind": "interaction"
+        }
+      ],
+      "input_state": "Featured starter Quest, ordinary compact Quest, linked Goal and timer variants, tomorrow planning, and evening ledger.",
+      "result": "pass",
+      "requirement_id": "edge.interaction",
+      "evidence_layer": "automated",
+      "method": "Run 43 serial Flutter interaction regressions, inspect the Android completion state, and exercise Close the Day from the footer.",
+      "id": "slice-interaction-routes",
+      "observation": "Named featured action, completion and undo, compact row, special routes, planning chooser, and night ledger checks passed. Android completion awarded XP and a banked row; Close the Day opened its ledger."
+    },
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root and independent visual reviewer",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "5de62c584b826a9bd755e1a37d57c5b6f5aaf1af0f949bbfa8ba56729ed95c72",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-featured-main-390x844-final.png",
+          "state": "Current featured Main Quest first frame with room and HUD",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.767Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "faaab5252fa6cb5fbd564c160807e02639e81b367ee6769ae49fa4614f13a054",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-large-text-320x568-final.png",
+          "state": "Current 320x568 1.5x-text first frame with visible primary action",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.782Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "59b92b34ec24921dd95239ddb54603c464e6a8b37d6ffc8610b9362d91c708f0",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-scrolled-430x932-final.png",
+          "state": "Current scrolled daily field with supporting rows",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.790Z",
+          "kind": "render"
+        }
+      ],
+      "input_state": "Current 390x844 populated board, 320x568 at 1.5x text, and 430x932 scrolled daily field.",
+      "result": "pass",
+      "requirement_id": "edge.visual",
+      "evidence_layer": "rendered",
+      "method": "Compare current first frame, short enlarged-text frame, and scrolled fixture for room continuity, value hierarchy, legibility, and dock clearance.",
+      "id": "slice-visual-material",
+      "observation": "The room silhouette continues through the HUD, the featured card has the only luminous action, and the 320x568 MARK COMPLETE control is fully visible before scrolling. Supporting content remains crisp after scroll."
+    },
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "5de62c584b826a9bd755e1a37d57c5b6f5aaf1af0f949bbfa8ba56729ed95c72",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-featured-main-390x844-final.png",
+          "state": "Populated 390x844 Main Quest fixture",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.767Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "d612b25f3eb841834aa3afc23857008da8c8b1122dea5ada62b2e7f1de60627e",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-first-board-final.png",
+          "state": "Installed Android starter board first frame",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:25:55.754Z",
+          "kind": "render"
+        }
+      ],
+      "input_state": "Active Main Quest with earned XP and six domains, ordinary supporting work, plus live starter Android board.",
+      "result": "pass",
+      "requirement_id": "state:populated-first-frame",
+      "evidence_layer": "rendered",
+      "method": "Inspect the current 390x844 populated deterministic render and current Android first frame.",
+      "id": "state-populated-first-frame",
+      "observation": "The Main Quest and its action lead the populated fixture. The Android first frame keeps one featured next Quest above its secondary board tools."
+    },
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root and independent visual reviewer",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "faaab5252fa6cb5fbd564c160807e02639e81b367ee6769ae49fa4614f13a054",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-large-text-320x568-final.png",
+          "state": "320x568 first frame at 1.5x text with visible MARK COMPLETE",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.782Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "0fa34077087e38197ff6332a40281602dfc2b96b1d26d4a31c42579cea5d03b4",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/focused-checks.md",
+          "state": "First-frame hit-target assertion and focused interaction checks",
+          "data_source": "test_output",
+          "generated_at": "2026-09-27T03:21:32.331Z",
+          "kind": "test_report"
+        }
+      ],
+      "input_state": "Dated featured Quest with a wrapping live title, chosen daily field, one commitment, six domains, and Reduced Motion.",
+      "result": "pass",
+      "requirement_id": "state:narrow-enlarged-text",
+      "evidence_layer": "rendered",
+      "method": "Inspect the 320x568 1.5x-text capture and assert the named primary action is hit-testable before scrolling.",
+      "id": "state-narrow-enlarged-text",
+      "observation": "MARK COMPLETE, title, due state, XP, and Manage remain readable in the first viewport. Domains and secondary tools are reachable after the card."
+    },
+    {
+      "production_equivalent_input": true,
+      "inspected_by": "Codex root and independent visual reviewer",
+      "phase": "slice",
+      "artifacts": [
+        {
+          "content_sha256": "40bc5b72cd545ad49337af2d361803c4dc0870571b961c6d31d2739384b75dc6",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-completion-final.png",
+          "state": "Installed Android board after featured Quest completion",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:24:19.179Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "59b92b34ec24921dd95239ddb54603c464e6a8b37d6ffc8610b9362d91c708f0",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/fixture-scrolled-430x932-final.png",
+          "state": "Current scrolled 430x932 daily field",
+          "data_source": "deterministic_fixture",
+          "generated_at": "2026-09-27T03:25:55.790Z",
+          "kind": "render"
+        },
+        {
+          "content_sha256": "e38cfde223ec308e96958604aefaccc8458306c5c930dfdf94ff7f36cceaf183",
+          "path": "design/comparisons/2026-09-26/quests-authored-page/android-emulator-footer-final.png",
+          "state": "Installed Android supporting work and footer",
+          "data_source": "production_equivalent",
+          "generated_at": "2026-09-27T03:25:37.306Z",
+          "kind": "render"
+        }
+      ],
+      "input_state": "Starter Quest before and after its 10-XP completion, four remaining Quests, current scrolled board, and evening footer.",
+      "result": "pass",
+      "requirement_id": "state:completion-and-scroll-boundary",
+      "evidence_layer": "rendered",
+      "method": "Complete a Quest in the installed Android app and inspect its settled board, then inspect the scrolled supporting work and footer.",
+      "id": "state-completion-and-scroll",
+      "observation": "XP and Body values update; the completed Quest banks without corrupting rows or navigation. The scrolled board preserves room continuity and the footer actions clear the dock."
+    }
+  ],
+  "independent_critique": {
+    "findings": [
+      {
+        "evidence": "The current Android footer capture shows the full labelled rail after supporting work, and tapping it opened the ledger.",
+        "disposition": "resolved",
+        "finding": "Close the Day was partly covered by the dock when placed immediately after the featured card."
+      },
+      {
+        "evidence": "The current 320x568 1.5x-text capture and hit-target assertion show MARK COMPLETE fully visible before scrolling.",
+        "disposition": "resolved",
+        "finding": "The first Quest action fell below the initial 320x568 viewport at enlarged text."
+      }
+    ],
+    "authored_implementation": false,
+    "reviewed_artifacts": [
+      "design/comparisons/2026-09-26/quests-authored-page/android-emulator-first-board-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/android-emulator-footer-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/android-emulator-completion-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/fixture-featured-main-390x844-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/fixture-large-text-320x568-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/fixture-scrolled-430x932-final.png",
+      "design/comparisons/2026-09-26/quests-authored-page/focused-checks.md"
+    ],
+    "result": "pass",
+    "reviewed_check_ids": [
+      "slice-product-reading-order",
+      "slice-interaction-routes",
+      "slice-visual-material"
+    ],
+    "reviewer": "visual_critique subagent"
+  },
   "owner_checkpoint": {
     "required": true,
     "requested_at": "",
