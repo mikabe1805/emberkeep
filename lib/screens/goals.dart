@@ -1262,6 +1262,7 @@ class _GoalsPageState extends State<GoalsPage> {
             onChooseToday: () => _chooseToday(context),
           );
           return _GoalsThresholdPage(
+            activeRoom: true,
             heading: _GoalsHeading(
               focus: null,
               onNewGoal: () => _openQuickCreate(context),
@@ -1275,6 +1276,7 @@ class _GoalsPageState extends State<GoalsPage> {
               initiallyExpanded: false,
               reduceMotion: state.reduceMotion,
               hasGoalContext: true,
+              embedded: true,
               onUnstick: () => _openUnstick(context, focus),
               onWorkout: _openGuidedWorkout,
             ),
@@ -1555,19 +1557,65 @@ class _GoalsHeading extends StatelessWidget {
             ),
           ),
         );
-        final heading = Row(
+        if (stacked) {
+          // At enlarged text the title needs the width of the whole page. The
+          // previous single toolbar row let its three controls squeeze
+          // "Goals" into an accidental two-line wordmark.
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              title,
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xB01A110D),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: const Color(0x576C4D32)),
+                  ),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
+                    children: [
+                      compactWorkshop,
+                      if (onChooseToday != null) compactToday,
+                      if (onNewGoal case final create?)
+                        _NewGoalButton(onTap: create),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        return Row(
           children: [
             Expanded(child: title),
-            if (!stacked) workshop,
-            if (stacked) compactWorkshop,
-            if (stacked && onChooseToday != null) compactToday,
-            if (onNewGoal case final create?) ...[
-              const SizedBox(width: 6),
-              _NewGoalButton(onTap: create),
-            ],
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xB01A110D),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: const Color(0x576C4D32)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  workshop,
+                  if (onNewGoal case final create?) ...[
+                    Container(
+                      height: 22,
+                      width: 1,
+                      color: const Color(0x6A725039),
+                    ),
+                    const SizedBox(width: 4),
+                    _NewGoalButton(onTap: create),
+                  ],
+                ],
+              ),
+            ),
           ],
         );
-        return heading;
       },
     );
   }
@@ -1653,11 +1701,13 @@ class _GoalSupportTray extends StatefulWidget {
     required this.hasGoalContext,
     required this.onUnstick,
     required this.onWorkout,
+    this.embedded = false,
   });
 
   final bool initiallyExpanded;
   final bool reduceMotion;
   final bool hasGoalContext;
+  final bool embedded;
   final VoidCallback onUnstick;
   final VoidCallback onWorkout;
 
@@ -1683,12 +1733,14 @@ class _GoalSupportTrayState extends State<_GoalSupportTray> {
     return ClipPath(
       clipper: const FacetedClipper(cut: cut),
       child: DecoratedBox(
-        decoration: facetedDecoration(
-          color: const Color(0x9418120F),
-          cut: cut,
-          borderColor: const Color(0x349E7950),
-          borderWidth: 1,
-        ),
+        decoration: widget.embedded
+            ? const BoxDecoration(color: Colors.transparent)
+            : facetedDecoration(
+                color: const Color(0x9418120F),
+                cut: cut,
+                borderColor: const Color(0x349E7950),
+                borderWidth: 1,
+              ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1720,7 +1772,9 @@ class _GoalSupportTrayState extends State<_GoalSupportTray> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Need another way in',
+                        MediaQuery.textScalerOf(context).scale(1) > 1.2
+                            ? 'Another way in'
+                            : 'Need another way in',
                         style: const TextStyle(
                           fontFamily: 'EBGaramond',
                           fontSize: 17.5,
@@ -1752,7 +1806,7 @@ class _GoalSupportTrayState extends State<_GoalSupportTray> {
                       key: const ValueKey<String>('goals-support-open'),
                       builder: (context, constraints) {
                         final stacked =
-                            constraints.maxWidth < 350 ||
+                            constraints.maxWidth < 390 ||
                             MediaQuery.textScalerOf(context).scale(1) > 1.2;
                         final unstick = _SupportAction(
                           key: const Key('goals-unstick-me'),
@@ -2021,36 +2075,81 @@ class _GoalsThresholdPage extends StatelessWidget {
     required this.reduceMotion,
     required this.focus,
     required this.support,
+    this.activeRoom = false,
     this.todayField,
     this.otherGoals,
     this.arrivals,
   });
   final bool reduceMotion;
+  final bool activeRoom;
   final Widget heading, focus, support;
   final Widget? todayField, otherGoals, arrivals;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) =>
+        _buildPage(context, constraints.maxHeight),
+  );
+
+  Widget _buildPage(BuildContext context, double availableHeight) {
     final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    return WorkingScene(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: ListView(
-            key: const Key('goals-threshold-scroll'),
-            padding: EdgeInsets.fromLTRB(18, compact ? 36 : 62, 18, 132),
-            children: [
-              heading,
-              SizedBox(height: compact ? 14 : 24),
-              if (!compact) ...[
-                Text(
-                  'THE NEXT THING',
-                  style: Type.label.copyWith(
-                    color: Palette.xpLight,
-                    fontSize: 11,
-                  ),
+    final still =
+        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final height = availableHeight.isFinite
+        ? availableHeight
+        : MediaQuery.sizeOf(context).height;
+    // The first visit and the return share the same room camera. On short or
+    // enlarged-text screens the room yields space to the live commitment. Use
+    // the page's actual height: the app shell's bottom navigation occupies
+    // space that MediaQuery still includes in the whole-screen height.
+    final roomReveal = !activeRoom || compact
+        ? 0.0
+        : (height * 0.4 - 160).clamp(72.0, 224.0);
+    final page = Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          key: const Key('goals-threshold-scroll'),
+          padding: EdgeInsets.fromLTRB(18, compact ? 36 : 62, 18, 132),
+          children: [
+            heading,
+            SizedBox(
+              height: activeRoom
+                  ? roomReveal
+                  : compact
+                  ? 14
+                  : 24,
+            ),
+            if (!activeRoom && !compact) ...[
+              Text(
+                'THE NEXT THING',
+                style: Type.label.copyWith(
+                  color: Palette.xpLight,
+                  fontSize: 11,
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (activeRoom)
+              _GoalReturnFolioSurface(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    focus,
+                    if (todayField != null) ...[
+                      const WorkingRule(),
+                      todayField!,
+                    ],
+                    if (otherGoals != null) ...[
+                      const WorkingRule(),
+                      otherGoals!,
+                    ],
+                    const WorkingRule(),
+                    support,
+                    if (arrivals != null) ...[const WorkingRule(), arrivals!],
+                  ],
+                ),
+              )
+            else ...[
               focus,
               if (todayField != null) ...[
                 const SizedBox(height: 24),
@@ -2064,9 +2163,21 @@ class _GoalsThresholdPage extends StatelessWidget {
               support,
               if (arrivals != null) ...[const SizedBox(height: 20), arrivals!],
             ],
-          ),
+          ],
         ),
       ),
+    );
+    if (!activeRoom) return WorkingScene(child: page);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        GoalRoomTravelBackdrop(
+          progress: 0,
+          openingSequence: true,
+          reduceMotion: still,
+        ),
+        page,
+      ],
     );
   }
 }
@@ -2360,6 +2471,106 @@ class _TodayFieldAction extends StatelessWidget {
   }
 }
 
+/// The return commitment rests on the room's working plane. Its single dark
+/// cloth-and-glass leaf keeps live copy readable while the opening and return
+/// share the same painted camera and light direction.
+class _GoalReturnFolioSurface extends StatelessWidget {
+  const _GoalReturnFolioSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final contrast = MediaQuery.highContrastOf(context);
+    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
+    const radius = BorderRadius.all(Radius.circular(12));
+    return Container(
+      key: const Key('goals-return-folio'),
+      decoration: const BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xC4070403),
+            blurRadius: 27,
+            offset: Offset(0, 17),
+          ),
+          BoxShadow(
+            color: Color(0x7A090604),
+            blurRadius: 3,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: contrast
+                      ? const [Color(0xFF2B211B), Color(0xFF120E0C)]
+                      : const [
+                          Color(0xF02E211A),
+                          Color(0xF51D1511),
+                          Color(0xFC130F0D),
+                        ],
+                ),
+                image: contrast
+                    ? null
+                    : const DecorationImage(
+                        image: AssetImage(
+                          'assets/pages/goals-return-bookcloth-v1.png',
+                        ),
+                        fit: BoxFit.cover,
+                        opacity: .18,
+                      ),
+                border: Border.all(color: const Color(0x9EBB8B56), width: 1.1),
+                borderRadius: radius,
+              ),
+              child: Padding(
+                padding: compact
+                    ? const EdgeInsets.fromLTRB(16, 18, 16, 17)
+                    : const EdgeInsets.fromLTRB(22, 22, 20, 19),
+                child: child,
+              ),
+            ),
+            const Positioned(
+              left: 17,
+              right: 18,
+              top: 1,
+              height: 2,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0x00F0C588),
+                        Color(0xA6E4B879),
+                        Color(0x35E4B879),
+                        Color(0x00F0C588),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const Positioned(
+              left: 0,
+              top: 12,
+              bottom: 12,
+              width: 3,
+              child: IgnorePointer(child: ColoredBox(color: Color(0x835E3A20))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LivingGoalFocus extends StatelessWidget {
   const _LivingGoalFocus({
     super.key,
@@ -2576,91 +2787,126 @@ class _LivingGoalFocus extends StatelessWidget {
           }
         : () => onAddAction(null);
 
-    final content = WorkingSurface(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(goal.stat.icon, color: Palette.xpLight, size: 20),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  goal.title,
-                  style: WorkingType.title.copyWith(
-                    fontSize: compactType ? 23 : 27,
-                    height: 1.12,
-                    fontWeight: FontWeight.w400,
-                  ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'THE NEXT THING',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.xpLight,
+          ),
+        ),
+        const SizedBox(height: 11),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: compactType ? 6 : 4),
+              child: Icon(goal.stat.icon, color: Palette.xpLight, size: 20),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                goal.title,
+                style: WorkingType.title.copyWith(
+                  fontSize: compactType ? 23 : 27,
+                  height: 1.12,
+                  fontWeight: FontWeight.w400,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          Text(
-            _goalProgressCopy(goal),
-            style: Type.body.copyWith(fontSize: 13),
-          ),
-          if (decision != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              decision.routePosition,
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                color: Palette.xpLight,
               ),
             ),
           ],
-          const WorkingRule(),
+        ),
+        const SizedBox(height: 9),
+        Text(_goalProgressCopy(goal), style: Type.body.copyWith(fontSize: 13)),
+        if (decision != null && !compactType) ...[
+          const SizedBox(height: 12),
           Text(
-            next == null ? 'READY TO SHAPE' : 'CURRENT QUEST',
+            decision.routePosition,
             style: Type.label.copyWith(
               fontSize: Type.minLabel,
               color: Palette.xpLight,
             ),
           ),
-          const SizedBox(height: 9),
-          Text(
-            actionTitle,
-            style: WorkingType.title.copyWith(
-              fontSize: compactType ? 20 : 23,
-              height: 1.2,
-              fontWeight: FontWeight.w400,
+        ],
+        const WorkingRule(),
+        Text(
+          next == null ? 'READY TO SHAPE' : 'CURRENT QUEST',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.xpLight,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Text(
+          actionTitle,
+          style: WorkingType.title.copyWith(
+            fontSize: compactType ? 20 : 23,
+            height: 1.2,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          decision?.whyThisOne ?? _cueFor(next, fallbackCue),
+          style: Type.body.copyWith(fontSize: 13, height: 1.5),
+        ),
+        const SizedBox(height: 17),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: compactType ? 164 : 184,
+              maxWidth: compactType ? 220 : 240,
+            ),
+            child: GoalPrimaryButton(
+              key: const Key('goals-return-primary-action'),
+              label: actionLabel,
+              icon: actionIcon,
+              onTap: action,
+              glow: false,
+              reduceMotion: still,
+              light: light,
+              treatment: GoalPrimaryButtonTreatment.returnClasp,
             ),
           ),
-          const SizedBox(height: 8),
+        ),
+        if (decision != null && compactType) ...[
+          const SizedBox(height: 12),
           Text(
-            decision?.whyThisOne ?? _cueFor(next, fallbackCue),
-            style: Type.body.copyWith(fontSize: 13, height: 1.5),
-          ),
-          const SizedBox(height: 13),
-          WorkingAction(label: actionLabel, icon: actionIcon, onTap: action),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: 2,
-            runSpacing: 0,
-            children: [
-              if (!compactType)
-                WorkingAction(
-                  key: const Key('goals-today-field-action'),
-                  label: todayField.isEmpty
-                      ? 'Choose today’s three'
-                      : 'Today’s three · ${todayField.length}',
-                  onTap: onChooseToday,
-                ),
-              WorkingAction(
-                label: 'Review goal',
-                onTap: () => _openDetail(context),
-              ),
-              if (decision?.quest != null)
-                WorkingAction(
-                  label: 'Make this smaller',
-                  onTap: onRecoverToday,
-                ),
-            ],
+            decision.routePosition,
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.xpLight,
+            ),
           ),
         ],
-      ),
+        const SizedBox(height: 8),
+        const Divider(height: 1, thickness: .7, color: Color(0x756F5133)),
+        const SizedBox(height: 9),
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 2,
+          runSpacing: 0,
+          children: [
+            if (!compactType)
+              WorkingAction(
+                key: const Key('goals-today-field-action'),
+                label: todayField.isEmpty
+                    ? 'Choose today’s three'
+                    : 'Today’s three · ${todayField.length}',
+                onTap: onChooseToday,
+              ),
+            WorkingAction(
+              label: 'Review goal',
+              onTap: () => _openDetail(context),
+            ),
+            if (decision?.quest != null)
+              WorkingAction(label: 'Make this smaller', onTap: onRecoverToday),
+          ],
+        ),
+      ],
     );
 
     if (!arriving) return content;

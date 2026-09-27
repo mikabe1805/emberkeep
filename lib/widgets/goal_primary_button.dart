@@ -12,6 +12,7 @@ const goalsThresholdPlateAsset =
 enum GoalPrimaryButtonTreatment {
   standard,
   openingClasp,
+  returnClasp,
   questFolio,
   thresholdPlate,
 }
@@ -400,8 +401,11 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
         hovered: hovered,
       );
     }
+    final returnClasp =
+        widget.treatment == GoalPrimaryButtonTreatment.returnClasp;
     final openingClasp =
-        widget.treatment == GoalPrimaryButtonTreatment.openingClasp;
+        widget.treatment == GoalPrimaryButtonTreatment.openingClasp ||
+        returnClasp;
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -420,7 +424,31 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
           (-0.38 + light.dx * 0.22).clamp(-0.7, -0.05),
           (-0.08 + light.dy * 0.08).clamp(-0.22, 0.12),
         );
-        final faceColors = openingClasp
+        final faceColors = returnClasp
+            ? !widget.enabled
+                  ? const [
+                      Color(0xFF65503A),
+                      Color(0xFF4C3828),
+                      Color(0xFF36251B),
+                    ]
+                  : pressed
+                  ? const [
+                      Color(0xFF684124),
+                      Color(0xFF513018),
+                      Color(0xFF392113),
+                    ]
+                  : _pending
+                  ? const [
+                      Color(0xFF806040),
+                      Color(0xFF644428),
+                      Color(0xFF472C1A),
+                    ]
+                  : const [
+                      Color(0xFF785536),
+                      Color(0xFF5E3F27),
+                      Color(0xFF422919),
+                    ]
+            : openingClasp
             ? !widget.enabled
                   ? const [
                       Color(0xFF9A794E),
@@ -451,7 +479,11 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
             : _pending
             ? const [Color(0xFFE1B362), Color(0xFFD09A4D), Color(0xFFB77D3B)]
             : const [Color(0xFFF0C873), Color(0xFFE5B35B), Color(0xFFD09643)];
-        final ink = widget.enabled
+        final ink = returnClasp
+            ? widget.enabled
+                  ? const Color(0xFFF4DFBF)
+                  : const Color(0xFFB8A88E)
+            : widget.enabled
             ? const Color(0xFF352316)
             : const Color(0xFF4E3B29);
         final border = pressed
@@ -460,6 +492,8 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
             ? const Color(0xFFFFE3AA)
             : hovered
             ? const Color(0xFFF7D58F)
+            : returnClasp
+            ? const Color(0xFFD0A16B)
             : openingClasp
             ? const Color(0xFFC99B5E)
             : const Color(0xFFE9C170);
@@ -619,7 +653,7 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.1,
                                   color: Color(0xFF352316),
-                                )
+                                ).copyWith(color: ink)
                               : Type.display.copyWith(
                                   fontSize: compactLabel ? 15 : 18.5,
                                   height: 1.02,
@@ -767,7 +801,8 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final openingClasp =
-        widget.treatment == GoalPrimaryButtonTreatment.openingClasp;
+        widget.treatment == GoalPrimaryButtonTreatment.openingClasp ||
+        widget.treatment == GoalPrimaryButtonTreatment.returnClasp;
     final questFolio =
         widget.treatment == GoalPrimaryButtonTreatment.questFolio;
     final thresholdPlate =

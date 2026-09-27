@@ -108,161 +108,30 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 45 is an internal candidate for Today’s three on the Quest panel, Side
-quests, a full-screen level-up, and a calmer My Space. It includes:
-
-- Complete a straightforward Quest directly from its card in one tap. Manage
-  remains a separate secondary action, and special flows keep their honest
-  action labels.
-- See Today’s three as rings on the Quest panel; other Quests wait behind one
-  Side quests line. A new level takes the whole screen again.
-- Start People goals around a partner, a message, a shared meal, or a small
-  gesture of care.
-- Move into Goals as a place in the Room, with Reduced Motion respected.
-- Hear a 22-take dry umbrella-brush rotation plus Lamp left on around the Room;
-  Focus retains its own peaceful theme and separate quiet control.
-
-The class-plan and Day Ledger widget changes remain included:
-
-- Get an editable `.ics` starter, keep comma-separated meeting days, and open
-  or share a compatible class file into the same review-first import flow.
-- Keep class reminders off by default or deliberately choose a 10, 15, or
-  30-minute reminder during review. Re-import preserves an existing choice
-  unless the person changes it.
-- On iPhone, use a small Day Ledger widget for the next class or a medium one
-  for the next class plus up to three unfinished Quests. The widget handoff
-  excludes rooms, locations, and notes and is marked privacy-sensitive.
-- Around the room, optional Background music plays the owner-selected lively,
-  jazzy umbrella-brush rotation. Entering Focus changes to the peaceful
-  meditation theme; one tap makes Focus quiet, and closing it restores the
-  saved app-wide choice.
-
-- Choose up to three Quests for Today's Field while keeping the rest in
-  Open if it fits. A full board can be inspiration, not a daily obligation.
-- Use Goals to choose today's work, open the right Quest, or adjust a route
-  at the Workshop.
-- Talk with the Steward in a short optional scene with reply choices,
-  saved progress, and a remembered response when you return.
-- Keep one room across the app and add an optional device photo. Confirm the
-  original room stays intact without a photo, and that a photo remains private
-  unless you separately choose to share it.
-- Turn on optional Background music in Me. Confirm it remains off by default,
-  persists only when you choose it, pauses in the background, and resumes
-  without restarting when you return.
-- Read clearer supporting text, with better layouts for crowded boards and
-  larger accessibility text.
-
-The candidate retains the recent Workshop planning, explicit first-Quest
-acceptance, flexible recovery options, repeatable Quest mastery, class
-schedule import, and accepted-action sound behavior.
-
-Circle keeps saved rooms during a temporary refresh failure and explains
-removal before you confirm it. Discover listing is explicit. Anyone and
-Mutuals visitor-card audiences are separate; Only me cards are never sent.
-Journal photos and private quests stay out of shared rooms. Protected Google
-place search remains off.
-
-Please focus first on cold and warm `.ics` handoff, review-before-save,
-reminder permission timing, the two iPhone widget sizes across a class ending,
-and Focus music's one-tap quiet path. Then recheck upgrade persistence, room
-continuity, the optional photo's private default and deliberate sharing choice,
-today's selections versus optional Quests, the Steward's reading flow, and the
-complete two-person Circle journey. Physical-phone accessibility, listening
-taste, signed widget/App Group, and signed social checks still need confirmation
-before any public release.
+Build 46 is an internal candidate focused on returning to an active Goal. The
+current Quest gets a clearer first read, while Today’s three, goal review, and a
+smaller next step stay close without competing for the same moment. Goals also
+keeps its page title and controls readable at larger text.
 
 ## What to Test
 
-- Keep a board with ten or more recurring Quests. Choose up to three for
-  Today's Field, complete only some, expand Open if it fits, and reopen the
-  app. Confirm selections and optional work stay distinct, with no duplicate
-  rewards and no requirement to clear the board.
-- In Goals, change today's selection, open its exact Quest, and adjust an
-  existing goal without creating an unwanted new Quest.
-- Choose Talk with the Steward. Read and choose replies, leave halfway,
-  reopen, finish, and revisit. Your place and response should be remembered;
-  quests, goals, XP, and rewards must remain unchanged.
-- Read the Goals, Workshop, Steward, and crowded Quest board at larger text
-  sizes and lower brightness. Make sure the text and every action remain
-  reachable without shrinking.
+- Open an active Goal on an ordinary day and a difficult day. Open the exact
+  current Quest, then return to Goals.
+- Review Today’s three and cancel without changing it. Then try **Make this
+  smaller** and confirm the current Quest, route, proof, and completion history
+  stay intact.
+- Repeat at Larger Text and with Reduce Motion. The Goals title, controls, and
+  next action should remain whole, readable, and reachable without shrinking.
 
-- Leave Background music off, then enable it in Me. Confirm the normal room
-  plays the lively jazzy umbrella-brush rotation rather than the peaceful
-  meditation theme. Lock the phone or switch away and return; it must pause,
-  recover without getting stuck silent, and keep interaction sounds clear.
-
-- In Plans, share the editable class starter, edit its course fields and the
-  comma-separated `BYDAY=MO,WE,FR` example, then save it as `.ics`. Open it from
-  Files or Mail on iPhone and share it from representative Files/Drive apps on
-  Android, both from a cold launch and while Room of Days is already open.
-  Confirm the same review appears and nothing is saved before Import schedule.
-- Import once with class reminders untouched, once with 10 minutes selected,
-  and once with reminders explicitly off. Notification permission must appear
-  only after the reminder switch is turned on. Re-import without changing the
-  switch and confirm the existing choice remains intact.
-- Add both Day Ledger widget sizes on a real iPhone. Confirm the small widget
-  shows the next class, the medium widget adds no more than three unfinished
-  Quests, completed Quests leave the list, an ended class advances without
-  reopening the app, empty states are honest, and lock-screen redaction works.
-- Start Focus while global music is off, turn Focus music on, confirm the
-  peaceful meditation theme, make it quiet in one tap, and close Focus; the
-  app must stay silent outside it. Repeat with global music already on:
-  normal Room jazz → Focus meditation → normal Room jazz, with no overlap or
-  stuck silence. Listen on phone speaker plus headphones before accepting the
-  mix and transitions.
-
-- Add a room photo, leave sharing off, and visit My Space from another signed-in
-  identity. Confirm the photo is absent. Then make the deliberate sharing
-  choice, confirm the intended audience sees it, and revoke that choice again.
-
-- Install over the previous TestFlight build and also try a fresh install.
-  Confirm quests, goals, Journal entries, Plans, room choices, Circle, and
-  settings survive the upgrade.
-- Create a goal in your own words. Check that the Workshop uses the reality,
-  proof, available time, and obstacle you gave it. Edit the proposed first
-  action, make it smaller, and leave once without accepting. No new Quest should
-  appear until you explicitly accept the cut.
-- Open an active goal and choose **this doesn't fit today**. Try **Make it
-  smaller**, **Prepare the return**, and **Leave today alone** on separate
-  attempts. Confirm the route, proof, and completion history remain intact.
-- Repeat one Quest through its first target and beyond. Confirm its mastery mark
-  and completion count advance without duplicating rewards or losing the goal
-  link.
-- With two signed-in test identities, share one room by exact code, keep it in
-  Circle, make the relationship reciprocal, and verify that Mutuals cards appear
-  only after both people choose each other. Only me cards, Journal photos,
-  private quests, email, and account details must never appear.
-- While a room is kept in Circle, interrupt the network and refresh. The saved
-  room must stay present with an honest retry state. Restore the network, retry,
-  and confirm the card recovers. A genuinely ended share should remain a
-  distinct unavailable state.
-- Remove a Circle room with VoiceOver on. Confirm the action names the room,
-  Cancel leaves it untouched, and Remove explains that the code is needed to
-  restore it before the local bookmark disappears.
-- Enter a valid-looking room code while offline, then retry online. Offline must
-  not be reported as “No shared space found,” and the entered code must remain.
-- From Discover, verify private/listed owner state, Anyone versus Mutuals cards,
-  block/unblock, report, code rotation, and the community rules/support route.
-- Press a control and drag into a scroll, cancel a touch, and tap a disabled or
-  no-op control. Those gestures must stay silent. A completed tap should answer
-  once after release; rapid navigation must not leak sounds between pages.
-- Import the provided class `.ics` file, review the six courses and 168 meetings,
-  re-import without duplicates, and confirm one manual change survives.
-- Repeat the Goals, Circle, room-code, Plans, Journal, and reward paths with
-  Larger Text, VoiceOver, Reduce Motion, Ring/Silent, and a cold relaunch.
-
-Report anything confusing, slow, visually cold, or unrewarding, plus anything
-that makes returning after a break feel harder than it should.
+Report anything visually cold, unclear, cramped, slow, or harder to return to
+after a break.
 
 ## Reviewer notes
 
-- **Build 45 additions:** Today’s three live on the Quest panel, Side quests
-  sit behind one divider, level-ups fill the screen, and My Space cards share one
-  finish. Quests keep the direct-completion action and
-  separate Manage path, People has broader relationship starters, Goals uses
-  room travel with Reduced Motion support, and the normal Room music rotation
-  now has 22 dry umbrella-brush takes plus Lamp left on. Plans can still review
-  and locally import a compatible
+- **Build 46 additions:** This internal candidate focuses on the active Goals
+  return folio: the exact current Quest leads, Today’s three, review, and a
+  smaller next step remain secondary, and the Goals heading has a dedicated
+  large-text layout. Plans can still review and locally import a compatible
   class `.ics` file received through the picker or system Open In/share flow.
   The editable starter documents comma-separated meeting days. Class reminders
   are off unless explicitly enabled during review. The iPhone widget reads a

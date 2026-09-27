@@ -426,3 +426,24 @@ the exact two-pencil pocket remain unchanged.
 Surface direction: clean graphite contour, broad warm watercolor/gouache
 value masses, and sparse hatching only in deep shadow. Dense all-over
 crosshatching, scratched skin, and an engraved look are explicitly rejected.
+
+## `goals-return-bookcloth-v1.png`
+
+- Generated on 2026-09-27 with the built-in image generator from the grounded
+  Goals-return visual study in
+  `design/ideation/2026-09-27-goals-return/study.png`.
+- Original generation:
+  `C:\Users\mikus\.codex\generated_images\01a0e3f2-ba9f-7ca1-9591-5ba5eba010d6\exec-17f64889-467c-45e2-8a43-a9e86421e773.png`.
+- Preserved source:
+  `design/source-assets/runtime-originals/assets/pages/goals-return-bookcloth-v1.png`.
+- Runtime: 1254 x 1254 PNG, 3,173,831 bytes, SHA-256
+  `dde765ec1bc4b5f5e169f13fc00d0eee5c54ddb916d4d940d5042473acf36eb0`.
+- Role: a single low-opacity dark bookcloth layer behind live text on the
+  returned active-goal folio. It contains no UI copy, numbers, or state. The
+  prompt requested seamless fine walnut fibers with motivated upper-left light;
+  the result has a gradual value field, so runtime uses one fitted instance
+  rather than repeating it and exposing a seam. No post-processing was used.
+- The generated full-page study invented a centered foreground desk absent from
+  the selected room master. That desk was not promoted to runtime art; the live
+  return uses the existing continuous arch camera and keeps the folio a clear
+  functional layer. Owner phone feel remains unverified.

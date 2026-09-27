@@ -121,7 +121,13 @@ Future<void> main(List<String> arguments) async {
       r'^version:\s*(\S+)\s*$',
       multiLine: true,
     ).firstMatch(pubspec)?.group(1);
-    _verifyListingWhatsNewIdentity(listing, pubspecVersion);
+    // TestFlight candidates may advance their internal build while the held
+    // public What's New packet remains bound to its last reviewed build.
+    if (!testFlightOnly) {
+      _verifyListingWhatsNewIdentity(listing, pubspecVersion);
+    } else {
+      _verifyTestFlightCandidateIdentity(testFlightDescription, pubspecVersion);
+    }
     _verifyCurrentInAppReleaseNotes(pubspecVersion);
     Map<String, dynamic>? candidate;
     List<String>? candidatePermissions;
@@ -469,6 +475,31 @@ void _verifyListingWhatsNewIdentity(String listing, String? pubspecVersion) {
     );
   }
   _pass('store listing What\'s New heading matches pubspec $pubspecVersion');
+}
+
+void _verifyTestFlightCandidateIdentity(
+  String testFlightDescription,
+  String? pubspecVersion,
+) {
+  if (pubspecVersion == null) {
+    throw StateError('pubspec.yaml is missing a version.');
+  }
+  final versionMatch = RegExp(
+    r'^(\d+\.\d+\.\d+)\+(\d+)$',
+  ).firstMatch(pubspecVersion);
+  if (versionMatch == null) {
+    throw StateError('pubspec version $pubspecVersion is not version+build.');
+  }
+  final expectedBuild = 'Build ${versionMatch.group(2)}';
+  if (!testFlightDescription.contains(expectedBuild)) {
+    throw StateError(
+      'TestFlight description must name the internal candidate build: '
+      '$expectedBuild.',
+    );
+  }
+  _pass(
+    'TestFlight description names $expectedBuild from pubspec $pubspecVersion',
+  );
 }
 
 void _verifyAppStoreScreenshotManifest(String? pubspecVersion) {

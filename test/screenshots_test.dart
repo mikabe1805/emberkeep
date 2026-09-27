@@ -65,7 +65,6 @@ import 'package:emberkeep/widgets/pressable.dart';
 import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
 import 'package:emberkeep/widgets/top_three_wizard.dart';
-import 'package:emberkeep/widgets/working_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show FontLoader, MethodChannel, rootBundle;
@@ -3072,6 +3071,11 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
+    // The large-text heading receives a full row above its controls. Keep the
+    // page name as one readable word instead of allowing the toolbar to force
+    // an accidental line break.
+    expect(tester.getSize(find.text('Goals')).height, lessThan(90));
+
     final action = find.text('Open Quest', skipOffstage: false);
     await tester.scrollUntilVisible(
       action,
@@ -4047,6 +4051,12 @@ void main() {
       260,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(support),
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     await tester.tap(support);
     await tester.pumpAndSettle();
     expect(find.text('Find a start'), findsOneWidget);
@@ -4062,7 +4072,7 @@ void main() {
     await tester.tap(support);
     await tester.pumpAndSettle();
 
-    final primary = find.widgetWithText(WorkingAction, 'Open Quest');
+    final primary = find.byKey(const Key('goals-return-primary-action'));
     final scrollable = tester.state<ScrollableState>(
       find.byType(Scrollable).first,
     );
@@ -4103,6 +4113,40 @@ void main() {
     expect(find.byType(GoalDetailScreen), findsNothing);
     expect(identical(openedQuest, quests.first), isTrue);
 
+    // The installed app reserves the bottom of the phone for navigation. A
+    // full-height Goals golden alone can hide a review door below that bar.
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          bottomNavigationBar: const SizedBox(height: 120),
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (_) => false,
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+    final review = find.text('Review goal');
+    expect(review, findsOneWidget);
+    expect(tester.getBottomRight(review).dy, lessThan(812));
     expect(tester.takeException(), isNull);
   });
 
@@ -4564,14 +4608,20 @@ void main() {
     );
     await _precachePageArt(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open Quest'));
+    final returnAction = find.byKey(const Key('goals-return-primary-action'));
+    await tester.tap(returnAction);
     await tester.pump();
-    expect(find.text('Open Quest'), findsOneWidget);
+    expect(returnAction, findsOneWidget);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 130));
 
-    expect(find.byKey(const Key('goal-room-travel-backdrop')), findsOneWidget);
-    expect(find.byKey(const Key('goal-room-travel-master')), findsOneWidget);
+    // The active Goals page and its departing route share the same room plate
+    // during the handoff, so both source and transition are present here.
+    expect(
+      find.byKey(const Key('goal-room-travel-backdrop')),
+      findsNWidgets(2),
+    );
+    expect(find.byKey(const Key('goal-room-travel-master')), findsNWidgets(2));
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),

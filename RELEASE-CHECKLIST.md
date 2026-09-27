@@ -3,6 +3,27 @@
 Updated September 27, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+46 internal candidate — the active Goals return
+
+This candidate is limited to the active Goals return folio: the exact current
+Quest leads, Today’s three, review, and a smaller next step remain secondary,
+and the Goals heading has a dedicated large-text layout. The exact permitted
+tag is `room-of-days-1.0.4-build-46-internal-candidate`. It is authorized for
+internal TestFlight only; owner and physical-phone acceptance remain open, and
+it is not App Store submission authority.
+
+- [ ] Pass the complete regression suite and the focused Goals return visual
+  states on the candidate source, then freeze that source revision.
+- [ ] Add only
+  `release-evidence/internal-testflight/1.0.4+46/CANDIDATE-MANIFEST.json` in
+  a receipt child, binding its `sourceRevision` to the frozen parent and the
+  exact Build 46 tag.
+- [ ] Push the exact receipt tag once. Confirm Codemagic signs and publishes
+  the IPA to the internal `Me` group, then confirm Apple processing separately.
+- [ ] Mika installs it on a physical phone: return to an active Goal on an
+  ordinary and difficult day, open the current Quest, review/cancel Today’s
+  three, try Make this smaller, and repeat at Larger Text and Reduce Motion.
+
 ## 1.0.4+45 internal candidate — Today's three on the instrument
 
 This candidate carries the Goals return work and the Quests first slice (both

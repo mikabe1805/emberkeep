@@ -34,7 +34,12 @@ Finder get _adjustmentReviewScrollable => find
 
 Finder get _goalsScroll => find.byKey(const Key('goals-threshold-scroll'));
 
-Finder _goalAction(String label) => find.widgetWithText(WorkingAction, label);
+Finder _goalAction(String label) => switch (label) {
+  'Open Quest' ||
+  'Add a Quest' ||
+  'Bring inside' => find.byKey(const Key('goals-return-primary-action')),
+  _ => find.widgetWithText(WorkingAction, label),
+};
 
 Future<void> _revealOnGoalsPage(
   WidgetTester tester,
@@ -1385,13 +1390,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 460));
     await tester.pump(const Duration(milliseconds: 10));
 
-    // Reduced Motion may complete and remove the handoff route in one frame;
-    // the contract is the exact Quest callback, not a visible hold.
+    // The return page now keeps its real room as a still source behind the
+    // handoff. Reduced Motion must leave that source still, while the route
+    // itself has no travel, shared-axis, or scale animation.
+    final stillRoom = find.byType(GoalRoomTravelBackdrop);
+    expect(stillRoom, findsOneWidget);
     expect(
-      find.byKey(const Key('goal-room-travel-backdrop')),
-      findsNothing,
-      reason:
-          'Reduced Motion should fade between the real source and destination stills',
+      tester.widget<GoalRoomTravelBackdrop>(stillRoom).reduceMotion,
+      isTrue,
     );
     expect(
       find.byKey(const Key('detail-route-threshold-travel')),
@@ -2674,7 +2680,7 @@ void main() {
     // The compact layout keeps the action in the scrollable folio. Invoke the
     // same production callback after the layout/overflow check; hit testing
     // remains covered by the existing 430px journey tests.
-    tester.widget<WorkingAction>(action).onTap();
+    tester.widget<GoalPrimaryButton>(action).onTap();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1640));
     await tester.pump(const Duration(milliseconds: 1));

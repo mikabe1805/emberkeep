@@ -24,6 +24,23 @@ void main() {
         verifier,
         contains('_verifyListingWhatsNewIdentity(listing, pubspecVersion)'),
       );
+      expect(
+        verifier,
+        matches(
+          RegExp(r'if \(!testFlightOnly\) \{\s*_verifyListingWhatsNewIdentity'),
+        ),
+      );
+      expect(verifier, contains('_verifyTestFlightCandidateIdentity'));
+      expect(
+        verifier,
+        contains("final expectedBuild = 'Build \${versionMatch.group(2)}'"),
+      );
+      expect(
+        verifier,
+        contains(
+          'TestFlight description must name the internal candidate build',
+        ),
+      );
       expect(verifier, contains('final expectedHeading'));
       expect(verifier, contains('versionMatch.group(2)'));
       expect(verifier, contains('CANDIDATE-MANIFEST.json'));

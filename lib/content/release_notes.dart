@@ -52,6 +52,36 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+46',
+    versionLabel: 'VERSION 1.0.4 · BUILD 46',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'The next thing, closer.',
+    introduction:
+        'Return to a goal, find the next Quest, and keep the rest of the day '
+        'in its place.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'THE CURRENT QUEST, FIRST',
+        body:
+            'An active Goal now keeps its next Quest close at hand, with one '
+            'clear way to open it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'ROOM FOR THE REST OF TODAY',
+        body:
+            'Today’s three, goal review, and a smaller next step stay nearby '
+            'without crowding the Quest in front of you.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'LARGER TEXT, CLEARER GOALS',
+        body: 'Goals keeps its page title and controls clear at larger text.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+45',
     versionLabel: 'VERSION 1.0.4 · BUILD 45',
     dateLabel: 'SEPTEMBER 2026',
