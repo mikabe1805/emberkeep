@@ -91,9 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(midnight.hitTestable(), findsOneWidget);
     await tester.tap(midnight);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
     await tester.pumpAndSettle();
 
     expect(state.questDeskStyle, 'wall_archive');

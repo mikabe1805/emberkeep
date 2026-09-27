@@ -109,53 +109,50 @@ void main() {
     }
   });
 
-  test(
-    'runtime preserves every owner-selected Refined Paired Return master',
-    () {
-      const tokens = ['d5', 'a5', 'e5'];
-      expect(InteractionSoundRouter.pairedReturnAssets, hasLength(60));
-      for (final token in tokens) {
-        for (final role in _roles) {
-          for (var take = 1; take <= 5; take++) {
-            final runtime = File(
-              'assets/sfx/room/paired_return/$token/$role/$take.wav',
-            );
-            final approved = File(
-              'design/audits/2026-09-06/tap-refinement/'
-              'refined/paired_return/$token/$role/$take.wav',
-            );
-            _expectSelectedTapSnapshot(
-              runtime,
-              approved,
-              'design/audits/2026-09-06/tap-refinement/paired-manifest.json',
-              'refined/paired_return/$token/$role/$take.wav',
-            );
-            final wave = _readWave(runtime);
-            expect(wave.audioFormat, 1);
-            expect(wave.channels, 1);
-            expect(wave.sampleRate, 48000);
-            expect(wave.bitsPerSample, 24);
-            expect(wave.durationMs, closeTo(60, 0.01));
-            expect(wave.onsetMs, lessThan(1));
-          }
-        }
-      }
-
-      final pubspec = File('pubspec.yaml').readAsStringSync();
-      for (final token in tokens) {
-        for (final role in _roles) {
-          expect(
-            pubspec,
-            contains('assets/sfx/room/paired_return/$token/$role/'),
+  test('runtime preserves every owner-selected Refined Paired Return master', () {
+    const tokens = ['d5', 'a5', 'e5'];
+    expect(InteractionSoundRouter.pairedReturnAssets, hasLength(60));
+    for (final token in tokens) {
+      for (final role in _roles) {
+        for (var take = 1; take <= 5; take++) {
+          final runtime = File(
+            'assets/sfx/room/paired_return/$token/$role/$take.wav',
           );
+        final approved = File(
+          'design/audits/2026-09-06/tap-refinement/'
+          'refined/paired_return/$token/$role/$take.wav',
+        );
+        _expectSelectedTapSnapshot(
+          runtime,
+          approved,
+          'design/audits/2026-09-06/tap-refinement/paired-manifest.json',
+          'refined/paired_return/$token/$role/$take.wav',
+        );
+          final wave = _readWave(runtime);
+          expect(wave.audioFormat, 1);
+          expect(wave.channels, 1);
+          expect(wave.sampleRate, 48000);
+          expect(wave.bitsPerSample, 24);
+          expect(wave.durationMs, closeTo(60, 0.01));
+          expect(wave.onsetMs, lessThan(1));
         }
       }
-      expect(
-        File('tool/prepare_web_offline.dart').readAsStringSync(),
-        contains('assets/assets/sfx/room/paired_return/'),
-      );
-    },
-  );
+    }
+
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    for (final token in tokens) {
+      for (final role in _roles) {
+        expect(
+          pubspec,
+          contains('assets/sfx/room/paired_return/$token/$role/'),
+        );
+      }
+    }
+    expect(
+      File('tool/prepare_web_offline.dart').readAsStringSync(),
+      contains('assets/assets/sfx/room/paired_return/'),
+    );
+  });
 
   test('runtime preserves the locked completion and its two sources', () {
     // The accepted contact stays the immutable v3 master; the detent and
@@ -1100,10 +1097,9 @@ void _expectSelectedTapSnapshot(
   String manifestPath,
   String manifestKey,
 ) {
-  final manifest =
-      jsonDecode(File(manifestPath).readAsStringSync()) as Map<String, dynamic>;
-  final record =
-      manifest[manifestKey] ??
+  final manifest = jsonDecode(File(manifestPath).readAsStringSync())
+      as Map<String, dynamic>;
+  final record = manifest[manifestKey] ??
       (manifest['records'] as Map<String, dynamic>)[manifestKey];
   expect(record, isA<Map<String, dynamic>>(), reason: 'missing $manifestKey');
   final expectedDigest = (record as Map<String, dynamic>)['sha256'] as String;
