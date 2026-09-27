@@ -17,11 +17,15 @@ last Room of Days build is 43 and this one uses 45.
 
 - [x] Pass the complete regression suite on the candidate source, then freeze
   that source revision.
-- [ ] Update only
+- [x] Update only
   `release-evidence/internal-testflight/1.0.4+45/CANDIDATE-MANIFEST.json`
-  in a receipt child that binds `sourceRevision` to that source and its tag.
-- [ ] Push the exact receipt tag once. Confirm Codemagic completes, Apple
-  processes the upload, and the build attaches to internal group `Me`.
+  in a receipt child (`1ad1271`) that binds `sourceRevision` to the source
+  (`302d687`) and its tag.
+- [x] Push the exact receipt tag once. Codemagic build
+  `6ab9261c3f90aeed96671cb8` succeeded on September 27 (14:20–14:45 UTC):
+  receipt identity, complete suite, discovery packet, signing, signed-IPA
+  check and publishing to internal group `Me` all passed. Apple processing was
+  not observed from this machine.
 - [ ] Mika installs it: Today's three rings on a real day, the level-up on a
   real threshold, and My Space on the phone.
 
