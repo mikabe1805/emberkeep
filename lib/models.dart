@@ -1588,11 +1588,21 @@ class LedgerEntry {
 
 /// Result of applying XP to the level model.
 class LevelResult {
-  LevelResult({required this.leveledTo, required this.unlock});
+  LevelResult({
+    required this.leveledTo,
+    required this.unlock,
+    this.previousLevel,
+    this.questsSince,
+  });
 
   /// Null when no level-up happened.
   final int? leveledTo;
 
   /// The unlock revealed at this level, if any.
   final String? unlock;
+
+  /// The level before this application, and the Quests finished since that
+  /// level was reached (null when an older save cannot know).
+  final int? previousLevel;
+  final int? questsSince;
 }

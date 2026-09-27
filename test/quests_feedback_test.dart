@@ -138,7 +138,17 @@ void main() {
 
     expect(find.text('FOCUS'), findsOneWidget);
     expect(find.text('ADD'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    // Tools carry words, not mystery chevrons. The one chevron on the live
+    // surface belongs to Today's three, which opens the chooser.
+    final chevrons = find.byIcon(Icons.chevron_right_rounded);
+    expect(chevrons, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('daily-field-rail')),
+        matching: chevrons,
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the labelled rail fits a narrow large-text phone', (
@@ -188,7 +198,20 @@ void main() {
 
     expect(find.text('FOCUS'), findsOneWidget);
     expect(find.text('ADD'), findsOneWidget);
-    expect(find.text('2 READY · 4 DAY STREAK'), findsOneWidget);
+    // Continuity follows the work, in the board footer.
+    final streak = find.text('2 READY · 4 DAY STREAK');
+    for (
+      var step = 0;
+      step < 8 && streak.hitTestable().evaluate().isEmpty;
+      step++
+    ) {
+      await tester.drag(
+        find.byKey(const ValueKey('quest-board-scroll')),
+        const Offset(0, -140),
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(streak.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

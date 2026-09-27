@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../haptics.dart';
 import '../tokens.dart';
-import 'facets.dart';
 import 'glass.dart';
 import 'particles.dart';
 
@@ -22,12 +21,19 @@ class LevelUpOverlay extends StatefulWidget {
     required this.onDismiss,
     this.onShare,
     this.reduceMotion = false,
+    this.questsSince,
+    this.previousLevel,
   });
 
   final int level;
   final String? unlock;
   final String? nextUnlock;
   final VoidCallback onDismiss;
+
+  /// Quests finished since the last level, when the save knows it. "YOU DID
+  /// IT." lands harder when it can point at what the person actually did.
+  final int? questsSince;
+  final int? previousLevel;
 
   /// Opens the share-a-moment preview. A level-up is the exact moment someone
   /// wants to show a friend, and this overlay used to dead-end at "onward" —
@@ -135,8 +141,20 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
               final encouragementIn = still ? 1.0 : _encouragementIn.value;
               final unlockIn = still ? 1.0 : _unlockIn.value;
               return Container(
-                // deep walnut night — warm dark, never grey-black
-                color: const Color(0xFF2E1C0D).withValues(alpha: 0.92 * dim),
+                // Deep walnut night, lit from the numeral: warm where the
+                // level glows, falling to near-black at the edges.
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(0, -0.2),
+                    radius: 1.05,
+                    colors: [
+                      const Color(0xFF3B2514).withValues(alpha: 0.93 * dim),
+                      const Color(0xFF22150B).withValues(alpha: 0.95 * dim),
+                      const Color(0xFF110905).withValues(alpha: 0.97 * dim),
+                    ],
+                    stops: const [0, 0.55, 1],
+                  ),
+                ),
                 child: Stack(
                   children: [
                     if (_burst && !still)
@@ -174,7 +192,8 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                   child: Text(
                                     'LEVEL UP',
                                     style: Type.label.copyWith(
-                                      fontSize: 16,
+                                      fontSize: 14,
+                                      letterSpacing: 3.2,
                                       color: Palette.xpLight,
                                     ),
                                   ),
@@ -191,6 +210,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                       textAlign: TextAlign.center,
                                       style: Type.display.copyWith(
                                         fontSize: 46,
+                                        height: 1.05,
                                         fontWeight: FontWeight.w700,
                                         color: Palette.textHi,
                                         shadows: [
@@ -207,136 +227,191 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 18),
                                 Transform.scale(
                                   // elasticOut overshoots past 1.0 → the numeral slams in
                                   scale: still ? 1 : 0.4 + 0.6 * slam,
                                   child: Opacity(
                                     opacity: slam.clamp(0.0, 1.0),
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Transform.rotate(
-                                          angle: 0.785,
-                                          child: Container(
-                                            width: 104,
-                                            height: 104,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  Palette.xpLight.withValues(
-                                                    alpha: 0.13,
+                                    child: SizedBox(
+                                      width: 190,
+                                      height: 170,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          // The numeral is the light source:
+                                          // its warmth spills into the room
+                                          // around it, so the takeover is not
+                                          // one flat sheet.
+                                          IgnorePointer(
+                                            child: OverflowBox(
+                                              maxWidth: 420,
+                                              maxHeight: 420,
+                                              child: Container(
+                                                width: 420,
+                                                height: 420,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  gradient: RadialGradient(
+                                                    colors: [
+                                                      const Color(
+                                                        0xFFE0A865,
+                                                      ).withValues(
+                                                        alpha:
+                                                            0.24 *
+                                                            slam.clamp(
+                                                              0.0,
+                                                              1.0,
+                                                            ),
+                                                      ),
+                                                      const Color(
+                                                        0xFFB8742F,
+                                                      ).withValues(
+                                                        alpha:
+                                                            0.09 *
+                                                            slam.clamp(
+                                                              0.0,
+                                                              1.0,
+                                                            ),
+                                                      ),
+                                                      const Color(0x00B8742F),
+                                                    ],
+                                                    stops: const [0, 0.42, 1],
                                                   ),
-                                                  Palette.unlock.withValues(
-                                                    alpha: 0.025,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Transform.rotate(
+                                            angle: 0.785,
+                                            child: Container(
+                                              width: 104,
+                                              height: 104,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: [
+                                                    Palette.xpLight.withValues(
+                                                      alpha: 0.16,
+                                                    ),
+                                                    const Color(0x082E1C0D),
+                                                  ],
+                                                ),
+                                                border: Border.all(
+                                                  color: Palette.xpLight
+                                                      .withValues(alpha: 0.34),
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Palette.honeyGlow
+                                                        .withValues(
+                                                          alpha: 0.35,
+                                                        ),
+                                                    blurRadius: 30,
                                                   ),
                                                 ],
                                               ),
-                                              border: Border.all(
-                                                color: Palette.xpLight
-                                                    .withValues(alpha: 0.3),
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Palette.honeyGlow
-                                                      .withValues(alpha: 0.35),
-                                                  blurRadius: 30,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${widget.level}',
+                                            style: Type.numerals.copyWith(
+                                              fontSize: 120,
+                                              height: 1,
+                                              color: Palette.xpLight,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Palette.xpLight
+                                                      .withValues(alpha: 0.7),
+                                                  blurRadius: still
+                                                      ? 24
+                                                      : 44 * slam,
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                        Text(
-                                          '${widget.level}',
-                                          style: Type.numerals.copyWith(
-                                            fontSize: 120,
-                                            color: Palette.xpLight,
-                                            shadows: [
-                                              Shadow(
-                                                color: Palette.xpLight
-                                                    .withValues(alpha: 0.7),
-                                                blurRadius: still
-                                                    ? 24
-                                                    : 44 * slam,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Opacity(
-                                  opacity: unlockIn * 0.78,
-                                  child: Text(
-                                    'LEVEL ${widget.level}',
-                                    style: Type.label.copyWith(
-                                      fontSize: 12,
-                                      color: Palette.xpLight,
+                                if (widget.questsSince case final count?
+                                    when count > 0) ...[
+                                  const SizedBox(height: 14),
+                                  Opacity(
+                                    opacity: unlockIn,
+                                    child: Text(
+                                      _evidenceLine(count),
+                                      textAlign: TextAlign.center,
+                                      style: Type.body.copyWith(
+                                        fontSize: 15,
+                                        height: 1.35,
+                                        fontStyle: FontStyle.italic,
+                                        color: Palette.textMid,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                if (widget.unlock != null)
+                                ],
+                                if (widget.unlock != null) ...[
+                                  const SizedBox(height: 26),
                                   Opacity(
                                     opacity: unlockIn,
                                     child: Transform.translate(
                                       offset: Offset(
                                         0,
-                                        still ? 0 : 20 * (1 - unlockIn),
+                                        still ? 0 : 16 * (1 - unlockIn),
                                       ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 18,
-                                          vertical: 10,
-                                        ),
-                                        decoration: facetedDecoration(
-                                          cut: 9,
-                                          color: Palette.unlock.withValues(
-                                            alpha: 0.05,
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              _revealRule(),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                'UNLOCKED',
+                                                style: Type.label.copyWith(
+                                                  fontSize: Type.minLabel,
+                                                  letterSpacing: 2.4,
+                                                  color: Palette.unlock,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              _revealRule(flip: true),
+                                            ],
                                           ),
-                                          borderColor: Palette.unlock,
-                                          shadows: [
-                                            BoxShadow(
-                                              color: Palette.unlock.withValues(
-                                                alpha: 0.3 * unlockIn,
-                                              ),
-                                              blurRadius: 18,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            widget.unlock!,
+                                            textAlign: TextAlign.center,
+                                            style: Type.display.copyWith(
+                                              fontSize: 24,
+                                              color: Palette.textHi,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Palette.unlock
+                                                      .withValues(
+                                                        alpha: 0.35 * unlockIn,
+                                                      ),
+                                                  blurRadius: 16,
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                        child: Wrap(
-                                          alignment: WrapAlignment.center,
-                                          crossAxisAlignment:
-                                              WrapCrossAlignment.center,
-                                          children: [
-                                            const Icon(
-                                              Icons.lock_open,
-                                              size: 18,
-                                              color: Palette.unlock,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '${widget.unlock} UNLOCKED',
-                                              style: Type.label.copyWith(
-                                                fontSize: 14,
-                                                color: Palette.unlock,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
+                                ],
                                 if (widget.nextUnlock != null) ...[
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 14),
                                   Opacity(
                                     opacity: unlockIn * 0.8,
                                     child: Text(
                                       'NEXT · ${widget.nextUnlock}',
+                                      textAlign: TextAlign.center,
                                       style: Type.label.copyWith(fontSize: 11),
                                     ),
                                   ),
@@ -407,4 +482,24 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
       ),
     );
   }
+
+  String _evidenceLine(int count) {
+    final quests = count == 1 ? 'one quest' : '$count quests';
+    final previous = widget.previousLevel;
+    if (previous == null || previous <= 1) return '$quests since you began';
+    return '$quests since level $previous';
+  }
+
+  Widget _revealRule({bool flip = false}) => Container(
+    width: 28,
+    height: 1,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Palette.unlock.withValues(alpha: flip ? 0.6 : 0),
+          Palette.unlock.withValues(alpha: flip ? 0 : 0.6),
+        ],
+      ),
+    ),
+  );
 }

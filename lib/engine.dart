@@ -1217,6 +1217,10 @@ class GameState extends ChangeNotifier {
 
   // ── achievement counters ─────────────────────────────────────────
   int totalCompletions = 0;
+
+  /// [totalCompletions] when the last level was reached, so a level-up can
+  /// say what earned it. Null for older saves until their next level.
+  int? completionsAtLastLevel = 0;
   int verifiedCompletions = 0;
   int dreadCompletions = 0;
   int epicCompletions = 0;
@@ -2051,6 +2055,7 @@ class GameState extends ChangeNotifier {
   /// schedule (DESIGN.md §6).
   LevelResult applyLevelUps() {
     int? reached;
+    final from = level;
     while (xp >= xpNeeded(level + 1)) {
       xp -= xpNeeded(level + 1);
       level++;
@@ -2070,7 +2075,19 @@ class GameState extends ChangeNotifier {
     if (level >= 15 && !ownedSkins.contains('gilded')) {
       ownedSkins.add('gilded');
     }
-    return LevelResult(leveledTo: reached, unlock: unlocks[reached]);
+    if (reached == null) {
+      return LevelResult(leveledTo: null, unlock: null);
+    }
+    final since = completionsAtLastLevel == null
+        ? null
+        : totalCompletions - completionsAtLastLevel!;
+    completionsAtLastLevel = totalCompletions;
+    return LevelResult(
+      leveledTo: reached,
+      unlock: unlocks[reached],
+      previousLevel: from,
+      questsSince: since == null || since < 0 ? null : since,
+    );
   }
 
   /// Day rollover: drops completed one-time quests from past days and
@@ -2335,6 +2352,7 @@ class GameState extends ChangeNotifier {
     'lastCompletionDay': lastCompletionDay,
     'lastActiveDay': lastActiveDay,
     'totalCompletions': totalCompletions,
+    'completionsAtLastLevel': completionsAtLastLevel,
     'verifiedCompletions': verifiedCompletions,
     'dreadCompletions': dreadCompletions,
     'epicCompletions': epicCompletions,
@@ -2670,6 +2688,7 @@ class GameState extends ChangeNotifier {
     s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
     s.lastActiveDay = Days.validKey(j['lastActiveDay']);
     s.totalCompletions = j['totalCompletions'] as int? ?? 0;
+    s.completionsAtLastLevel = j['completionsAtLastLevel'] as int?;
     s.verifiedCompletions = j['verifiedCompletions'] as int? ?? 0;
     s.dreadCompletions = j['dreadCompletions'] as int? ?? 0;
     s.epicCompletions = j['epicCompletions'] as int? ?? 0;

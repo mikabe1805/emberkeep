@@ -164,8 +164,8 @@ void main() {
     // rather than relying on a separate Text widget for the label span.
     expect(find.textContaining('LEVEL', findRichText: true), findsOneWidget);
     await revealQuest(tester, 'Do 2 push-ups');
-    await revealBoardText(tester, 'TODAY · 5 OPEN');
-    expect(find.text('TODAY · 5 OPEN'), findsOneWidget);
+    await revealBoardText(tester, '5 open · choose');
+    expect(find.text('5 open · choose'), findsOneWidget);
   });
 
   for (final (shape, count) in const [
@@ -178,8 +178,8 @@ void main() {
     ) async {
       await pumpApp(tester, timeShape: shape);
 
-      await revealBoardText(tester, 'TODAY · $count OPEN');
-      expect(find.text('TODAY · $count OPEN'), findsOneWidget);
+      await revealBoardText(tester, '$count open · choose');
+      expect(find.text('$count open · choose'), findsOneWidget);
     });
   }
 
@@ -1003,9 +1003,9 @@ void main() {
   testWidgets('night routine opens, recaps and closes', (tester) async {
     await pumpApp(tester);
 
-    // The board's four toolbar marks share one outline weight now; the moon
-    // was the only solid glyph in the row.
-    await tester.tap(find.byIcon(Icons.nightlight_outlined));
+    // CLOSE DAY follows the work it closes, in the board footer.
+    await revealBoardText(tester, 'CLOSE DAY');
+    await tester.tap(find.text('CLOSE DAY'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Close the ledger'), findsOneWidget);
     expect(find.text('WHAT MOVED'), findsOneWidget);
@@ -1206,7 +1206,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500)); // sheet slides away
     await tester.pump(const Duration(milliseconds: 100)); // route removed
 
-    expect(find.text('TODAY · 6 OPEN'), findsOneWidget);
+    expect(find.text('6 open · choose'), findsOneWidget);
     expect(find.text('Do the laundry'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
@@ -1237,7 +1237,7 @@ void main() {
     // parked Quest room before asserting its live board.
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 6 OPEN'), findsOneWidget);
+    expect(find.text('6 open · choose'), findsOneWidget);
     expect(find.text('Finish the essay draft'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });

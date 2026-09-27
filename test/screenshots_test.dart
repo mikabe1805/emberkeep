@@ -937,17 +937,6 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/quest_board.png'),
       );
-      await tester.tap(find.byType(StreakFreezeStatus));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 450));
-      expect(find.text('STREAK FREEZES'), findsOneWidget);
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/streak_freeze_sheet.png'),
-      );
-      await tester.tapAt(const Offset(12, 12));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
       await tester.drag(
         find.byKey(const ValueKey('quest-board-scroll')),
         const Offset(0, -560),
@@ -957,6 +946,27 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/quest_board_compact_rows.png'),
+      );
+      // Continuity now follows the work it describes, in the board footer.
+      for (
+        var step = 0;
+        step < 8 &&
+            find.byType(StreakFreezeStatus).hitTestable().evaluate().isEmpty;
+        step++
+      ) {
+        await tester.drag(
+          find.byKey(const ValueKey('quest-board-scroll')),
+          const Offset(0, -160),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+      await tester.tap(find.byType(StreakFreezeStatus));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(find.text('STREAK FREEZES'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/streak_freeze_sheet.png'),
       );
     }
   });
@@ -1073,13 +1083,15 @@ void main() {
       );
     }
     final rail = find.byKey(const Key('daily-field-rail'));
+    expect(rail.hitTestable(), findsOneWidget);
+    expect(find.text('Today’s three'), findsOneWidget);
     await tester.scrollUntilVisible(
-      rail,
-      260,
+      find.byKey(const Key('side-quests-divider')),
+      200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump(const Duration(milliseconds: 180));
-    expect(find.text('Open if it fits · 2'), findsOneWidget);
+    expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -1087,7 +1099,7 @@ void main() {
       );
     }
 
-    await tester.tap(find.text('Open if it fits · 2'));
+    await tester.tap(find.byKey(const Key('side-quests-divider')));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(
       find.text('Sketch if there is room'),
@@ -1102,20 +1114,20 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.ensureVisible(find.text('Hide optional quests'));
-    await tester.tap(find.text('Hide optional quests'));
+    await tester.ensureVisible(find.byKey(const Key('side-quests-divider')));
+    await tester.tap(find.byKey(const Key('side-quests-divider')));
     commitment.lastDoneDay = today;
     first.lastDoneDay = today;
     second.lastDoneDay = today;
     await tester.pumpWidget(board());
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.scrollUntilVisible(
-      rail,
-      260,
-      scrollable: find.byType(Scrollable).first,
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, 1600),
     );
-    expect(find.text('Field kept'), findsOneWidget);
-    expect(find.text('Open if it fits · 2'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('all kept'), findsOneWidget);
+    expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -1170,18 +1182,27 @@ void main() {
     }
     // The ledger now follows the featured card inside the nested list. Bring
     // its own optional action fully into the compact viewport before tapping.
-    for (var attempt = 0;
-        attempt < 5 &&
-            find.text('Open if it fits · 2').hitTestable().evaluate().isEmpty;
-        attempt++) {
+    for (
+      var attempt = 0;
+      attempt < 5 &&
+          find
+              .byKey(const Key('side-quests-divider'))
+              .hitTestable()
+              .evaluate()
+              .isEmpty;
+      attempt++
+    ) {
       await tester.drag(
         find.byKey(const ValueKey('quest-board-scroll')),
         const Offset(0, -110),
       );
       await tester.pump(const Duration(milliseconds: 180));
     }
-    expect(find.text('Open if it fits · 2').hitTestable(), findsOneWidget);
-    await tester.tap(find.text('Open if it fits · 2'));
+    expect(
+      find.byKey(const Key('side-quests-divider')).hitTestable(),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('side-quests-divider')));
     await tester.pump(const Duration(milliseconds: 180));
     await tester.scrollUntilVisible(
       find.text('Sketch if there is room'),

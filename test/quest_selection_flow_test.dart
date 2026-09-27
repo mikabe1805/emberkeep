@@ -128,10 +128,18 @@ void main() {
     expect(state.xpPreview(quest), greaterThan(1));
 
     await tester.tap(_actionIn(quest));
-    await tester.pump(const Duration(milliseconds: 260));
-    await tester.pump(const Duration(milliseconds: 900));
+    // The receipt keeps its readable rail first; the level-up takeover follows
+    // once it settles, exactly as on a phone.
+    for (
+      var step = 0;
+      step < 30 && find.byType(LevelUpOverlay).evaluate().isEmpty;
+      step++
+    ) {
+      await tester.pump(const Duration(milliseconds: 250));
+    }
 
     expect(state.level, 2);
+    expect(state.completionsAtLastLevel, state.totalCompletions);
     expect(find.byType(LevelUpOverlay), findsOneWidget);
     expect(find.text('YOU DID IT.'), findsOneWidget);
     await tester.tapAt(const Offset(20, 20));

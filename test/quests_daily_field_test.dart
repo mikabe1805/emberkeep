@@ -85,16 +85,16 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 350));
 
-      expect(find.text('TODAY’S FIELD'), findsOneWidget);
+      expect(find.text('Today’s three'), findsOneWidget);
       expect(find.text('0 of 2 kept'), findsOneWidget);
-      expect(find.text('Open if it fits · 2'), findsOneWidget);
+      expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
       expect(find.text('First chosen'), findsOneWidget);
       expect(find.text('Second chosen'), findsOneWidget);
       expect(find.text('Submit the form'), findsOneWidget);
       expect(find.text('Optional sketch'), findsNothing);
       expect(find.text('Optional walk'), findsNothing);
 
-      await tester.tap(find.text('Open if it fits · 2'));
+      await tester.tap(find.byKey(const Key('side-quests-divider')));
       await tester.pump(const Duration(milliseconds: 180));
       await tester.scrollUntilVisible(
         find.text('Optional walk'),
@@ -102,7 +102,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
 
-      expect(find.text('Hide optional quests'), findsOneWidget);
+      expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
       expect(find.text('Optional sketch'), findsOneWidget);
       expect(find.text('Optional walk'), findsOneWidget);
     },
@@ -127,17 +127,14 @@ void main() {
 
     await tester.pumpWidget(_board(state, [chosen, _daily('Optional idea')]));
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.drag(
-      find.byKey(const ValueKey('quest-board-scroll')),
-      const Offset(0, -420),
+    // Today's three lives on the instrument, visible without scrolling.
+    expect(
+      find.byKey(const Key('daily-field-rail')).hitTestable(),
+      findsOneWidget,
     );
-    await tester.pump(const Duration(milliseconds: 180));
-    await tester.ensureVisible(find.byKey(const Key('daily-field-rail')));
-
-    expect(find.text('TODAY’S FIELD'), findsOneWidget);
-    expect(find.text('0 of 1 kept'), findsOneWidget);
-    expect(find.text('1 set aside'), findsOneWidget);
-    expect(find.text('Field kept'), findsNothing);
+    expect(find.text('Today’s three'), findsOneWidget);
+    expect(find.text('0 of 1 kept · 1 set aside'), findsOneWidget);
+    expect(find.text('all kept'), findsNothing);
   });
 
   testWidgets(
@@ -170,12 +167,12 @@ void main() {
       await tester.pumpWidget(_board(state, [chosen, commitment, optional]));
       await tester.pump(const Duration(milliseconds: 350));
 
-      expect(find.text('TODAY’S FIELD'), findsOneWidget);
-      expect(find.text('Field kept'), findsOneWidget);
-      expect(find.text('Open if it fits · 1'), findsOneWidget);
+      expect(find.text('Today’s three'), findsOneWidget);
+      expect(find.text('all kept'), findsOneWidget);
+      expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
       expect(find.text('Sketch if there is room'), findsNothing);
 
-      await tester.tap(find.text('Open if it fits · 1'));
+      await tester.tap(find.byKey(const Key('side-quests-divider')));
       await tester.pump(const Duration(milliseconds: 180));
       await tester.scrollUntilVisible(
         find.text('Sketch if there is room'),

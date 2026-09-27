@@ -205,9 +205,9 @@ void main() {
 
       expect(find.text('LEVEL UP'), findsOneWidget);
       expect(find.text('YOU DID IT.'), findsOneWidget);
-      expect(find.text('LEVEL 10'), findsOneWidget);
       expect(find.text('10'), findsOneWidget);
-      expect(find.text('Sunlit Desk UNLOCKED'), findsOneWidget);
+      expect(find.text('UNLOCKED'), findsOneWidget);
+      expect(find.text('Sunlit Desk'), findsOneWidget);
       expect(find.byType(ParticleBurst), findsNothing);
       expect(_scaleOfText(tester, '10'), closeTo(1, 0.0001));
       expect(
@@ -249,9 +249,9 @@ void main() {
 
       expect(find.text('LEVEL UP'), findsOneWidget);
       expect(find.text('YOU DID IT.'), findsOneWidget);
-      expect(find.text('LEVEL 5'), findsOneWidget);
+      expect(find.text('LEVEL 5'), findsNothing);
       expect(find.text('5'), findsOneWidget);
-      expect(find.text('Window Seat UNLOCKED'), findsOneWidget);
+      expect(find.text('Window Seat'), findsOneWidget);
       expect(find.byType(ParticleBurst), findsOneWidget);
       expect(dismissed, isFalse);
 
@@ -276,6 +276,8 @@ void main() {
           level: 10,
           unlock: 'Sunlit Desk',
           nextUnlock: 'Brass Shelf',
+          questsSince: 12,
+          previousLevel: 9,
           onDismiss: () {},
           onShare: () {},
           reduceMotion: true,
@@ -283,10 +285,16 @@ void main() {
       ),
     );
     await tester.pump();
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/levelup_you_did_it_390x844.png'),
-    );
+    expect(find.text('YOU DID IT.'), findsOneWidget);
+    expect(find.text('12 quests since level 9'), findsOneWidget);
+    // One numeral carries the level; the old small LEVEL 10 caption repeated it.
+    expect(find.text('LEVEL 10'), findsNothing);
+    if (const bool.fromEnvironment('CAPTURE_GOLDENS')) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/levelup_you_did_it_390x844.png'),
+      );
+    }
   });
 
   testWidgets(
@@ -318,7 +326,8 @@ void main() {
 
       expect(find.text('YOU DID IT.'), findsOneWidget);
       expect(find.text('10'), findsOneWidget);
-      expect(find.text('Sunlit Desk UNLOCKED'), findsOneWidget);
+      expect(find.text('UNLOCKED'), findsOneWidget);
+      expect(find.text('Sunlit Desk'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('SHARE THIS MOMENT'),
         180,

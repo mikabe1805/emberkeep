@@ -403,7 +403,7 @@ class _GoalsPageState extends State<GoalsPage> {
       title: 'Choose today',
       subtitle:
           'Pick up to three quests to carry. Everything else stays open if the day has more in it.',
-      dayLabel: 'Today’s field',
+      dayLabel: 'Today’s three',
       candidates: candidates,
       goals: state.goals,
       day: today,
@@ -412,7 +412,7 @@ class _GoalsPageState extends State<GoalsPage> {
         today,
       ).map((quest) => quest.title),
       accent: Palette.xpLight,
-      confirmLabel: 'KEEP TODAY’S FIELD',
+      confirmLabel: 'KEEP TODAY’S THREE',
     );
     if (chosen == null || !mounted) return;
 

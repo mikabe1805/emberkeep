@@ -221,7 +221,7 @@ class _TodayFieldDoor extends StatelessWidget {
   Widget build(BuildContext context) {
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final compactType = textScale > 1.2;
-    final heading = textScale > 1.6 ? 'TODAY' : 'TODAY\'S FIELD';
+    final heading = textScale > 1.6 ? 'TODAY' : 'TODAY\'S THREE';
     final status = count == 0
         ? (compactType ? 'Choose' : 'Choose up to 3')
         : '$count chosen';
@@ -234,8 +234,8 @@ class _TodayFieldDoor extends StatelessWidget {
       edgeColor: const Color(0xFF51331F),
       guardRapidReentry: true,
       semanticLabel: count == 0
-          ? 'Choose today’s field'
-          : 'Today’s field, $count chosen. Reshape today.',
+          ? 'Choose today’s three'
+          : 'Today’s three, $count chosen. Reshape today.',
       semanticHint:
           'Choose up to three Quests to carry. Everything else stays optional.',
       onTapUp: (_) => onTap(),

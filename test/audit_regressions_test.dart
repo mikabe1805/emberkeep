@@ -99,6 +99,28 @@ void main() {
     expect(state.ownedFurniture, isNot(contains('plant')));
   });
 
+  test('a level-up names the quests that earned it, and never guesses', () {
+    final state = GameState()..totalCompletions = 7;
+    state.xp = state.xpNeeded(2);
+    final first = state.applyLevelUps();
+    expect(first.previousLevel, 1);
+    expect(first.questsSince, 7);
+
+    state.totalCompletions = 12;
+    state.xp = state.xpNeeded(3);
+    expect(state.applyLevelUps().questsSince, 5);
+
+    // A save from before the count existed cannot know; it says nothing
+    // rather than inventing a number, then counts from this level onward.
+    final json = state.toJson()..remove('completionsAtLastLevel');
+    final restored = GameState.fromJson(json)..totalCompletions = 20;
+    restored.xp = restored.xpNeeded(restored.level + 1);
+    expect(restored.applyLevelUps().questsSince, isNull);
+    restored.totalCompletions = 23;
+    restored.xp = restored.xpNeeded(restored.level + 1);
+    expect(restored.applyLevelUps().questsSince, 3);
+  });
+
   test('routine and goal achievements unlock where they are earned', () {
     Clock.freeze(DateTime(2026, 7, 27, 22));
     final state = GameState();

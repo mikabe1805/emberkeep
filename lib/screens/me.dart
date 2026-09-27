@@ -4732,6 +4732,74 @@ class _SpaceDeckCardHeader extends StatelessWidget {
   }
 }
 
+/// Every My Space card is the same object: a faceted walnut leaf with a brass
+/// edge and one catch of light along its top. What tells the cards apart is
+/// what each holds (a quote, a numbered list, photographs, a season), never a
+/// tinted green, peach or plum fill.
+class _SpaceCardSurface extends StatelessWidget {
+  const _SpaceCardSurface({
+    required this.child,
+    this.padding = EdgeInsets.zero,
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  static const _cut = 10.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: facetedDecoration(
+        cut: _cut,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xF2332619), Color(0xF0241A14), Color(0xF41A1310)],
+          stops: [0, 0.6, 1],
+        ),
+        borderColor: const Color(0xA06A4B2E),
+        borderWidth: 1,
+        shadows: const [
+          BoxShadow(
+            color: Palette.warmShadow,
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipPath(
+        clipper: const FacetedClipper(cut: _cut),
+        child: Stack(
+          children: [
+            Padding(padding: padding, child: child),
+            Positioned(
+              left: 18,
+              right: 18,
+              top: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 1,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0x00FFE3AD),
+                        Color(0x7AFFE3AD),
+                        Color(0x14FFE3AD),
+                        Color(0x00FFE3AD),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AboutSpaceCard extends StatelessWidget {
   const _AboutSpaceCard({
     required this.intro,
@@ -4747,24 +4815,8 @@ class _AboutSpaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _SpaceCardSurface(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 17),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF3A2C21), Color(0xFF241A16)],
-        ),
-        border: Border.all(color: const Color(0x668E6134)),
-        boxShadow: const [
-          BoxShadow(
-            color: Palette.warmShadow,
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
       child: Stack(
         children: [
           Positioned(
@@ -4857,43 +4909,18 @@ class _RightNowSpaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF273025), Color(0xFF191D17)],
-        ),
-        border: Border.all(color: const Color(0x5C9CBC88)),
-      ),
+    return _SpaceCardSurface(
       child: Stack(
         children: [
-          const Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 7,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFBED2A8), Color(0xFF657653)],
-                ),
-              ),
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(21, 14, 15, 15),
+            padding: const EdgeInsets.fromLTRB(18, 14, 15, 15),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SpaceDeckCardHeader(
                   icon: Icons.flag_outlined,
                   title: 'RIGHT NOW',
-                  accent: Palette.success,
+                  accent: Palette.xpLight,
                   audience: audience,
                 ),
                 const SizedBox(height: 9),
@@ -4911,31 +4938,22 @@ class _RightNowSpaceCard extends StatelessWidget {
                     if (index > 0)
                       Divider(
                         height: 13,
-                        color: Palette.success.withValues(alpha: 0.16),
+                        color: Palette.brass.withValues(alpha: 0.2),
                       ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
+                        // Ranked like today's three: a quiet numeral set in
+                        // brass, the way a list is numbered on a real page.
+                        SizedBox(
                           width: 23,
-                          height: 23,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: goals[index].stat.color.withValues(
-                              alpha: 0.12,
-                            ),
-                            border: Border.all(
-                              color: goals[index].stat.color.withValues(
-                                alpha: 0.42,
-                              ),
-                            ),
-                          ),
                           child: Text(
                             '${index + 1}',
+                            textAlign: TextAlign.center,
                             style: Type.numerals.copyWith(
-                              fontSize: 10,
-                              color: goals[index].stat.color,
+                              fontSize: 16,
+                              height: 1.15,
+                              color: Palette.xp,
                             ),
                           ),
                         ),
@@ -4983,24 +5001,15 @@ class _PinnedMomentsSpaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _SpaceCardSurface(
       padding: const EdgeInsets.fromLTRB(14, 13, 14, 15),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF3A241B), Color(0xFF241711)],
-        ),
-        border: Border.all(color: const Color(0x597E4E35)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SpaceDeckCardHeader(
             icon: Icons.push_pin_outlined,
             title: 'PINNED MOMENTS',
-            accent: Color(0xFFDDB296),
+            accent: Palette.xpLight,
             audience: audience,
           ),
           const SizedBox(height: 10),
@@ -5118,17 +5127,7 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF35283C), Color(0xFF201923)],
-        ),
-        border: Border.all(color: const Color(0x5FC9A3DC)),
-      ),
+    return _SpaceCardSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -5144,7 +5143,7 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0x00000000), Color(0xB0160F17)],
+                        colors: [Color(0x00000000), Color(0xB0140C08)],
                         stops: [0.46, 1],
                       ),
                     ),
@@ -5162,7 +5161,7 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
             child: _SpaceDeckCardHeader(
               icon: Icons.filter_vintage_outlined,
               title: 'THIS SEASON',
-              accent: Palette.unlock,
+              accent: Palette.xpLight,
               audience: audience,
             ),
           ),
