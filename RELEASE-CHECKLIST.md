@@ -18,13 +18,19 @@ remain open, and it is not App Store submission authority.
   fixed night-routine test, all 1,201 Flutter tests, clean analyzer, feature-on
   discovery packet (28 passed, 1 expected skip), and web release build passed
   locally. The Goals return states were checked in the unchanged app slice.
-- [ ] Add only
+- [x] Add only
   `release-evidence/internal-testflight/1.0.4+47/CANDIDATE-MANIFEST.json` in
   a receipt child, binding `sourceRevision` to the frozen parent and the exact
-  Build 47 tag. Run the local receipt and TestFlight metadata verifiers on that
-  clean checkout.
-- [ ] Push the exact receipt tag once, then verify signing, internal `Me`
-  upload, and Apple processing.
+  Build 47 tag. Receipt `44d773ef9e0def3f68a459f326967bf02eaf2fa9`
+  binds source `930378114a51a0af738f7199848cf266ffa6e49c`. The local receipt
+  and TestFlight metadata verifier passed on the clean checkout.
+- [x] Push the exact receipt tag once. [Codemagic Build 47](https://codemagic.io/app/6a32f03249c450f5f866251d/build/6ab985133f90aeed9669613f)
+  completed September 27 (21:05–21:19 UTC) with success: complete Mac app
+  suite, feature-on packet, signing, IPA creation/content check, and publishing
+  all passed. The workflow targets internal TestFlight group `Me` and disables
+  App Store submission.
+- [ ] Confirm Apple processing and the processed build's availability to
+  internal group `Me`; Codemagic publishing success alone does not show this.
 - [ ] Mika installs it on a physical phone: return to an active Goal on an
   ordinary and difficult day, open the current Quest, review/cancel Today’s
   three, try Make this smaller, and repeat at Larger Text and Reduce Motion.
@@ -60,8 +66,10 @@ it is not App Store submission authority.
   footer to the evening rail. A clock-scoped test correction is in Build 47.
   No Build 46 IPA reached Apple. This tag is immutable; a source correction
   needs a new build number and candidate tag.
-- [ ] Diagnose the Mac test failure, then verify signing, internal `Me` upload,
-  and Apple processing on a corrected candidate.
+- [x] Carry the time-scoped test correction into Build 47. Its complete Mac
+  suite, signed IPA, and publishing passed; the exact Build 46 assertion is
+  still unavailable without the authenticated step log. Apple processing is
+  tracked on the Build 47 candidate above.
 - [ ] Mika installs it on a physical phone: return to an active Goal on an
   ordinary and difficult day, open the current Quest, review/cancel Today’s
   three, try Make this smaller, and repeat at Larger Text and Reduce Motion.
