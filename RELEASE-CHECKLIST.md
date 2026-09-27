@@ -19,12 +19,19 @@ it is not App Store submission authority.
   release build passed. Local `flutter build apk --debug --no-pub` also passed
   and produced `build/app/outputs/flutter-apk/app-debug.apk`; signed Android
   release packaging remains blocked on private signing inputs.
-- [ ] Add only
+- [x] Add only
   `release-evidence/internal-testflight/1.0.4+46/CANDIDATE-MANIFEST.json` in
-  a receipt child, binding its `sourceRevision` to the frozen parent and the
-  exact Build 46 tag.
-- [ ] Push the exact receipt tag once. Confirm Codemagic signs and publishes
-  the IPA to the internal `Me` group, then confirm Apple processing separately.
+  receipt child `574e8c4`, binding `sourceRevision` to the frozen parent
+  `58ad035` and the exact Build 46 tag. The local receipt and TestFlight
+  metadata verifiers passed on that clean checkout.
+- [x] Push the exact receipt tag once. Codemagic build
+  `6ab97af03f90aeed96692569` ran September 27 (20:22–20:28 UTC) and failed
+  at the complete app regression suite before signing or IPA construction.
+  The public check reports only step 8 exit status 1; the precise test log
+  requires Codemagic sign-in. No Build 46 IPA reached Apple. This tag is
+  immutable; a source correction needs a new build number and candidate tag.
+- [ ] Diagnose the Mac test failure, then verify signing, internal `Me` upload,
+  and Apple processing on a corrected candidate.
 - [ ] Mika installs it on a physical phone: return to an active Goal on an
   ordinary and difficult day, open the current Quest, review/cancel Today’s
   three, try Make this smaller, and repeat at Larger Text and Reduce Motion.
