@@ -52,6 +52,47 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+45',
+    versionLabel: 'VERSION 1.0.4 · BUILD 45',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'Your three, in plain sight.',
+    introduction:
+        'Today’s three now live on the level panel, and a new level fills '
+        'the screen again.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'TODAY’S THREE, ON THE PANEL',
+        body:
+            'Three small rings under your stats close as you finish what you '
+            'chose. Tap them to pick or change the three, or open one straight '
+            'from Goals.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'SIDE QUESTS',
+        body:
+            'Everything outside your three waits behind one Side quests line, '
+            'right where those Quests open. Choose today now lists your Quests '
+            'without an extra step.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'YOU DID IT.',
+        body:
+            'Reaching a new level takes the whole screen again, and it shows '
+            'how many quests got you there.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'ONE FINISH FOR MY SPACE',
+        body:
+            'About, Right now, Pinned moments, and This season now share one '
+            'walnut finish on your page.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+44',
     versionLabel: 'VERSION 1.0.4 · BUILD 44',
     dateLabel: 'SEPTEMBER 2026',

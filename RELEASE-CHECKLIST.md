@@ -1,9 +1,31 @@
 # Room of Days Release Checklist
 
-Updated September 26, 2026. “Repository-ready” means the source is prepared; it does
+Updated September 27, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+44 corrected internal candidate — retry 2
+## 1.0.4+45 internal candidate — Today's three on the instrument
+
+This candidate carries the Goals return work and the Quests first slice (both
+prepared by Codex on September 26) plus the September 27 Claude pass: Today's
+three on the Quest instrument, one Side quests divider, the full-screen
+YOU DID IT. level-up with the Quests that earned it, one walnut finish for
+My Space, the chooser listing Quests directly, and shipped sound lanes for the
+new doors. The exact permitted tag is
+`room-of-days-1.0.4-build-45-internal-candidate`. Build 44 never reached
+Apple (retry 1 failed at tests; retry 2 was held and never pushed), so Apple's
+last Room of Days build is 43 and this one uses 45.
+
+- [x] Pass the complete regression suite on the candidate source, then freeze
+  that source revision.
+- [ ] Update only
+  `release-evidence/internal-testflight/1.0.4+45/CANDIDATE-MANIFEST.json`
+  in a receipt child that binds `sourceRevision` to that source and its tag.
+- [ ] Push the exact receipt tag once. Confirm Codemagic completes, Apple
+  processes the upload, and the build attaches to internal group `Me`.
+- [ ] Mika installs it: Today's three rings on a real day, the level-up on a
+  real threshold, and My Space on the phone.
+
+## 1.0.4+44 corrected internal candidate — retry 2 (held, superseded by 45)
 
 This candidate carries the approved Goals return work and corrects the compact
 Today control and the release-blocking test contracts. The exact permitted tag

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
@@ -84,7 +86,8 @@ void main() {
   testWidgets('a compact ordinary row completes its exact Quest in one tap', (
     tester,
   ) async {
-    final state = GameState();
+    // The exact-XP assertion below must not depend on a random crit.
+    final state = GameState(rng: _NoLuck());
     final first = Quest(
       title: 'Clear one surface',
       stat: Stat.dis,
@@ -431,4 +434,14 @@ class QuestCardForTest extends StatelessWidget {
       onManage: () {},
     );
   }
+}
+
+/// Never crits, never drops loot: for assertions about exact rewards.
+class _NoLuck implements Random {
+  @override
+  bool nextBool() => false;
+  @override
+  double nextDouble() => 0.999999;
+  @override
+  int nextInt(int max) => 0;
 }

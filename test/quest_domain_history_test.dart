@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
@@ -25,7 +27,8 @@ void main() {
         Sfx.instance.soundEnabled = true;
         tester.binding.setSurfaceSize(null);
       });
-      final state = GameState()..reduceMotion = true;
+      // Exact-XP assertions below must not depend on a random 3% crit.
+      final state = GameState(rng: _NoLuck())..reduceMotion = true;
       final quest = Quest(
         title: 'Read one page',
         stat: Stat.intl,
@@ -100,4 +103,14 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+/// Never crits, never drops loot: for assertions about exact rewards.
+class _NoLuck implements Random {
+  @override
+  bool nextBool() => false;
+  @override
+  double nextDouble() => 0.999999;
+  @override
+  int nextInt(int max) => 0;
 }
