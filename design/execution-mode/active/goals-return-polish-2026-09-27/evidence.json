@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-return-polish-2026-09-27",
+  "brief_sha256": "5c2cddbee4372f456a4b0ca4fd51ede8be8441d84d2669cad3da330bacc219e8",
+  "phase": "direction",
+  "implementation_revision": "commit:725346cdad1ba8a6b56a66cc94676a8e792fe475",
+  "revision_captured_at": "2026-09-27T16:15:49-04:00",
+  "checks": [
+    {
+      "id": "slice-visual-translation",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Open the final same-state generated-study/Flutter comparison and the active, support-open, and narrow enlarged-text goldens.",
+      "input_state": "430x932 active apartment Goal with the same current Quest, plus the final support-open and enlarged-text fixtures.",
+      "inspected_by": "Codex workflow audit, independent of implementation",
+      "observation": "The canonical room and lit arch remain visible; one dark folio carries the commitment and support; Open Quest is the lone luminous action. The generated study's centered desk is absent from runtime art and is explicitly treated as an adapted relationship.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final generated study and Flutter active return",
+          "path": "design/comparisons/2026-09-27/evidence-goals-return-concept-to-build.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "940cfe0eba7a16a72196e0f8c9ce89cc7575fd6d43713c7069dc5274c3179647",
+          "data_source": "same_state_render"
+        },
+        {
+          "kind": "test_report",
+          "state": "Independent visual critique and final focused evidence",
+          "path": "design/execution-mode/active/goals-return-polish-2026-09-27/verification.md",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "c75037f71d3ef883f6990054e36158bbab487596c7675867c6ed769d0306691b",
+          "data_source": "inspection_and_test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-product-active-return",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the final focused six-fixture screenshot selection, including the 120px simulated shell-bar assertion, and inspect the active-return capture.",
+      "input_state": "Active Goal, exact current Quest, today count, quiet recovery action, and non-active return boundaries.",
+      "inspected_by": "Flutter test runner and Codex workflow audit",
+      "observation": "The final focused screenshot selection passed 6/6. Its active test asserts Review goal stays above a 120px simulated shell bar. The active Goal makes the exact current Quest the primary next work while support and review remain subordinate.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final active Goal return",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "0b0f1a97f2e9571bed4c959540f1100bc1504251bdbe9e4e90e41ff281b1d721",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Focused screenshot selection, 6 of 6 passed",
+          "path": "design/execution-mode/active/goals-return-polish-2026-09-27/verification.md",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "c75037f71d3ef883f6990054e36158bbab487596c7675867c6ed769d0306691b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-existing-doors",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the final selected route/management, choose-today, shell, art-fallback, workshop, and room-travel checks; then run the complete suite and feature-on discovery packet.",
+      "input_state": "Exact Quest handoff and five-frame room travel, today field, recovery/return, still Reduced Motion source, shell route, missing art, workshop boundaries, and feature-on discovery.",
+      "inspected_by": "Flutter test runner",
+      "observation": "The final selected behavioral checks passed 49/49. After removing the Goal-title maximum scale factor and updating the room-travel expectation for two shared room plates, flutter test --no-pub passed 1,201 and the feature-on discovery packet passed 28 with one expected skip. The polished surface preserves existing route identity and state boundaries.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Selected behavioral checks, 49 of 49 passed",
+          "path": "design/execution-mode/active/goals-return-polish-2026-09-27/verification.md",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "c75037f71d3ef883f6990054e36158bbab487596c7675867c6ed769d0306691b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-active-return",
+      "requirement_id": "state:active-return",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final active-return golden at phone size.",
+      "input_state": "430x932 active apartment Goal and exact current Quest.",
+      "inspected_by": "Codex workflow audit",
+      "observation": "The room, arch, and folio read as one authored scene; the Goal and current Quest read before support.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final active return",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "0b0f1a97f2e9571bed4c959540f1100bc1504251bdbe9e4e90e41ff281b1d721",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-narrow-large-text",
+      "requirement_id": "state:narrow-large-text",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final narrow enlarged-text fixture and run the focused screenshot selection.",
+      "input_state": "320x568 Goals return at enlarged text.",
+      "inspected_by": "Flutter test runner and Codex workflow audit",
+      "observation": "The title, compact controls, current Quest, and the scrollable primary action remain readable and reachable without a second card layer.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Focused narrow enlarged-text fixture in the 6 of 6 selection",
+          "path": "design/execution-mode/active/goals-return-polish-2026-09-27/verification.md",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "c75037f71d3ef883f6990054e36158bbab487596c7675867c6ed769d0306691b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-return-and-review-boundary",
+      "requirement_id": "state:return-and-review-boundary",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the selected route/management and choose-today checks.",
+      "input_state": "Exact Quest handoff, returned Goals state, and the existing daily-field authority.",
+      "inspected_by": "Flutter test runner",
+      "observation": "The selected 49-test run passed; exact Quest handoff, return/recovery, and today-field boundaries retain their existing behavior.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Route and daily-field boundary checks, 49 of 49 passed",
+          "path": "design/execution-mode/active/goals-return-polish-2026-09-27/verification.md",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "c75037f71d3ef883f6990054e36158bbab487596c7675867c6ed769d0306691b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "virtual-android-emulator-walkthrough",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "installed_virtual_device",
+      "method": "Walk the installed Android emulator through active return, Open Quest, a scrolled folio, and an expanded support folio after the actual-page-height layout fix.",
+      "input_state": "Installed Android emulator with the Goals shell navigation visible.",
+      "inspected_by": "Codex workflow audit",
+      "observation": "The active first frame keeps Today’s three and Review goal above the bottom navigation; Open Quest arrives at the exact Quest on Quests; scrolled and expanded-support states retain the continuous folio. This is virtual Android emulator evidence only, not physical-phone or owner acceptance.",
+      "production_equivalent_input": false,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "installed_virtual_device_capture",
+          "state": "Active return above visible bottom navigation",
+          "path": "design/comparisons/2026-09-27/android-emulator-goals-active-final.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "6bb693fe1eb039853bac6b2f4eb3221883d29dc7a6d193f0d688d73c2f0efcc9",
+          "data_source": "virtual_android_emulator"
+        },
+        {
+          "kind": "installed_virtual_device_capture",
+          "state": "Exact Quest on Quests",
+          "path": "design/comparisons/2026-09-27/android-emulator-goals-open-quest-final.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "9e25a137516ef4e0baa140aa3b8ec57a163a48e6643beefd6acfde55e62b38f4",
+          "data_source": "virtual_android_emulator"
+        },
+        {
+          "kind": "installed_virtual_device_capture",
+          "state": "Scrolled active folio",
+          "path": "design/comparisons/2026-09-27/android-emulator-goals-scrolled-final.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "571b116f82b20df478a20a61b7d2c88300075e868c43cbedc5fc74b7ac742a0c",
+          "data_source": "virtual_android_emulator"
+        },
+        {
+          "kind": "installed_virtual_device_capture",
+          "state": "Support-expanded active folio",
+          "path": "design/comparisons/2026-09-27/android-emulator-goals-support-final.png",
+          "generated_at": "2026-09-27T15:46:32-04:00",
+          "content_sha256": "5425d84758480ba07e2c8168b8dc073b3edba45c5c4db0c2bcbd8c92395f0ee4",
+          "data_source": "virtual_android_emulator"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Codex workflow audit",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-visual-translation",
+      "slice-product-active-return",
+      "state-active-return",
+      "state-narrow-large-text"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-09-27/evidence-goals-return-concept-to-build.png",
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_support_open_430x932.png",
+      "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
+      "design/comparisons/2026-09-27/android-emulator-goals-active-final.png",
+      "design/comparisons/2026-09-27/android-emulator-goals-open-quest-final.png",
+      "design/comparisons/2026-09-27/android-emulator-goals-scrolled-final.png",
+      "design/comparisons/2026-09-27/android-emulator-goals-support-final.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The generated study contains a centered foreground desk missing from canonical runtime room art.",
+        "disposition": "accepted",
+        "evidence": "The final Flutter folio transfers the grounded material relationship without inventing the desk; the translation card and same-state comparison state this explicitly."
+      }
+    ],
+    "no_material_findings_observation": "The final active, support-open, narrow, and virtual-emulator renders preserve room-to-folio cohesion, current-Quest hierarchy, and one luminous action without a second card stack. The virtual walkthrough also clears the discovered bottom-navigation clipping condition."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The documented source authorizes exploration and implementation work, but no current owner decision binds this final scoped revision. Owner review remains required before phase advancement."
+  },
+  "deviations": [
+    {
+      "source": "design/ideation/2026-09-27-goals-return/study.png",
+      "decision": "The study's centered foreground desk is intentionally not transferred.",
+      "reason": "It is absent from canonical runtime room art; the final build retains the study's grounded relationship without fabricating room geometry.",
+      "status": "approved"
+    }
+  ],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "The Android emulator walkthrough is virtual evidence only. A physical phone is still required to judge thumb hierarchy, scroll cadence, haptics, sound, and OLED value separation."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-phone-acceptance",
+      "gate": "Owner review on the installed physical phone.",
+      "why": "Desktop renders, deterministic checks, and a virtual Android emulator cannot establish final feel or physical-device behavior.",
+      "owner_or_system": "Mika on the installed phone",
+      "next_action": "Use the active-return journey in normal and Reduced Motion and provide an explicit acceptance or correction.",
+      "blocking": true
+    }
+  ]
+}

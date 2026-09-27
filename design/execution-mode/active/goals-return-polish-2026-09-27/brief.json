@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "id": "goals-return-polish-2026-09-27",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "direction_locked",
+  "locked_at": "2026-09-27T00:00:00-04:00",
+  "surface": "Active Goals return: room, one current commitment, exact next Quest, and quiet support doors",
+  "scope": "Build one production-equivalent active-Goal return slice that carries the generated study's grounded room-and-folio relationship into canonical room art without inventing its foreground desk. Preserve Goal and Quest state, existing opening/detail routes, today's-three authority, recovery behavior, Workshop, New goal, and the existing live-content layout contracts.",
+  "user_job": "Return to an active Goal, understand the place and current commitment at a glance, and take the exact next Quest without a dashboard of competing cards.",
+  "active_sources": [
+    {
+      "id": "goals-return-owner-direction",
+      "kind": "owner_direction",
+      "location": "design/execution-mode/active/goals-return-polish-2026-09-27/source.md",
+      "content_sha256": "724c9c42d3abec7a7352aecc41f6548ec099dc17e2db74c32a835ac88fd27a7d",
+      "approved_at": "2026-09-27",
+      "judged_state": "Owner-authorized bounded visual polish using ideation with an explicit concept-to-build fidelity check.",
+      "viewport": "430x932 active Goal return, plus narrow enlarged text",
+      "priority": 1
+    },
+    {
+      "id": "goals-return-generated-study",
+      "kind": "visual_study",
+      "location": "design/ideation/2026-09-27-goals-return/study.png",
+      "content_sha256": "724df51fcb921696cb059982f52d8f566a7cdc22375187ef9218bdd0409d574a",
+      "approved_at": "2026-09-27",
+      "judged_state": "Generated active Goals composition with a continuous warm room, grounded dark folio, one current Quest, and quiet supporting routes. Its centered foreground desk is non-canonical and cannot be copied as runtime geometry.",
+      "viewport": "430x932 active Goal return",
+      "priority": 2
+    },
+    {
+      "id": "goals-return-current-build",
+      "kind": "production_baseline",
+      "location": "test/goldens/goals_personal_index_active_430x932.png",
+      "content_sha256": "0b0f1a97f2e9571bed4c959540f1100bc1504251bdbe9e4e90e41ff281b1d721",
+      "approved_at": "2026-09-27",
+      "judged_state": "Current Flutter active Goal return with the same apartment Goal and exact current Quest.",
+      "viewport": "430x932 active Goal return",
+      "priority": 3
+    },
+    {
+      "id": "goals-return-translation-card",
+      "kind": "visual_translation_contract",
+      "location": "design/ideation/2026-09-27-goals-return/README.md",
+      "content_sha256": "1e94b5fcc912640bab8cc37322f19cac0e99ee99320c5150f08cf76f467d66de",
+      "approved_at": "2026-09-27",
+      "judged_state": "Explicit retained, adapted, and unavailable promises for the generated study and current Flutter return state.",
+      "viewport": "430x932 active Goal return",
+      "priority": 4
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/execution-mode/active/goals-return-review-2026-09-26/brief.json",
+      "reason": "The earlier return review governs compact today's-three access. This record adds a bounded study-to-build material and place-cohesion polish without replacing that behavior contract."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "One active Goal presents its exact current Quest before review, today, recovery, Workshop, or creation routes, while the room establishes why this work belongs here.",
+      "proof": "A production-equivalent active Goal exposes the exact Quest and its action first; every existing support route remains available without duplicate summaries or changed saved state."
+    },
+    "interaction": {
+      "decision": "The primary action gives immediate acknowledgement and enters the existing Goal opening/detail route; today's-three review, recovery, Workshop, and New goal retain their existing destinations and state boundaries.",
+      "proof": "Exercise primary entry, review/cancel, recovery, Workshop, and New goal from the polished active return state and confirm that route identity and persistence behavior remain unchanged."
+    },
+    "visual": {
+      "decision": "Canonical GoalRoomTravelBackdrop art, one continuous grounded dark book-cloth folio through commitment, today's field, other goals, and support, plus one luminous primary action form one frame. The generated study's centered desk is treated as an unavailable composition cue, never as exact runtime geometry.",
+      "proof": "Same-state 430x932 study/build comparison and focused crop show the arch, room, card attachment, hierarchy, and one action; the build visibly avoids presenting invented desk geometry as canonical art."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Copy the generated foreground desk or crop it into the canonical room backdrop.",
+      "why": "That desk does not exist in the runtime art, so the result would manufacture false continuity and make an unsupported fidelity claim."
+    },
+    {
+      "fallback": "Put a decorative room banner above an ordinary stacked Goal card.",
+      "why": "The room would become wallpaper and the active commitment would return to a generic dashboard composition."
+    },
+    {
+      "fallback": "Give Today's three, Review goal, Make this smaller, Workshop, or New goal a second luminous card or action treatment.",
+      "why": "Those routes support the current commitment and must not compete with the exact next Quest."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person returns to the active apartment Goal Make the apartment feel calm, reads Reset the counter for 15 minutes until one usable patch is visible, and opens that exact Quest from the grounded return surface.",
+    "real_inputs": "Production-equivalent active Goal, live current Quest, selected daily field, recovery action, Workshop and New goal doors, canonical Goals room art, and existing opening/detail routes.",
+    "user_action": "Enter Goals, scan the room and commitment, press Open Quest, return, then review today's three and cancel without saving.",
+    "expected_outcome": "The current Quest reads before support, the room and active Goal feel spatially related without a fabricated desk, the primary route remains immediate, and support routes preserve their existing state behavior.",
+    "state_boundary": "This pass must not modify Goal planning, Quest completion, daily-field priority, recovery state, route identity, or persisted data; it changes only the active-return composition and material treatment.",
+    "required_states": [
+      {
+        "id": "active-return",
+        "state": "430x932 active Goal with a live exact Quest, today count, and quiet recovery action.",
+        "why_can_disprove": "The card can detach from the room, let support compete with the Quest, or imply the generated desk is runtime geometry."
+      },
+      {
+        "id": "narrow-large-text",
+        "state": "320x568 at enlarged text with a long Goal and current Quest title.",
+        "why_can_disprove": "A grounded composition can clip live content, hide the primary action, or turn support routes into accidental visual owners."
+      },
+      {
+        "id": "return-and-review-boundary",
+        "state": "Open the exact Quest, return to Goals, open today's three, then cancel.",
+        "why_can_disprove": "A visually cohesive first frame can still lose route continuity or mutate daily-field state."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "active-return-composition",
+      "surface_or_primitive": "Goals active return backdrop, commitment surface, and primary action",
+      "state": "Active, hard-day, empty, and dense-scrolled Goals states",
+      "expected_effect": "The active state gains a grounded material relationship while non-active states retain useful canonical layouts and no fabricated desk.",
+      "verification_plan": "Render and inspect active, hard-day, empty, and dense-scrolled fixtures at phone size.",
+      "disposition": "update",
+      "reason": "The active surface shares its backdrop and layout primitives with these states."
+    },
+    {
+      "id": "support-and-today-doors",
+      "surface_or_primitive": "Today's three, Review goal, Make this smaller, Workshop, and New goal entries",
+      "state": "Selected field, support-open, review-cancel, Workshop entry, and New goal entry",
+      "expected_effect": "Existing secondary routes remain discoverable and semantically unchanged while preserving the single primary action hierarchy.",
+      "verification_plan": "Exercise each entry and inspect selected-field and support-open renders.",
+      "disposition": "update",
+      "reason": "The visual hierarchy changes where these existing doors sit beside the active commitment."
+    },
+    {
+      "id": "route-and-accessibility",
+      "surface_or_primitive": "Open Quest route, return, large text, and Reduced Motion",
+      "state": "Primary press, opening route, returned state, 320x568 enlarged text, and Reduced Motion",
+      "expected_effect": "The exact Quest continues to own the route; a quiet still layout remains readable with no lost action or invented scene movement.",
+      "verification_plan": "Run route regression and inspect narrow large-text and Reduced Motion captures.",
+      "disposition": "update",
+      "reason": "The primary surface begins the existing spatial journey and must retain its accessible return path."
+    }
+  ],
+  "unverified_property": "Whether the grounded card, room value separation, thumb reach, opening response, scrolling cadence, sound, and haptics feel cohesive on the owner's installed physical phone.",
+  "decisive_check": {
+    "method": "Compare the generated study and current build at the same active Goal state, then use the polished return journey on a physical phone in normal and Reduced Motion.",
+    "target": "Active apartment Goal, exact current Quest, selected today's-three field, recovery route, 430x932 normal, and 320x568 enlarged text.",
+    "pass_condition": "The room and commitment read as one place without false desk geometry, the exact Quest is the obvious next work, support stays quiet and functional, and the physical interaction feels immediate and deliberate."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/goals.dart",
+      "lib/widgets/goal_primary_button.dart",
+      "assets/pages/goals-return-bookcloth-v1.png",
+      "test/screenshots_test.dart",
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_empty_430x932.png",
+      "test/goldens/goals_personal_index_hard_day_430x932.png",
+      "test/goldens/goals_personal_index_support_open_430x932.png",
+      "test/goldens/goals_personal_index_dense_scrolled_430x932.png",
+      "test/goldens/goals_personal_index_narrow_large_text_320x568.png",
+      "test/goldens/goals_today_field_430x932.png",
+      "test/goldens/goals_return_2x_text_top_320x568.png",
+      "test/goldens/goals_return_2x_text_action_320x568.png"
+    ],
+    "exclude": [
+      "test/failures"
+    ]
+  }
+}

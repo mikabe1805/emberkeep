@@ -12,8 +12,13 @@ tag is `room-of-days-1.0.4-build-46-internal-candidate`. It is authorized for
 internal TestFlight only; owner and physical-phone acceptance remain open, and
 it is not App Store submission authority.
 
-- [ ] Pass the complete regression suite and the focused Goals return visual
-  states on the candidate source, then freeze that source revision.
+- [x] Pass the complete regression suite and the focused Goals return visual
+  states on the candidate source, then freeze that source revision. Source
+  `725346cdad1ba8a6b56a66cc94676a8e792fe475`: 1,201 Flutter tests, clean
+  analyzer, feature-on discovery packet (28 passed, 1 expected skip), and web
+  release build passed. Local `flutter build apk --debug --no-pub` also passed
+  and produced `build/app/outputs/flutter-apk/app-debug.apk`; signed Android
+  release packaging remains blocked on private signing inputs.
 - [ ] Add only
   `release-evidence/internal-testflight/1.0.4+46/CANDIDATE-MANIFEST.json` in
   a receipt child, binding its `sourceRevision` to the frozen parent and the
