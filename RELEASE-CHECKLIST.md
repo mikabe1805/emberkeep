@@ -18,11 +18,18 @@ for internal TestFlight only; it is not App Store submission authority.
   installed Android app was checked against same-viewport before/after Goals
   and Quest images, plus the live Guide, Daybook, and Journal paths. The Build
   48 TestFlight metadata verifier passed.
-- [ ] Add only `release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json`
-  in a receipt child, binding that frozen parent and exact tag. Do not create
-  the manifest until the source revision is known.
-- [ ] Confirm the Build 48 tag is unused, then push it once and verify
-  Codemagic, Apple processing, and availability to internal group `Me`.
+- [x] Add only `release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json`
+  in receipt child `b34adca787a068f4091c60c3738bd38fa5a4ba63`, binding
+  source `9ca11c51579f5457142397d444a2393f42eaad7f` and the exact tag.
+  The clean-checkout candidate and TestFlight metadata verifiers passed.
+- [x] Confirm the Build 48 tag was unused and push it once. [Codemagic Build
+  48](https://codemagic.io/app/6a32f03249c450f5f866251d/build/6ab9f6ab3f90aeed966b9e02)
+  succeeded September 28 (05:10–05:21 UTC). Its [public check](https://github.com/mikabe1805/emberkeep/runs/108798250275)
+  reports that the complete Mac suite, discovery packet, signing, IPA build,
+  signed IPA verification, and publishing all passed. The workflow targets
+  internal TestFlight group `Me` and disables App Store submission.
+- [ ] Confirm Apple processing and the processed build's availability to
+  internal group `Me`; Codemagic publishing success alone does not show this.
 - [ ] Mika installs the processed build on a physical phone: distinguish and
   open both Goals doors; follow a Quest to Help, Plans, and Journal; use both
   selected-day Daybook actions; save a read or newly written Journal page to
