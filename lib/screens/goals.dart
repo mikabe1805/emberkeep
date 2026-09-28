@@ -2848,17 +2848,25 @@ class _LivingGoalFocus extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 9),
-        Text(_goalProgressCopy(goal), style: Type.body.copyWith(fontSize: 13)),
-        if (decision != null && !compactType) ...[
-          const SizedBox(height: 12),
-          Text(
-            decision.routePosition,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              color: Palette.xpLight,
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              _goalProgressCopy(goal),
+              style: Type.body.copyWith(fontSize: 13),
             ),
-          ),
-        ],
+            if (decision != null)
+              Text(
+                decision.routePosition,
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.xpLight,
+                ),
+              ),
+          ],
+        ),
         const WorkingRule(),
         Text(
           next == null ? 'READY TO SHAPE' : 'CURRENT QUEST',
@@ -2901,38 +2909,53 @@ class _LivingGoalFocus extends StatelessWidget {
             ),
           ),
         ),
-        if (decision != null && compactType) ...[
-          const SizedBox(height: 12),
-          Text(
-            decision.routePosition,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              color: Palette.xpLight,
-            ),
-          ),
-        ],
         const SizedBox(height: 8),
         const Divider(height: 1, thickness: .7, color: Color(0x756F5133)),
-        const SizedBox(height: 9),
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: 2,
-          runSpacing: 0,
+        const SizedBox(height: 13),
+        Text(
+          'OTHER WAYS FORWARD',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.textLo,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (!compactType)
-              WorkingAction(
+              _GoalSecondaryOpportunity(
                 key: const Key('goals-today-field-action'),
-                label: todayField.isEmpty
-                    ? 'Choose today’s three'
-                    : 'Today’s three · ${todayField.length}',
+                icon: Icons.today_outlined,
+                title: todayField.isEmpty
+                    ? 'Plan today’s three'
+                    : 'Plan today’s three · ${todayField.length}',
+                outcome: 'Choose up to three Quests.',
+                semanticHint:
+                    'Choose up to three Quests to carry. Everything else stays optional.',
                 onTap: onChooseToday,
               ),
-            WorkingAction(
-              label: 'Review goal',
+            if (!compactType) const SizedBox(height: 7),
+            _GoalSecondaryOpportunity(
+              key: const Key('goals-review-goal'),
+              icon: Icons.route_outlined,
+              title: 'Review this goal',
+              outcome: 'Route and progress.',
+              semanticHint: 'Open this goal’s route, progress, and proof.',
               onTap: () => _openDetail(context),
             ),
-            if (decision?.quest != null)
-              WorkingAction(label: 'Make this smaller', onTap: onRecoverToday),
+            if (decision?.quest != null) ...[
+              const SizedBox(height: 7),
+              _GoalSecondaryOpportunity(
+                key: const Key('goals-recover-today'),
+                icon: Icons.tune_rounded,
+                title: 'Find an easier step',
+                outcome: 'Rework today’s Quest.',
+                semanticHint:
+                    'Open choices to make today’s Quest smaller or prepare a return.',
+                onTap: onRecoverToday,
+              ),
+            ],
           ],
         ),
       ],
@@ -2950,6 +2973,117 @@ class _LivingGoalFocus extends StatelessWidget {
           scale: still ? 1 : 0.985 + (0.015 * t),
           alignment: Alignment.topCenter,
           child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// The current Quest gets the one luminous clasp. These lead to different
+/// planning spaces, so they stay quieter while each keeps an unmistakable
+/// physical edge, name, and outcome.
+class _GoalSecondaryOpportunity extends StatelessWidget {
+  const _GoalSecondaryOpportunity({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.outcome,
+    required this.semanticHint,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String outcome;
+  final String semanticHint;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
+    return Pressable(
+      material: MaterialSound.parchment,
+      interactionSound: InteractionSound.navigate,
+      pressDepth: 1,
+      borderRadius: BorderRadius.circular(9),
+      edgeColor: Colors.transparent,
+      semanticLabel: title,
+      semanticHint: semanticHint,
+      onTapUp: (_) => onTap(),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          AnimatedContainer(
+            duration: pressed ? Duration.zero : Motion.ack,
+            curve: Motion.respond,
+            decoration: BoxDecoration(
+              color: pressed
+                  ? const Color(0xE33B2A1D)
+                  : focused || hovered
+                  ? const Color(0xC92E241B)
+                  : const Color(0xB51E1713),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                color: focused
+                    ? Palette.textHi
+                    : hovered
+                    ? const Color(0xA17E6040)
+                    : const Color(0x71564538),
+              ),
+            ),
+            child: child,
+          ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(11, compact ? 9 : 8, 9, compact ? 9 : 8),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0x3544342A),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: const Color(0x705C4838)),
+                ),
+                child: Icon(icon, size: 17, color: Palette.xpLight),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: WorkingType.title.copyWith(
+                        fontSize: compact ? 18 : 17,
+                        height: 1.08,
+                        fontWeight: FontWeight.w500,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      outcome,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: compact ? 12.5 : 12,
+                        height: 1.18,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 19,
+                color: Palette.xpLight,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -116,7 +116,7 @@ void main() {
     expect(quests[2].priorityDay, Days.key(today));
     expect(quests[2].priorityRank, 2);
     expect(quests[0].priorityDay, isNull);
-    expect(find.text('Today’s three · 2'), findsOneWidget);
+    expect(find.text('Plan today’s three · 2'), findsOneWidget);
     expect(find.byKey(const Key('goals-today-field')), findsNothing);
   });
 

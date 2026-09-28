@@ -124,7 +124,7 @@ class _DomainRule extends StatelessWidget {
         end: Alignment.bottomCenter,
         colors: [
           Palette.glassEdge.withValues(alpha: 0),
-          Palette.glassEdge.withValues(alpha: 0.5),
+          Palette.glassEdge.withValues(alpha: compact ? 0.28 : 0.5),
           Palette.glassEdge.withValues(alpha: 0),
         ],
         stops: const [0.0, 0.5, 1.0],
@@ -188,7 +188,11 @@ class _StatChipState extends State<_StatChip>
           1 - (_pulse.value - 0.5).abs() * 2,
         );
         final active = !still && _pulse.isAnimating;
-        final glyphAlpha = (0.86 + 0.14 * (active ? wave : 0)).clamp(0.0, 1.0);
+        // Empty domains stay readable and tappable, but no longer carry the
+        // same visual weight as points the person has actually earned.
+        final empty = widget.value == 0 && !active;
+        final glyphAlpha = ((empty ? 0.55 : 0.86) + 0.14 * (active ? wave : 0))
+            .clamp(0.0, 1.0);
         return Transform.scale(
           scale: 1 + 0.08 * (active ? wave : 0),
           child: Padding(
@@ -220,7 +224,7 @@ class _StatChipState extends State<_StatChip>
                               '$v',
                               style: Type.numerals.copyWith(
                                 fontSize: 16,
-                                color: Palette.textHi,
+                                color: empty ? Palette.textMid : Palette.textHi,
                               ),
                             ),
                           ),
@@ -233,7 +237,7 @@ class _StatChipState extends State<_StatChip>
                         style: Type.label.copyWith(
                           fontSize: Type.minLabel,
                           letterSpacing: 0.6,
-                          color: c.withValues(alpha: 0.78),
+                          color: c.withValues(alpha: empty ? 0.62 : 0.78),
                         ),
                       ),
                     ],

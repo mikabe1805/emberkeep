@@ -96,6 +96,7 @@
     "lastCompletionDay": null,
     "lastActiveDay": null,
     "totalCompletions": 0,
+    "completionsAtLastLevel": 0,
     "verifiedCompletions": 0,
     "dreadCompletions": 0,
     "epicCompletions": 0,

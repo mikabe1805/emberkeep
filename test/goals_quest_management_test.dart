@@ -39,6 +39,8 @@ Finder _goalAction(String label) => switch (label) {
   'Add a Quest' ||
   'Bring inside' => find.byKey(const Key('goals-return-primary-action')),
   'Your goals' => find.byKey(const Key('goals-open-workshop')),
+  'Review goal' => find.byKey(const Key('goals-review-goal')),
+  'Make this smaller' => find.byKey(const Key('goals-recover-today')),
   _ => find.widgetWithText(WorkingAction, label),
 };
 
@@ -1182,7 +1184,7 @@ void main() {
       onPersist: () => persistCalls++,
     );
 
-    final recover = find.text('Make this smaller');
+    final recover = find.byKey(const Key('goals-recover-today'));
     expect(recover, findsOneWidget);
     await tester.ensureVisible(recover);
     await tester.pump();
@@ -1248,7 +1250,7 @@ void main() {
       onPersist: () => persistCalls++,
     );
 
-    final recover = find.text('Make this smaller');
+    final recover = find.byKey(const Key('goals-recover-today'));
     await tester.ensureVisible(recover);
     await tester.pump();
     await tester.tap(recover);
@@ -1329,7 +1331,7 @@ void main() {
       onPersist: () => persistCalls++,
     );
 
-    final recover = find.text('Make this smaller');
+    final recover = find.byKey(const Key('goals-recover-today'));
     await tester.ensureVisible(recover);
     await tester.pump();
     await tester.tap(recover);

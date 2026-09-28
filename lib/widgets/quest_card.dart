@@ -400,7 +400,7 @@ class _QuestCardState extends State<QuestCard>
                                       done: done,
                                       reduceMotion: widget.reduceMotion,
                                       accent: featured ? Palette.xpLight : null,
-                                      size: heroLayout ? 54 : 40,
+                                      size: heroLayout ? 48 : 40,
                                       showReadyCheck:
                                           !done &&
                                           directCompletion &&
@@ -418,7 +418,7 @@ class _QuestCardState extends State<QuestCard>
                                           ? widget.scrollPosition
                                           : null,
                                     ),
-                                    SizedBox(width: heroLayout ? 12 : 10),
+                                    SizedBox(width: heroLayout ? 10 : 10),
                                     Expanded(
                                       child: _QuestTitleBlock(
                                         quest: quest,
@@ -427,6 +427,7 @@ class _QuestCardState extends State<QuestCard>
                                         featured: heroLayout,
                                         compactLargeType: largePhoneType,
                                         goalThreadLabel: widget.goalThreadLabel,
+                                        xpPreview: widget.xpPreview,
                                       ),
                                     ),
                                     if (quest.dread) ...[
@@ -447,7 +448,9 @@ class _QuestCardState extends State<QuestCard>
                                         widget.onEncore != null &&
                                         _showEncore)
                                       _EncoreButton(onTap: widget.onEncore!)
-                                    else if (!largePhoneType && !done)
+                                    else if (!heroLayout &&
+                                        !largePhoneType &&
+                                        !done)
                                       _XpChip(
                                         xp: widget.xpPreview,
                                         dim: done,
@@ -471,17 +474,6 @@ class _QuestCardState extends State<QuestCard>
                                 ),
                               ),
                             ),
-                            if (heroLayout && largePhoneType && !done) ...[
-                              const SizedBox(height: 6),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: _XpChip(
-                                  xp: widget.xpPreview,
-                                  dim: done,
-                                  featured: true,
-                                ),
-                              ),
-                            ],
                             if (heroLayout) ...[
                               const SizedBox(height: 10),
                               Column(
@@ -644,6 +636,7 @@ class _QuestTitleBlock extends StatelessWidget {
     required this.isMain,
     required this.featured,
     required this.compactLargeType,
+    required this.xpPreview,
     this.goalThreadLabel,
   });
 
@@ -652,13 +645,28 @@ class _QuestTitleBlock extends StatelessWidget {
   final bool isMain;
   final bool featured;
   final bool compactLargeType;
+  final int xpPreview;
   final String? goalThreadLabel;
 
   @override
   Widget build(BuildContext context) {
-    final companion = featured
+    final companion = featured && goalThreadLabel == null
         ? questCompanionCopy(quest: quest, day: Clock.now())
         : null;
+    // The featured object gets one supporting thought below its title. A
+    // keeper note takes precedence, then the goal relationship, then a route
+    // hint, and finally generated companion copy. Stacking all four turned
+    // the return point into a wall of similar small text.
+    final hasKeeperNote = featured && quest.latestNote != null;
+    final showGoal = featured && !hasKeeperNote && goalThreadLabel != null;
+    final showHint =
+        featured && !hasKeeperNote && !showGoal && quest.ladderHint != null;
+    final showCompanion =
+        featured &&
+        !hasKeeperNote &&
+        !showGoal &&
+        !showHint &&
+        companion != null;
     final chips = <Widget>[
       if (quest.journalPrompt != null)
         const _MetaChip(Icons.menu_book_rounded, 'JOURNAL', Palette.xpLight),
@@ -699,21 +707,40 @@ class _QuestTitleBlock extends StatelessWidget {
       children: [
         Text(
           quest.displayTitle,
-          maxLines: compactLargeType ? 3 : 2,
+          maxLines: featured ? 3 : (compactLargeType ? 3 : 2),
           overflow: TextOverflow.ellipsis,
           style: WorkingType.title.copyWith(
-            fontSize: featured ? 27 : 18,
-            height: featured ? 1.02 : 1.08,
+            fontSize: featured ? 25 : 18,
+            height: featured ? 1.08 : 1.08,
             color: done ? Palette.textMid : Palette.textHi,
           ),
         ),
         if (chips.isNotEmpty) ...[
           const SizedBox(height: 5),
           Wrap(
-            spacing: 9,
+            spacing: 8,
             runSpacing: 3,
             crossAxisAlignment: WrapCrossAlignment.center,
-            children: chips,
+            children: [
+              ...chips,
+              if (featured && !done)
+                Text(
+                  '+$xpPreview XP',
+                  style: Type.numerals.copyWith(
+                    fontSize: 12,
+                    color: Palette.xp.withValues(alpha: 0.8),
+                  ),
+                ),
+            ],
+          ),
+        ] else if (featured && !done) ...[
+          const SizedBox(height: 5),
+          Text(
+            '+$xpPreview XP',
+            style: Type.numerals.copyWith(
+              fontSize: 12,
+              color: Palette.xp.withValues(alpha: 0.8),
+            ),
           ),
         ],
         if (featured && quest.masteryTier != QuestMasteryTier.unmarked) ...[
@@ -741,13 +768,17 @@ class _QuestTitleBlock extends StatelessWidget {
             ],
           ),
         ],
-        if (featured && goalThreadLabel != null) ...[
+        if (showGoal) ...[
           const SizedBox(height: 7),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.menu_book_outlined, size: 17, color: Palette.xp),
-              const SizedBox(width: 7),
+              const Icon(
+                Icons.menu_book_outlined,
+                size: 13,
+                color: Palette.textLo,
+              ),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   goalThreadLabel!,
@@ -755,16 +786,16 @@ class _QuestTitleBlock extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Type.body.copyWith(
-                    fontSize: 14.5,
-                    height: 1.18,
-                    color: Palette.xp,
+                    fontSize: 12.5,
+                    height: 1.22,
+                    color: Palette.textMid,
                   ),
                 ),
               ),
             ],
           ),
         ],
-        if (featured && quest.latestNote != null) ...[
+        if (hasKeeperNote) ...[
           const SizedBox(height: 7),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -789,7 +820,7 @@ class _QuestTitleBlock extends StatelessWidget {
               ),
             ],
           ),
-        ] else if (featured && quest.ladderHint != null) ...[
+        ] else if (showHint) ...[
           const SizedBox(height: 4),
           Row(
             children: [
@@ -815,7 +846,7 @@ class _QuestTitleBlock extends StatelessWidget {
               ],
             ],
           ),
-        ] else if (featured && companion != null) ...[
+        ] else if (showCompanion) ...[
           const SizedBox(height: 4),
           Text(
             companion,
@@ -1230,8 +1261,8 @@ class _ManageQuestAction extends StatelessWidget {
                 Text(
                   'Manage',
                   style: Type.body.copyWith(
-                    fontSize: 13,
-                    color: Palette.textMid,
+                    fontSize: 12,
+                    color: Palette.textLo,
                   ),
                 ),
               ],

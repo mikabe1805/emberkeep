@@ -412,6 +412,16 @@ void main() {
     expect(titleText.maxLines, 3);
     expect(titleText.style?.fontFamily, 'EBGaramond');
     expect(goalText.maxLines, 2);
+    expect(find.text('+41 XP'), findsOneWidget);
+    expect(
+      find.text(
+        questCompanionCopy(
+          quest: Quest(title: title, stat: Stat.foc, difficulty: 5),
+          day: Clock.now(),
+        )!,
+      ),
+      findsNothing,
+    );
     expect(find.text('Manage'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('quest-manage-action'))).height,

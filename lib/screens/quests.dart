@@ -5162,7 +5162,7 @@ class _BoardToolGroup extends StatelessWidget {
           Container(width: 1, height: 24, color: const Color(0x6655483C)),
           _HeaderAction(
             icon: Icons.add_rounded,
-            color: Palette.xpLight,
+            color: Palette.textMid,
             label: 'Add a quest',
             visibleLabel: 'ADD',
             onTap: onAdd,

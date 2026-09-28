@@ -3183,7 +3183,10 @@ void main() {
       ),
     );
     await _precachePageArt(tester);
-    final recovery = find.text('Make this smaller', skipOffstage: false);
+    final recovery = find.byKey(
+      const Key('goals-recover-today'),
+      skipOffstage: false,
+    );
     await Scrollable.ensureVisible(
       tester.element(recovery),
       alignment: 0.2,
@@ -3323,12 +3326,21 @@ void main() {
     );
     await _precachePageArt(tester);
 
-    final recovery = find.text('Make this smaller', skipOffstage: false);
+    final recovery = find.byKey(
+      const Key('goals-recover-today'),
+      skipOffstage: false,
+    );
     await tester.scrollUntilVisible(
       recovery,
       220,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(recovery),
+      alignment: 0.5,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     await tester.tap(recovery);
     await tester.pumpAndSettle();
     await tester.tap(
@@ -4035,7 +4047,7 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Make this smaller'));
+    await tester.tap(find.byKey(const Key('goals-recover-today')));
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -4150,7 +4162,7 @@ void main() {
     );
     await _precachePageArt(tester);
     await tester.pumpAndSettle();
-    final review = find.text('Review goal');
+    final review = find.byKey(const Key('goals-review-goal'));
     expect(review, findsOneWidget);
     expect(tester.getBottomRight(review).dy, lessThan(812));
     expect(tester.takeException(), isNull);

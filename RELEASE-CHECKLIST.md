@@ -3,6 +3,36 @@
 Updated September 28, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+49 internal candidate — clearer next step
+
+This candidate carries the current Goals and Quests clarity pass. Its
+main Quest keeps one supporting thought and its XP close to the title; an active
+Goal separates planning today's three, reviewing its route, and finding an
+easier step into three named opportunities. The permitted tag will be
+`room-of-days-1.0.4-build-49-internal-candidate`. It is for internal TestFlight
+only; it does not authorize App Store submission.
+
+- [x] Review the installed Android UI against same-screen before/after Goals
+  and Quest captures in `design/comparisons/2026-09-28/`, and freeze the source
+  in one commit. Build 48's immutable receipt and tag remain untouched.
+- [x] Pass the source checks: internal TestFlight metadata verifier, Flutter
+  analysis, all 1,209 regression tests, the feature-on discovery packet (28
+  passed, 1 expected skip), and an Android debug build. The receipt checkout
+  repeats the clean-source checks before publication.
+- [ ] Add only
+  `release-evidence/internal-testflight/1.0.4+49/CANDIDATE-MANIFEST.json` in
+  an immediate receipt child, binding the frozen source SHA and exact tag.
+  Run `dart run tool/verify_internal_testflight_candidate.dart` from that clean
+  receipt commit.
+- [ ] Confirm the Build 49 tag is unused, then push the immutable tag once.
+  The tag is the only `ios-testflight` trigger. Wait for a terminal Codemagic
+  result, then separately confirm Apple processing and availability to internal
+  group `Me`.
+- [ ] Install on a physical phone and check the main Quest versus all three
+  secondary Goals doors at normal and Larger Text, along with touch, sound,
+  motion, and return behavior. This is separate from CI and TestFlight
+  processing.
+
 ## 1.0.4+48 internal candidate — discoverability pass
 
 This candidate carries the current UI/discoverability pass: Goals presents

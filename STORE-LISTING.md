@@ -108,17 +108,19 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 48 is an internal candidate for clearer paths through the room. Goals
-separates reviewing your current paths from starting a new one. An active Quest
-can open the Room Guide, where Help for Today, Plans, and Journal come first.
-A selected day separates Quest planning from Daybook entries, and a Journal
-page can be saved to Keepsakes while you read it.
+Build 49 is an internal candidate for a clearer next step. The main Quest now
+keeps its title, XP, and one useful supporting thought together. In Goals,
+planning today's three, reviewing a goal, and finding an easier step each have
+their own named door and say what they open.
 
 ## What to Test
 
 - In Goals, open **Your goals / Review & reshape**, return, then open **New
   goal / Begin a fresh path**. Confirm each leads to the named job and that
   leaving a new plan does not create a Quest without acceptance.
+- With an active Goal, compare the main Quest to **Plan today’s three**,
+  **Review this goal**, and **Find an easier step**. Confirm the current Quest
+  remains easy to identify and each secondary door leads to its named job.
 - From an active Quest, open **Help, plans & writing**. Try Help for Today,
   Plans, and Journal from the first three Room Guide doors.
 - Select a day in Plans. Compare **PLAN QUEST** with **CLASS · EXAM · MORE**;
@@ -126,13 +128,19 @@ page can be saved to Keepsakes while you read it.
 - Save a new Journal page, then use **Keep this** while reading it. Confirm it
   appears in Keepsakes and an older page offers the same action.
 - Repeat the Goals and Quest routes at Larger Text and with Reduce Motion.
-  Check touch response, sound, and legibility on the phone.
+  Check the main Quest's title, XP, supporting line, touch response, sound,
+  and legibility on the phone.
 
 Report anything visually cold, unclear, cramped, slow, or harder to return to
 after a break.
 
 ## Reviewer notes
 
+- **Build 49 additions:** The main Quest now keeps one supporting thought and
+  its XP together, without stacking several similar lines below the title.
+  The active Goal makes planning today's three, reviewing its route, and
+  finding an easier step three distinct secondary opportunities with named
+  outcomes.
 - **Build 48 additions:** Goals now gives the existing-goal workshop and new
   creation separate labelled entrances. The featured Quest can open Room
   Guide, whose first doors lead to help, planning, and writing. Selected days

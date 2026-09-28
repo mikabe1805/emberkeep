@@ -208,7 +208,7 @@ void main() {
           : find.byKey(const Key('goals-today-field-action'));
       expect(todayDoor, findsOneWidget);
       if (view.$3 == 1) {
-        expect(find.text('Today’s three · 2'), findsOneWidget);
+        expect(find.text('Plan today’s three · 2'), findsOneWidget);
       }
       await tester.runAsync(() => _writeFixture(fixture));
       if (_capture) {

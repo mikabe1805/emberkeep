@@ -678,12 +678,16 @@ class _RewardReceiptState extends State<RewardReceipt>
                 : flameHueFor(widget.state!),
           ),
           const SizedBox(width: 5),
-          Text(
-            bubble.text,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              color: bubble.color,
-              letterSpacing: 0.6,
+          Flexible(
+            child: Text(
+              bubble.text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: bubble.color,
+                letterSpacing: 0.6,
+              ),
             ),
           ),
         ],

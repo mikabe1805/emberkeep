@@ -125,6 +125,40 @@ void main() {
     },
   );
 
+  testWidgets('a long Quest rise fits the receipt on a narrow phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      _rewardHost(
+        RewardReceipt(
+          state: GameState()..reduceMotion = true,
+          bundle: RewardBundle(
+            xp: 15,
+            stat: Stat.vit,
+            statGain: 1,
+            questTitle: 'Reset the counter for 15 minutes',
+            message: 'One visible change is proof.',
+            difficulty: 2,
+            risenToTitle: 'Reset the counter for 15 minutes until one usable patch is visible',
+          ),
+          anchor: const Offset(160, 280),
+          onDone: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('QUEST ROSE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'OS Reduce Motion parks achievement toast and keeps its live announcement',
     (tester) async {
