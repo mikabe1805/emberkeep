@@ -108,27 +108,37 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 47 is an internal candidate focused on returning to an active Goal. The
-current Quest gets a clearer first read, while Today’s three, goal review, and a
-smaller next step stay close without competing for the same moment. Goals also
-keeps its page title and controls readable at larger text.
+Build 48 is an internal candidate for clearer paths through the room. Goals
+separates reviewing your current paths from starting a new one. An active Quest
+can open the Room Guide, where Help for Today, Plans, and Journal come first.
+A selected day separates Quest planning from Daybook entries, and a Journal
+page can be saved to Keepsakes while you read it.
 
 ## What to Test
 
-- Open an active Goal on an ordinary day and a difficult day. Open the exact
-  current Quest, then return to Goals.
-- Review Today’s three and cancel without changing it. Then try **Make this
-  smaller** and confirm the current Quest, route, proof, and completion history
-  stay intact.
-- Repeat at Larger Text and with Reduce Motion. The Goals title, controls, and
-  next action should remain whole, readable, and reachable without shrinking.
+- In Goals, open **Your goals / Review & reshape**, return, then open **New
+  goal / Begin a fresh path**. Confirm each leads to the named job and that
+  leaving a new plan does not create a Quest without acceptance.
+- From an active Quest, open **Help, plans & writing**. Try Help for Today,
+  Plans, and Journal from the first three Room Guide doors.
+- Select a day in Plans. Compare **PLAN QUEST** with **CLASS · EXAM · MORE**;
+  the latter should offer a class, assignment, exam, event, or task.
+- Save a new Journal page, then use **Keep this** while reading it. Confirm it
+  appears in Keepsakes and an older page offers the same action.
+- Repeat the Goals and Quest routes at Larger Text and with Reduce Motion.
+  Check touch response, sound, and legibility on the phone.
 
 Report anything visually cold, unclear, cramped, slow, or harder to return to
 after a break.
 
 ## Reviewer notes
 
-- **Build 47 additions:** This internal candidate focuses on the active Goals
+- **Build 48 additions:** Goals now gives the existing-goal workshop and new
+  creation separate labelled entrances. The featured Quest can open Room
+  Guide, whose first doors lead to help, planning, and writing. Selected days
+  expose separate Quest and Daybook actions; read Journal pages can be saved
+  to Keepsakes without opening Edit.
+- **Build 47 additions:** That candidate focused on the active Goals
   return folio: the exact current Quest leads, Today’s three, review, and a
   smaller next step remain secondary, and the Goals heading has a dedicated
   large-text layout. Plans can still review and locally import a compatible

@@ -16,7 +16,8 @@ for internal TestFlight only; it is not App Store submission authority.
   analysis found no issues, the feature-on discovery packet passed (28 tests,
   1 expected skip), and release web and Android debug builds succeeded. The
   installed Android app was checked against same-viewport before/after Goals
-  and Quest images, plus the live Guide, Daybook, and Journal paths.
+  and Quest images, plus the live Guide, Daybook, and Journal paths. The Build
+  48 TestFlight metadata verifier passed.
 - [ ] Add only `release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json`
   in a receipt child, binding that frozen parent and exact tag. Do not create
   the manifest until the source revision is known.
