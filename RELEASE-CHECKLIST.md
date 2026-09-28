@@ -28,8 +28,11 @@ for internal TestFlight only; it is not App Store submission authority.
   reports that the complete Mac suite, discovery packet, signing, IPA build,
   signed IPA verification, and publishing all passed. The workflow targets
   internal TestFlight group `Me` and disables App Store submission.
-- [ ] Confirm Apple processing and the processed build's availability to
-  internal group `Me`; Codemagic publishing success alone does not show this.
+- [x] Confirm Apple processing and owner-tester availability. Apple's
+  TestFlight notice arrived September 28 at 05:24 UTC and says **Room of Days
+  1.0.4 (48) is ready to test on iOS**. The workflow's internal beta group is
+  `Me`; this notice confirms availability to the owner tester account, while
+  physical installation remains the separate step below.
 - [ ] Mika installs the processed build on a physical phone: distinguish and
   open both Goals doors; follow a Quest to Help, Plans, and Journal; use both
   selected-day Daybook actions; save a read or newly written Journal page to
