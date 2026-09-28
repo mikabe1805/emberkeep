@@ -19,15 +19,17 @@ only; it does not authorize App Store submission.
   analysis, all 1,209 regression tests, the feature-on discovery packet (28
   passed, 1 expected skip), and an Android debug build. The receipt checkout
   repeats the clean-source checks before publication.
-- [ ] Add only
+- [x] Add only
   `release-evidence/internal-testflight/1.0.4+49/CANDIDATE-MANIFEST.json` in
-  an immediate receipt child, binding the frozen source SHA and exact tag.
-  Run `dart run tool/verify_internal_testflight_candidate.dart` from that clean
-  receipt commit.
-- [ ] Confirm the Build 49 tag is unused, then push the immutable tag once.
-  The tag is the only `ios-testflight` trigger. Wait for a terminal Codemagic
-  result, then separately confirm Apple processing and availability to internal
-  group `Me`.
+  immediate receipt child `9dafeefb3d561717a4b8d6c2ce4d56083c5b23f3`,
+  binding source `9bf441c0546ae72f46b467a39e6b430280a9fc64` and the exact
+  tag. The clean-checkout candidate verifier passed.
+- [x] Confirm the Build 49 tag was unused and push it once. [Codemagic Build
+  49](https://codemagic.io/app/6a32f03249c450f5f866251d/build/6aba0fe53f90aeed966c319b)
+  succeeded, including complete Mac regression, signing, IPA verification,
+  and publishing. Apple's TestFlight email of September 28 at 07:14 UTC says
+  Room of Days 1.0.4 (49) is ready to test on iOS. The tag remains internal
+  only; no App Store submission was requested.
 - [ ] Install on a physical phone and check the main Quest versus all three
   secondary Goals doors at normal and Larger Text, along with touch, sound,
   motion, and return behavior. This is separate from CI and TestFlight
