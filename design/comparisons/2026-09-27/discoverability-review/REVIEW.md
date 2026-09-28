@@ -28,7 +28,8 @@ slice. The full-frame same-emulator pairs in
 `../../2026-09-28/evidence-quest-doorway.png` show the visible change. Quest data
 varied between captures; only the doorway placement and label are compared.
 `../../2026-09-28/discoverability-phone-review.webp` collects the final resting
-screens. The Goals pair was also inspected at full resolution.
+screens. `../../2026-09-28/evidence-goals-choices-fullres.png` preserves the
+Goals pair at the Android capture's native 1080×2400 resolution on each side.
 
 ## Reflow and limits
 
