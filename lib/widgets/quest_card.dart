@@ -34,6 +34,7 @@ class QuestCard extends StatefulWidget {
     required this.onComplete,
     this.onSelect,
     this.onManage,
+    this.onOpenRoomGuide,
     this.onEncore,
     this.deskFinish,
     this.reduceMotion = false,
@@ -54,6 +55,7 @@ class QuestCard extends StatefulWidget {
   final void Function(Offset globalTapPosition) onComplete;
   final VoidCallback? onSelect;
   final VoidCallback? onManage;
+  final VoidCallback? onOpenRoomGuide;
   final VoidCallback? onEncore;
   final Color? deskFinish;
   final bool reduceMotion;
@@ -235,6 +237,8 @@ class _QuestCardState extends State<QuestCard>
             child: _QuestCardInteraction(
               compact: !heroLayout,
               enabled: !done,
+              exposeChildActions:
+                  widget.featured && widget.onOpenRoomGuide != null && !done,
               semanticLabel:
                   '${quest.displayTitle}, ${done
                       ? 'completed'
@@ -522,13 +526,17 @@ class _QuestCardState extends State<QuestCard>
                                             ),
                                           ),
                                   ),
-                                  if (!done && widget.onManage != null) ...[
+                                  if (!done &&
+                                      (widget.onManage != null ||
+                                          (widget.featured &&
+                                              widget.onOpenRoomGuide !=
+                                                  null))) ...[
                                     const SizedBox(height: 7),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: _ManageQuestAction(
-                                        onTap: widget.onManage!,
-                                      ),
+                                    _QuestFooterActions(
+                                      onOpenRoomGuide: widget.featured
+                                          ? widget.onOpenRoomGuide
+                                          : null,
+                                      onManage: widget.onManage,
                                     ),
                                   ],
                                 ],
@@ -576,6 +584,7 @@ class _QuestCardInteraction extends StatelessWidget {
   const _QuestCardInteraction({
     required this.compact,
     required this.enabled,
+    required this.exposeChildActions,
     required this.semanticLabel,
     required this.semanticHint,
     required this.onComplete,
@@ -585,6 +594,7 @@ class _QuestCardInteraction extends StatelessWidget {
 
   final bool compact;
   final bool enabled;
+  final bool exposeChildActions;
   final String semanticLabel;
   final String? semanticHint;
   final void Function(Offset globalPosition)? onComplete;
@@ -601,6 +611,7 @@ class _QuestCardInteraction extends StatelessWidget {
             };
       return Semantics(
         container: true,
+        explicitChildNodes: exposeChildActions,
         label: semanticLabel,
         hint: semanticHint,
         customSemanticsActions: manageActions,
@@ -1084,6 +1095,106 @@ class _CompleteQuestButton extends StatelessWidget {
         reduceMotion: reduceMotion,
         textured: false,
         child: GoldLabel(text: actionLabel),
+      ),
+    );
+  }
+}
+
+/// Quiet exits from the featured Quest. Completion remains the only plate;
+/// these actions are ordinary text doors that may wrap rather than shrink at
+/// large text sizes.
+class _QuestFooterActions extends StatelessWidget {
+  const _QuestFooterActions({this.onOpenRoomGuide, this.onManage});
+
+  final VoidCallback? onOpenRoomGuide;
+  final VoidCallback? onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <Widget>[
+      if (onOpenRoomGuide != null)
+        _QuestHelpTodayAction(onTap: onOpenRoomGuide!),
+      if (onManage != null) _ManageQuestAction(onTap: onManage!),
+    ];
+    if (actions.length == 1) {
+      return Align(
+        alignment: onOpenRoomGuide != null
+            ? Alignment.centerLeft
+            : Alignment.centerRight,
+        child: actions.single,
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.3;
+        if (largeText || constraints.maxWidth < 280) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(alignment: Alignment.centerLeft, child: actions.first),
+              Align(alignment: Alignment.centerRight, child: actions.last),
+            ],
+          );
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: actions,
+        );
+      },
+    );
+  }
+}
+
+class _QuestHelpTodayAction extends StatelessWidget {
+  const _QuestHelpTodayAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      label: 'Help, plans and writing',
+      hint: 'Open the Room Guide to choose help for a task, a plan, or writing',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Pressable(
+        key: const ValueKey('quest-help-today-action'),
+        onTapUp: (_) => onTap(),
+        guardRapidReentry: true,
+        edgeColor: Colors.transparent,
+        pressDepth: 0,
+        material: MaterialSound.parchment,
+        interactionSound: InteractionSound.navigate,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220, minHeight: 48),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.support_outlined,
+                    size: 16,
+                    color: Palette.textLo,
+                  ),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      'Help, plans & writing',
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

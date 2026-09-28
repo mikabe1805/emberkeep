@@ -239,6 +239,18 @@ persisted top-three routine order.
 
 final result: passed
 
+## September 28, 2026 — discoverability follow-through
+
+Goals' former combined `Workshop | + New goal` strip hid two different jobs.
+The installed Android build now shows separate `Your goals / Review & reshape`
+and `New goal / Begin a fresh path` cards above the current Quest. Featured
+Quests expose `Help, plans & writing`; Room Guide starts with Help, Plans, and
+Journal; selected Daybook days split Quest planning from calendar capture; and
+read Journal pages offer `Keep this` for Keepsakes. Source, route checks, actual
+screens, before/after pairs, and limits are recorded in
+`design/comparisons/2026-09-27/discoverability-review/REVIEW.md`. Physical
+iPhone experience and TestFlight availability remain open gates.
+
 ---
 
 # Design QA — Discover entry and Ambient Light response (2026-08-23)

@@ -18,9 +18,16 @@ Future<void> _pumpHub(
   WidgetTester tester,
   GameState state, {
   List<Quest> quests = const [],
+  double textScale = 1,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: JournalHubScreen(state: state, quests: quests, onPersist: () {}),
     ),
   );
@@ -203,6 +210,11 @@ void main() {
     expect(_journalField(tester).readOnly, isTrue);
     expect(_journalField(tester).showCursor, isFalse);
     expect(find.byKey(const ValueKey('journal-entry-edit')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('journal-entry-keepsake')),
+      findsOneWidget,
+    );
+    expect(find.text('Keep this'), findsOneWidget);
     expect(find.byKey(const ValueKey('journal-photo-action')), findsNothing);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
     final field = _journalField(tester);
@@ -216,14 +228,104 @@ void main() {
     expect(pieces.first.style?.fontStyle, FontStyle.italic);
     expect(pieces.last.text, 'I called my sister.');
 
+    await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+    await tester.pump();
+
+    expect(state.memoryPins, contains(note.id));
+    expect(find.text('Kept in Keepsakes'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+    await tester.pump();
+
+    expect(state.memoryPins, isNot(contains(note.id)));
+    expect(find.text('Keep this'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('journal-entry-edit')));
     await tester.pump();
 
     expect(_journalField(tester).readOnly, isFalse);
     expect(_journalField(tester).showCursor, isTrue);
+    expect(find.byKey(const ValueKey('journal-entry-keepsake')), findsNothing);
     expect(find.byKey(const ValueKey('journal-photo-action')), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
   });
+
+  testWidgets('a newly finished page can be kept without reopening it', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = GameState()..reduceMotion = true;
+    await _pumpHub(tester, state);
+
+    await tester.tap(find.text('Write a new entry'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('journal-entry-keepsake')), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('journal-entry-body')),
+      'A small good moment today.',
+    );
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.tap(find.byKey(const ValueKey('journal-entry-done')));
+    await tester.pump();
+
+    expect(state.journal, hasLength(1));
+    expect(find.text('Keep this'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+    await tester.pump();
+    expect(state.memoryPins, contains(state.journal.single.id));
+    expect(find.text('Kept in Keepsakes'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a narrow large-text reader keeps the Keepsakes action reachable',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final note = _note(
+        'A small thing I want to remember.',
+        DateTime(2026, 8, 2, 18),
+      );
+      final state = GameState()
+        ..reduceMotion = true
+        ..setJournal([note]);
+
+      await _pumpHub(tester, state, textScale: 1.5);
+      final card = find.byKey(ValueKey('journal-card-${note.id}'));
+      await tester.scrollUntilVisible(
+        card,
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(card);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byKey(const ValueKey('journal-entry-edit')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('journal-entry-keepsake')),
+        findsOneWidget,
+      );
+      final readerBack = find.descendant(
+        of: find.byType(JournalEntryScreen),
+        matching: find.byIcon(Icons.chevron_left),
+      );
+      expect(readerBack, findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+      await tester.pump();
+      expect(state.memoryPins, contains(note.id));
+
+      await tester.tap(readerBack);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(JournalHubScreen), findsOneWidget);
+      expect(state.memoryPins, contains(note.id));
+    },
+  );
 
   testWidgets('read Back is inert; Edit then Back still autosaves', (
     tester,
@@ -325,6 +427,14 @@ void main() {
     expect(find.text('Looking back'), findsOneWidget);
     expect(_journalField(tester).readOnly, isTrue);
     expect(find.byKey(const ValueKey('journal-entry-edit')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('journal-entry-keepsake')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+    await tester.pump();
+    expect(state.memoryPins, contains(note.id));
   });
 
   testWidgets('night pages stay read-first and Edit opens night prompts', (

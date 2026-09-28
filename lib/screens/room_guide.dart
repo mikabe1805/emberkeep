@@ -66,6 +66,9 @@ class RoomGuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactIntro =
+        MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
@@ -75,22 +78,70 @@ class RoomGuideScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              const DetailHeader(
+              DetailHeader(
                 title: 'Room Guide',
-                subtitle: 'the useful things, and where they live',
+                subtitle: compactIntro ? null : 'when a Quest needs more',
                 accent: Palette.xp,
-                pill: 'OPEN ANYTIME',
+                pill: compactIntro ? null : 'START HERE',
               ),
               Expanded(
                 child: ListView(
                   key: const ValueKey('room-guide-list'),
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 42),
                   children: [
-                    const _GuideIntro(),
+                    if (!compactIntro) ...[
+                      const _GuideIntro(),
+                      const SizedBox(height: 14),
+                    ] else ...[
+                      const SizedBox(height: 4),
+                      _GuideQuickActions(
+                        onHelp: () => _openHelp(context),
+                        onPlans: () => _openTab(context, 3),
+                        onJournal: () => _openTab(context, 4),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    _GuideDoor(
+                      key: const ValueKey('room-guide-help-today'),
+                      eyebrow: 'WHEN SOMETHING FEELS TOO BIG',
+                      title: 'Help for Today',
+                      detail:
+                          'Turn one stuck task, a messy room, or a low-energy day into a few doable Quests.',
+                      footnote:
+                          'UNSTICK ME · GENTLE MODE DAY · GUIDED HOME RESET',
+                      icon: Icons.support_outlined,
+                      accent: Palette.streak,
+                      actionLabel: 'FIND THE RIGHT HELP',
+                      onTap: () => _openHelp(context),
+                    ),
+                    const SizedBox(height: 10),
+                    _GuideDoor(
+                      eyebrow: 'DAYS + SCHOOL',
+                      title: 'Plans',
+                      detail:
+                          'Keep appointments and planned Quests together. Add classes, work, exams, and study sessions when the day needs a shape.',
+                      footnote: 'CALENDAR · CLASSES · STUDY PLANS',
+                      icon: Icons.calendar_month_outlined,
+                      accent: Stat.foc.color,
+                      actionLabel: 'OPEN PLANS',
+                      onTap: () => _openTab(context, 3),
+                    ),
+                    const SizedBox(height: 10),
+                    _GuideDoor(
+                      eyebrow: 'PAGES + PATTERNS',
+                      title: 'Journal',
+                      detail:
+                          'Write a page or keep one line. Search past notes, save a memory, or make a Chronicle without reconstructing the day.',
+                      footnote: 'WRITE · SEARCH · MEMORIES · CHRONICLE',
+                      icon: Icons.menu_book_outlined,
+                      accent: Stat.intl.color,
+                      actionLabel: 'OPEN JOURNAL',
+                      onTap: () => _openTab(context, 4),
+                    ),
                     const SizedBox(height: 22),
                     const _GuideSection(
-                      title: 'YOUR DAY',
-                      subtitle: 'begin here; learn the rest when it is useful',
+                      title: 'THE REST OF THE ROOM',
+                      subtitle: 'the daily board, long paths, and your space',
                       accent: Palette.xp,
                     ),
                     const SizedBox(height: 10),
@@ -107,26 +158,6 @@ class RoomGuideScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     _GuideDoor(
-                      key: const ValueKey('room-guide-help-today'),
-                      eyebrow: 'WHEN SOMETHING FEELS TOO BIG',
-                      title: 'Help for Today',
-                      detail:
-                          'Turn one stuck task, a messy room, or a low-energy day into a few doable Quests.',
-                      footnote:
-                          'UNSTICK ME · GENTLE MODE DAY · GUIDED HOME RESET',
-                      icon: Icons.support_outlined,
-                      accent: Palette.streak,
-                      actionLabel: 'FIND THE RIGHT HELP',
-                      onTap: () => _openHelp(context),
-                    ),
-                    const SizedBox(height: 22),
-                    const _GuideSection(
-                      title: 'WHAT YOU ARE BUILDING',
-                      subtitle: 'give the days direction without crowding them',
-                      accent: Palette.unlock,
-                    ),
-                    const SizedBox(height: 10),
-                    _GuideDoor(
                       eyebrow: 'PATHS + PRACTICE',
                       title: 'Goals',
                       detail:
@@ -136,36 +167,6 @@ class RoomGuideScreen extends StatelessWidget {
                       accent: Palette.unlock,
                       actionLabel: 'OPEN GOALS',
                       onTap: () => _openTab(context, 2),
-                    ),
-                    const SizedBox(height: 10),
-                    _GuideDoor(
-                      eyebrow: 'DAYS + SCHOOL',
-                      title: 'Plans',
-                      detail:
-                          'Keep appointments and planned Quests together. Academic mode can hold classes, work, exams, and study sessions.',
-                      footnote: 'CALENDAR · CLASSES · STUDY PLANS',
-                      icon: Icons.calendar_month_outlined,
-                      accent: Stat.foc.color,
-                      actionLabel: 'OPEN PLANS',
-                      onTap: () => _openTab(context, 3),
-                    ),
-                    const SizedBox(height: 22),
-                    const _GuideSection(
-                      title: 'WHAT CHANGED',
-                      subtitle: 'the evidence stays yours and gathers quietly',
-                      accent: Palette.streak,
-                    ),
-                    const SizedBox(height: 10),
-                    _GuideDoor(
-                      eyebrow: 'PAGES + PATTERNS',
-                      title: 'Journal',
-                      detail:
-                          'Write a page or keep one line. Quests, XP, and build movement can attach themselves so you do not have to reconstruct the day.',
-                      footnote: 'ENTRIES · PATTERNS · THEN + NOW',
-                      icon: Icons.menu_book_outlined,
-                      accent: Stat.intl.color,
-                      actionLabel: 'OPEN JOURNAL',
-                      onTap: () => _openTab(context, 4),
                     ),
                     const SizedBox(height: 10),
                     _GuideDoor(
@@ -181,7 +182,7 @@ class RoomGuideScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'You never need to use everything. This guide stays in Me → Settings whenever a different kind of day comes up.',
+                      'You never need to use everything. Open this from a Quest whenever the work in front of you needs a different kind of room.',
                       textAlign: TextAlign.center,
                       style: Type.body.copyWith(
                         fontSize: 12,
@@ -194,6 +195,121 @@ class RoomGuideScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// On a narrow or large-text phone, the long map doors begin below the first
+/// fold. Keep the three immediate exits visible first, using the exact same
+/// destinations as their fuller doors below.
+class _GuideQuickActions extends StatelessWidget {
+  const _GuideQuickActions({
+    required this.onHelp,
+    required this.onPlans,
+    required this.onJournal,
+  });
+
+  final VoidCallback onHelp;
+  final VoidCallback onPlans;
+  final VoidCallback onJournal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _GuideQuickAction(
+            key: const ValueKey('room-guide-quick-help'),
+            label: 'Help',
+            icon: Icons.support_outlined,
+            accent: Palette.streak,
+            hint: 'Open help for a stuck task or low-energy day',
+            onTap: onHelp,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _GuideQuickAction(
+            key: const ValueKey('room-guide-quick-plans'),
+            label: 'Plans',
+            icon: Icons.calendar_month_outlined,
+            accent: Stat.foc.color,
+            hint: 'Open Plans',
+            onTap: onPlans,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _GuideQuickAction(
+            key: const ValueKey('room-guide-quick-journal'),
+            label: 'Journal',
+            icon: Icons.menu_book_outlined,
+            accent: Stat.intl.color,
+            hint: 'Open Journal',
+            onTap: onJournal,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GuideQuickAction extends StatelessWidget {
+  const _GuideQuickAction({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.accent,
+    required this.hint,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color accent;
+  final String hint;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      hint: hint,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 62),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+            decoration: facetedDecoration(
+              cut: 7,
+              color: Palette.card.withValues(alpha: 0.9),
+              borderColor: accent.withValues(alpha: 0.52),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 17, color: accent),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: Type.body.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Palette.textHi,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -224,12 +340,12 @@ class _GuideIntro extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Start with one Quest.',
+                  'What would help today?',
                   style: Type.display.copyWith(fontSize: 22),
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'The rest is not a syllabus. It is a set of doors you can open when a task, a day, or a longer plan needs a different kind of help.',
+                  'Stay with the Quest in front of you, or choose a door for a stuck task, a plan that needs a place, or something you want to write down.',
                   style: Type.body.copyWith(
                     fontSize: 13,
                     height: 1.42,

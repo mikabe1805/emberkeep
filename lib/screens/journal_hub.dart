@@ -221,6 +221,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           starter: starter ?? _starterFor(entry),
           trace: trace,
           initiallyEditing: initiallyEditing,
+          keepsakePinned: entry == null
+              ? null
+              : _s.memoryPins.contains(entry.id),
+          onToggleKeepsake: _toggleKeepsake,
           onEditRequested: entry != null && night != null
               ? (readerContext) async {
                   final data = await showNightReflectionSheet(
@@ -250,6 +254,14 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       if (quest.title == source) return quest.journalPrompt?.starter;
     }
     return null;
+  }
+
+  bool _toggleKeepsake(Note entry) {
+    final pinned = !_s.memoryPins.contains(entry.id);
+    _s.setMemoryPinned(entry.id, pinned);
+    Sfx.instance.play(pinned ? 'streak' : 'tick');
+    HapticFeedback.selectionClick();
+    return pinned;
   }
 
   /// Insert-or-replace and hand the saved Note back so the editor keeps
@@ -977,21 +989,11 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 label: _s.memoryPins.contains(e.note.id)
                     ? 'Remove from Keepsakes'
                     : 'Keep in Keepsakes',
-                onTap: () {
-                  final pinned = !_s.memoryPins.contains(e.note.id);
-                  _s.setMemoryPinned(e.note.id, pinned);
-                  Sfx.instance.play(pinned ? 'streak' : 'tick');
-                  HapticFeedback.selectionClick();
-                },
+                onTap: () => _toggleKeepsake(e.note),
                 child: GestureDetector(
                   excludeFromSemantics: true,
                   behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    final pinned = !_s.memoryPins.contains(e.note.id);
-                    _s.setMemoryPinned(e.note.id, pinned);
-                    Sfx.instance.play(pinned ? 'streak' : 'tick');
-                    HapticFeedback.selectionClick();
-                  },
+                  onTap: () => _toggleKeepsake(e.note),
                   child: Padding(
                     padding: const EdgeInsets.all(6),
                     child: Icon(

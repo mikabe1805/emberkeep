@@ -4,6 +4,7 @@ enum ReleaseHighlightKind {
   academicDaybook,
   courseWork,
   calendarViews,
+  journalMemory,
   locationDirections,
   flexiblePlans,
   streakSafety,
@@ -51,6 +52,45 @@ class RoomReleaseNotes {
 /// Newest first. A user-facing build is not ready to release until its record
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.4+48',
+    versionLabel: 'VERSION 1.0.4 · BUILD 48',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'The right door, closer by.',
+    introduction:
+        'Goals now gives reviewing your paths and beginning a new one their '
+        'own doors. Other useful parts of the room are closer, too.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'TWO WAYS INTO GOALS',
+        body:
+            'Review and reshape the goals you have, or begin a fresh path. '
+            'Each choice now says where it will take you.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'HELP, PLANS & WRITING',
+        body:
+            'An active Quest can open the Room Guide, where help for today, '
+            'Plans, and Journal come first.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'A DAYBOOK DOOR',
+        body:
+            'From a selected day, plan a one-off Quest or add a class, '
+            'assignment, exam, event, or task to your Daybook.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.journalMemory,
+        title: 'KEEP THIS',
+        body:
+            'While reading a Journal page, save it to Keepsakes without '
+            'opening Edit.',
+      ),
+    ],
+  ),
   RoomReleaseNotes(
     id: '1.0.4+47',
     versionLabel: 'VERSION 1.0.4 · BUILD 47',

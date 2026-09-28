@@ -424,6 +424,92 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'featured Quest keeps the Room Guide reachable beside Manage at large text',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(() {
+        tester.binding.setSurfaceSize(null);
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+      var openedGuide = 0;
+      var managed = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: QuestCard(
+                  quest: Quest(
+                    title: 'Make one useful plan',
+                    stat: Stat.foc,
+                    difficulty: 3,
+                  ),
+                  done: false,
+                  featured: true,
+                  xpPreview: 26,
+                  onComplete: (_) {},
+                  onManage: () => managed++,
+                  onOpenRoomGuide: () => openedGuide++,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final help = find.byKey(const ValueKey('quest-help-today-action'));
+      final manage = find.byKey(const ValueKey('quest-manage-action'));
+      final semantics = tester.ensureSemantics();
+      await tester.ensureVisible(help);
+      expect(help.hitTestable(), findsOneWidget);
+      expect(manage, findsOneWidget);
+      expect(tester.getSize(help).height, greaterThanOrEqualTo(44));
+      expect(tester.getSize(manage).height, greaterThanOrEqualTo(44));
+      expect(find.text('Help, plans & writing'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Help, plans and writing', skipOffstage: false),
+        findsOneWidget,
+      );
+
+      await tester.tap(help);
+      await tester.pump();
+      expect(openedGuide, 1);
+      await tester.tap(manage);
+      await tester.pump();
+      expect(managed, 1);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('only a featured active Quest exposes the Room Guide', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: QuestCard(
+            quest: Quest(title: 'A side quest', stat: Stat.foc, difficulty: 2),
+            done: false,
+            featured: false,
+            xpPreview: 10,
+            onComplete: (_) {},
+            onManage: () {},
+            onOpenRoomGuide: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('quest-help-today-action')), findsNothing);
+  });
+
   testWidgets('compact Quest title wraps and remains directly selectable', (
     tester,
   ) async {

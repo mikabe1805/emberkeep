@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../audio.dart';
 import '../clock.dart';
@@ -206,6 +207,14 @@ class InsightsPage extends StatelessWidget {
     state.setJournal(state.journal.without(note));
   }
 
+  bool _toggleKeepsake(Note note) {
+    final pinned = !state.memoryPins.contains(note.id);
+    state.setMemoryPinned(note.id, pinned);
+    Sfx.instance.play(pinned ? 'streak' : 'tick');
+    HapticFeedback.selectionClick();
+    return pinned;
+  }
+
   Future<void> _openLookingBack(BuildContext context, Note note) {
     Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = note.night;
@@ -221,6 +230,8 @@ class InsightsPage extends StatelessWidget {
           starter: _starterFor(note),
           trace: note.trace,
           initiallyEditing: false,
+          keepsakePinned: state.memoryPins.contains(note.id),
+          onToggleKeepsake: _toggleKeepsake,
           onEditRequested: night == null
               ? null
               : (readerContext) async {

@@ -191,7 +191,9 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('+ PLAN'));
+    await tester.ensureVisible(find.text('PLAN QUEST'));
+    await tester.pump();
+    await tester.tap(find.text('PLAN QUEST'));
     // Advance the finite dialog transition explicitly. The authored planner
     // plate keeps its candle attached to the desk; no independent screen-space
     // flame ticker should remain on this page.

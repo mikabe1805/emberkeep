@@ -1,7 +1,31 @@
 # Room of Days Release Checklist
 
-Updated September 27, 2026. “Repository-ready” means the source is prepared; it does
+Updated September 28, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.4+48 internal candidate — discoverability pass
+
+This candidate carries the current UI/discoverability pass: Goals presents
+review and new creation as two distinct doors; an active Quest can open the
+Room Guide; a selected calendar day separates Quest planning from Daybook
+capture; and read Journal pages can be kept as Keepsakes. The permitted
+tag will be `room-of-days-1.0.4-build-48-internal-candidate`. It is authorized
+for internal TestFlight only; it is not App Store submission authority.
+
+- [x] Verify and freeze this source revision: all 1,208 Flutter tests passed,
+  analysis found no issues, the feature-on discovery packet passed (28 tests,
+  1 expected skip), and release web and Android debug builds succeeded. The
+  installed Android app was checked against same-viewport before/after Goals
+  and Quest images, plus the live Guide, Daybook, and Journal paths.
+- [ ] Add only `release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json`
+  in a receipt child, binding that frozen parent and exact tag. Do not create
+  the manifest until the source revision is known.
+- [ ] Confirm the Build 48 tag is unused, then push it once and verify
+  Codemagic, Apple processing, and availability to internal group `Me`.
+- [ ] Mika installs the processed build on a physical phone: distinguish and
+  open both Goals doors; follow a Quest to Help, Plans, and Journal; use both
+  selected-day Daybook actions; save a read or newly written Journal page to
+  Keepsakes; assess touch, sound, motion, and Large Text in context.
 
 ## 1.0.4+47 internal candidate — the active Goals return retry
 

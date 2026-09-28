@@ -4,7 +4,7 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. Both Build 40 tags remain
-# immutable history. This candidate permits one exact Build 47 receipt
+# immutable history. This candidate permits one exact Build 48 receipt
 # tag so the signed device-evidence build can start without broadening the release
 # channel. No other tag or branch push matches. The final App Store screenshot
 # receipt remains a separate, non-binary gate after the installed widget has been
@@ -53,7 +53,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-47-internal-candidate"
+        - pattern: "room-of-days-1.0.4-build-48-internal-candidate"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -83,11 +83,11 @@ workflows:
             git fetch --no-tags --depth=2 origin "$CM_COMMIT"
           RECEIPT_REVISION=$(git rev-parse HEAD)
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
-          MANIFEST=release-evidence/internal-testflight/1.0.4+47/CANDIDATE-MANIFEST.json
+          MANIFEST=release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-47-internal-candidate"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-48-internal-candidate"
           test "$(jq -er '.candidate.tag' "$MANIFEST")" = "$CM_TAG"
-          test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+47"
+          test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+48"
           test "$(jq -er '.purpose' "$MANIFEST")" = "internal_testflight_device_evidence"
           test "$RECEIPT_REVISION" = "$CM_COMMIT"
           test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
@@ -448,7 +448,7 @@ workflows:
           done <<< "$CODESIGN_DETAILS"
           test -n "$SIGNING_AUTHORITY"
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' \
-            release-evidence/internal-testflight/1.0.4+47/CANDIDATE-MANIFEST.json)
+            release-evidence/internal-testflight/1.0.4+48/CANDIDATE-MANIFEST.json)
           {
             echo "source_commit=$SOURCE_REVISION"
             echo "receipt_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"

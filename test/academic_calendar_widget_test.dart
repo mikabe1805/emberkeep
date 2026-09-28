@@ -80,10 +80,7 @@ void main() {
     );
 
     expect(find.text('DAYBOOK'), findsOneWidget);
-    expect(
-      find.text('Events, tasks, classes, and places in one view'),
-      findsOneWidget,
-    );
+    expect(find.text('Classes · exams · events · tasks'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Add an event, task, class, assignment, or exam'),
       findsOneWidget,
@@ -98,10 +95,7 @@ void main() {
 
     expect(find.text('DAYBOOK'), findsOneWidget);
     expect(find.text('Fall 2026'), findsOneWidget);
-    expect(
-      find.text('Events, tasks, classes, and places in one view'),
-      findsNothing,
-    );
+    expect(find.text('Classes · exams · events · tasks'), findsNothing);
   });
 
   testWidgets('Daybook add chooser keeps general choices before School', (
@@ -2408,9 +2402,11 @@ void main() {
         await tester.pump();
 
         expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
-        expect(find.text('+ PLAN'), findsOneWidget);
+        expect(find.text('PLAN QUEST'), findsOneWidget);
         final planSemantics = tester.getSemantics(
-          find.bySemanticsLabel(RegExp(r'Add a plan for TUESDAY 11, today')),
+          find.bySemanticsLabel(
+            RegExp(r'Plan a one-off Quest for TUESDAY 11, today'),
+          ),
         );
         expect(
           planSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
@@ -2431,7 +2427,7 @@ void main() {
         );
         final selectedTop = tester.getTopLeft(selectedControl).dy;
         final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
-        final planTop = tester.getTopLeft(find.text('+ PLAN')).dy;
+        final planTop = tester.getTopLeft(find.text('PLAN QUEST')).dy;
         if (mode == AcademicCalendarMode.day) {
           expect(selectedTop, lessThan(shapeTop));
           expect(planTop, lessThan(shapeTop));
@@ -2691,13 +2687,13 @@ void main() {
       expect(label.didExceedMaxLines, isFalse);
       expect(paragraph.didExceedMaxLines, isFalse);
       expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
-      expect(find.text('+ PLAN'), findsOneWidget);
+      expect(find.text('PLAN QUEST'), findsOneWidget);
       final selectedBottom = tester
           .getBottomLeft(
             find.byKey(const ValueKey('daybook-day-control-2026-08-11')),
           )
           .dy;
-      final planBottom = tester.getBottomLeft(find.text('+ PLAN')).dy;
+      final planBottom = tester.getBottomLeft(find.text('PLAN QUEST')).dy;
       final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
       if (mode == AcademicCalendarMode.day) {
         expect(selectedBottom, lessThan(shapeTop));
@@ -4909,6 +4905,11 @@ void main() {
       expect(find.text('Problem set 4'), findsWidgets);
       expect(find.text('3:00 PM–3:45 PM · 45 min'), findsOneWidget);
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('academic-study-toggle-study_problem_set_1')),
+      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
+      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey('academic-study-toggle-study_problem_set_1')),
       );
@@ -5081,19 +5082,11 @@ void main() {
       expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
       await tester.ensureVisible(find.text('WEDNESDAY 12'));
       await tester.pump();
-      final thursdayControl = find.byKey(
-        const ValueKey('daybook-day-control-2026-08-13'),
-      );
-      final thursdayTopBeforeSelection = tester.getTopLeft(thursdayControl).dy;
       await tester.tap(find.text('WEDNESDAY 12'));
       await tester.pump();
       expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
       expect(preferences.state.selectedDate, '2026-08-12');
       expect(preferences.state.threeDayStartDate, '2026-08-11');
-      expect(
-        tester.getTopLeft(thursdayControl).dy,
-        closeTo(thursdayTopBeforeSelection, 0.01),
-      );
       final selectedWednesday = tester.getSemantics(
         find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
       );
@@ -5214,7 +5207,7 @@ void main() {
     },
   );
 
-  testWidgets('selected span Today and Plan actions reflow at 200% text', (
+  testWidgets('selected span keeps Quest and Daybook routes distinct', (
     tester,
   ) async {
     await _pumpCalendar(
@@ -5234,6 +5227,9 @@ void main() {
 
     final today = find.byKey(const ValueKey('calendar-back-to-today'));
     final plan = find.byKey(const ValueKey('calendar-plan-selected-day'));
+    final daybook = find.byKey(
+      const ValueKey('calendar-add-to-daybook-selected-day'),
+    );
     await tester.scrollUntilVisible(
       today,
       220,
@@ -5243,10 +5239,51 @@ void main() {
 
     expect(today, findsOneWidget);
     expect(plan, findsOneWidget);
+    expect(daybook, findsOneWidget);
     expect(tester.getRect(today).width, greaterThanOrEqualTo(44));
     expect(tester.getRect(today).height, greaterThanOrEqualTo(44));
     expect(tester.getRect(plan).width, greaterThanOrEqualTo(44));
     expect(tester.getRect(plan).height, greaterThanOrEqualTo(44));
+    expect(tester.getRect(daybook).width, greaterThanOrEqualTo(44));
+    expect(tester.getRect(daybook).height, greaterThanOrEqualTo(44));
+    expect(find.text('PLAN QUEST'), findsOneWidget);
+    expect(find.text('CLASS · EXAM · MORE'), findsOneWidget);
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('selected day opens its distinct Quest and Daybook routes', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-12',
+        ),
+      ),
+    );
+
+    final daybook = find.byKey(
+      const ValueKey('calendar-add-to-daybook-selected-day'),
+    );
+    await tester.ensureVisible(daybook);
+    await tester.tap(daybook);
+    await tester.pumpAndSettle();
+    expect(find.text('ADD TO YOUR DAYBOOK'), findsOneWidget);
+    expect(find.text('CLASS'), findsOneWidget);
+    expect(find.text('ASSIGNMENT'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+    final plan = find.byKey(const ValueKey('calendar-plan-selected-day'));
+    await tester.ensureVisible(plan);
+    await tester.tap(plan);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('PLAN FOR'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

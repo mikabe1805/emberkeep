@@ -1265,6 +1265,7 @@ class _GoalsPageState extends State<GoalsPage> {
             activeRoom: true,
             heading: _GoalsHeading(
               focus: null,
+              hasGoals: true,
               onNewGoal: () => _openQuickCreate(context),
               onWorkshop: () => _openWorkshop(context, focus),
               onChooseToday: () => _chooseToday(context),
@@ -1322,6 +1323,7 @@ class _GoalsPageState extends State<GoalsPage> {
         return _GoalsThresholdPage(
           heading: _GoalsHeading(
             focus: null,
+            hasGoals: state.goals.isNotEmpty,
             onWorkshop: () => _openWorkshop(context),
             onChooseToday: () => _chooseToday(context),
             todayFieldCount: todayFieldCount,
@@ -1419,6 +1421,7 @@ class _GoalsPageState extends State<GoalsPage> {
 class _GoalsHeading extends StatelessWidget {
   const _GoalsHeading({
     required this.focus,
+    required this.hasGoals,
     required this.onNewGoal,
     required this.onWorkshop,
     this.onChooseToday,
@@ -1426,6 +1429,7 @@ class _GoalsHeading extends StatelessWidget {
   });
 
   final Goal? focus;
+  final bool hasGoals;
   final VoidCallback? onNewGoal;
   final VoidCallback onWorkshop;
   final VoidCallback? onChooseToday;
@@ -1467,9 +1471,14 @@ class _GoalsHeading extends StatelessWidget {
         ),
       ],
     );
-    final workshop = WorkingAction(
-      key: const Key('goals-open-workshop'),
-      label: 'Workshop',
+    final workshop = _GoalsHeaderOpportunity(
+      controlKey: const Key('goals-open-workshop'),
+      icon: Icons.storefront_outlined,
+      title: hasGoals ? 'Your goals' : 'Goal workshop',
+      detail: hasGoals ? 'Review & reshape' : 'Start a path with help',
+      semanticHint: hasGoals
+          ? 'Open the workshop to review or change existing goals.'
+          : 'Open the workshop to begin a goal with guidance.',
       onTap: onWorkshop,
     );
     return LayoutBuilder(
@@ -1477,31 +1486,9 @@ class _GoalsHeading extends StatelessWidget {
         final stacked =
             constraints.maxWidth < 360 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.2;
-        final compactWorkshop = Pressable(
-          key: const Key('goals-open-workshop'),
-          material: MaterialSound.glass,
-          interactionSound: InteractionSound.select,
-          pressDepth: 1,
-          edgeColor: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          semanticLabel: 'Workshop',
-          semanticHint: 'Open the steward’s workshop.',
-          onTapUp: (_) => onWorkshop(),
-          child: const SizedBox(
-            width: 44,
-            height: 44,
-            child: Center(
-              child: Icon(
-                Icons.storefront_outlined,
-                size: 20,
-                color: Palette.textMid,
-              ),
-            ),
-          ),
-        );
         final todayLabel = todayFieldCount == 0
             ? 'Choose today’s three'
-            : 'Review today’s three, $todayFieldCount selected';
+            : 'Today’s three · $todayFieldCount';
         final compactToday = Pressable(
           key: const Key('goals-today-field-header'),
           material: MaterialSound.glass,
@@ -1509,110 +1496,72 @@ class _GoalsHeading extends StatelessWidget {
           pressDepth: 1,
           edgeColor: Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          semanticLabel: todayLabel,
+          semanticLabel: todayFieldCount == 0
+              ? todayLabel
+              : 'Review today’s three, $todayFieldCount selected',
           semanticHint:
               'Choose up to three quests to carry. Everything else stays optional.',
           onTapUp: (_) => onChooseToday?.call(),
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                const Icon(
-                  Icons.today_outlined,
-                  size: 20,
-                  color: Palette.xpLight,
-                ),
-                if (todayFieldCount > 0)
-                  Positioned(
-                    top: 3,
-                    right: 2,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 14),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4A321E),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Palette.brass.withValues(alpha: 0.72),
-                        ),
-                      ),
-                      child: Text(
-                        '$todayFieldCount',
-                        textAlign: TextAlign.center,
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          height: 1,
-                          color: Palette.textHi,
-                        ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.today_outlined,
+                    size: 18,
+                    color: Palette.xpLight,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      todayLabel,
+                      softWrap: true,
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textHi,
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
           ),
         );
         if (stacked) {
-          // At enlarged text the title needs the width of the whole page. The
-          // previous single toolbar row let its three controls squeeze
-          // "Goals" into an accidental two-line wordmark.
+          // Every door keeps its name at large text. The old shared toolbar
+          // reduced these different opportunities to unexplained icons.
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               title,
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xB01A110D),
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: const Color(0x576C4D32)),
-                  ),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 4,
-                    children: [
-                      compactWorkshop,
-                      if (onChooseToday != null) compactToday,
-                      if (onNewGoal case final create?)
-                        _NewGoalButton(onTap: create),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 10),
+              workshop,
+              if (onNewGoal case final create?) ...[
+                const SizedBox(height: 8),
+                _NewGoalButton(onTap: create),
+              ],
+              if (onChooseToday != null) ...[
+                const SizedBox(height: 4),
+                Align(alignment: Alignment.centerLeft, child: compactToday),
+              ],
             ],
           );
         }
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: title),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xB01A110D),
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: const Color(0x576C4D32)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  workshop,
-                  if (onNewGoal case final create?) ...[
-                    Container(
-                      height: 22,
-                      width: 1,
-                      color: const Color(0x6A725039),
-                    ),
-                    const SizedBox(width: 4),
-                    _NewGoalButton(onTap: create),
-                  ],
+            title,
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                Expanded(child: workshop),
+                if (onNewGoal case final create?) ...[
+                  const SizedBox(width: 10),
+                  Expanded(child: _NewGoalButton(onTap: create)),
                 ],
-              ),
+              ],
             ),
           ],
         );
@@ -1627,64 +1576,144 @@ class _NewGoalButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  Widget build(BuildContext context) => _GoalsHeaderOpportunity(
+    controlKey: const Key('goals-new-goal'),
+    icon: Icons.add_rounded,
+    title: 'New goal',
+    detail: 'Begin a fresh path',
+    semanticHint: 'Create a goal and shape its first route.',
+    beginning: true,
+    onTap: onTap,
+  );
+}
+
+/// The two header doors have different jobs, so they each have their own
+/// physical edge, name and touch surface. The active Quest remains the page's
+/// one luminous action.
+class _GoalsHeaderOpportunity extends StatelessWidget {
+  const _GoalsHeaderOpportunity({
+    required this.controlKey,
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.semanticHint,
+    required this.onTap,
+    this.beginning = false,
+  });
+
+  final Key controlKey;
+  final IconData icon;
+  final String title;
+  final String detail;
+  final String semanticHint;
+  final VoidCallback onTap;
+  final bool beginning;
+
+  @override
   Widget build(BuildContext context) {
     final compact =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(1) > 1.2;
+    final accent = beginning ? Palette.brassLit : Palette.textMid;
     return Pressable(
-      key: const Key('goals-new-goal'),
-      material: MaterialSound.glass,
-      soundEnabled: false,
+      key: controlKey,
+      material: beginning ? MaterialSound.parchment : MaterialSound.glass,
+      interactionSound: InteractionSound.navigate,
       pressDepth: 1.5,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(10),
       edgeColor: Colors.transparent,
       guardRapidReentry: true,
-      semanticLabel: 'Create a new goal',
+      semanticLabel: '$title. $detail',
+      semanticHint: semanticHint,
       onTapUp: (_) => onTap(),
       stateBuilder: (context, child, pressed, focused, hovered) =>
           AnimatedContainer(
             duration: pressed ? Duration.zero : Motion.ack,
+            constraints: BoxConstraints(minHeight: compact ? 52 : 76),
             decoration: BoxDecoration(
               color: pressed
-                  ? Palette.xpLight.withValues(alpha: 0.065)
+                  ? const Color(0xE3453526)
                   : focused || hovered
-                  ? Palette.xpLight.withValues(alpha: 0.025)
-                  : const Color(0x24140F0C),
-              borderRadius: BorderRadius.circular(6),
-              border: Border(
-                bottom: BorderSide(
-                  color: Palette.brass.withValues(
-                    alpha: pressed || focused ? 0.54 : 0.30,
-                  ),
-                  width: 1,
-                ),
+                  ? const Color(0xE232271E)
+                  : beginning
+                  ? const Color(0xD72C2119)
+                  : const Color(0xD21A1512),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: focused
+                    ? Palette.textHi
+                    : beginning
+                    ? const Color(0x8A8D6A49)
+                    : const Color(0x79554539),
               ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x42080503),
+                  blurRadius: 11,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
             child: child,
           ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: compact ? 9 : 7),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 12 : 11,
+          vertical: compact ? 8 : 10,
+        ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.add_rounded,
-              size: 17,
-              color: Palette.brassLit.withValues(alpha: 0.68),
-            ),
-            if (!compact) ...[
-              const SizedBox(width: 5),
-              Text(
-                'New goal',
-                style: const TextStyle(
-                  fontFamily: 'EBGaramond',
-                  fontSize: 15.5,
-                  height: 1,
-                  fontWeight: FontWeight.w600,
-                  color: Palette.textMid,
+            Container(
+              width: 31,
+              height: 31,
+              decoration: BoxDecoration(
+                color: beginning
+                    ? const Color(0x374B3522)
+                    : const Color(0x33433930),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(
+                  color: beginning
+                      ? const Color(0x806E5235)
+                      : const Color(0x7053473E),
                 ),
               ),
-            ],
+              child: Icon(icon, size: 18, color: accent),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'EBGaramond',
+                      fontSize: compact ? 18 : (beginning ? 19 : 17.5),
+                      height: 1.05,
+                      fontWeight: FontWeight.w600,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        height: 1.2,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 17,
+              color: accent.withValues(alpha: 0.82),
+            ),
           ],
         ),
       ),

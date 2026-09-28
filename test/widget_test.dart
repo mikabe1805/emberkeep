@@ -1223,12 +1223,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     await tester.scrollUntilVisible(
-      find.text('+ PLAN'),
+      find.text('PLAN QUEST'),
       180,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump(const Duration(milliseconds: 120));
-    await tester.tap(find.text('+ PLAN'));
+    await tester.tap(find.text('PLAN QUEST'));
     await tester.pump(const Duration(milliseconds: 400));
 
     await tester.enterText(find.byType(TextField), 'Finish the essay draft');

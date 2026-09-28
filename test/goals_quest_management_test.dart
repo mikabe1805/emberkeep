@@ -38,6 +38,7 @@ Finder _goalAction(String label) => switch (label) {
   'Open Quest' ||
   'Add a Quest' ||
   'Bring inside' => find.byKey(const Key('goals-return-primary-action')),
+  'Your goals' => find.byKey(const Key('goals-open-workshop')),
   _ => find.widgetWithText(WorkingAction, label),
 };
 
@@ -1561,7 +1562,7 @@ void main() {
       await _revealOnGoalsPage(tester, waitingGoalCard);
       await tester.tap(waitingGoalCard);
       await tester.pumpAndSettle();
-      await _tapGoalAction(tester, 'Workshop');
+      await _tapGoalAction(tester, 'Your goals');
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
       expect(find.byKey(const Key('goal-workshop-steward')), findsOneWidget);
@@ -1610,7 +1611,7 @@ void main() {
       expect(quests, hasLength(1));
       expect(find.byKey(const Key('goal-workshop-home')), findsNothing);
 
-      await _tapGoalAction(tester, 'Workshop');
+      await _tapGoalAction(tester, 'Your goals');
       await tester.pumpAndSettle();
       final waitingRow = find.byKey(
         const ValueKey<String>(
@@ -1658,7 +1659,7 @@ void main() {
     final quests = <Quest>[];
     await _pumpGoals(tester, state: state, quests: quests);
 
-    await _tapGoalAction(tester, 'Workshop');
+    await _tapGoalAction(tester, 'Your goals');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
     await tester.tap(

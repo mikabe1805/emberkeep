@@ -134,6 +134,21 @@ void main() {
     expect(find.text('OVERWHELMED SPACES'), findsOneWidget);
   });
 
+  testWidgets(
+    'guide names help, plans, and writing before the rest of the map',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_guide());
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Help for Today').hitTestable(), findsOneWidget);
+      expect(find.text('Plans').hitTestable(), findsOneWidget);
+      expect(find.text('Journal').hitTestable(), findsOneWidget);
+      expect(find.textContaining('Search past notes'), findsOneWidget);
+    },
+  );
+
   testWidgets('kit completion unwinds help and guide before opening Quests', (
     tester,
   ) async {
@@ -174,6 +189,13 @@ void main() {
     await tester.pumpWidget(_guide(onSelectTab: (tab) => selected = tab));
     await tester.pump(const Duration(milliseconds: 250));
 
+    await tester.scrollUntilVisible(
+      find.text('Quests'),
+      320,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.text('Quests'));
+    await tester.pump(const Duration(milliseconds: 180));
     await tester.tap(find.text('Quests'));
     await tester.pump();
     expect(selected, 1);
@@ -194,7 +216,24 @@ void main() {
     await tester.pumpWidget(_guide());
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    expect(find.text('Start with one Quest.'), findsOneWidget);
+    expect(find.text('Room Guide').hitTestable(), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Room Guide')).dy,
+      greaterThanOrEqualTo(0),
+    );
+    for (final key in const [
+      ValueKey('room-guide-quick-help'),
+      ValueKey('room-guide-quick-plans'),
+      ValueKey('room-guide-quick-journal'),
+    ]) {
+      final action = find.byKey(key);
+      expect(action.hitTestable(), findsOneWidget);
+      expect(tester.getSize(action).height, greaterThanOrEqualTo(44));
+    }
+    expect(
+      find.byKey(const ValueKey('room-guide-quick-help')).hitTestable(),
+      findsOneWidget,
+    );
 
     if (_capture) {
       await expectLater(
@@ -234,6 +273,44 @@ void main() {
         ),
       );
     }
+  });
+
+  testWidgets('compact guide actions keep the existing destinations', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    var selected = -1;
+    await tester.pumpWidget(_guide(onSelectTab: (tab) => selected = tab));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.byKey(const ValueKey('room-guide-quick-plans')));
+    await tester.pump();
+    expect(selected, 3);
+
+    selected = -1;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pumpWidget(_guide(onSelectTab: (tab) => selected = tab));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.byKey(const ValueKey('room-guide-quick-journal')));
+    await tester.pump();
+    expect(selected, 4);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pumpWidget(_guide());
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.byKey(const ValueKey('room-guide-quick-help')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(MomentumKitsPage), findsOneWidget);
   });
 
   testWidgets('room guide visual target', (tester) async {

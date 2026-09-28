@@ -401,17 +401,17 @@ void main() {
         if (mode == AcademicCalendarMode.month) {
           expect(
             tester.getBottomLeft(find.text(selectedDayLabel)).dy,
-            lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
+            lessThan(tester.getTopLeft(find.text('PLAN QUEST')).dy),
           );
         } else {
           expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
-          expect(find.text('+ PLAN'), findsOneWidget);
+          expect(find.text('PLAN QUEST'), findsOneWidget);
           expect(
             tester.getBottomLeft(find.text(selectedDayLabel)).dy,
             lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
           );
           expect(
-            tester.getBottomLeft(find.text('+ PLAN')).dy,
+            tester.getBottomLeft(find.text('PLAN QUEST')).dy,
             lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
           );
         }

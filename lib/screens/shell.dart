@@ -1998,6 +1998,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onNightClosed: () => unawaited(
                                             _rescheduleNotifications(),
                                           ),
+                                          onOpenRoomGuide: _openRoomGuide,
                                           parallax: cameraFor(1),
                                           lightDirection: lightFor(1),
                                           roomIgniting: _roomIgniting,

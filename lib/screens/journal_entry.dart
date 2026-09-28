@@ -52,6 +52,8 @@ class JournalEntryScreen extends StatefulWidget {
     this.trace,
     this.initiallyEditing = true,
     this.onEditRequested,
+    this.keepsakePinned,
+    this.onToggleKeepsake,
   });
 
   final Note? initial;
@@ -73,6 +75,13 @@ class JournalEntryScreen extends StatefulWidget {
   /// own editor. When supplied, the read page's Edit action opens that flow
   /// instead of turning this block document editable.
   final Future<void> Function(BuildContext context)? onEditRequested;
+
+  /// The reader can surface the existing Keepsakes choice without owning the
+  /// saved-memory state itself. A new page receives the callback, but its
+  /// Keepsakes action appears only after the page has been saved and finished.
+  /// Standalone readers may leave the callback unset.
+  final bool? keepsakePinned;
+  final bool Function(Note entry)? onToggleKeepsake;
 
   /// Optional first line for a guided entry. It is not saved by merely opening
   /// the page; once the user writes, it remains ordinary stored text while the
@@ -393,6 +402,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   bool _dirty = false;
   bool _everSaved = false;
   late bool _editing;
+  late bool _keptInKeepsakes;
   int _words = 0;
   _Block? _active; // where the cursor last was (photo inserts after it)
 
@@ -415,6 +425,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     _current = widget.initial;
     _everSaved = widget.initial != null;
     _editing = widget.initial == null || widget.initiallyEditing;
+    _keptInKeepsakes = widget.keepsakePinned ?? false;
     _initBlocks();
     // remember exactly what we loaded, so re-saving identical content is a
     // no-op and never stamps "edited"
@@ -429,6 +440,14 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     // files come back on the next launch. Land them in the page the person
     // reopened — almost always the one they were writing — and say so.
     unawaited(_recoverLostPhotos());
+  }
+
+  @override
+  void didUpdateWidget(covariant JournalEntryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.keepsakePinned != oldWidget.keepsakePinned) {
+      _keptInKeepsakes = widget.keepsakePinned ?? false;
+    }
   }
 
   Future<void> _recoverLostPhotos() async {
@@ -1373,6 +1392,73 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         ),
       ),
     );
+    final canKeep =
+        !_editing && _current != null && widget.onToggleKeepsake != null;
+    final keep = Semantics(
+      key: const ValueKey('journal-entry-keepsake'),
+      button: true,
+      toggled: _keptInKeepsakes,
+      label: _keptInKeepsakes ? 'Kept in Keepsakes' : 'Keep this in Keepsakes',
+      hint: _keptInKeepsakes
+          ? 'Remove this journal entry from Keepsakes'
+          : 'Save this journal entry in Keepsakes',
+      onTap: () {
+        setState(() {
+          _keptInKeepsakes = widget.onToggleKeepsake!(_current!);
+        });
+      },
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          setState(() {
+            _keptInKeepsakes = widget.onToggleKeepsake!(_current!);
+          });
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minHeight: 48,
+            minWidth: 110,
+            maxWidth: 155,
+          ),
+          child: DecoratedBox(
+            decoration: facetedDecoration(
+              cut: 6,
+              color: Palette.card.withValues(alpha: 0.92),
+              borderColor: (_keptInKeepsakes ? Palette.unlock : Palette.xp)
+                  .withValues(alpha: 0.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _keptInKeepsakes
+                        ? Icons.bookmark
+                        : Icons.bookmark_add_outlined,
+                    size: 17,
+                    color: _keptInKeepsakes ? Palette.unlock : Palette.xpLight,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _keptInKeepsakes ? 'Kept in Keepsakes' : 'Keep this',
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(
+                        fontSize: 10.5,
+                        letterSpacing: 0.5,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     // Autosave is real, but an editor with no way to say "I'm finished" reads
     // as one that might lose the page. DONE commits, closes the keyboard, and
     // shows the kept entry — the reassurance is seeing it saved.
@@ -1455,13 +1541,15 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                     _editing ? remove : edit,
                   ],
                 ),
+                if (canKeep)
+                  Align(alignment: Alignment.centerRight, child: keep),
                 if (_editing)
                   Align(alignment: Alignment.centerRight, child: meta),
               ],
             );
           }
           if (!_editing) {
-            return Row(children: [back, heading, edit]);
+            return Row(children: [back, heading, if (canKeep) keep, edit]);
           }
           return Row(
             children: [

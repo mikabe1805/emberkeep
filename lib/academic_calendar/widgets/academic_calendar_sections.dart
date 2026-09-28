@@ -117,8 +117,7 @@ class AcademicCalendarHeader extends StatelessWidget {
                     Text(
                       loading
                           ? 'Opening your schedule…'
-                          : termName ??
-                                'Events, tasks, classes, and places in one view',
+                          : termName ?? 'Classes · exams · events · tasks',
                       maxLines: largeText ? 2 : 1,
                       overflow: largeText
                           ? TextOverflow.clip

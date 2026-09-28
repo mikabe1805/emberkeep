@@ -849,6 +849,14 @@ class _CalendarPageState extends State<CalendarPage> {
     return null;
   }
 
+  bool _toggleKeepsake(Note entry) {
+    final pinned = !widget.state.memoryPins.contains(entry.id);
+    widget.state.setMemoryPinned(entry.id, pinned);
+    Sfx.instance.play(pinned ? 'streak' : 'tick');
+    HapticFeedback.selectionClick();
+    return pinned;
+  }
+
   Future<void> _openJournal(Note entry) {
     Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = entry.night;
@@ -864,6 +872,8 @@ class _CalendarPageState extends State<CalendarPage> {
           starter: _starterFor(entry),
           trace: entry.trace,
           initiallyEditing: false,
+          keepsakePinned: widget.state.memoryPins.contains(entry.id),
+          onToggleKeepsake: _toggleKeepsake,
           onEditRequested: night == null
               ? null
               : (readerContext) async {
@@ -1025,6 +1035,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   day: DateTime(day.date.year, day.date.month, day.date.day),
                   now: now,
                   onPlan: () => _showAddEvent(context),
+                  onAddToDaybook: () => _showAddDaybook(context),
                   onToday: _goToday,
                   onSelect: () => _selectDay(
                     DateTime(day.date.year, day.date.month, day.date.day),
@@ -1055,6 +1066,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 academicSchedule: _academicSchedule,
                 now: now,
                 onPlan: () => _showAddEvent(context),
+                onAddToDaybook: () => _showAddDaybook(context),
                 onOpenJournal: _openJournal,
                 onOpenNotebook: _openNotebook,
                 onOpenDaybookActions: _showDaybookActions,
@@ -2164,6 +2176,7 @@ class _SelectedDayHeader extends StatelessWidget {
     required this.day,
     required this.now,
     required this.onPlan,
+    required this.onAddToDaybook,
     required this.lightDirection,
     this.onSelect,
     this.onToday,
@@ -2173,6 +2186,7 @@ class _SelectedDayHeader extends StatelessWidget {
   final DateTime day;
   final DateTime now;
   final VoidCallback onPlan;
+  final VoidCallback onAddToDaybook;
   final ValueListenable<Offset> lightDirection;
   final VoidCallback? onSelect;
   final VoidCallback? onToday;
@@ -2249,7 +2263,7 @@ class _SelectedDayHeader extends StatelessWidget {
         ? null
         : Semantics(
             button: true,
-            label: 'Add a plan for $spoken',
+            label: 'Plan a one-off Quest for $spoken',
             onTap: onPlan,
             child: GestureDetector(
               key: const ValueKey('calendar-plan-selected-day'),
@@ -2270,7 +2284,7 @@ class _SelectedDayHeader extends StatelessWidget {
                         vertical: 8,
                       ),
                       child: Text(
-                        '+ PLAN',
+                        'PLAN QUEST',
                         style: Type.label.copyWith(
                           fontSize: 11,
                           letterSpacing: 1.2,
@@ -2289,6 +2303,33 @@ class _SelectedDayHeader extends StatelessWidget {
               ),
             ),
           );
+    final daybookAction = Semantics(
+      button: true,
+      label: 'Add class, assignment, exam, event, or task to $spoken Daybook',
+      onTap: onAddToDaybook,
+      child: TextButton.icon(
+        key: const ValueKey('calendar-add-to-daybook-selected-day'),
+        onPressed: onAddToDaybook,
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: const Icon(
+          Icons.calendar_today_outlined,
+          size: 15,
+          color: Palette.textMid,
+        ),
+        label: Text(
+          'CLASS · EXAM · MORE',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 0.85,
+            color: Palette.textMid,
+          ),
+        ),
+      ),
+    );
     final todayAction = isToday || onToday == null
         ? null
         : TextButton(
@@ -2313,7 +2354,13 @@ class _SelectedDayHeader extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 4,
       runSpacing: 4,
-      children: [?todayAction, ?planAction],
+      // Keep the selected-day content from jumping when TODAY appears after a
+      // day choice inside a span. The empty slot has no semantics or hit area.
+      children: [
+        daybookAction,
+        todayAction ?? const SizedBox(width: 64, height: 44),
+        ?planAction,
+      ],
     );
 
     if (largeText) {
@@ -2321,17 +2368,18 @@ class _SelectedDayHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           dayLabel,
-          if (todayAction != null || planAction != null) ...[
-            const SizedBox(height: 8),
-            Align(alignment: Alignment.centerRight, child: actions),
-          ],
+          const SizedBox(height: 8),
+          Align(alignment: Alignment.centerRight, child: actions),
         ],
       );
     }
     return Row(
       children: [
         Expanded(child: dayLabel),
-        if (todayAction != null || planAction != null) actions,
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 250),
+          child: actions,
+        ),
       ],
     );
   }
@@ -2350,6 +2398,7 @@ class _DayPanel extends StatelessWidget {
     required this.academicSchedule,
     required this.now,
     required this.onPlan,
+    required this.onAddToDaybook,
     required this.onOpenJournal,
     required this.onOpenNotebook,
     required this.onOpenDaybookActions,
@@ -2376,6 +2425,7 @@ class _DayPanel extends StatelessWidget {
   final AcademicSchedule academicSchedule;
   final DateTime now;
   final VoidCallback onPlan;
+  final VoidCallback onAddToDaybook;
   final ValueChanged<Note> onOpenJournal;
   final OpenAcademicNotebook onOpenNotebook;
   final OpenDaybookActions onOpenDaybookActions;
@@ -2407,6 +2457,7 @@ class _DayPanel extends StatelessWidget {
               day: day,
               now: now,
               onPlan: onPlan,
+              onAddToDaybook: onAddToDaybook,
               lightDirection: lightDirection,
             ),
             const SizedBox(height: 9),

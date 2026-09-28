@@ -1818,6 +1818,12 @@ void main() {
       420,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(supportToggle),
+      alignment: 0.4,
+      duration: Duration.zero,
+    );
+    await tester.pump();
     await tester.tap(supportToggle);
     await tester.pump(const Duration(milliseconds: 220));
     final unstick = find.byKey(const ValueKey('goals-unstick-me'));

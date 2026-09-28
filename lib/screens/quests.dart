@@ -80,6 +80,7 @@ class QuestsPage extends StatefulWidget {
     this.onBindComplete,
     this.onBindOpenWorkout,
     this.onNightClosed,
+    this.onOpenRoomGuide,
     this.parallax,
     this.lightDirection,
     this.roomIgniting = false,
@@ -127,6 +128,11 @@ class QuestsPage extends StatefulWidget {
   /// Lets the shell push an enabled night reminder to tomorrow immediately
   /// after this evening's ledger closes.
   final VoidCallback? onNightClosed;
+
+  /// Opens the room's existing map from the featured Quest's quiet footer.
+  /// The shell owns the route because the guide can change tabs and create
+  /// Quests; this board only supplies the visible invitation.
+  final VoidCallback? onOpenRoomGuide;
 
   /// The shell's calibrated tilt/pointer source. Directly-constructed pages
   /// retain the local fallback below.
@@ -3757,6 +3763,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               onSelect: isDone ? null : () => _selectQuest(q),
                               onComplete: (pos) => _activateQuest(q, pos),
                               onManage: () => _manageQuest(q),
+                              onOpenRoomGuide: isFeatured && !isDone
+                                  ? widget.onOpenRoomGuide
+                                  : null,
                               goalThreadLabel: _goalThreadLabel(q),
                               // a finished, still-climbable quest offers the next rung
                               // right on the card

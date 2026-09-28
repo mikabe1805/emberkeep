@@ -169,6 +169,13 @@ void main() {
       expect(field.readOnly, isTrue);
       expect(field.showCursor, isFalse);
       expect(find.byKey(const ValueKey('journal-entry-edit')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('journal-entry-keepsake')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
+      await tester.pump();
+      expect(state.memoryPins, contains(state.journal.single.id));
       expect(find.byIcon(Icons.delete_outline), findsNothing);
       final span = field.controller!.buildTextSpan(
         context: tester.element(
