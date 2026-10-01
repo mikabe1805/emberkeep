@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -323,6 +324,21 @@ class DiscoveryWritePreparation {
     return ensureSocialSession();
   }
 }
+
+/// The largest save the cloud mirror will try to write. Firestore caps a
+/// document at 1 MiB counted in UTF-8 bytes; after the `saves/{uid}` name,
+/// both field names and the timestamp, the largest `data` string it accepts
+/// is 1,048,469 bytes (Firestore emulator, 2026-09-30). The rest of the
+/// headroom keeps the explicit "too large" status ahead of a rejected write.
+@visibleForTesting
+const cloudSaveByteLimit = 900 * 1024;
+
+/// The save's size as Firestore counts it. `String.length` counts UTF-16
+/// code units, which undercounts every non-ASCII character: Hebrew is 2
+/// bytes a character, CJK 3, emoji 4 (one 2-unit surrogate pair). A Hebrew
+/// journal crosses 1 MiB while still far under a code-unit guard.
+@visibleForTesting
+int cloudSaveBytes(String raw) => utf8.encode(raw).length;
 
 /// Cloud backup (round-9): an anonymous-auth Firestore mirror of the local
 /// save. Local is ALWAYS the source of truth — the cloud exists so a purged
@@ -1028,10 +1044,11 @@ class CloudSync extends ChangeNotifier
       // text in the blob — a prolific journaler can cross it. Surface a real
       // status instead of failing silently forever (local saves keep working;
       // only the cloud mirror pauses).
-      if (raw.length > 900 * 1024) {
+      final bytes = cloudSaveBytes(raw);
+      if (bytes > cloudSaveByteLimit) {
         status = 'paused (save too large to back up)';
         notifyListeners();
-        debugPrint('CloudSync: save is ${raw.length}B, over the safe limit');
+        debugPrint('CloudSync: save is ${bytes}B, over the safe limit');
         return;
       }
       if (_savePushHeld) return;
