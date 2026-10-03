@@ -108,7 +108,8 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 49 is an internal candidate for a clearer next step. The main Quest now
+Build 50 (version 1.0.5) carries the Build 49 code under a new version so
+external testers can install it. The main Quest now
 keeps its title, XP, and one useful supporting thought together. In Goals,
 planning today's three, reviewing a goal, and finding an easier step each have
 their own named door and say what they open.
