@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "candidate": {
+    "version": "1.0.5+50",
+    "sourceRevision": "72624f064f3b6faceaa6da5e91ee5e0eedb4e2ca",
+    "tag": "room-of-days-1.0.5-build-50-internal-candidate"
+  },
+  "purpose": "internal_testflight_device_evidence"
+}
