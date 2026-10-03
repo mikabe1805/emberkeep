@@ -8,20 +8,22 @@ void main() {
   test('current release agrees with the source version', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(currentRoomReleaseNotes.id, '1.0.4+49');
-    expect(currentRoomReleaseNotes.title, 'The next step reads clearly.');
+    expect(currentRoomReleaseNotes.id, '1.0.5+50');
+    expect(currentRoomReleaseNotes.title, 'Less between you and the Quest.');
     expect(
       currentRoomReleaseNotes.highlights.map((highlight) => highlight.title),
       containsAll(const [
-        'ONE QUEST, IN FOCUS',
-        'OTHER WAYS FORWARD',
+        'ONE TAP MEANS DONE',
+        'TWO WAYS INTO GOALS',
         'ROOM TO ADJUST',
+        'KEEP THIS',
       ]),
     );
     expect(pubspec, contains('version: ${currentRoomReleaseNotes.id}'));
     expect(
       roomOfDaysReleaseNotes.map((release) => release.id),
       containsAllInOrder(const [
+        '1.0.5+50',
         '1.0.4+49',
         '1.0.4+48',
         '1.0.4+47',
