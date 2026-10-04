@@ -131,3 +131,30 @@ back-home frames wait out the walk; the board renders were re-run then too, 15 p
 sheets and review crops regenerated). Frames, notes and sheets:
 `design/comparisons/2026-10-03/class-day/build/journey/evening/` (`sheet.png`; concept B beside the
 build in `compare-sheet.png`).
+
+## The board review round, checked again on 3eb9e0e
+
+2026-10-04, after a usage-limit cut-off: the workflow ran the board's review-fix step a second
+time. Every one of the 25 board findings was already fixed by ee857f5 and 68ee337, and each still
+holds on 3eb9e0e, so this pass changed no code. Checked on a clean, detached checkout of 3eb9e0e
+(a temporary worktree, since removed), so the evening review's unfinished edits in this worktree
+played no part:
+
+- `flutter test --no-pub`: **1,551 passed, 54 skipped, 0 failed**.
+- `flutter analyze --no-pub lib test`: no issues.
+- `dart format --set-exit-if-changed` over the 29 Dart files changed since 076ef04: 0 changed
+  (finding 21).
+- Each finding was traced to its fix in the code and to the test that holds it (listed above).
+- The board frames (rendered after 22e698b, whose app code is the same as 3eb9e0e's) were looked
+  at again: the room runs to the top of the screen with the shelf, plant and lamp behind the HUD and
+  no step at 59 pt (B1, C1, Q1). The window top is soft at 300 ms (B2c, D2a). The archive plate
+  stays in place from P1 to P3. 24 sits inside the diamond at 100% and 130% (K1 to K3). Q3 has
+  its count landed with no time and room line. The header never puts a total beside a kept count
+  (B3, D1). BOARD fades the room back over a board already showing the same numbers (D4a).
+
+The uncommitted edits in this worktree (the evening review's fixes: window panes, the evening
+shot, the dock stepping back, tonight's music choice ending at the night's end, the day tier
+playing once a day, the ledger naming the next class) are not part of this check and are not
+committed here. Run on that tree, the board, model, plumbing and credit tests pass, and three
+tests from that unfinished work still fail: two evening layout tests at 375 x 667 and the
+ledger's "tomorrow's classes head the tray".
