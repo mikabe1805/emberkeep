@@ -49,7 +49,7 @@ class AboutScreen extends StatelessWidget {
 
   static final Uri _feedbackMail = Uri.parse(
     'mailto:support@roomofdays.com'
-    '?subject=${Uri.encodeComponent('Room of Days — feedback')}',
+    '?subject=${Uri.encodeComponent('Room of Days feedback')}',
   );
 
   static const String _shareCopy =
@@ -70,7 +70,7 @@ class AboutScreen extends StatelessWidget {
         backgroundColor: Palette.card,
         content: Text(
           uri.scheme == 'mailto'
-              ? 'Couldn’t open your mail app — you can write to support@roomofdays.com directly.'
+              ? 'Couldn’t open your mail app. You can write to support@roomofdays.com directly.'
               : 'Couldn’t open that page. Try again when a browser is available.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),

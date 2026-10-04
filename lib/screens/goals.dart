@@ -64,7 +64,7 @@ final _goalCategories = <_GoalCategory>[
   ),
   _GoalCategory(
     label: 'LIVING THINGS',
-    blurb: 'the ones who depend on you — green or breathing',
+    blurb: 'the green and breathing ones who depend on you',
     icon: Icons.pets_outlined,
     accent: Stat.vit.color,
     goalTitles: const [
@@ -3943,7 +3943,7 @@ class _TemplateRowState extends State<_TemplateRow> {
                 const SizedBox(height: 7),
                 Text(
                   weekly
-                      ? 'Move it to another day without losing its progress, or take it back from your board.'
+                      ? 'Move it to another day and its progress comes along, or take it back from your board.'
                       : 'Take it back from your board now. You can take it on again here whenever you want.',
                   style: Type.body.copyWith(
                     fontSize: 13.5,

@@ -754,7 +754,7 @@ class InsightsPage extends StatelessWidget {
                           ? 'a gentler week · Gentle Mode days still count'
                           : bright > low
                           ? 'more bright weather than low this week'
-                          : 'a mixed week · capacity can change without failing',
+                          : 'a mixed week · your capacity moves, and every day still counts',
                       style: Type.body.copyWith(
                         fontSize: 11.5,
                         color: Palette.textLo,
@@ -812,7 +812,7 @@ class InsightsPage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             lead.$2 == 0
-                ? 'every domain is wide open — pick one to lead'
+                ? 'every domain is wide open, so pick one to lead'
                 : '${lead.$1.label} is leading your build',
             style: Type.body.copyWith(
               fontSize: 13,
@@ -1096,7 +1096,7 @@ class InsightsPage extends StatelessWidget {
     final showWeek = thisWeek > 0 || lastWeek > 0;
 
     final (String deltaText, Color deltaColor) = lastWeek == 0
-        ? ('your first week — it begins', Palette.xpLight)
+        ? ('your first week begins here', Palette.xpLight)
         : delta > 0
         ? ('▲ $delta vs last week', Palette.success)
         : delta < 0
@@ -1223,8 +1223,8 @@ class InsightsPage extends StatelessWidget {
     final lines = <String>[];
     if (state.comebacks > 0) {
       lines.add(
-        'You’ve come back after a gap ${state.comebacks} time${state.comebacks == 1 ? '' : 's'} — '
-        'you returned and continued.',
+        'You’ve come back after a gap ${state.comebacks} time${state.comebacks == 1 ? '' : 's'} '
+        'and picked right back up.',
       );
     }
     if (state.dreadCompletions > 0) {
@@ -1235,8 +1235,8 @@ class InsightsPage extends StatelessWidget {
     }
     if (state.perfectDays > 0) {
       lines.add(
-        '${state.perfectDays} perfect day${state.perfectDays == 1 ? '' : 's'} — '
-        'every planned quest was completed.',
+        '${state.perfectDays} perfect day${state.perfectDays == 1 ? '' : 's'}, '
+        'with every planned quest completed.',
       );
     }
     if (state.verifiedCompletions > 0) {

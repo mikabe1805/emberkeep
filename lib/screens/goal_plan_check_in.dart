@@ -354,7 +354,7 @@ class _GoalPlanCheckIn extends StatelessWidget {
               ),
               const SizedBox(height: 7),
               Text(
-                'This is information about the route—not a verdict on you. Pick the closest answer and Room of Days will change the next move now.',
+                'Your answer tells Room of Days how the route is going for you. Pick the closest one and the next move changes right away.',
                 style: Type.body.copyWith(
                   fontSize: 14,
                   height: 1.36,

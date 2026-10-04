@@ -1096,7 +1096,7 @@ class _LeaveNoteActionState extends State<_LeaveNoteAction> {
       case SparkSendResult.alreadyWaiting:
         _toast('A note from you is already waiting by their fire.');
       case SparkSendResult.failed:
-        _toast('The connection went quiet — try again in a bit.');
+        _toast('The connection went quiet. Try again in a bit.');
     }
   }
 

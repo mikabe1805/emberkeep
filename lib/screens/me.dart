@@ -967,7 +967,7 @@ class _SpaceSharingPanel extends StatelessWidget {
             child: Text(
               shared
                   ? 'The eye controls your own page only. The audience controls who sees a card when they visit. Mutuals means you both keep each other in Circle; Anyone includes code and Discover visitors. The fireplace photo has its own choice below. Drag the brass grips to set the order.'
-                  : 'Choose audiences now if you like—they are saved for later. Nobody can see any card until you publish this page. The eye only hides a card from your own page. The fireplace photo has its own choice below.',
+                  : 'Choose audiences now if you like, and they’ll be saved for later. Nobody can see any card until you publish this page. The eye only hides a card from your own page. The fireplace photo has its own choice below.',
               style: Type.body.copyWith(
                 fontSize: 11.5,
                 height: 1.35,
@@ -1401,11 +1401,11 @@ class _VisitorScopeControl extends StatelessWidget {
             ? detail
             : switch (audience) {
                 SpaceAudience.onlyMe =>
-                  'Only me keeps this private. Saved for later—nobody can see it until you publish.',
+                  'Only me keeps this private. Saved for later, and nobody can see it until you publish.',
                 SpaceAudience.mutuals =>
-                  'Mutuals requires both keepers to choose each other. Saved for later—your page is private.',
+                  'Mutuals requires both keepers to choose each other. Saved for later while your page is private.',
                 SpaceAudience.anyone =>
-                  'Anyone includes code and Discover visitors. Saved for later—your page is private.',
+                  'Anyone includes code and Discover visitors. Saved for later while your page is private.',
               };
         return Container(
           key: ValueKey('space-card-share-${kind.name}'),
@@ -2874,8 +2874,8 @@ class MePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   state.collectedLoot.isEmpty
-                      ? 'empty slots wait for drops and trophies — keep earning Glimmers'
-                      : 'skins you’ve found — tap to try on; silhouettes wait for the rest',
+                      ? 'empty slots wait for drops and trophies as you keep earning Glimmers'
+                      : 'skins you’ve found. Tap to try one on; silhouettes wait for the rest',
                   style: Type.body.copyWith(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
@@ -3092,8 +3092,8 @@ class MePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your save stays under your control. For a copy nothing can '
-                  'touch — even cloud backup — stash a manual one too.',
+                  'Your save stays under your control. For a copy that lives outside '
+                  'the app and its cloud backup, stash a manual one too.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
@@ -3118,8 +3118,8 @@ class MePage extends StatelessWidget {
                             backgroundColor: Palette.card,
                             content: Text(
                               ok
-                                  ? 'Copied — stash it somewhere safe.'
-                                  : 'Nothing to stash yet — go earn some XP.',
+                                  ? 'Copied. Stash it somewhere safe.'
+                                  : 'Nothing to stash yet. Your first quest will fix that.',
                               style: Type.body.copyWith(color: Palette.textHi),
                             ),
                           ),
@@ -3162,8 +3162,8 @@ class MePage extends StatelessWidget {
                             backgroundColor: Palette.card,
                             content: Text(
                               ok
-                                  ? 'Usage log copied to your clipboard — it never leaves your device.'
-                                  : 'No usage logged yet — check back after a few days.',
+                                  ? 'Usage log copied to your clipboard. It never leaves your device.'
+                                  : 'No usage logged yet. Check back after a few days.',
                               style: Type.body.copyWith(color: Palette.textHi),
                             ),
                           ),
@@ -3351,7 +3351,7 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             state.level < 5
-                ? 'changes the light around your room — opens at level 5'
+                ? 'changes the light around your room · opens at level 5'
                 : 'changes your space and canvas-backed pages · Change Space replaces the room itself',
             style: Type.body.copyWith(
               fontSize: 11,
@@ -3587,7 +3587,7 @@ class MePage extends StatelessWidget {
               behavior: SnackBarBehavior.floating,
               backgroundColor: Palette.card,
               content: Text(
-                'Reminders stayed off — allow notifications in system settings when you’re ready.',
+                'Reminders are still off. You can allow notifications in system settings when you’re ready.',
               ),
             ),
           );
@@ -3883,7 +3883,7 @@ class _ResetDialogState extends State<_ResetDialog> {
                 const SizedBox(height: 6),
                 Text(
                   'Level ${widget.level}, ${widget.totalXp} XP, every goal and '
-                  'trophy — gone for good. Journal photos and the local usage '
+                  'trophy will be gone for good. Journal photos and the local usage '
                   'log go too. The old cloud save and shared space are removed '
                   'once Room of Days can confirm the server. A linked sign-in '
                   'stays and begins again with a blank cloud save; use Delete '
@@ -5466,9 +5466,9 @@ class _ShareButton extends StatelessWidget {
         .where((s) => (state.stats[s] ?? 0) > 0)
         .map((s) => '${s.abbr} ${state.stats[s]}')
         .join(' · ');
-    return '⚔️ ${state.buildTitle} — Level ${state.level}\n'
+    return '⚔️ ${state.buildTitle} · Level ${state.level}\n'
         '${stats.isEmpty ? "a brand-new adventurer" : stats}\n'
-        '${state.totalXp} XP of real life, and counting. — Room of Days';
+        '${state.totalXp} XP of real life, and counting.\nRoom of Days';
   }
 
   @override
@@ -5577,7 +5577,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          'Build copied — go show it off.',
+          'Build copied. Go show it off.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -6377,7 +6377,7 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'An older save wouldn’t open, so we set it aside — safe and '
+                  'An older save wouldn’t open, so we set it aside, safe and '
                   'whole. Copy it out to keep, then dismiss.',
                   style: Type.body.copyWith(
                     fontSize: 11,
@@ -6727,7 +6727,7 @@ class _AccountPanel extends StatelessWidget {
               Text('Sign out?', style: Type.display.copyWith(fontSize: 18)),
               const SizedBox(height: 6),
               Text(
-                'Your space and progress stay on this device — you’ll just stop '
+                'Your space and progress stay on this device. You’ll just stop '
                 'syncing to your account until you sign in again. Your '
                 'account’s cloud save is kept safe.',
                 textAlign: TextAlign.center,
@@ -6936,7 +6936,7 @@ class _AccountPanel extends StatelessWidget {
                 if (!cloudAvailable) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '(the cloud’s out of reach — try again once you’re back online)',
+                    '(the cloud’s out of reach, so try again once you’re back online)',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
                 ],
@@ -7354,7 +7354,7 @@ class _AccountDialogState extends State<_AccountDialog> {
     final email = _email.text.trim();
     final pw = _pw.text;
     if (email.isEmpty || pw.isEmpty) {
-      setState(() => _error = 'need both — your email and a password');
+      setState(() => _error = 'add both your email and a password');
       return;
     }
     setState(() {
@@ -7383,7 +7383,7 @@ class _AccountDialogState extends State<_AccountDialog> {
         backgroundColor: Palette.card,
         content: Text(
           widget.signIn
-              ? 'Signed in — welcome back.'
+              ? 'Signed in. Welcome back.'
               : 'Account created. Your save is backed up.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
