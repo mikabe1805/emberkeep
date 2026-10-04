@@ -277,7 +277,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         Text('Pick a session', style: Type.display.copyWith(fontSize: 28)),
         const SizedBox(height: 4),
         Text(
-          'gentle, guided, and yours to leave anytime — no gym required',
+          'gentle, guided, and yours to leave anytime. No gym required.',
           style: Type.body.copyWith(
             fontSize: 13.5,
             fontStyle: FontStyle.italic,
@@ -293,7 +293,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 6),
         Center(
           child: Text(
-            'general fitness guidance — not medical advice',
+            'general fitness guidance · for anything medical, ask a doctor',
             style: Type.label.copyWith(fontSize: 11),
           ),
         ),
@@ -376,8 +376,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     final r = _routine!;
     final card = evidenceByTitle(r.evidenceTitle);
     final safetyLine = r.restDay
-        ? 'Move slowly, breathe normally, and stay in a comfortable range — no bouncing, no pushing through pain. Sharp or sudden pain, chest pain, dizziness, or feeling unwell? Stop now.'
-        : 'Muscle burn and next-day soreness are normal — that’s your body adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.';
+        ? 'Move slowly, breathe normally, and stay in a comfortable range. No bouncing, and no pushing through pain. Sharp or sudden pain, chest pain, dizziness, or feeling unwell? Stop now.'
+        : 'Muscle burn and next-day soreness are normal. That’s your body adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.';
     return ListView(
       key: const ValueKey('preview'),
       children: [
@@ -1106,7 +1106,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 28),
                   child: Text(
-                    'Breathe. This little pause is part of the work — it’s where the '
+                    'Breathe. This little pause is part of the work. It’s where the '
                     'build happens.',
                     textAlign: TextAlign.center,
                     style: Type.body.copyWith(
@@ -1165,7 +1165,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                 TextButton(
                   onPressed: () => _finish(endedEarly: true),
                   child: Text(
-                    'end early — bank what you did',
+                    'end early and bank what you did',
                     style: Type.label.copyWith(
                       fontSize: 11,
                       color: Palette.streak,

@@ -31,7 +31,7 @@ class DomainHint extends StatelessWidget {
             style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
             children: [
               TextSpan(
-                text: '${stat.label} — ',
+                text: '${stat.label}: ',
                 style: Type.body.copyWith(
                   fontSize: 12,
                   color: stat.color,

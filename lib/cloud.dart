@@ -560,7 +560,7 @@ class CloudSync extends ChangeNotifier
     } on FirebaseAuthException catch (e) {
       return _friendlyAuth(e);
     } on TimeoutException {
-      return 'Cloud took too long to answer — try again.';
+      return 'The cloud took a while to answer. Give it another try.';
     } catch (e) {
       debugPrint('CloudSync enable failed: $e');
       return 'Couldn’t start cloud backup right now.';
@@ -709,7 +709,7 @@ class CloudSync extends ChangeNotifier
       return _friendlyAuth(e);
     } catch (e) {
       debugPrint('linkAccount failed: $e');
-      return 'Something went wrong — try again.';
+      return 'Something got tangled on the way. Give it another try.';
     }
   }
 
@@ -752,7 +752,7 @@ class CloudSync extends ChangeNotifier
       return _friendlyAuth(e);
     } catch (e) {
       debugPrint('signIn failed: $e');
-      return 'Something went wrong — try again.';
+      return 'Something got tangled on the way. Give it another try.';
     }
   }
 
@@ -872,7 +872,7 @@ class CloudSync extends ChangeNotifier
       }
       debugPrint('deleteAccount failed: $e');
       return 'Couldn’t finish deleting the account. Some cloud data may '
-          'already be gone — retry, or open Delete help in Me.';
+          'already be gone. Try again, or open Delete help in Me.';
     }
   }
 
@@ -953,7 +953,7 @@ class CloudSync extends ChangeNotifier
     switch (e.code) {
       case 'email-already-in-use':
       case 'credential-already-in-use':
-        return 'That email already has an account — sign in instead.';
+        return 'That email already has an account. Sign in with it instead.';
       case 'invalid-email':
         return 'That doesn’t look like an email address.';
       case 'weak-password':
@@ -966,9 +966,9 @@ class CloudSync extends ChangeNotifier
       case 'user-disabled':
         return 'That account is disabled.';
       case 'too-many-requests':
-        return 'Too many tries — wait a moment.';
+        return 'That was a lot of tries in a row. Wait a moment, then try again.';
       case 'network-request-failed':
-        return 'No connection — try again.';
+        return 'You look offline right now. Try again once you’re connected.';
       default:
         return 'Couldn’t do that (${e.code}).';
     }

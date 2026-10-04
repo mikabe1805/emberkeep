@@ -91,7 +91,7 @@ class _RungSheetState extends State<_RungSheet> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Every rung is a real start — pick the one that feels doable '
+                    'Every rung is a real start. Pick the one that feels doable '
                     'today. It climbs from wherever you begin.',
                     style: Type.body.copyWith(
                       fontSize: 12.5,

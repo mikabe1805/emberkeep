@@ -397,7 +397,7 @@ void main() {
       await controller.selectSuggestion(controller.state.suggestions.single);
       expect(
         controller.state.errorMessage,
-        'Search unavailable — type the location instead.',
+        'Search isn’t available right now. You can type the location instead.',
       );
     },
   );

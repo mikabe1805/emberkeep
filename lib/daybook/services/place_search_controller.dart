@@ -7,7 +7,7 @@ import 'place_search_service.dart';
 import 'place_search_authorization.dart';
 
 const placeSearchUnavailableMessage =
-    'Search unavailable — type the location instead.';
+    'Search isn’t available right now. You can type the location instead.';
 final _nonWhitespaceCharacter = RegExp(r'\S', unicode: true);
 
 typedef PlaceSearchUuidFactory = String Function();

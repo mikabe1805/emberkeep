@@ -833,7 +833,7 @@ class _EmberSheetState extends State<_EmberSheet> {
                       .join(' → ');
                   return Text(
                     ladder == null || numbers == null || numbers.isEmpty
-                        ? 'no number in the title yet — the reward grows, the words stay'
+                        ? 'no number in the title yet, so the reward grows while the words stay'
                         : 'climbs $numbers as you hold it',
                     key: const ValueKey('ember-rising-preview'),
                     style: Type.body.copyWith(

@@ -366,7 +366,7 @@ void main() {
 
     expect(inbox.isNotEmpty, isFalse);
     expect(
-      find.text('Visiting needs a connection — try again in a moment.'),
+      find.text('Visiting needs a connection. Try again in a moment.'),
       findsWidgets,
     );
     expect(find.byType(WhatsNewScreen), findsOneWidget);

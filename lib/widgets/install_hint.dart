@@ -56,8 +56,8 @@ class _InstallHintState extends State<InstallHint> {
             Expanded(
               child: Text(
                 ios
-                    ? 'Keep Room of Days close — add it to your Home Screen. Tap Share, then “Add to Home Screen.”'
-                    : 'Keep Room of Days close — add it to your Home Screen from your browser menu: “Add to Home Screen.”',
+                    ? 'Keep Room of Days close by adding it to your Home Screen. Tap Share, then “Add to Home Screen.”'
+                    : 'Keep Room of Days close by adding it to your Home Screen. In your browser menu, choose “Add to Home Screen.”',
                 style: Type.body.copyWith(fontSize: 12, color: Palette.textMid),
               ),
             ),
