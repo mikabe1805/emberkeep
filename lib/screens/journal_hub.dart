@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/class_lines.dart';
 import '../content/memories.dart';
 import '../content/stat_ranks.dart';
 import '../engine.dart';
@@ -94,6 +95,20 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     if (parts.isEmpty) parts.add('LEVEL ${trace.level}');
     return parts.join('  ·  ');
   }
+
+  /// `2 classes · Computer Architecture, Discrete Structures II`.
+  Widget _classesLine(JournalTrace trace) => Text(
+    classesKeptLine(trace.classTitles),
+    key: const Key('journal-trace-classes'),
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: Type.body.copyWith(
+      fontSize: 11.5,
+      height: 1.3,
+      fontStyle: FontStyle.italic,
+      color: Palette.textMid,
+    ),
+  );
 
   Widget _extraCreditLine(JournalTrace trace) => Text(
     'EXTRA CREDIT  ·  ${trace.extraCreditTitles.join('  ·  ')}',
@@ -844,16 +859,19 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   Widget _todayThread() {
     final trace = _todayTrace();
     final hasQuests = trace.questTitles.isNotEmpty;
+    final hasClasses = trace.classTitles.isNotEmpty;
     final hasExtraCredit = trace.extraCreditTitles.isNotEmpty;
-    final hasActivity = hasQuests || hasExtraCredit;
+    final hasActivity = hasQuests || hasClasses || hasExtraCredit;
     return GlassPanel(
       padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _materialLead(
-            hasQuests ? Icons.link_rounded : Icons.bookmark_add_outlined,
-            hasQuests ? Palette.success : Palette.xpLight,
+            hasQuests || hasClasses
+                ? Icons.link_rounded
+                : Icons.bookmark_add_outlined,
+            hasQuests || hasClasses ? Palette.success : Palette.xpLight,
             iconSize: 17,
             height: 34,
           ),
@@ -881,8 +899,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     color: Palette.textLo,
                   ),
                 ),
-                if (hasQuests) ...[
+                if (hasClasses) ...[
                   const SizedBox(height: 6),
+                  _classesLine(trace),
+                ],
+                if (hasQuests) ...[
+                  SizedBox(height: hasClasses ? 3 : 6),
                   Text(
                     trace.questTitles.take(2).join('  ·  '),
                     maxLines: 2,
@@ -1070,6 +1092,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 color: Palette.xpLight.withValues(alpha: 0.78),
               ),
             ),
+            if (e.note.trace!.classTitles.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              _classesLine(e.note.trace!),
+            ],
             if (e.note.trace!.extraCreditTitles.isNotEmpty) ...[
               const SizedBox(height: 3),
               _extraCreditLine(e.note.trace!),

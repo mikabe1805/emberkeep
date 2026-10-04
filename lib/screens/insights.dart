@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/class_lines.dart';
 import '../content/creature_skins.dart';
 import '../content/weekly_chronicle.dart';
 import '../engine.dart';
@@ -422,7 +423,8 @@ class InsightsPage extends StatelessWidget {
                   Text(
                     'WRITTEN ${months[note.at.month - 1]} ${note.at.day}'
                     '${note.trace == null ? '' : '  ·  LV ${note.trace!.level}'}'
-                    '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} QUESTS' : ''}'
+                    '${note.trace?.classTitles.isNotEmpty == true ? '  ·  ${classCountLabel(note.trace!.classTitles.length).toUpperCase()}' : ''}'
+                    '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} ${note.trace!.questTitles.length == 1 ? 'QUEST' : 'QUESTS'}' : ''}'
                     '${then == null ? '' : '  ·  $then'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -478,7 +480,7 @@ class InsightsPage extends StatelessWidget {
         );
       },
       child: GlassPanel(
-        glow: chronicle.total > 0,
+        glow: chronicle.litDays > 0,
         child: Row(
           children: [
             // Your Week and Your Journal shared one open-book glyph in two
@@ -500,9 +502,16 @@ class InsightsPage extends StatelessWidget {
                   Text('Your Week', style: Type.display.copyWith(fontSize: 18)),
                   const SizedBox(height: 2),
                   Text(
-                    chronicle.total == 0
+                    chronicle.litDays == 0
                         ? 'your patterns will appear here after a few active days'
-                        : '${chronicle.litDays} days active · ${chronicle.total} quests · ready to share',
+                        : [
+                            '${chronicle.litDays} ${chronicle.litDays == 1 ? 'day' : 'days'} active',
+                            if (chronicle.classesKept > 0)
+                              classCountLabel(chronicle.classesKept),
+                            if (chronicle.total > 0)
+                              '${chronicle.total} ${chronicle.total == 1 ? 'quest' : 'quests'}',
+                            'ready to share',
+                          ].join(' · '),
                     style: Type.body.copyWith(
                       fontSize: 12,
                       color: Palette.textLo,

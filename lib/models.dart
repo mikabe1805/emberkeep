@@ -625,8 +625,9 @@ class JournalTrace {
   /// Retrospective wins remain distinct from completed Quests.
   final List<String> extraCreditTitles;
 
-  /// Short labels of the classes kept that day. Copied, never pointed at the
-  /// device-local timetable, so the page reads the same on any device.
+  /// Short labels of the classes kept that day, one per kept class in day
+  /// order (a course that met twice appears twice). Copied, never pointed at
+  /// the device-local timetable, so the page reads the same on any device.
   final List<String> classTitles;
   final List<String> goalTitles;
   final Map<Stat, int> statGains;

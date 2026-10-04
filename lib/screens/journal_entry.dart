@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
+import '../content/class_lines.dart';
 import '../journal_doc.dart';
 import '../journal_media.dart' as media;
 import '../media_picker_intent.dart';
@@ -1182,6 +1183,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                       color: Palette.textLo,
                     ),
                   ),
+                  if (trace.classTitles.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      classesKeptLine(trace.classTitles),
+                      key: const Key('journal-trace-classes'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
                   if (trace.questTitles.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(

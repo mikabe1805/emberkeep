@@ -50,7 +50,7 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
           await sharePng(
             bytes.buffer.asUint8List(),
             'room-of-days-weekly-chronicle.png',
-            '${data.shareText} — Room of Days',
+            '${data.shareText} · Room of Days',
           );
       if (!mounted) return;
       Sfx.instance.play(ok ? 'streak' : 'boing');
@@ -63,13 +63,13 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
   }
 
   void _copySummary() {
-    Clipboard.setData(ClipboardData(text: '${_data.shareText} — Room of Days'));
+    Clipboard.setData(ClipboardData(text: '${_data.shareText} · Room of Days'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          'Chronicle copied — the image can be shared from a native build.',
+          'Chronicle copied. The image can be shared from a native build.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -172,8 +172,9 @@ class _ChronicleCard extends StatelessWidget {
     final reflection = data.reflection;
     final weekHistory = <String, int>{
       for (var i = 0; i < data.counts.length; i++)
-        if (data.counts[i] > 0)
-          Days.key(data.start.add(Duration(days: i))): data.counts[i],
+        if (data.litOn(i))
+          Days.key(data.start.add(Duration(days: i))):
+              data.counts[i] + data.classCounts[i],
     };
     return ClipPath(
       clipper: const FacetedClipper(cut: 16),
@@ -253,9 +254,7 @@ class _ChronicleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    data.total == 0
-                        ? 'A quiet chapter'
-                        : '${data.total} ${data.total == 1 ? 'quest' : 'quests'} became progress',
+                    data.headline,
                     textAlign: TextAlign.center,
                     style: Type.display.copyWith(
                       fontSize: 23,
@@ -265,7 +264,11 @@ class _ChronicleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${data.litDays} OF 7 DAYS ACTIVE · ${data.deltaLine.toUpperCase()}',
+                    [
+                      '${data.litDays} OF 7 DAYS ACTIVE',
+                      if (data.deltaLine.isNotEmpty)
+                        data.deltaLine.toUpperCase(),
+                    ].join(' · '),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     style: Type.label.copyWith(
@@ -423,18 +426,18 @@ class _WeekRunes extends StatelessWidget {
             Transform.rotate(
               angle: 0.785,
               child: Container(
-                width: data.counts[i] > 0 ? 15 : 11,
-                height: data.counts[i] > 0 ? 15 : 11,
+                width: data.litOn(i) ? 15 : 11,
+                height: data.litOn(i) ? 15 : 11,
                 decoration: BoxDecoration(
-                  color: data.counts[i] > 0
+                  color: data.litOn(i)
                       ? accent.withValues(alpha: 0.82)
                       : Palette.glassFill,
                   border: Border.all(
-                    color: data.counts[i] > 0
+                    color: data.litOn(i)
                         ? Palette.specular.withValues(alpha: 0.34)
                         : Palette.glassEdge,
                   ),
-                  boxShadow: data.counts[i] > 0
+                  boxShadow: data.litOn(i)
                       ? [
                           BoxShadow(
                             color: accent.withValues(alpha: 0.32),

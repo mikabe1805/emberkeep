@@ -1175,7 +1175,9 @@ class GameState extends ChangeNotifier {
       streakDays: streakDays,
       questTitles: titles,
       extraCreditTitles: extraCreditTitlesForDay(day),
-      classTitles: classTitlesForDay(day),
+      // One label per kept class, so a course that met twice counts twice
+      // on the page's line (`3 classes · ...`) while its name shows once.
+      classTitles: [for (final kept in classesKeptOn(day)) kept.label],
       goalTitles: goalTitles.toList(growable: false),
       statGains: {
         for (final entry in statGains.entries)
