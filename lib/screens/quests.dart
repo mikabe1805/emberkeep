@@ -836,6 +836,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       todayXp: base.todayXp,
       streakDays: base.streakDays,
       questTitles: questTitles,
+      extraCreditTitles: base.extraCreditTitles,
+      classTitles: base.classTitles,
       goalTitles: goalTitles,
       statGains: base.statGains,
       energy: base.energy,

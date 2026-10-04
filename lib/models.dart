@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart' show StringCharacters;
+
 import 'tokens.dart';
 
 /// Safe enum-index read: clamps out-of-range / missing indices to a default
@@ -7,6 +9,14 @@ T _enumAt<T>(List<T> values, Object? idx, T fallback) {
   if (idx is int && idx >= 0 && idx < values.length) return values[idx];
   return fallback;
 }
+
+/// The strings inside a persisted list, or none. A drifted value of another
+/// shape is dropped instead of rejecting the record around it.
+List<String> _strings(Object? raw) => [
+  if (raw is List)
+    for (final value in raw)
+      if (value is String) value,
+];
 
 /// Day-key helpers — periods are computed from local wall-clock dates.
 abstract final class Days {
@@ -598,6 +608,8 @@ class JournalTrace {
     required this.todayXp,
     required this.streakDays,
     this.questTitles = const [],
+    this.extraCreditTitles = const [],
+    this.classTitles = const [],
     this.goalTitles = const [],
     this.statGains = const {},
     this.energy,
@@ -609,12 +621,21 @@ class JournalTrace {
   final int todayXp;
   final int streakDays;
   final List<String> questTitles;
+
+  /// Retrospective wins remain distinct from completed Quests.
+  final List<String> extraCreditTitles;
+
+  /// Short labels of the classes kept that day. Copied, never pointed at the
+  /// device-local timetable, so the page reads the same on any device.
+  final List<String> classTitles;
   final List<String> goalTitles;
   final Map<Stat, int> statGains;
   final EnergyWeather? energy;
 
   bool get hasDayEvidence =>
       questTitles.isNotEmpty ||
+      extraCreditTitles.isNotEmpty ||
+      classTitles.isNotEmpty ||
       goalTitles.isNotEmpty ||
       statGains.values.any((gain) => gain > 0) ||
       todayXp > 0 ||
@@ -627,6 +648,8 @@ class JournalTrace {
     'todayXp': todayXp,
     'streakDays': streakDays,
     if (questTitles.isNotEmpty) 'questTitles': questTitles,
+    if (extraCreditTitles.isNotEmpty) 'extraCreditTitles': extraCreditTitles,
+    if (classTitles.isNotEmpty) 'classTitles': classTitles,
     if (goalTitles.isNotEmpty) 'goalTitles': goalTitles,
     if (statGains.isNotEmpty)
       'statGains': [for (final stat in Stat.values) statGains[stat] ?? 0],
@@ -659,12 +682,402 @@ class JournalTrace {
         for (final value in (j['questTitles'] as List?) ?? const [])
           if (value is String) value,
       ],
+      extraCreditTitles: _strings(j['extraCreditTitles']),
+      classTitles: _strings(j['classTitles']),
       goalTitles: [
         for (final value in (j['goalTitles'] as List?) ?? const [])
           if (value is String) value,
       ],
       statGains: gains,
       energy: energy,
+    );
+  }
+}
+
+/// A persisted UTC instant from epoch milliseconds, or null when the value is
+/// missing or outside the range a [DateTime] can hold.
+DateTime? _utcFromMillis(Object? raw) {
+  if (raw is! int) return null;
+  try {
+    return DateTime.fromMillisecondsSinceEpoch(raw, isUtc: true);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// One optional retrospective acknowledgement for a day someone actually
+/// lived. It deliberately is not a [Quest].
+///
+/// It lives inside that day's [DayRecord]; [dayKey] is carried here so the
+/// public Extra Credit API reads the same as before the records were unified.
+class ExtraCreditEntry {
+  static const int maxTitleLength = 180;
+  static const int awardXp = 10;
+
+  /// A sane bound for a stored award. The decoder checks a range rather than
+  /// the current [awardXp], so changing the award later never makes every
+  /// older record vanish on load while its XP stays.
+  static const int maxStoredXp = 100;
+
+  const ExtraCreditEntry({
+    required this.dayKey,
+    required this.title,
+    required this.xp,
+    required this.createdAt,
+  });
+
+  final String dayKey;
+  final String title;
+  final int xp;
+  final DateTime createdAt;
+
+  ExtraCreditEntry copyWith({String? title}) => ExtraCreditEntry(
+    dayKey: dayKey,
+    title: title ?? this.title,
+    xp: xp,
+    createdAt: createdAt,
+  );
+
+  /// Trims, collapses whitespace and counts visible graphemes like the text
+  /// field. Null when nothing is left or the line is too long.
+  static String? cleanTitle(String value) {
+    final cleaned = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (cleaned.isEmpty || cleaned.characters.length > maxTitleLength) {
+      return null;
+    }
+    return cleaned;
+  }
+
+  Map<String, dynamic> toJson() => {
+    'dayKey': dayKey,
+    'title': title,
+    'xp': xp,
+    'createdAt': createdAt.toUtc().millisecondsSinceEpoch,
+  };
+
+  /// The shape stored inside a [DayRecord], whose own key names the day.
+  Map<String, dynamic> toRecordJson() => {
+    'title': title,
+    'xp': xp,
+    'createdAt': createdAt.toUtc().millisecondsSinceEpoch,
+  };
+
+  /// Bad historical records do not make the entire save unreadable. [dayKey]
+  /// comes from the surrounding [DayRecord]; a standalone (schema-29 preview)
+  /// entry carries its own.
+  static ExtraCreditEntry? fromJson(Object? raw, {String? dayKey}) {
+    if (raw is! Map) return null;
+    final day = Days.validKey(dayKey ?? raw['dayKey']);
+    final title = raw['title'];
+    final xp = raw['xp'];
+    final createdAt = _utcFromMillis(raw['createdAt']);
+    if (day == null || title is! String || xp is! int || createdAt == null) {
+      return null;
+    }
+    final cleaned = cleanTitle(title);
+    if (cleaned == null || xp < 1 || xp > maxStoredXp) return null;
+    return ExtraCreditEntry(
+      dayKey: day,
+      title: cleaned,
+      xp: xp,
+      createdAt: createdAt,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ExtraCreditEntry &&
+      other.dayKey == dayKey &&
+      other.title == title &&
+      other.xp == xp &&
+      other.createdAt == createdAt;
+
+  @override
+  int get hashCode => Object.hash(dayKey, title, xp, createdAt);
+}
+
+/// One class someone said they went to, with what it paid at the time.
+///
+/// The timetable is device-local and is not in the backup, so this keeps its
+/// own course code and a short label snapshot: it reads correctly on a
+/// restored phone that has no schedule behind it.
+class KeptClass {
+  static const int maxLabelLength = 48;
+  static const int maxCodeLength = 40;
+  static const int maxStoredXp = 200;
+  static const int maxStoredStatGain = 50;
+
+  const KeptClass({
+    this.occurrenceKey,
+    required this.courseCode,
+    required this.label,
+    required this.kind,
+    required this.startMinute,
+    required this.xp,
+    required this.stat,
+    required this.statGain,
+    required this.keptAt,
+  });
+
+  /// The timetable occurrence, when the mark came from one.
+  final String? occurrenceKey;
+  final String courseCode;
+
+  /// Short course title snapshot, at most [maxLabelLength] graphemes.
+  final String label;
+
+  /// The meeting kind's name (`lecture`, `lab`, `recitation`, ...).
+  final String kind;
+
+  /// Local start, minutes after midnight in the schedule's zone.
+  final int startMinute;
+
+  /// XP actually awarded for this class (the day's full-day bonus is kept on
+  /// the [DayRecord], not here).
+  final int xp;
+  final Stat stat;
+  final int statGain;
+  final DateTime keptAt;
+
+  String get statKey => stat.name;
+
+  /// The identity used when no occurrence key exists.
+  String get fallbackIdentity => '$courseCode@$startMinute';
+
+  /// The key a day's class list uses for this class.
+  String get identity => occurrenceKey ?? fallbackIdentity;
+
+  /// True when [key] (an occurrence key or a fallback identity) names this.
+  bool answersTo(String key) => key == occurrenceKey || key == fallbackIdentity;
+
+  /// One kept class per occurrence. Matching on course and start as well as
+  /// the key is deliberately conservative: a mark without a key (or from a
+  /// re-imported timetable) can never pay a second time for the same class.
+  bool sameClassAs({
+    String? occurrenceKey,
+    required String courseCode,
+    required int startMinute,
+  }) =>
+      (occurrenceKey != null && occurrenceKey == this.occurrenceKey) ||
+      (courseCode == this.courseCode && startMinute == this.startMinute);
+
+  /// The short label shown for a class: the course title, else its code.
+  static String cleanLabel(String title, String courseCode) {
+    var cleaned = title.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (cleaned.isEmpty) cleaned = courseCode.trim();
+    if (cleaned.characters.length > maxLabelLength) {
+      cleaned = cleaned.characters.take(maxLabelLength).toString().trimRight();
+    }
+    return cleaned;
+  }
+
+  Map<String, dynamic> toJson() => {
+    if (occurrenceKey != null) 'occurrenceKey': occurrenceKey,
+    'courseCode': courseCode,
+    'label': label,
+    'kind': kind,
+    'startMinute': startMinute,
+    'xp': xp,
+    'statKey': stat.name,
+    'statGain': statGain,
+    'keptAt': keptAt.toUtc().millisecondsSinceEpoch,
+  };
+
+  static final _kindPattern = RegExp(r'^[A-Za-z]{1,24}$');
+
+  /// A kind the decoder will read back: a meeting kind's name, else
+  /// `lecture`. Writing anything else would drop the record (and its proof
+  /// that the class was already paid) on the next load.
+  static String cleanKind(String kind) {
+    final trimmed = kind.trim();
+    return _kindPattern.hasMatch(trimmed) ? trimmed : 'lecture';
+  }
+
+  /// Total: a malformed record returns null, never throws.
+  static KeptClass? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final key = raw['occurrenceKey'];
+    final code = raw['courseCode'];
+    final label = raw['label'];
+    final kind = raw['kind'];
+    final start = raw['startMinute'];
+    final xp = raw['xp'];
+    final gain = raw['statGain'];
+    final keptAt = _utcFromMillis(raw['keptAt']);
+    if (code is! String ||
+        code.trim().isEmpty ||
+        code.length > maxCodeLength ||
+        kind is! String ||
+        !_kindPattern.hasMatch(kind) ||
+        start is! int ||
+        start < 0 ||
+        start >= 24 * 60 ||
+        xp is! int ||
+        xp < 1 ||
+        xp > maxStoredXp ||
+        gain is! int ||
+        gain < 0 ||
+        gain > maxStoredStatGain ||
+        keptAt == null) {
+      return null;
+    }
+    if (key != null && (key is! String || key.isEmpty || key.length > 200)) {
+      return null;
+    }
+    Stat? stat;
+    for (final value in Stat.values) {
+      if (value.name == raw['statKey']) stat = value;
+    }
+    final kindIsLab = kind == 'lab' || kind == 'studio';
+    return KeptClass(
+      occurrenceKey: key as String?,
+      courseCode: code.trim(),
+      label: cleanLabel(label is String ? label : '', code),
+      kind: kind,
+      startMinute: start,
+      xp: xp,
+      // A drifted stat name keeps the record (and its proof) with the stat its
+      // kind pays, rather than dropping it and inviting a second award.
+      stat: stat ?? (kindIsLab ? Stat.foc : Stat.intl),
+      statGain: gain,
+      keptAt: keptAt,
+    );
+  }
+}
+
+/// What a lived day held apart from Quests. Never a Quest, never in history,
+/// never part of Quest-only counters. One record per night-owned day.
+class DayRecord {
+  static const int maxClassesPerDay = 32;
+  static const int maxStoredBonusXp = 100;
+
+  DayRecord({
+    required this.dayKey,
+    List<KeptClass> classes = const [],
+    this.extraCredit,
+    this.fullDayBonusXp = 0,
+  }) : classes = List.unmodifiable(
+         [...classes]..sort((a, b) {
+           final byStart = a.startMinute.compareTo(b.startMinute);
+           return byStart != 0 ? byStart : a.courseCode.compareTo(b.courseCode);
+         }),
+       );
+
+  final String dayKey;
+
+  /// One per class occurrence, sorted by start.
+  final List<KeptClass> classes;
+  final ExtraCreditEntry? extraCredit;
+
+  /// The once-a-day bonus for keeping every class that day; 0 when not paid.
+  final int fullDayBonusXp;
+
+  int get classXp =>
+      classes.fold(0, (total, kept) => total + kept.xp) + fullDayBonusXp;
+
+  int get xp => classXp + (extraCredit?.xp ?? 0);
+
+  bool get isEmpty =>
+      classes.isEmpty && extraCredit == null && fullDayBonusXp == 0;
+
+  KeptClass? keptMatching({
+    String? occurrenceKey,
+    required String courseCode,
+    required int startMinute,
+  }) {
+    for (final kept in classes) {
+      if (kept.sameClassAs(
+        occurrenceKey: occurrenceKey,
+        courseCode: courseCode,
+        startMinute: startMinute,
+      )) {
+        return kept;
+      }
+    }
+    return null;
+  }
+
+  DayRecord copyWith({
+    List<KeptClass>? classes,
+    ExtraCreditEntry? extraCredit,
+    int? fullDayBonusXp,
+  }) => DayRecord(
+    dayKey: dayKey,
+    classes: classes ?? this.classes,
+    extraCredit: extraCredit ?? this.extraCredit,
+    fullDayBonusXp: fullDayBonusXp ?? this.fullDayBonusXp,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'dayKey': dayKey,
+    if (classes.isNotEmpty)
+      'classes': [for (final kept in classes) kept.toJson()],
+    if (extraCredit != null) 'extraCredit': extraCredit!.toRecordJson(),
+    if (fullDayBonusXp > 0) 'fullDayBonusXp': fullDayBonusXp,
+  };
+
+  /// Total. Malformed classes are dropped one by one; duplicates of the same
+  /// class keep the newest record without any second award.
+  static DayRecord? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final day = Days.validKey(raw['dayKey']);
+    if (day == null) return null;
+    final decoded = <KeptClass>[];
+    final rawClasses = raw['classes'];
+    if (rawClasses is List) {
+      for (final item in rawClasses.take(maxClassesPerDay * 2)) {
+        final kept = KeptClass.fromJson(item);
+        if (kept != null) decoded.add(kept);
+      }
+    }
+    final extra = ExtraCreditEntry.fromJson(raw['extraCredit'], dayKey: day);
+    final bonus = raw['fullDayBonusXp'];
+    final record = DayRecord(
+      dayKey: day,
+      classes: dedupeKeptClasses(decoded),
+      extraCredit: extra,
+      fullDayBonusXp: bonus is int && bonus > 0 && bonus <= maxStoredBonusXp
+          ? bonus
+          : 0,
+    );
+    return record.isEmpty ? null : record;
+  }
+
+  /// Newest wins per class; capped so a damaged save cannot balloon.
+  static List<KeptClass> dedupeKeptClasses(Iterable<KeptClass> classes) {
+    final newestFirst = [...classes]
+      ..sort((a, b) => b.keptAt.compareTo(a.keptAt));
+    final kept = <KeptClass>[];
+    for (final candidate in newestFirst) {
+      final duplicate = kept.any(
+        (existing) => existing.sameClassAs(
+          occurrenceKey: candidate.occurrenceKey,
+          courseCode: candidate.courseCode,
+          startMinute: candidate.startMinute,
+        ),
+      );
+      if (!duplicate && kept.length < maxClassesPerDay) kept.add(candidate);
+    }
+    return kept;
+  }
+
+  /// Folds two records for the same day (a damaged save can repeat a day).
+  /// Newest wording and newest class records win; the bonus never doubles.
+  static DayRecord merge(DayRecord a, DayRecord b) {
+    final left = a.extraCredit;
+    final right = b.extraCredit;
+    final extra = left == null
+        ? right
+        : right == null || !right.createdAt.isAfter(left.createdAt)
+        ? left
+        : right;
+    return DayRecord(
+      dayKey: a.dayKey,
+      classes: dedupeKeptClasses([...a.classes, ...b.classes]),
+      extraCredit: extra,
+      fullDayBonusXp: a.fullDayBonusXp > b.fullDayBonusXp
+          ? a.fullDayBonusXp
+          : b.fullDayBonusXp,
     );
   }
 }
@@ -1593,6 +2006,7 @@ class LevelResult {
     required this.unlock,
     this.previousLevel,
     this.questsSince,
+    this.classesSince = 0,
   });
 
   /// Null when no level-up happened.
@@ -1605,4 +2019,8 @@ class LevelResult {
   /// level was reached (null when an older save cannot know).
   final int? previousLevel;
   final int? questsSince;
+
+  /// Classes kept since the last level. 0 hides the line, so an older save
+  /// or a Quest-only stretch never shows "0 classes".
+  final int classesSince;
 }

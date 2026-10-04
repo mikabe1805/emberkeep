@@ -21,7 +21,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 28; // retains the bounded legacy room field
+  static const schema = 29; // keepsakes rule kept; adds the day's own records
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).
@@ -244,8 +244,18 @@ abstract final class Storage {
     final encodedSchema = save['schema'];
     final saveSchema = encodedSchema is int ? encodedSchema : 0;
     // Schema 28 distinguishes an explicit legacy field from a truncated state
-    // map. Earlier backups predate it and migrate to an empty list.
-    return saveSchema < 28 || state['roomKeepsakes'] is List;
+    // map. Schema 29 does the same for the day's own records (kept classes
+    // and Extra Credit), which pair with XP already paid. Earlier backups
+    // predate each field and migrate to empty lists. A schema-29 preview
+    // build stored Extra Credit as 'extraCredit'; it still counts as the
+    // explicit field so that save is read, not quarantined.
+    if (saveSchema >= 28 && state['roomKeepsakes'] is! List) return false;
+    if (saveSchema >= 29 &&
+        state['dayRecords'] is! List &&
+        state['extraCredit'] is! List) {
+      return false;
+    }
+    return true;
   }
 
   /// The raw save blob, for user-held backups (round-8: your data is yours).

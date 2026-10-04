@@ -1195,6 +1195,19 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                       ),
                     ),
                   ],
+                  if (trace.extraCreditTitles.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'EXTRA CREDIT  ·  ${trace.extraCreditTitles.join('  ·  ')}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: Palette.xpLight.withValues(alpha: 0.78),
+                        letterSpacing: 0.45,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

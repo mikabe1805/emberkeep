@@ -1464,6 +1464,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       // live entry whose id isn't in the snapshot back into the restored state.
       // (Purchases intentionally revert with their embers — consistent — but
       // words are pure loss, so they're kept.)
+      // The day's own records (kept classes, Extra Credit) are reward-bearing:
+      // each is paired with the XP it paid, so they revert with the snapshot
+      // and are never merged back. A later reward settles the undo instead
+      // (RewardUndoSlot), so a restore never crosses one.
       final live = _state;
       if (live != null) {
         final snapIds = {for (final n in state.journal) n.id};

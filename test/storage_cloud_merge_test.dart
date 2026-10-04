@@ -9,6 +9,7 @@ String _save({
   required int schema,
   required int modified,
   bool omitRoomKeepsakes = false,
+  bool omitDayRecords = false,
   bool freshBootstrap = false,
   List<String>? roomKeepsakes,
 }) {
@@ -16,6 +17,7 @@ String _save({
   if (roomKeepsakes != null) state.setRoomKeepsakes(roomKeepsakes);
   final encodedState = state.toJson();
   if (omitRoomKeepsakes) encodedState.remove('roomKeepsakes');
+  if (omitDayRecords) encodedState.remove('dayRecords');
   return jsonEncode({
     'app': 'emberkeep',
     'schema': schema,
@@ -87,13 +89,88 @@ void main() {
       );
     });
 
+    test('holds a newer schema-28 remote against schema-29 day records', () {
+      expect(
+        Storage.decideCloudMerge(
+          localRaw: _save(schema: Storage.schema, modified: 100),
+          remoteRaw: _save(schema: 28, modified: 200, omitDayRecords: true),
+        ),
+        CloudMergeDecision.hold,
+      );
+    });
+
     test('holds a newer schema-27 remote against schema-28 keepsakes', () {
       expect(
         Storage.decideCloudMerge(
           localRaw: _save(schema: Storage.schema, modified: 100),
-          remoteRaw: _save(schema: 27, modified: 200, omitRoomKeepsakes: true),
+          remoteRaw: _save(
+            schema: 27,
+            modified: 200,
+            omitRoomKeepsakes: true,
+            omitDayRecords: true,
+          ),
         ),
         CloudMergeDecision.hold,
+      );
+    });
+
+    test('schema-28 keepsake protection remains after schema-29 migration', () {
+      for (final schema in [28, Storage.schema]) {
+        expect(
+          Storage.isValidSave(
+            _save(schema: schema, modified: 1, omitRoomKeepsakes: true),
+          ),
+          isFalse,
+          reason: 'day records must not weaken the existing keepsake boundary',
+        );
+      }
+      expect(
+        Storage.isValidSave(
+          _save(
+            schema: 27,
+            modified: 1,
+            omitRoomKeepsakes: true,
+            omitDayRecords: true,
+          ),
+        ),
+        isTrue,
+      );
+    });
+
+    test('a schema-28 save migrates to 29 with empty day records', () async {
+      SharedPreferences.setMockInitialValues({
+        'liferpg_save_v1': _save(schema: 28, modified: 1, omitDayRecords: true),
+      });
+      final loaded = await Storage.load();
+      expect(loaded, isNotNull);
+      final (state, quests) = loaded!;
+      expect(state.dayRecords, isEmpty);
+      expect(state.totalClassesKept, 0);
+      expect(await Storage.save(state, quests), isTrue);
+      final raw = await Storage.exportRaw();
+      expect(Storage.schemaOf(raw!), 29);
+      expect(Storage.isValidSave(raw), isTrue);
+      final encoded = (jsonDecode(raw) as Map)['state'] as Map;
+      expect(encoded['dayRecords'], isA<List>());
+    });
+
+    test('a schema-29 preview save with its own extra-credit key is read', () {
+      final preview = jsonDecode(_save(schema: 29, modified: 1)) as Map;
+      final state = (preview['state'] as Map)..remove('dayRecords');
+      state['extraCredit'] = [
+        {
+          'dayKey': '2026-09-03',
+          'title': 'Went to all classes',
+          'xp': 10,
+          'createdAt': 1,
+        },
+      ];
+      final raw = jsonEncode(preview);
+      expect(Storage.isValidSave(raw), isTrue);
+      final restored = GameState.fromJson(state.cast<String, dynamic>());
+      expect(
+        restored.extraCreditForDay('2026-09-03')?.title,
+        'Went to all classes',
       );
     });
 
@@ -104,6 +181,7 @@ void main() {
           schema: 27,
           modified: 200,
           omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
         final bootstrap = _save(
           schema: Storage.schema,
@@ -137,6 +215,7 @@ void main() {
               schema: 27,
               modified: 300,
               omitRoomKeepsakes: true,
+              omitDayRecords: true,
             ),
           ),
           CloudMergeDecision.hold,
@@ -145,18 +224,18 @@ void main() {
     );
 
     test(
-      'schema-28 requires an explicit keepsake list; legacy saves do not',
+      'schema-29 requires an explicit day-record list; schema 28 migrates it',
       () {
         final currentMissing = _save(
           schema: Storage.schema,
           modified: 1,
-          omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
         final explicitEmpty = _save(schema: Storage.schema, modified: 1);
         final legacyMissing = _save(
-          schema: 27,
+          schema: 28,
           modified: 1,
-          omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
 
         expect(Storage.isValidSave(currentMissing), isFalse);
@@ -173,18 +252,18 @@ void main() {
     );
 
     test(
-      'import rejects a truncated schema-28 state but accepts a legacy save',
+      'import rejects a truncated schema-29 state but accepts schema 28',
       () async {
         SharedPreferences.setMockInitialValues({});
         final currentMissing = _save(
           schema: Storage.schema,
           modified: 1,
-          omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
         final legacyMissing = _save(
-          schema: 27,
+          schema: 28,
           modified: 1,
-          omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
 
         expect(await Storage.importRaw(currentMissing), isFalse);
@@ -214,7 +293,12 @@ void main() {
         expect(
           Storage.decideInitialCloudMerge(
             localRaw: local,
-            remoteRaw: _save(schema: 27, modified: 1, omitRoomKeepsakes: true),
+            remoteRaw: _save(
+              schema: 27,
+              modified: 1,
+              omitRoomKeepsakes: true,
+              omitDayRecords: true,
+            ),
           ),
           CloudMergeDecision.hold,
         );
@@ -222,12 +306,12 @@ void main() {
     );
 
     test(
-      'load quarantines a truncated schema-28 state instead of inventing an empty choice',
+      'load quarantines a truncated schema-29 state instead of inventing empty records',
       () async {
         final currentMissing = _save(
           schema: Storage.schema,
           modified: 1,
-          omitRoomKeepsakes: true,
+          omitDayRecords: true,
         );
         SharedPreferences.setMockInitialValues({
           'liferpg_save_v1': currentMissing,
@@ -258,7 +342,7 @@ void main() {
     });
 
     test('holds instead of overwriting unreadable or future saves', () {
-      expect(Storage.schema, 28);
+      expect(Storage.schema, 29);
       final local = _save(schema: Storage.schema, modified: 300);
       expect(
         Storage.decideCloudMerge(localRaw: local, remoteRaw: '{not json'),

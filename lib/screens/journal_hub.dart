@@ -95,6 +95,17 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     return parts.join('  ·  ');
   }
 
+  Widget _extraCreditLine(JournalTrace trace) => Text(
+    'EXTRA CREDIT  ·  ${trace.extraCreditTitles.join('  ·  ')}',
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: Type.label.copyWith(
+      fontSize: Type.minLabel,
+      color: Palette.xpLight.withValues(alpha: 0.78),
+      letterSpacing: 0.45,
+    ),
+  );
+
   @override
   void dispose() {
     _search.dispose();
@@ -833,6 +844,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   Widget _todayThread() {
     final trace = _todayTrace();
     final hasQuests = trace.questTitles.isNotEmpty;
+    final hasExtraCredit = trace.extraCreditTitles.isNotEmpty;
+    final hasActivity = hasQuests || hasExtraCredit;
     return GlassPanel(
       padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
       child: Row(
@@ -859,8 +872,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  hasQuests
-                      ? '${_traceLine(trace)} — attached automatically when you write.'
+                  hasActivity
+                      ? '${_traceLine(trace)}. Attached automatically when you write.'
                       : 'The date, your build, and what you’ve completed so far today attach to this page.',
                   style: Type.body.copyWith(
                     fontSize: 11.8,
@@ -880,6 +893,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                       color: Palette.textMid,
                     ),
                   ),
+                ],
+                if (hasExtraCredit) ...[
+                  const SizedBox(height: 4),
+                  _extraCreditLine(trace),
                 ],
               ],
             ),
@@ -1053,6 +1070,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 color: Palette.xpLight.withValues(alpha: 0.78),
               ),
             ),
+            if (e.note.trace!.extraCreditTitles.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              _extraCreditLine(e.note.trace!),
+            ],
           ],
         ],
       ),

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import 'class_credit.dart';
 import 'clock.dart';
 import 'content/achievements.dart';
 import 'content/cosmetics.dart';
@@ -18,6 +19,8 @@ import 'models.dart';
 import 'release_features.dart';
 import 'steward_memory.dart';
 import 'tokens.dart';
+
+export 'class_credit.dart';
 
 /// The authored pieces that can be arranged on the owner's My Space page.
 ///
@@ -1106,26 +1109,29 @@ class GameState extends ChangeNotifier {
   /// the energy the person brought. Quick reflections, full journal pages,
   /// and the night ledger all use this one source so an old entry never
   /// quietly changes when today's state changes.
-  JournalTrace todayJournalTrace(List<Quest> quests) => _journalTrace(
-    quests,
-    day: Days.key(Clock.now()),
-    xp: todayXp,
-    statGains: todayStats,
-    questTitles: todayQuestTitles,
-    energy: energyWeatherDay == Days.key(Clock.now()) ? energyWeather : null,
-  );
+  JournalTrace todayJournalTrace(List<Quest> quests) {
+    final today = Days.key(Clock.now());
+    return _journalTrace(
+      quests,
+      day: today,
+      xp: _dayXp(today),
+      statGains: _dayStats(today),
+      questTitles: _dayQuestTitles(today),
+      energy: energyWeatherDay == today ? energyWeather : null,
+    );
+  }
 
   String get activeNightDayKey => Days.nightKey(Clock.now());
 
   bool get _nightUsesSnapshot => previousDayKey == activeNightDayKey;
 
-  int get nightXp => _nightUsesSnapshot ? previousDayXp : todayXp;
+  /// Everything the night-owned day carried: its Quest bucket plus the day's
+  /// own records (kept classes, the full-day bonus and Extra Credit).
+  int get nightXp => _dayXp(activeNightDayKey);
 
-  Map<Stat, int> get nightStatGains =>
-      _nightUsesSnapshot ? previousDayStats : todayStats;
+  Map<Stat, int> get nightStatGains => _dayStats(activeNightDayKey);
 
-  List<String> get nightQuestTitles =>
-      _nightUsesSnapshot ? previousDayQuestTitles : todayQuestTitles;
+  List<String> get nightQuestTitles => _dayQuestTitles(activeNightDayKey);
 
   int get nightCompletionCount =>
       history[activeNightDayKey] ?? nightQuestTitles.length;
@@ -1168,6 +1174,8 @@ class GameState extends ChangeNotifier {
       todayXp: xp,
       streakDays: streakDays,
       questTitles: titles,
+      extraCreditTitles: extraCreditTitlesForDay(day),
+      classTitles: classTitlesForDay(day),
       goalTitles: goalTitles.toList(growable: false),
       statGains: {
         for (final entry in statGains.entries)
@@ -1177,13 +1185,91 @@ class GameState extends ChangeNotifier {
     );
   }
 
+  /// The Quest bucket for [dayKey]. Quest XP keeps using the live
+  /// today/previous rollover buckets; a day's own records are added only when
+  /// reading it, which keeps a 1am credit out of today's stat bucket and
+  /// keeps class XP out of the Quest soft cap.
+  int _questDayXp(String dayKey) {
+    final calendarDay = Days.key(Clock.now());
+    if (_nightUsesSnapshot && dayKey == previousDayKey) return previousDayXp;
+    // An app that remains open through midnight has not rolled its live
+    // Quest bucket yet. It still belongs to [lastActiveDay], not the new
+    // calendar date, until rollover snapshots it.
+    if (lastActiveDay == dayKey) return todayXp;
+    if (lastActiveDay != null && lastActiveDay != calendarDay) return 0;
+    return dayKey == calendarDay ? todayXp : 0;
+  }
+
+  int _dayXp(String dayKey) =>
+      _questDayXp(dayKey) + (dayRecordFor(dayKey)?.xp ?? 0);
+
+  Map<Stat, int> _dayStats(String dayKey) {
+    final Map<Stat, int> questStats;
+    if (_nightUsesSnapshot && dayKey == previousDayKey) {
+      questStats = previousDayStats;
+    } else if (lastActiveDay == dayKey ||
+        (lastActiveDay == null && dayKey == Days.key(Clock.now()))) {
+      questStats = todayStats;
+    } else {
+      questStats = const {};
+    }
+    final classes = dayRecordFor(dayKey)?.classes ?? const <KeptClass>[];
+    if (classes.isEmpty) return questStats;
+    final merged = Map<Stat, int>.of(questStats);
+    for (final kept in classes) {
+      merged[kept.stat] = (merged[kept.stat] ?? 0) + kept.statGain;
+    }
+    return merged;
+  }
+
+  List<String> _dayQuestTitles(String dayKey) {
+    if (_nightUsesSnapshot && dayKey == previousDayKey) {
+      return previousDayQuestTitles;
+    }
+    if (lastActiveDay == dayKey ||
+        (lastActiveDay == null && dayKey == Days.key(Clock.now()))) {
+      return todayQuestTitles;
+    }
+    return const [];
+  }
+
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
   // ── streak (real now: consecutive days with ≥1 completion) ──────
   int streakDays = 0;
   int bestStreak = 0;
+
+  /// The last day a Quest was completed. Quest-only, always.
   String? lastCompletionDay;
+
+  /// The last day the streak advanced. Quest days always advance it; with
+  /// [ClassDayRules.classDayLightsStreak], a kept-class day does too. It never
+  /// trails [lastCompletionDay], so older saves (and tests that set only the
+  /// Quest day) read exactly as before.
+  String? get lastStreakDay {
+    final quest = lastCompletionDay;
+    final other = _lastStreakDay;
+    if (quest == null) return other;
+    if (other == null) return quest;
+    return other.compareTo(quest) > 0 ? other : quest;
+  }
+
+  String? _lastStreakDay;
+
+  /// A class keep restarted the streak after a gap the reserve could not
+  /// hold. The next Quest, while no later day has lit the streak, still gets
+  /// the welcome-back bonus it would have had if it had come first.
+  String? comebackPendingDay;
+
+  bool get _comebackPending =>
+      comebackPendingDay != null && comebackPendingDay == lastStreakDay;
+
+  /// Answers "was this a rest day?" for [ClassDayRules.restDaysPause]. The
+  /// shell sets it from the timetable (a term day with no classes). The
+  /// timetable is device-wide and not in the save, so this hook is too: it
+  /// survives undo, restore and cloud adoption of a new [GameState].
+  static bool Function(String dayKey)? restDayResolver;
 
   /// Streak freezes are available from the beginning. Each one quietly holds
   /// one day away, but is spent only when the whole gap can be covered. The
@@ -1334,9 +1420,352 @@ class GameState extends ChangeNotifier {
   };
 
   // ── today's haul (the night recap's raw material; reset on rollover) ──
+  /// Quest-only XP for the live calendar-day bucket. Read helpers add the
+  /// day's own records for night and Journal attribution; class XP never
+  /// enters this bucket, so it never pushes evening Quests into the soft cap.
   int todayXp = 0;
   final Map<Stat, int> todayStats = {};
   final List<String> todayQuestTitles = [];
+
+  // ── the day's own records (schema 29): kept classes and Extra Credit ──
+  /// How many day records the save keeps, plus the active night, which is
+  /// never trimmed. The same horizon as [history].
+  static const dayRecordHorizon = 180;
+
+  /// A queued mark (widget or notification) may land up to this many nights
+  /// after its class's day.
+  static const classKeepRecentNights = 2;
+
+  /// A class can be marked from this long before it starts.
+  static const classKeepLead = Duration(minutes: 15);
+
+  final List<DayRecord> _dayRecords = [];
+
+  /// Every day record, oldest day first.
+  List<DayRecord> get dayRecords => List.unmodifiable(_dayRecords);
+
+  DayRecord? dayRecordFor(String dayKey) {
+    for (final record in _dayRecords) {
+      if (record.dayKey == dayKey) return record;
+    }
+    return null;
+  }
+
+  /// Every class ever kept. Survives the record trim, so it only grows.
+  int totalClassesKept = 0;
+
+  /// [totalClassesKept] when the last level was reached.
+  int classesAtLastLevel = 0;
+
+  final Map<String, int> _keptClassCounts = {};
+
+  /// Kept classes per course code. Survives the record trim, so "your Nth
+  /// lecture of this course" only grows.
+  Map<String, int> get keptClassCounts => Map.unmodifiable(_keptClassCounts);
+
+  int keptCountForCourse(String courseCode) =>
+      _keptClassCounts[courseCode.trim()] ?? 0;
+
+  static const _maxCourseCounters = 500;
+
+  List<KeptClass> classesKeptOn(String dayKey) =>
+      dayRecordFor(dayKey)?.classes ?? const [];
+
+  /// The stored keep for this class, if it was kept.
+  KeptClass? keptClassFor(ClassFacts facts) =>
+      dayRecordFor(facts.dayKey)?.keptMatching(
+        occurrenceKey: facts.occurrenceKey,
+        courseCode: facts.courseCode.trim(),
+        startMinute: facts.startMinute,
+      );
+
+  /// Class XP for a day, including its full-day bonus.
+  int classXpForDay(String dayKey) => dayRecordFor(dayKey)?.classXp ?? 0;
+
+  List<String> classTitlesForDay(String dayKey) => [
+    ...{for (final kept in classesKeptOn(dayKey)) kept.label},
+  ];
+
+  /// Bumps on every reward (Quest commit, class keep, Extra Credit). Not
+  /// saved: it exists so a [RewardUndoSlot] can tell that a later reward has
+  /// landed since its snapshot.
+  int get rewardSerial => _rewardSerial;
+  int _rewardSerial = 0;
+
+  /// Whether [facts] can be kept now (or, for a queued mark, at [at]).
+  ///
+  /// The window is the class's own civil day while that day is the current
+  /// night ([Days.nightKey]). A queued widget or notification mark carries
+  /// [at], the moment it was made: it counts when it was made during the
+  /// class's own night and that night is at most [classKeepRecentNights]
+  /// back. Nothing earlier, nothing in the future.
+  ClassKeepCheck checkClassKeep(ClassFacts facts, {DateTime? at}) {
+    final day = Days.tryParse(facts.dayKey);
+    final code = facts.courseCode.trim();
+    if (day == null ||
+        code.isEmpty ||
+        code.length > KeptClass.maxCodeLength ||
+        facts.startMinute < 0 ||
+        facts.startMinute >= 24 * 60 ||
+        (facts.occurrenceKey != null &&
+            (facts.occurrenceKey!.isEmpty ||
+                facts.occurrenceKey!.length > 200))) {
+      return ClassKeepCheck.invalid;
+    }
+    if (keptClassFor(facts) != null) return ClassKeepCheck.alreadyKept;
+    final now = Clock.now();
+    final currentNight = Days.nightKey(now);
+    if (at == null) {
+      if (facts.dayKey != currentNight) return ClassKeepCheck.outsideWindow;
+    } else {
+      final markedAt = at.toLocal();
+      if (markedAt.isAfter(now.add(const Duration(minutes: 1)))) {
+        return ClassKeepCheck.outsideWindow;
+      }
+      if (Days.nightKey(markedAt) != facts.dayKey) {
+        return ClassKeepCheck.outsideWindow;
+      }
+      final nightsBack = Days.between(day, Days.parse(currentNight));
+      if (nightsBack < 0 || nightsBack > classKeepRecentNights) {
+        return ClassKeepCheck.outsideWindow;
+      }
+    }
+    final startsAt = facts.startsAt;
+    if (startsAt != null &&
+        (at ?? now).toUtc().isBefore(
+          startsAt.toUtc().subtract(classKeepLead),
+        )) {
+      return ClassKeepCheck.notStartedYet;
+    }
+    return ClassKeepCheck.open;
+  }
+
+  /// Keeps one class: the person says they went. A separate apply path that
+  /// never runs [commit]: it is not a Quest and touches no Quest counters
+  /// (completions, history, today's Quest bucket, the Quest-only day marker,
+  /// goals, mastery, loot or perfect days).
+  ///
+  /// Feeds XP, total XP, Glimmers, the kind's stat (with a rank-tier crossing
+  /// into the usual rank-up beat), a Me ledger line with the class label, and
+  /// achievements. Pass [dayClassKeys] (every real class that day, as
+  /// identities) to pay the full-day bonus on the keep that completes the
+  /// day. Returns null when the class is already kept or outside its window.
+  /// Level-ups are left to the caller's usual chain.
+  ClassCredit? keepClass(
+    ClassFacts facts, {
+    List<String> dayClassKeys = const [],
+    DateTime? at,
+  }) {
+    if (checkClassKeep(facts, at: at) != ClassKeepCheck.open) return null;
+    final now = Clock.now();
+    final code = facts.courseCode.trim();
+    final kind = KeptClass.cleanKind(facts.kind);
+    final pay = ClassPay.forKind(kind);
+    final kept = KeptClass(
+      occurrenceKey: facts.occurrenceKey,
+      courseCode: code,
+      label: facts.label,
+      kind: kind,
+      startMinute: facts.startMinute,
+      xp: pay.xp,
+      stat: pay.stat,
+      statGain: pay.statGain,
+      keptAt: (at ?? now).toUtc(),
+    );
+    final before =
+        dayRecordFor(facts.dayKey) ?? DayRecord(dayKey: facts.dayKey);
+    final classes = [...before.classes, kept];
+    final keys = {
+      for (final key in dayClassKeys)
+        if (key.trim().isNotEmpty) key.trim(),
+    };
+    bool covers(List<KeptClass> list) =>
+        keys.isNotEmpty &&
+        keys.every((key) => list.any((item) => item.answersTo(key)));
+    final dayComplete = covers(classes);
+    final bonus =
+        dayComplete && !covers(before.classes) && before.fullDayBonusXp == 0
+        ? ClassPay.fullDayBonusXp
+        : 0;
+    _putDayRecord(
+      before.copyWith(
+        classes: classes,
+        fullDayBonusXp: before.fullDayBonusXp + bonus,
+      ),
+    );
+
+    final award = pay.xp + bonus;
+    final glimmers = ClassPay.glimmersFor(award);
+    final xpBefore = xp;
+    xp += award;
+    totalXp += award;
+    embers += glimmers;
+    final beforeRank = rankFor(pay.stat, stats[pay.stat] ?? 0);
+    stats[pay.stat] = (stats[pay.stat] ?? 0) + pay.statGain;
+    final afterRank = rankFor(pay.stat, stats[pay.stat]!);
+    StatRank? rankedUpTo;
+    if (afterRank.tier > beforeRank.tier) {
+      _rankedUpQ.add((pay.stat, afterRank));
+      rankedUpTo = afterRank;
+    }
+    ledger.insert(
+      0,
+      LedgerEntry(stat: pay.stat, amount: pay.statGain, title: kept.label),
+    );
+    if (ledger.length > 8) ledger.removeLast();
+    totalClassesKept++;
+    if (_keptClassCounts.containsKey(code) ||
+        _keptClassCounts.length < _maxCourseCounters) {
+      _keptClassCounts[code] = (_keptClassCounts[code] ?? 0) + 1;
+    }
+
+    var streak = ClassStreakEffect.none;
+    if (ClassDayRules.current.classDayLightsStreak) {
+      streak = _lightStreakForClass(facts.dayKey);
+    }
+    _rewardSerial++;
+
+    var projected = level;
+    var remaining = xp;
+    while (remaining >= xpNeeded(projected + 1)) {
+      remaining -= xpNeeded(projected + 1);
+      projected++;
+    }
+    final unlocked = checkAchievements();
+    notifyListeners();
+    return ClassCredit(
+      kept: kept,
+      dayKey: facts.dayKey,
+      xp: award,
+      classXp: pay.xp,
+      fullDayBonus: bonus,
+      stat: pay.stat,
+      statGain: pay.statGain,
+      rankedUpTo: rankedUpTo,
+      glimmers: glimmers,
+      courseCount: keptCountForCourse(code),
+      totalClassesKept: totalClassesKept,
+      dayComplete: dayComplete,
+      keptToday: classes.length,
+      dayClassCount: keys.length,
+      level: ClassLevelProjection(
+        level: level,
+        xpBefore: xpBefore,
+        xpAfter: xp,
+        xpForNextLevel: xpNeeded(level + 1),
+        projectedLevel: projected,
+      ),
+      streak: streak,
+      achievements: unlocked,
+    );
+  }
+
+  /// Rule A: a kept class lights its day. A mark for a day a freeze already
+  /// held returns that freeze, since the day turned out to be lived.
+  ClassStreakEffect _lightStreakForClass(String dayKey) {
+    final last = lastStreakDay;
+    if (last != null && dayKey.compareTo(last) < 0) {
+      if (!frozenStreakDays.remove(dayKey)) return ClassStreakEffect.none;
+      streakFreezes = min(streakFreezeCapacity, streakFreezes + 1);
+      return ClassStreakEffect(streakDays: streakDays, freezeReturned: true);
+    }
+    final step = _advanceStreakDay(dayKey, fromClass: true);
+    if (!step.advanced) return ClassStreakEffect.none;
+    if (step.restarted) comebackPendingDay = dayKey;
+    final milestone = step.milestone;
+    return ClassStreakEffect(
+      lit: true,
+      streakDays: streakDays,
+      freezesUsed: step.freezesUsed,
+      restDaysPassed: step.restDaysPassed,
+      restarted: step.restarted,
+      freezeEarned: step.freezeEarned,
+      milestone: milestone,
+      milestoneGlimmers: milestone == null ? 0 : streakMilestones[milestone]!,
+    );
+  }
+
+  /// One optional acknowledgement for real effort that was not planned as a
+  /// Quest. It is separate so it cannot fabricate Quest-only progression.
+  static const int extraCreditXp = ExtraCreditEntry.awardXp;
+
+  List<ExtraCreditEntry> get extraCreditEntries => [
+    for (final record in _dayRecords) ?record.extraCredit,
+  ];
+
+  ExtraCreditEntry? extraCreditForDay(String dayKey) =>
+      dayRecordFor(dayKey)?.extraCredit;
+
+  List<String> extraCreditTitlesForDay(String dayKey) => [
+    ?dayRecordFor(dayKey)?.extraCredit?.title,
+  ];
+
+  int extraCreditXpForDay(String dayKey) =>
+      dayRecordFor(dayKey)?.extraCredit?.xp ?? 0;
+
+  /// The captured day key must still be the active night-owned day. A stale
+  /// editor therefore expires instead of silently crediting tomorrow.
+  ExtraCreditEntry? addExtraCredit(String title, {required String dayKey}) {
+    final cleaned = ExtraCreditEntry.cleanTitle(title);
+    if (cleaned == null || dayKey != Days.nightKey(Clock.now())) return null;
+    if (extraCreditForDay(dayKey) != null) return null;
+    final entry = ExtraCreditEntry(
+      dayKey: dayKey,
+      title: cleaned,
+      xp: extraCreditXp,
+      createdAt: Clock.now().toUtc(),
+    );
+    final record = dayRecordFor(dayKey) ?? DayRecord(dayKey: dayKey);
+    _putDayRecord(record.copyWith(extraCredit: entry));
+    // Intentionally only XP: no stats, Glimmers, streak, history, perfect
+    // day, Quest, goal, loot, mastery, or level-up mutation belongs here.
+    xp += entry.xp;
+    totalXp += entry.xp;
+    _rewardSerial++;
+    notifyListeners();
+    return entry;
+  }
+
+  /// Editing preserves the original award and day; it can never award twice.
+  bool updateExtraCredit(String dayKey, String title) {
+    final cleaned = ExtraCreditEntry.cleanTitle(title);
+    if (cleaned == null || dayKey != Days.nightKey(Clock.now())) {
+      return false;
+    }
+    final record = dayRecordFor(dayKey);
+    final entry = record?.extraCredit;
+    if (record == null || entry == null) return false;
+    if (entry.title == cleaned) return true;
+    _putDayRecord(record.copyWith(extraCredit: entry.copyWith(title: cleaned)));
+    notifyListeners();
+    return true;
+  }
+
+  /// Replaces (or adds) the record for its day, keeps day order, and trims to
+  /// the horizon without ever evicting the active night or this record.
+  void _putDayRecord(DayRecord record) {
+    final index = _dayRecords.indexWhere((r) => r.dayKey == record.dayKey);
+    if (index >= 0) {
+      _dayRecords[index] = record;
+    } else {
+      _dayRecords
+        ..add(record)
+        ..sort((a, b) => a.dayKey.compareTo(b.dayKey));
+    }
+    _trimDayRecords(retain: {Days.nightKey(Clock.now()), record.dayKey});
+  }
+
+  /// Trim by day key: the oldest days go first, never a retained one.
+  void _trimDayRecords({required Set<String> retain}) {
+    if (_dayRecords.length <= dayRecordHorizon) return;
+    final candidates =
+        _dayRecords.where((r) => !retain.contains(r.dayKey)).toList()
+          ..sort((a, b) => a.dayKey.compareTo(b.dayKey));
+    var i = 0;
+    while (_dayRecords.length > dayRecordHorizon && i < candidates.length) {
+      _dayRecords.remove(candidates[i++]);
+    }
+  }
 
   /// One rollover-deep snapshot keeps a just-finished day available to the
   /// 00:00–03:59 wind-down. Without it, midnight erased the very haul the
@@ -1573,21 +2002,158 @@ class GameState extends ChangeNotifier {
   /// Read identically by [roll] (for messaging) and [commit] (to apply) —
   /// both run before lastCompletionDay is bumped, so they agree.
   ({bool gap, List<String> days, bool covered}) _streakSituation() {
-    final last = lastCompletionDay;
-    final now = Clock.now();
-    if (last == null || last == Days.key(now)) {
-      return (gap: false, days: const <String>[], covered: false);
+    final sit = _streakSituationFor(Days.key(Clock.now()));
+    return (gap: sit.gap, days: sit.days, covered: sit.covered);
+  }
+
+  /// The gap between the last streak day and [dayKey]. With
+  /// [ClassDayRules.restDaysPause], rest days inside it are passed over: they
+  /// neither count as quiet days nor need a freeze.
+  ({bool gap, List<String> days, List<String> restDays, bool covered})
+  _streakSituationFor(String dayKey) {
+    const none = (
+      gap: false,
+      days: <String>[],
+      restDays: <String>[],
+      covered: false,
+    );
+    final last = lastStreakDay;
+    if (last == null || last == dayKey) return none;
+    final d = Days.tryParse(last);
+    final target = Days.tryParse(dayKey);
+    if (d == null || target == null) return none;
+    final quietDays = Days.between(d, target) - 1;
+    if (quietDays <= 0) return none;
+    final resolver = ClassDayRules.current.restDaysPause
+        ? restDayResolver
+        : null;
+    final days = <String>[];
+    final restDays = <String>[];
+    for (var i = 1; i <= quietDays; i++) {
+      final key = Days.key(DateTime(d.year, d.month, d.day + i));
+      if (resolver != null && _isRestDay(resolver, key)) {
+        restDays.add(key);
+      } else {
+        days.add(key);
+      }
     }
-    final d = Days.parse(last);
-    final missed = Days.between(d, now) - 1;
-    if (missed <= 0) {
-      return (gap: false, days: const <String>[], covered: false);
+    if (days.isEmpty) {
+      return (gap: false, days: days, restDays: restDays, covered: false);
     }
-    final days = [
-      for (var i = 1; i <= missed; i++)
-        Days.key(DateTime(d.year, d.month, d.day + i)),
-    ];
-    return (gap: true, days: days, covered: streakFreezes >= days.length);
+    return (
+      gap: true,
+      days: days,
+      restDays: restDays,
+      covered: streakFreezes >= days.length,
+    );
+  }
+
+  static bool _isRestDay(bool Function(String) resolver, String dayKey) {
+    try {
+      return resolver(dayKey);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Advances the streak for [dayKey], once. Quest commits and (with
+  /// [ClassDayRules.classDayLightsStreak]) class keeps share this one block,
+  /// so milestone chests and freeze cadence follow streak days whichever
+  /// lit them. A Quest passes the freeze numbers its receipt already showed.
+  ({
+    bool advanced,
+    int freezesUsed,
+    int restDaysPassed,
+    bool restarted,
+    bool freezeEarned,
+    int? milestone,
+  })
+  _advanceStreakDay(
+    String dayKey, {
+    bool fromClass = false,
+    int? freezeBalanceAfter,
+    int? freezeProgressAfter,
+    int? freezeCadenceAfter,
+  }) {
+    final last = lastStreakDay;
+    // A Quest advances on any new calendar day (unchanged behavior, even on a
+    // backward clock). A class mark may arrive for a recent past day, so it
+    // advances only a day after the last streak day.
+    final advances = fromClass
+        ? last == null || dayKey.compareTo(last) > 0
+        : last != dayKey;
+    if (!advances) {
+      return (
+        advanced: false,
+        freezesUsed: 0,
+        restDaysPassed: 0,
+        restarted: false,
+        freezeEarned: false,
+        milestone: null,
+      );
+    }
+    final sit = _streakSituationFor(dayKey);
+    var freezesUsed = 0;
+    var restarted = false;
+    if (!sit.gap) {
+      streakDays += 1; // first ever, yesterday, or only rest days between
+    } else if (sit.covered) {
+      streakFreezes -= sit.days.length;
+      frozenStreakDays.addAll(sit.days);
+      freezesUsed = sit.days.length;
+      streakDays += 1;
+    } else {
+      comebacks++; // a real lapse — reset, but the return is celebrated
+      streakDays = 1;
+      restarted = true;
+    }
+    _lastStreakDay = dayKey;
+    // Showing up replenishes freezes without asking for a perfect board.
+    // Progress can sit one day from ready while the reserve is full; if a
+    // later completion spends a freeze, that same active day may refill it.
+    bool freezeEarned;
+    if (freezeBalanceAfter != null) {
+      freezeEarned = freezeBalanceAfter > streakFreezes;
+      streakFreezes = freezeBalanceAfter;
+      final cadence = freezeCadenceAfter ?? activeDaysPerFreeze;
+      streakFreezeProgress = min(
+        cadence - 1,
+        freezeProgressAfter ?? streakFreezeProgress,
+      );
+    } else {
+      final cadence = activeDaysPerFreeze;
+      freezeEarned =
+          streakFreezes < streakFreezeCapacity &&
+          streakFreezeProgress + 1 >= cadence;
+      streakFreezes = min(
+        streakFreezeCapacity,
+        streakFreezes + (freezeEarned ? 1 : 0),
+      );
+      streakFreezeProgress = freezeEarned
+          ? 0
+          : min(cadence - 1, streakFreezeProgress + 1);
+    }
+    // streak milestone — a 7/30/100 day CROSSING queues a chest. This lives
+    // INSIDE the once-per-day advance on purpose: a milestone can only be
+    // crossed when the streak increments, so the second+ completion of a
+    // milestone day must NOT re-pay the chest (day 30 × 6 quests once paid
+    // 1,200 embers and staged the takeover six times — the exact currency
+    // inflation the shop economy can't take).
+    int? milestone;
+    if (streakMilestones.containsKey(streakDays)) {
+      _streakMilestoneQ.add(streakDays);
+      embers += streakMilestones[streakDays]!;
+      milestone = streakDays;
+    }
+    if (streakDays > bestStreak) bestStreak = streakDays;
+    return (
+      advanced: true,
+      freezesUsed: freezesUsed,
+      restDaysPassed: sit.restDays.length,
+      restarted: restarted,
+      freezeEarned: freezeEarned,
+      milestone: milestone,
+    );
   }
 
   /// Verified completions (timer proof) pay ×1.2 — proof multiplies,
@@ -1696,9 +2262,12 @@ class GameState extends ChangeNotifier {
     // before we stamp anything (mirrors [commit]'s decision).
     final sit = _streakSituation();
     final shieldHeld = sit.gap && sit.covered;
-    final isComeback = sit.gap && !sit.covered;
-    // the FIRST completion of the day (no completion committed yet today)
-    final firstOfDay = lastCompletionDay != nowKey;
+    // A class keep that already restarted the streak leaves the welcome-back
+    // for this Quest, so the order of a comeback day never changes its pay.
+    final isComeback =
+        (sit.gap && !sit.covered) || (!sit.gap && _comebackPending);
+    // the FIRST streak advance of the day (nothing has lit today yet)
+    final firstOfDay = lastStreakDay != nowKey;
     final freezesUsed = shieldHeld ? sit.days.length : 0;
     final reserveAfterHeldDays = streakFreezes - freezesUsed;
 
@@ -1831,7 +2400,9 @@ class GameState extends ChangeNotifier {
     // exact fragile re-engagement day the card is trying to win back.
     final nowKey = Days.key(Clock.now());
     final sit = _streakSituation();
-    final effMult = (sit.gap && !sit.covered) ? streakMultFor(1) : streakMult;
+    final effMult = (sit.gap && !sit.covered) || (!sit.gap && _comebackPending)
+        ? streakMultFor(1)
+        : streakMult;
     final priorSame = todayTitleCounts[q.title] ?? 0;
     var earned = 10 * (0.5 + q.difficulty * 0.25) * effMult;
     if (q.dread) earned *= 1.35;
@@ -1870,40 +2441,17 @@ class GameState extends ChangeNotifier {
     // transaction, including reserve, progress, and the exact frozen dates.
     final now = Clock.now();
     final today = Days.key(now);
-    if (lastCompletionDay != today) {
-      final sit = _streakSituation();
-      if (!sit.gap) {
-        streakDays += 1; // first ever, or yesterday → continues
-      } else if (sit.covered) {
-        streakFreezes -= sit.days.length;
-        frozenStreakDays.addAll(sit.days);
-        streakDays += 1;
-      } else {
-        comebacks++; // a real lapse — reset, but the return is celebrated
-        streakDays = 1;
-      }
-      lastCompletionDay = today;
-
-      // Showing up replenishes freezes without asking for a perfect board.
-      // Progress can sit one day from ready while the reserve is full; if a
-      // later completion spends a freeze, that same active day may refill it.
-      streakFreezes = b.freezeBalanceAfter;
-      streakFreezeProgress = min(
-        b.freezeCadenceAfter - 1,
-        b.freezeProgressAfter,
-      );
-
-      // streak milestone — a 7/30/100 day CROSSING queues a chest. This lives
-      // INSIDE the day-change block on purpose: a milestone can only be
-      // crossed when the streak increments, so the second+ completion of a
-      // milestone day must NOT re-pay the chest (day 30 × 6 quests once paid
-      // 1,200 embers and staged the takeover six times — the exact currency
-      // inflation the shop economy can't take).
-      if (streakMilestones.containsKey(streakDays)) {
-        _streakMilestoneQ.add(streakDays);
-        embers += streakMilestones[streakDays]!;
-      }
-    }
+    // Once per streak day; a class keep may already have lit today.
+    _advanceStreakDay(
+      today,
+      freezeBalanceAfter: b.freezeBalanceAfter,
+      freezeProgressAfter: b.freezeProgressAfter,
+      freezeCadenceAfter: b.freezeCadenceAfter,
+    );
+    // The Quest-only day marker moves after the shared streak advance.
+    lastCompletionDay = today;
+    // A Quest consumes a class-started welcome-back (or outlives it).
+    comebackPendingDay = null;
     if (streakDays > bestStreak) bestStreak = streakDays;
 
     // time-of-day flair
@@ -2030,6 +2578,7 @@ class GameState extends ChangeNotifier {
       }
     }
 
+    _rewardSerial++;
     notifyListeners();
   }
 
@@ -2082,11 +2631,14 @@ class GameState extends ChangeNotifier {
         ? null
         : totalCompletions - completionsAtLastLevel!;
     completionsAtLastLevel = totalCompletions;
+    final classesSince = totalClassesKept - classesAtLastLevel;
+    classesAtLastLevel = totalClassesKept;
     return LevelResult(
       leveledTo: reached,
       unlock: unlocks[reached],
       previousLevel: from,
       questsSince: since == null || since < 0 ? null : since,
+      classesSince: classesSince < 0 ? 0 : classesSince,
     );
   }
 
@@ -2350,6 +2902,8 @@ class GameState extends ChangeNotifier {
     'streakFreezeVersion': streakFreezeVersion,
     'frozenStreakDays': frozenStreakDays.toList()..sort(),
     'lastCompletionDay': lastCompletionDay,
+    if (lastStreakDay != null) 'lastStreakDay': lastStreakDay,
+    if (comebackPendingDay != null) 'comebackPendingDay': comebackPendingDay,
     'lastActiveDay': lastActiveDay,
     'totalCompletions': totalCompletions,
     'completionsAtLastLevel': completionsAtLastLevel,
@@ -2375,6 +2929,15 @@ class GameState extends ChangeNotifier {
     'todayXp': todayXp,
     'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
     'todayQuestTitles': todayQuestTitles,
+    // Schema 29: one list for the day's own records. Reward-bearing, so the
+    // schema bump makes an older build hold instead of dropping the proof.
+    'dayRecords': [for (final record in _dayRecords) record.toJson()],
+    'totalClassesKept': totalClassesKept,
+    'classesAtLastLevel': classesAtLastLevel,
+    'keptClassCounts': {
+      for (final code in _keptClassCounts.keys.toList()..sort())
+        code: _keptClassCounts[code],
+    },
     if (previousDayKey != null) 'previousDayKey': previousDayKey,
     'previousDayXp': previousDayXp,
     'previousDayStats': [for (final s in Stat.values) previousDayStats[s] ?? 0],
@@ -2686,6 +3249,8 @@ class GameState extends ChangeNotifier {
       if (key != null) s.frozenStreakDays.add(key);
     }
     s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
+    s._lastStreakDay = Days.validKey(j['lastStreakDay']);
+    s.comebackPendingDay = Days.validKey(j['comebackPendingDay']);
     s.lastActiveDay = Days.validKey(j['lastActiveDay']);
     s.totalCompletions = j['totalCompletions'] as int? ?? 0;
     s.completionsAtLastLevel = j['completionsAtLastLevel'] as int?;
@@ -2742,6 +3307,7 @@ class GameState extends ChangeNotifier {
     s.todayQuestTitles.addAll(
       ((j['todayQuestTitles'] as List?) ?? const []).cast(),
     );
+    s._decodeDayRecords(j);
     s.previousDayKey = Days.validKey(j['previousDayKey']);
     s.previousDayXp = j['previousDayXp'] as int? ?? 0;
     final previousStats =
@@ -2799,4 +3365,150 @@ class GameState extends ChangeNotifier {
     s.checkAchievements();
     return s;
   }
+
+  /// Tolerant decode of the day's own records. Never throws: a bad record is
+  /// dropped, a repeated day folds into one (newest wins, nothing re-awards),
+  /// and only an oversized list consults the clock, to protect the active
+  /// night while trimming. Counters are repaired upward, never down.
+  void _decodeDayRecords(Map<String, dynamic> j) {
+    final byDay = <String, DayRecord>{};
+    final rawRecords = j['dayRecords'];
+    if (rawRecords is List) {
+      for (final raw in rawRecords.take(dayRecordHorizon * 4)) {
+        final record = DayRecord.fromJson(raw);
+        if (record == null) continue;
+        final existing = byDay[record.dayKey];
+        byDay[record.dayKey] = existing == null
+            ? record
+            : DayRecord.merge(existing, record);
+      }
+    }
+    // A schema-29 preview build kept Extra Credit under its own key. Read it
+    // so such a save keeps its proof: one entry per day, newest wording.
+    final legacy = j['extraCredit'];
+    if (legacy is List) {
+      final entries = <ExtraCreditEntry>[
+        for (final raw in legacy.take(dayRecordHorizon * 4))
+          ?ExtraCreditEntry.fromJson(raw),
+      ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      for (final entry in entries) {
+        final record = byDay[entry.dayKey];
+        if (record?.extraCredit != null) continue;
+        byDay[entry.dayKey] = (record ?? DayRecord(dayKey: entry.dayKey))
+            .copyWith(extraCredit: entry);
+      }
+    }
+    _dayRecords
+      ..addAll(byDay.values)
+      ..sort((a, b) => a.dayKey.compareTo(b.dayKey));
+    if (_dayRecords.length > dayRecordHorizon) {
+      _trimDayRecords(retain: {Days.nightKey(Clock.now())});
+    }
+
+    final rawCounts = j['keptClassCounts'];
+    if (rawCounts is Map) {
+      for (final entry in rawCounts.entries.take(_maxCourseCounters)) {
+        final code = entry.key;
+        final count = entry.value;
+        if (code is String &&
+            code.trim().isNotEmpty &&
+            code.trim().length <= KeptClass.maxCodeLength &&
+            count is int &&
+            count > 0) {
+          _keptClassCounts[code.trim()] = count;
+        }
+      }
+    }
+    final counted = <String, int>{};
+    for (final record in _dayRecords) {
+      for (final kept in record.classes) {
+        counted[kept.courseCode] = (counted[kept.courseCode] ?? 0) + 1;
+      }
+    }
+    for (final entry in counted.entries) {
+      if ((_keptClassCounts[entry.key] ?? 0) < entry.value &&
+          (_keptClassCounts.containsKey(entry.key) ||
+              _keptClassCounts.length < _maxCourseCounters)) {
+        _keptClassCounts[entry.key] = entry.value;
+      }
+    }
+    final countedTotal = _keptClassCounts.values.fold(0, (a, b) => a + b);
+    final storedTotal = j['totalClassesKept'];
+    totalClassesKept = max(
+      storedTotal is int && storedTotal > 0 ? storedTotal : 0,
+      countedTotal,
+    );
+    final storedAtLevel = j['classesAtLastLevel'];
+    classesAtLastLevel = storedAtLevel is int
+        ? storedAtLevel.clamp(0, totalClassesKept)
+        : 0;
+  }
+}
+
+enum RewardUndoKind { quest, keptClass }
+
+/// The one whole-save undo slot (engine map §5.3).
+///
+/// A Quest completion and a class keep share it: the newest reward replaces
+/// the slot, and [canRestore] refuses once any later reward (Quest, class or
+/// Extra Credit) has landed, so an undo never erases a newer reward. The
+/// restore is the whole snapshot: day records are reward-bearing and are
+/// never merged back from the live save, because the snapshot already pairs
+/// every record with the XP it paid.
+final class RewardUndoSlot {
+  RewardUndoSlot._(
+    this._state,
+    this._serialBefore, {
+    required this.kind,
+    required this.label,
+    required this.snapshot,
+    this.classIdentity,
+    this.dayKey,
+  });
+
+  /// Capture just before the reward is applied. [snapshot] is the shell's
+  /// whole-save JSON (`onSnapshot`).
+  factory RewardUndoSlot.before(
+    GameState state, {
+    required RewardUndoKind kind,
+    required String label,
+    required String snapshot,
+    String? classIdentity,
+    String? dayKey,
+  }) => RewardUndoSlot._(
+    state,
+    state.rewardSerial,
+    kind: kind,
+    label: label,
+    snapshot: snapshot,
+    classIdentity: classIdentity,
+    dayKey: dayKey,
+  );
+
+  /// A class keep's slot, labelled and keyed for the row that shows undo.
+  factory RewardUndoSlot.beforeClass(
+    GameState state,
+    ClassFacts facts, {
+    required String snapshot,
+  }) => RewardUndoSlot.before(
+    state,
+    kind: RewardUndoKind.keptClass,
+    label: facts.label,
+    snapshot: snapshot,
+    classIdentity: facts.identity,
+    dayKey: facts.dayKey,
+  );
+
+  final GameState _state;
+  final int _serialBefore;
+  final RewardUndoKind kind;
+  final String label;
+  final String snapshot;
+  final String? classIdentity;
+  final String? dayKey;
+
+  /// True only while the reward this slot was taken for is the latest one on
+  /// the same live state.
+  bool canRestore(GameState live) =>
+      identical(live, _state) && live.rewardSerial == _serialBefore + 1;
 }
