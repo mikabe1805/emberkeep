@@ -601,8 +601,8 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
     dateLabel: 'AUGUST 2026',
     title: 'Open the door, on your terms.',
     introduction:
-        'You can now find other keepers through Discover — or list your own '
-        'room with a separate public name, only when you choose.',
+        'You can now find other keepers through Discover, and list your own '
+        'room under a separate public name whenever you choose.',
     highlights: <ReleaseHighlight>[
       ReleaseHighlight(
         kind: ReleaseHighlightKind.spaceDiscovery,
@@ -616,7 +616,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         title: 'YOUR PRIVATE LIFE STAYS PRIVATE',
         body:
             'Listing a room shows only an optional public name, its generated '
-            'style, title, and level — never quests, Journal pages, or account details.',
+            'style, title, and level. Quests, Journal pages, and account details stay private.',
       ),
       ReleaseHighlight(
         kind: ReleaseHighlightKind.roomGuide,
@@ -697,7 +697,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
     dateLabel: 'AUGUST 2026',
     title: 'Every surface has a voice.',
     introduction:
-        'Tap around and the room answers in its own materials — and the good '
+        'Tap around and the room answers in its own materials, and the good '
         'moments finally sound as good as they feel.',
     highlights: <ReleaseHighlight>[
       ReleaseHighlight(
@@ -719,7 +719,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         title: 'NO DEAD TAPS',
         body:
             'Retap the tab you are on, catch a scrolling list, hold an '
-            'all-day line — everything that does something says so.',
+            'all-day line. Everything that does something says so.',
       ),
     ],
   ),
@@ -729,7 +729,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
     dateLabel: 'AUGUST 2026',
     title: 'Every surface has a voice.',
     introduction:
-        'Tap around and the room answers in its own materials — and the good '
+        'Tap around and the room answers in its own materials, and the good '
         'moments finally sound as good as they feel.',
     highlights: <ReleaseHighlight>[
       ReleaseHighlight(
@@ -751,7 +751,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         title: 'NO DEAD TAPS',
         body:
             'Retap the tab you are on, catch a scrolling list, tap around the '
-            'Daybook — everything that does something says so.',
+            'Daybook. Everything that does something says so.',
       ),
     ],
   ),
@@ -785,7 +785,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         kind: ReleaseHighlightKind.questControl,
         title: 'QUESTS STAY YOURS',
         body:
-            'Take a quest back, choose it again, or move a weekly quest to another day without losing it.',
+            'Take a quest back, choose it again, or move a weekly quest to another day and it stays yours.',
       ),
       ReleaseHighlight(
         kind: ReleaseHighlightKind.interactionSound,
@@ -869,7 +869,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         kind: ReleaseHighlightKind.streakSafety,
         title: 'A SOFTER LANDING',
         body:
-            'Streak freezes can hold a missed day, then refill as you keep showing up.',
+            'Streak freezes can quietly hold a day away for you, then refill as you keep showing up.',
       ),
       ReleaseHighlight(
         kind: ReleaseHighlightKind.roomGuide,

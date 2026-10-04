@@ -50,7 +50,7 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
           await sharePng(
             bytes.buffer.asUint8List(),
             'room-of-days-weekly-chronicle.png',
-            '${data.shareText} · Room of Days',
+            '${data.shareText}\nRoom of Days',
           );
       if (!mounted) return;
       Sfx.instance.play(ok ? 'streak' : 'boing');
@@ -63,13 +63,13 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
   }
 
   void _copySummary() {
-    Clipboard.setData(ClipboardData(text: '${_data.shareText} · Room of Days'));
+    Clipboard.setData(ClipboardData(text: '${_data.shareText}\nRoom of Days'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          'Chronicle copied. The image can be shared from a native build.',
+          'Chronicle copied. The picture can be shared from the phone app.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),

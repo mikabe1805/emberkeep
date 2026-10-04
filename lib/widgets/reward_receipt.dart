@@ -117,7 +117,7 @@ class _RewardReceiptState extends State<RewardReceipt>
           'streak',
         ),
       _Bubble(
-        '+${b.xp} XP${b.embers > 0 ? ' · +${b.embers} Glimmers' : ''}',
+        '+${b.xp} XP${b.embers > 0 ? ' · +${b.embers} ${b.embers == 1 ? 'Glimmer' : 'Glimmers'}' : ''}',
         Icons.bolt,
         Palette.xp,
         null,

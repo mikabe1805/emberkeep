@@ -24,7 +24,7 @@ String dailySpark({
   }
   if (returning && streakDays == 0) {
     relevant.add(
-      'Welcome back — your progress is still here. One small quest and you’re moving again.',
+      'Welcome back. Your progress is right where you left it, and one small quest gets you moving again.',
     );
   }
   if (streakDays >= 3) {
@@ -34,7 +34,7 @@ String dailySpark({
   }
   if (perfectDays >= 1) {
     relevant.add(
-      'You’ve cleared the whole board ${perfectDays == 1 ? "once" : "$perfectDays times"} — you know how this goes.',
+      'You’ve cleared the whole board ${perfectDays == 1 ? "once" : "$perfectDays times"}. You know how this goes.',
     );
   }
   if (nearGoalTitle != null && nearGoalGap > 0) {
@@ -44,7 +44,7 @@ String dailySpark({
   }
   if (dominant != null) {
     relevant.add(
-      'Your ${dominant.label} is leading the build — feed it, or surprise yourself with something else.',
+      'Your ${dominant.label} is leading the build. Feed it, or surprise yourself with something else.',
     );
   }
   if (evidenceTitle != null) {
@@ -55,7 +55,7 @@ String dailySpark({
 
   const generic = [
     'One quest before you overthink it. That’s the whole trick.',
-    'You don’t have to feel ready — you just need one small win before noon.',
+    'Feeling ready is optional. One small win is enough to start.',
     'New day, fresh XP on the table. Start absurdly small.',
     'Whatever today holds, the smallest step still counts. Begin there.',
   ];

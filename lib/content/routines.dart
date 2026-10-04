@@ -104,7 +104,7 @@ class Routine {
 }
 
 const _muscleCaution =
-    'Feel it in the muscles — never the lower back, knees, or shoulders. Drop to the easier version if your form slips.';
+    'Feel it in the muscles, never in the lower back, knees, or shoulders. Drop to the easier version if your form slips.';
 const _stretchCaution = 'A mild pull is good. Sharp or joint pain? Back off.';
 
 const routines = <Routine>[
@@ -112,7 +112,7 @@ const routines = <Routine>[
   Routine(
     id: 'wake-up',
     title: 'Wake-Up Snack',
-    blurb: 'Four minutes, doable in pyjamas. This counts — really.',
+    blurb: 'Four minutes, doable in pyjamas. This really counts.',
     minutes: 4,
     difficulty: 2,
     stat: Stat.str,
@@ -123,14 +123,14 @@ const routines = <Routine>[
         kind: MoveKind.timed,
         seconds: 45,
         cue: 'Pump bent arms, fists soft, stay tall.',
-        easier: 'Seated march — lift alternate knees.',
+        easier: 'Seated march: lift alternate knees.',
         isWarmup: true,
       ),
       WorkoutMove(
         name: 'Shoulder rolls',
         kind: MoveKind.reps,
         reps: 10,
-        cue: 'Arms hang loose, roll slow — 5 forward, 5 back.',
+        cue: 'Arms hang loose. Roll slow, 5 forward and 5 back.',
         easier: 'Smaller circles.',
         isWarmup: true,
       ),
@@ -232,7 +232,7 @@ const routines = <Routine>[
   Routine(
     id: 'full-body',
     title: 'Beginner Full Body',
-    blurb: 'This won’t be Thor-level — promise. Gentle reps, lots of rest.',
+    blurb: 'This won’t be Thor-level, promise. Gentle reps, lots of rest.',
     minutes: 13,
     difficulty: 4,
     stat: Stat.str,
@@ -323,7 +323,8 @@ const routines = <Routine>[
   Routine(
     id: 'mobility',
     title: 'Gentle Mobility Flow',
-    blurb: 'No sweat, no strain — just loosening the hinges. A kind rest day.',
+    blurb:
+        'Easy loosening for stiff hinges, with no sweat or strain. A kind rest day.',
     minutes: 9,
     difficulty: 2,
     stat: Stat.vit,
@@ -416,7 +417,7 @@ const routines = <Routine>[
         name: 'Shoulder rolls',
         kind: MoveKind.reps,
         reps: 10,
-        cue: 'Arms hang, roll slowly — 5 forward, 5 back.',
+        cue: 'Arms hang. Roll slowly, 5 forward and 5 back.',
         easier: 'Smaller circles.',
       ),
       WorkoutMove(
@@ -443,7 +444,7 @@ const routines = <Routine>[
   Routine(
     id: 'level-two',
     title: 'Level Two',
-    blurb: 'You’ve outgrown the starter — same warmth, a real stretch.',
+    blurb: 'You’ve outgrown the starter. Same warmth, with a real stretch.',
     minutes: 16,
     difficulty: 6,
     stat: Stat.str,

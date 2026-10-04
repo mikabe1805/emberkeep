@@ -20,7 +20,7 @@ import 'pressable.dart';
 /// unshared, must not leak into a brag image.
 String shareMomentText(GameState state, int level) {
   final base =
-      'Level $level in Room of Days — built out of days I actually '
+      'Level $level in Room of Days, built out of days I actually '
       'kept.';
   final code = state.roomCode;
   if (code == null || code.isEmpty) return base;
@@ -157,7 +157,7 @@ class _ShareMomentSheetState extends State<ShareMomentSheet> {
               const SizedBox(height: 6),
               Text(
                 widget.state.roomCode == null
-                    ? 'Just the image — no link, no code.'
+                    ? 'Just the image, with no link or code.'
                     : 'The image travels with your room link.',
                 style: Type.label.copyWith(
                   fontSize: Type.minLabel,
@@ -257,7 +257,9 @@ class MomentCard extends StatelessWidget {
     final facts = <String>[
       if (name.isNotEmpty) name,
       if (state.streakDays > 0) 'day ${state.streakDays}',
-      if (state.totalCompletions > 0) '${state.totalCompletions} quests kept',
+      if (state.totalCompletions > 0)
+        '${state.totalCompletions} '
+            '${state.totalCompletions == 1 ? 'quest' : 'quests'} kept',
     ];
     return AspectRatio(
       aspectRatio: 4 / 5,

@@ -186,7 +186,7 @@ class _QuestCardState extends State<QuestCard>
     final mastery = quest.masteryTier;
     final masterySemantics = quest.masteryCompletions == 0
         ? ''
-        : ', ${quest.masteryCompletions} completions${mastery == QuestMasteryTier.unmarked ? '' : ', ${mastery.label.toLowerCase()} mastery'}';
+        : ', ${quest.masteryCompletions} ${quest.masteryCompletions == 1 ? 'completion' : 'completions'}${mastery == QuestMasteryTier.unmarked ? '' : ', ${mastery.label.toLowerCase()} mastery'}';
     final riseSemantics = quest.rising && quest.canRise
         ? ', rise progress ${quest.riseProgress} of ${Quest.risesAt}'
         : '';

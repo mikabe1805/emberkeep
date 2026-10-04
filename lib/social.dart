@@ -180,7 +180,7 @@ String roomInviteText(String code, {String? ownerName}) {
       : 'Come see my room. I’m $name in there, and it’s built out of the days '
             'I’ve actually been keeping.';
   return '$opening\n\n${roomInviteUrl(clean)}\n\n'
-      'It opens in a browser—nothing to install. If you already use Room of '
+      'It opens right in a browser, with nothing to install. If you already use Room of '
       'Days, the code is $clean.';
 }
 
@@ -846,13 +846,13 @@ Future<void> shareSpace(
     final previousRoomPhotoSharing = state.shareRoomPhoto;
     if (!await cloud.ensureAvailable()) {
       if (context.mounted) {
-        _toast(context, 'Sharing needs a connection — try again in a moment.');
+        _toast(context, 'Sharing needs a connection. Try again in a moment.');
       }
       return;
     }
     if (!await cloud.ensureSocialSession()) {
       if (context.mounted) {
-        _toast(context, 'Couldn’t connect sharing — try again.');
+        _toast(context, 'Couldn’t connect sharing. Try again in a moment.');
       }
       return;
     }
@@ -875,14 +875,14 @@ Future<void> shareSpace(
         RoomPublishFailure.permissionDenied =>
           'Sharing is updating on our side. Please try again shortly.',
         RoomPublishFailure.timedOut || RoomPublishFailure.network =>
-          'The connection went quiet. Your space is safe — try again.',
+          'The connection went quiet. Your space is safe, so try again in a moment.',
         RoomPublishFailure.media =>
           'Couldn’t add the fireplace photo to your shared room. Your private copy is unchanged. Reconnect and try again.',
         RoomPublishFailure.profileRejected =>
           'One of your shared cards contains a link, contact detail, or wording that cannot be published. Your private page is unchanged.',
         RoomPublishFailure.exhaustedCodes =>
           'Couldn’t reserve a share code. Please try once more.',
-        _ => 'Couldn’t share right now — try again.',
+        _ => 'Couldn’t share right now. Try again in a moment.',
       };
       _toast(context, message);
       return;
@@ -1027,7 +1027,7 @@ Future<SharedRoomVisit?> promptForSharedRoom(
     final cloud = CloudSync.instance;
     if (!await cloud.ensureAvailable()) {
       if (context.mounted) {
-        _toast(context, 'Visiting needs a connection — try again in a moment.');
+        _toast(context, 'Visiting needs a connection. Try again in a moment.');
       }
       return null;
     }
@@ -1188,7 +1188,10 @@ class _ShareDialogState extends State<_ShareDialog> {
     if (result == ShareTextResult.unavailable) {
       await Clipboard.setData(ClipboardData(text: _invite));
       if (mounted) {
-        _toast(context, 'Sharing isn’t available here — invite copied');
+        _toast(
+          context,
+          'Sharing isn’t available here, so the invite was copied',
+        );
       }
     }
   }
@@ -1674,7 +1677,7 @@ class _ShareDialogState extends State<_ShareDialog> {
       setState(() => _stopping = false);
       _toast(
         context,
-        'Couldn’t stop sharing yet — your code is still safe here.',
+        'Couldn’t stop sharing yet. Your code is still safe here.',
       );
     }
   }
@@ -1702,8 +1705,8 @@ class _ShareDialogState extends State<_ShareDialog> {
       _toast(
         context,
         next
-            ? 'Couldn’t open your door yet — your space is still private.'
-            : 'Couldn’t close your door yet — discovery is still on.',
+            ? 'Couldn’t open your door yet. Your space is still private.'
+            : 'Couldn’t close your door yet. Discovery is still on.',
       );
     }
   }

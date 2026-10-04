@@ -84,11 +84,11 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                       hint: 'What’s on your mind?',
                       emptyPreview:
                           'Keep notes on your '
-                          '${_stat.label.toLowerCase()} — plans, wins, '
+                          '${_stat.label.toLowerCase()}: plans, wins, '
                           'what needs doing.',
                       emptyHint:
                           'No entries yet. This is your space for '
-                          '${_stat.label} — plans, wins, what needs doing, '
+                          '${_stat.label}: plans, wins, what needs doing, '
                           'how it’s feeling.',
                       read: () => widget.state.notesFor(_stat),
                       onAdd: (text) {
@@ -211,7 +211,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
           const SizedBox(height: 6),
           Text(
             rank.tier >= 5
-                ? 'the highest rank — ${rank.label}'
+                ? 'the highest rank · ${rank.label}'
                 : 'climbing toward ${nextRank(_stat, value).label}',
             style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
           ),
@@ -275,7 +275,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
           const SizedBox(height: 12),
           if (quests.isEmpty)
             Text(
-              'No quests training ${_stat.label} yet — adopt one on Goals.',
+              'No quests training ${_stat.label} yet. You can adopt one on Goals.',
               style: Type.body.copyWith(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,

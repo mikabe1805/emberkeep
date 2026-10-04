@@ -734,8 +734,8 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             backgroundColor: Palette.card,
             content: Text(
               fromCamera
-                  ? 'Couldn’t reach your camera — you can allow it in Settings.'
-                  : 'Couldn’t reach your photos — you can allow it in Settings.',
+                  ? 'Couldn’t reach your camera. You can allow it in Settings.'
+                  : 'Couldn’t reach your photos. You can allow it in Settings.',
               style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
             ),
           ),
@@ -1493,7 +1493,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     final done = Semantics(
       key: const ValueKey('journal-entry-done'),
       button: true,
-      label: 'Done writing — entry is saved',
+      label: 'Done writing. Your entry is saved.',
       onTap: _finishEditing,
       excludeSemantics: true,
       child: GestureDetector(

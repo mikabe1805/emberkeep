@@ -131,7 +131,7 @@ const goalCatalog = <GoalIdea>[
     title: 'Routine keeper',
     blurb:
         'The unglamorous quests are the realest ones. Skincare, meds, the '
-        'weekly shot — showing up for yourself counts double here.',
+        'weekly shot. Showing up for yourself counts double here.',
     finishLine:
         'The care you rely on happens on its intended days without a last-minute rescue.',
     frictionCue: 'The day can move faster than the care you meant to do.',
@@ -201,7 +201,7 @@ const goalCatalog = <GoalIdea>[
     title: 'The strength path',
     blurb:
         'Two push-ups today beats a hundred never. The ladder is the '
-        'whole secret — every rung was someone’s impossible once.',
+        'whole secret. Every rung was someone’s impossible once.',
     finishLine:
         'You have a version of movement you can repeat and a clear sign of progress.',
     frictionCue: 'A full session can feel intimidating before you begin.',
@@ -266,8 +266,8 @@ const goalCatalog = <GoalIdea>[
   GoalIdea(
     title: 'Keep a journal',
     blurb:
-        'Five minutes with a pen does more than it looks like — for your '
-        'mood, your sleep, and how well you actually know yourself.',
+        'Five minutes with a pen does more than it looks like for your mood, '
+        'your sleep, and how well you actually know yourself.',
     finishLine:
         'You have a trail of entries that helps you recognize what your days feel like.',
     frictionCue: 'Some days may feel too full to turn into words.',
@@ -361,10 +361,10 @@ const goalCatalog = <GoalIdea>[
     title: 'Keep your space',
     blurb:
         'A tidy room is a kinder room to wake up in. None of this has to be '
-        'perfect — a made bed and one clear surface already change how the '
+        'perfect. A made bed and one clear surface already change how the '
         'whole day feels. Homes people call cluttered rather than restful track '
-        'with a flatter daily stress-hormone rhythm; you’re not chasing '
-        'spotless, you’re lowering the noise.',
+        'with a flatter daily stress-hormone rhythm, so each small reset lowers '
+        'the noise.',
     finishLine:
         'The room returns to usable without needing a full emergency clean.',
     frictionCue: 'The whole room can look bigger than the time you have.',
@@ -415,7 +415,7 @@ const goalCatalog = <GoalIdea>[
   GoalIdea(
     title: 'Tend your plants',
     blurb:
-        'Looking after something green is a quiet practice — it asks for a '
+        'Looking after something green is a quiet practice. It asks for a '
         'little, often, and gives back more than it takes. The research is '
         'unusually kind here: tending houseplants can lower blood pressure, and '
         'people who keep them report steadier moods and more everyday '
@@ -461,10 +461,10 @@ const goalCatalog = <GoalIdea>[
     title: 'Tend your creatures',
     blurb:
         'A creature that depends on you asks for a steadier love than a plant '
-        'does — fed on time, walked in the rain, their teeth and their checkups '
+        'does: fed on time, walked in the rain, their teeth and their checkups '
         'remembered even when it’s a hassle. None of it is optional to them, '
         'and that’s exactly what makes it count. The kindest secret: a walked '
-        'dog walks you too — whiskers, scales, or feathers all welcome.',
+        'dog walks you too. Whiskers, scales, and feathers are all welcome.',
     finishLine:
         'The next feeding, enrichment, cleaning, or care task is visible and handled before it becomes urgent.',
     frictionCue: 'Care can pile up when the day gets busy.',
@@ -516,7 +516,7 @@ const goalCatalog = <GoalIdea>[
     title: 'Feed yourself well',
     blurb:
         'Cooking for yourself is a love letter you write in real time. It '
-        'counts even when it’s simple — a plate with something green on it '
+        'counts even when it’s simple. A plate with something green on it '
         'beats takeout on autopilot, and future you is the one who gets fed.',
     finishLine:
         'You can reliably put together a meal that leaves you fed, even on a low-energy day.',
@@ -566,9 +566,9 @@ const goalCatalog = <GoalIdea>[
   GoalIdea(
     title: 'Tend your money',
     blurb:
-        'Money gets calmer the moment you look at it. This isn’t about spending '
-        'less for its own sake — it’s about knowing where you stand and quietly '
-        'building a little cushion, so the numbers stop being scary.',
+        'Money gets calmer the moment you look at it. The point is knowing '
+        'where you stand and quietly building a little cushion, so the numbers '
+        'stop being scary.',
     finishLine:
         'You can see what is due, what is available, and one next step that makes the month safer.',
     frictionCue:
@@ -614,7 +614,7 @@ const goalCatalog = <GoalIdea>[
     title: 'Wind down well',
     blurb:
         'Sleep is the quiet engine under every other stat. Your body keeps '
-        'better time than any alarm — it just needs you to be regular with it. '
+        'better time than any alarm when you’re regular with it. '
         'Protect the hour before bed, rise at a steady time, and the rest tends '
         'to follow.',
     finishLine:
@@ -695,14 +695,14 @@ const questWhy = <String, ({String claim, String source})>{
   // Keep a journal
   'One line a day': (
     claim:
-        'You don’t need pages — naming the day in one honest sentence builds '
+        'One honest sentence is enough. Naming the day that way builds '
         'self-awareness and the small daily habit that deeper reflection grows '
         'from. The barrier is the point: keep it low and you’ll keep it.',
     source: 'Expressive-writing research, Pennebaker 1997 (low-dose; general)',
   ),
   'Name three good things': (
     claim:
-        'Writing down three things that went well — and why — measurably lifted '
+        'Writing down three things that went well, and why, measurably lifted '
         'mood and lowered depressive symptoms for up to six months in a '
         'randomized trial. It trains attention toward what’s working.',
     source:
@@ -711,22 +711,22 @@ const questWhy = <String, ({String claim, String source})>{
   'Empty your head before bed': (
     claim:
         'People who spent five minutes writing tomorrow’s to-do list before bed '
-        'fell asleep faster than those who journaled about finished tasks — '
-        'offloading the open loops quiets a racing mind.',
+        'fell asleep faster than those who journaled about finished tasks. '
+        'Offloading the open loops quiets a racing mind.',
     source: 'Scullin et al. 2018, J. Experimental Psychology: General (RCT)',
   ),
   'Write it all out': (
     claim:
         'Writing continuously about something stressful for ~15 minutes, a few '
         'times, is linked to better mood and even physical-health markers in '
-        'the months after — putting feelings into words helps you process them. '
+        'the months after. Putting feelings into words helps you process them. '
         '(It can feel heavier in the moment; that’s normal.)',
     source: 'Pennebaker & Beall 1986; Pennebaker 1997 (expressive writing)',
   ),
   'Look back on your week': (
     claim:
         'Reflecting on what happened and what you learned beat spending that '
-        'same time on more doing, in controlled experiments — naming the lesson '
+        'same time on more doing, in controlled experiments. Naming the lesson '
         'is what makes experience actually stick.',
     source: 'Di Stefano, Gino, Pisano & Staats 2016, Harvard Business School',
   ),
@@ -734,20 +734,20 @@ const questWhy = <String, ({String claim, String source})>{
   'Make your bed': (
     claim:
         'Daily bed-makers report steadier sleep and a small end-of-day sense of '
-        'accomplishment — a tiny keystone habit that anchors the day’s order.',
+        'accomplishment. It’s a tiny keystone habit that anchors the day’s order.',
     source: 'National Sleep Foundation, Bedroom Poll (survey-grade)',
   ),
   'Ten-minute tidy': (
     claim:
         'Homes people describe as cluttered rather than restful track with a '
-        'flatter daily stress-hormone rhythm — ten minutes of clearing chips '
+        'flatter daily stress-hormone rhythm. Ten minutes of clearing chips '
         'away at that load.',
     source: 'Saxbe & Repetti 2010, PubMed 19934011 (correlational)',
   ),
   'Fresh sheets': (
     claim:
         'Weekly-washed sheets clear out the dust mites, sweat and dead skin that '
-        'trigger allergies, congestion and broken sleep.',
+        'trigger allergies, congestion and disrupted sleep.',
     source: 'Cleveland Clinic, sleep-hygiene guidance',
   ),
   'One load of laundry': (
@@ -761,22 +761,22 @@ const questWhy = <String, ({String claim, String source})>{
   'Deep-clean one room': (
     claim:
         'Homes people find restorative rather than cluttered show healthier '
-        'daily cortisol slopes — one reset room turns a stressor into a refuge.',
+        'daily cortisol slopes. One reset room turns a stressor into a refuge.',
     source: 'Saxbe & Repetti 2010, PubMed 19934011 (correlational)',
   ),
   // Tend your plants
   'Bring home a plant': (
     claim:
         'Indoor plants are linked to more positive emotion, less negative '
-        'feeling, and lower blood pressure — one green thing on the sill is a '
+        'feeling, and lower blood pressure. One green thing on the sill is a '
         'real start.',
     source: 'Han et al. 2022, systematic review & meta-analysis, PMC9224521',
   ),
   'Check on your plants': (
     claim:
         'More time spent caring for houseplants tracks with higher well-being '
-        'and more everyday mindfulness — the daily noticing is the mechanism, '
-        'not just the watering.',
+        'and more everyday mindfulness. The daily noticing does as much as the '
+        'watering.',
     source: 'Ma 2022, houseplant care & mindfulness, PMC9739745',
   ),
   'Water what needs it': (
@@ -788,7 +788,7 @@ const questWhy = <String, ({String claim, String source})>{
   'Give them a real tending': (
     claim:
         'Hands-in-soil transplanting suppressed “fight-or-flight” activity and '
-        'lowered blood pressure versus computer work — a weekly session is where '
+        'lowered blood pressure versus computer work. A weekly session is where '
         'the calm really lands.',
     source: 'Lee et al. 2015, randomized crossover study, PMC4419447',
   ),
@@ -796,13 +796,13 @@ const questWhy = <String, ({String claim, String source})>{
   'Feed on the same schedule': (
     claim:
         'Consistent meal times help regulate a pet’s digestion and weight and '
-        'ease food-related anxiety — vets recommend scheduled meals over '
+        'ease food-related anxiety, which is why vets recommend scheduled meals over '
         'free-feeding.',
     source: 'American Veterinary Medical Association, feeding guidance',
   ),
   'A proper walk or play session': (
     claim:
-        'Daily walks and play meet a pet’s exercise and enrichment needs — and '
+        'Daily walks and play meet a pet’s exercise and enrichment needs, and '
         'the walk doubles as yours: dog ownership is tied to about 24% lower '
         'all-cause mortality.',
     source:
@@ -817,15 +817,15 @@ const questWhy = <String, ({String claim, String source})>{
   ),
   'Everyone’s fed before you sleep': (
     claim:
-        'Reliable daily care — every creature fed and watered before lights-out '
-        '— is the backbone of pet welfare, and helps every meal and water check '
+        'Reliable daily care, with every creature fed and watered before '
+        'lights-out, is the backbone of pet welfare, and helps every meal and water check '
         'stay visible in a busy home.',
     source: 'American Animal Hospital Association, enrichment guidance',
   ),
   'Book the vet checkup': (
     claim:
-        'An annual wellness exam catches kidney, heart and dental disease early '
-        '— when it’s cheapest and most treatable, before your pet shows '
+        'An annual wellness exam catches kidney, heart and dental disease early, '
+        'while it’s cheapest and most treatable and before your pet shows '
         'symptoms.',
     source: 'AAHA / AVMA preventive-care guidance',
   ),
@@ -833,37 +833,37 @@ const questWhy = <String, ({String claim, String source})>{
   'Start with a glass of water': (
     claim:
         'Water in place of sugary drinks is tied to lower diabetes and heart '
-        'risk — and being well-hydrated steadies mood and focus.',
+        'risk, and being well-hydrated steadies mood and focus.',
     source: 'Sugary-drink meta-analysis PMC10050372; hydration RCT PMC6068860',
   ),
   'Cook a real meal': (
     claim:
-        'People who cook at home more often eat measurably better — more fruit '
-        'and veg, higher-quality diets. Simple counts.',
+        'People who cook at home more often eat measurably better, with more '
+        'fruit and veg and higher-quality diets. Simple counts.',
     source: 'Fenland cohort, n=11,396, PMC5561571',
   ),
   'Eat something green': (
     claim:
-        'Vegetables are how you quietly hit your fiber — around five servings of '
+        'Vegetables are how you quietly hit your fiber. Around five servings of '
         'fruit and veg a day tracks with about 13% lower risk of early death.',
     source: 'Pooled cohorts, Circulation 2021, PMID 33641343',
   ),
   'Eat one meal slowly, no screen': (
     claim:
-        'Slowing down lets your fullness signal land before you overshoot — '
-        'faster eaters are roughly twice as likely to carry excess weight.',
+        'Slowing down lets your fullness signal land before you overshoot. '
+        'Faster eaters are roughly twice as likely to carry excess weight.',
     source: 'Multi-ethnic cohort PMC7230501; chewing & satiety PMC8323852',
   ),
   'Plan the week’s meals': (
     claim:
-        'A little planning means more variety and a better diet — people who '
+        'A little planning means more variety and a better diet. People who '
         'plan their meals eat more healthfully and are less likely to be obese.',
     source: 'NutriNet-Santé, n=40,554, PMC5288891',
   ),
   // Tend your money
   'Check your balance': (
     claim:
-        'Briefly checking your accounts is financial self-monitoring — the '
+        'Briefly checking your accounts is financial self-monitoring, and the '
         'awareness it builds links to lower spending, fewer overdrafts, and more '
         'saving.',
     source: 'CFPB Making Ends Meet survey; financial-tracking research',
@@ -871,28 +871,28 @@ const questWhy = <String, ({String claim, String source})>{
   'Sleep on it before you buy': (
     claim:
         'Putting a 24-hour pause between wanting a non-essential and buying it '
-        'lets the impulse settle and your rational brain re-engage — measurably '
-        'cutting overspending.',
+        'lets the impulse settle and your rational brain re-engage, which '
+        'measurably cuts overspending.',
     source: 'Delay / “cooling-off” spending research',
   ),
   'Move a little to savings': (
     claim:
-        'Saving a small amount on a regular rhythm — ideally an automatic '
-        'transfer — is the strongest lever for the emergency cushion that most '
+        'Saving a small amount on a regular rhythm, ideally by automatic '
+        'transfer, is the strongest lever for the emergency cushion that most '
         'predicts financial well-being.',
     source: 'Hershfield, Shu & Benartzi 2020; CFPB Emergency Savings 2022',
   ),
   'Sit with the numbers': (
     claim:
-        'A regular money review builds the self-awareness behind better choices '
-        '— and a quick subscription scan catches the forgotten charges people '
+        'A regular money review builds the self-awareness behind better choices, '
+        'and a quick subscription scan catches the forgotten charges people '
         'bleed \$200+/yr on.',
     source: 'CFPB Financial Well-Being Scale; subscription-waste surveys',
   ),
   // Wind down well
   'In bed by your hour': (
     claim:
-        'Sleep regularity matters even more than how long you sleep — the most '
+        'Sleep regularity matters even more than how long you sleep. The most '
         'regular sleepers had 20–48% lower mortality than the most irregular, '
         'independent of duration.',
     source:
@@ -900,22 +900,22 @@ const questWhy = <String, ({String claim, String source})>{
   ),
   'Wake at the same time': (
     claim:
-        'A steady wake-up time is the strongest signal your body clock has — '
-        'consistent rise times track with better mood, metabolism, and heart '
+        'A steady wake-up time is the strongest signal your body clock has. '
+        'Consistent rise times track with better mood, metabolism, and heart '
         'health.',
     source: 'National Sleep Foundation, consensus on sleep regularity',
   ),
   'Screens down before sleep': (
     claim:
-        'Evening screen light delays your melatonin and pushes sleep later — '
-        'even moderate display light before bed lengthens how long it takes to '
+        'Evening screen light delays your melatonin and pushes sleep later. '
+        'Even moderate display light before bed lengthens how long it takes to '
         'fall asleep.',
     source: 'Höhn et al. 2023, Communications Biology, PMC9974389',
   ),
   'Dim the lights an hour before bed': (
     claim:
-        'Bright room light before bed suppresses melatonin by about 71% — '
-        'dimming the room lets the sleep signal arrive on time.',
+        'Bright room light before bed suppresses melatonin by about 71%. '
+        'Dimming the room lets the sleep signal arrive on time.',
     source: 'Gooley et al. 2011, J Clin Endocrinol Metab, PMC3047226',
   ),
 };

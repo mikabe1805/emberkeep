@@ -391,7 +391,7 @@ class _TimeFact extends StatelessWidget {
       return '${value.effectiveTimerMinutes}-minute timer';
     }
     if (estimateMinutes case final minutes?) {
-      return 'No timer · about $minutes minutes';
+      return 'No timer · about $minutes ${minutes == 1 ? 'minute' : 'minutes'}';
     }
     return 'No timer';
   }

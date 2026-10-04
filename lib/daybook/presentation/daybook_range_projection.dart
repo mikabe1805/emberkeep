@@ -651,7 +651,12 @@ abstract final class DaybookRangeProjection {
       labels.add('$focusCount focus ${focusCount == 1 ? 'choice' : 'choices'}');
     }
     if (hasDeadline) labels.add('deadline');
-    if (scheduledMinutes > 0) labels.add('$scheduledMinutes scheduled minutes');
+    if (scheduledMinutes > 0) {
+      labels.add(
+        '$scheduledMinutes scheduled '
+        '${scheduledMinutes == 1 ? 'minute' : 'minutes'}',
+      );
+    }
     if (conflicts.isNotEmpty) {
       labels.add(
         '${conflicts.length} ${conflicts.length == 1 ? 'conflict' : 'conflicts'}',

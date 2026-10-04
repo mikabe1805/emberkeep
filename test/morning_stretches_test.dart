@@ -75,6 +75,6 @@ void main() {
       find.textContaining('Move slowly, breathe normally'),
       findsOneWidget,
     );
-    expect(find.textContaining('no bouncing'), findsOneWidget);
+    expect(find.textContaining('No bouncing'), findsOneWidget);
   });
 }

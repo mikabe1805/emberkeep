@@ -683,7 +683,9 @@ void main() {
       await tester.pump();
 
       expect(
-        find.text('Search unavailable — type the location instead.'),
+        find.text(
+          'Search isn’t available right now. You can type the location instead.',
+        ),
         findsOneWidget,
       );
       await tester.enterText(
@@ -726,7 +728,9 @@ void main() {
 
       await _acceptPlaceSearch(tester);
       expect(
-        find.text('Search unavailable — type the location instead.'),
+        find.text(
+          'Search isn’t available right now. You can type the location instead.',
+        ),
         findsOneWidget,
       );
 

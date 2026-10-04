@@ -363,7 +363,7 @@ class VisitRoomScreen extends StatelessWidget {
                       ),
                       if (memories > 0)
                         Text(
-                          '$memories memories held',
+                          '$memories ${memories == 1 ? 'memory' : 'memories'} held',
                           style: Type.body.copyWith(
                             fontSize: 11.5,
                             color: Palette.textLo,
@@ -1096,7 +1096,7 @@ class _LeaveNoteActionState extends State<_LeaveNoteAction> {
       case SparkSendResult.alreadyWaiting:
         _toast('A note from you is already waiting by their fire.');
       case SparkSendResult.failed:
-        _toast('The connection went quiet — try again in a bit.');
+        _toast('The connection went quiet. Try again in a bit.');
     }
   }
 

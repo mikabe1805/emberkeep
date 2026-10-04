@@ -74,7 +74,7 @@ class WeeklyChronicleData {
         '$delta more ${delta == 1 ? 'quest' : 'quests'} than the week before',
     ];
     if (parts.isNotEmpty || classesKept > 0) return parts.join(' · ');
-    if (delta < 0) return 'a quieter week, still part of the story';
+    if (delta < 0) return 'a quieter week, and still part of the story';
     return 'steady with the week before';
   }
 

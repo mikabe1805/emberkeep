@@ -94,7 +94,7 @@ void main() {
     Clock.freeze(DateTime(2026, 10, 5, 9));
     expect(
       weeklyChronicleFor(quieter).deltaLine,
-      'a quieter week, still part of the story',
+      'a quieter week, and still part of the story',
     );
     final one = GameState()..history.addAll({'2026-09-29': 1});
     expect(

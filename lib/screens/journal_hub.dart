@@ -609,8 +609,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
-                            'Notes live on your quests, goals and domains too — '
-                            'open any of them to add more.',
+                            'Notes live on your quests, goals and domains too. '
+                            'Open any of them to add more.',
                             textAlign: TextAlign.center,
                             style: Type.body.copyWith(
                               fontSize: 11.5,
@@ -666,7 +666,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     Text(
                       count == 0
                           ? 'turn moments and milestones into things your space can hold'
-                          : '$count artifacts · $chosen ${chosen == 1 ? 'moment' : 'moments'} chosen by you',
+                          : '$count ${count == 1 ? 'artifact' : 'artifacts'}'
+                                '${chosen == 0 ? '' : ' · $chosen ${chosen == 1 ? 'moment' : 'moments'} chosen by you'}',
                       style: Type.body.copyWith(
                         fontSize: 11.5,
                         color: Palette.textLo,
@@ -746,7 +747,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         Icon(Icons.search_off, size: 24, color: Palette.textLo),
         const SizedBox(height: 10),
         Text(
-          'nothing matches — yet',
+          'nothing matches yet',
           style: Type.body.copyWith(
             fontSize: 13,
             fontStyle: FontStyle.italic,
@@ -781,7 +782,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'a whole page to think out loud — saved as you go',
+                      'a whole page to think out loud, saved as you go',
                       style: Type.body.copyWith(
                         fontSize: 12.5,
                         color: Palette.textLo,
@@ -809,52 +810,68 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
       ),
       const SizedBox(height: 7),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            if (_s.todayQuestTitles.isNotEmpty)
-              _promptChip(
-                Icons.route_rounded,
-                'QUEST THREAD',
-                'After the quest',
-                'What made it easier, harder, or worth repeating?',
-                'After “${_s.todayQuestTitles.last}”:\n',
-              )
-            else
-              _promptChip(
-                Icons.auto_awesome,
-                'SMALL WIN',
-                'A small win',
-                'Start with something that counted, even if nobody saw it.',
-                'One small win today:\n',
-              ),
-            _promptChip(
-              Icons.air,
-              'UNLOAD',
-              'Set it down',
-              'Name what felt heavy. You do not need to solve it here.',
-              'What felt heavy:\n',
-            ),
-            _promptChip(
-              Icons.favorite_border,
-              'GRATEFUL',
-              'A warm detail',
-              'Hold onto one person, place, or moment you are grateful for.',
-              'Something I’m grateful for:\n',
-            ),
-            _promptChip(
-              Icons.north_east,
-              'TOMORROW',
-              'The next step',
-              'Make tomorrow smaller: what is the first gentle move?',
-              'Tomorrow’s first step:\n',
-            ),
-          ],
-        ),
+      // Equal tiles, two to a row on a phone, so every way in reads in full
+      // at any width or text size (a sideways scroller sliced the last chip
+      // at the list padding with no cue that it scrolled).
+      LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 7.0;
+          final columns = constraints.maxWidth >= 600 ? 4 : 2;
+          final tileWidth =
+              (constraints.maxWidth - gap * (columns - 1)) / columns;
+          return Wrap(
+            key: const ValueKey('journal-prompt-chips'),
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (final chip in _promptChips())
+                SizedBox(width: tileWidth, child: chip),
+            ],
+          );
+        },
       ),
     ],
   );
+
+  List<Widget> _promptChips() => [
+    if (_s.todayQuestTitles.isNotEmpty)
+      _promptChip(
+        Icons.route_rounded,
+        'QUEST THREAD',
+        'After the quest',
+        'What made it easier, harder, or worth repeating?',
+        'After “${_s.todayQuestTitles.last}”:\n',
+      )
+    else
+      _promptChip(
+        Icons.auto_awesome,
+        'SMALL WIN',
+        'A small win',
+        'Start with something that counted, even if nobody saw it.',
+        'One small win today:\n',
+      ),
+    _promptChip(
+      Icons.air,
+      'UNLOAD',
+      'Set it down',
+      'Name what felt heavy. You do not need to solve it here.',
+      'What felt heavy:\n',
+    ),
+    _promptChip(
+      Icons.favorite_border,
+      'GRATEFUL',
+      'A warm detail',
+      'Hold onto one person, place, or moment you are grateful for.',
+      'Something I’m grateful for:\n',
+    ),
+    _promptChip(
+      Icons.north_east,
+      'TOMORROW',
+      'The next step',
+      'Make tomorrow smaller: what is the first gentle move?',
+      'Tomorrow’s first step:\n',
+    ),
+  ];
 
   Widget _todayThread() {
     final trace = _todayTrace();
@@ -934,35 +951,34 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     String heading,
     String hint,
     String starter,
-  ) => Padding(
-    padding: const EdgeInsets.only(right: 7),
-    child: Semantics(
-      button: true,
-      label: 'Start journal prompt: $label',
-      child: GestureDetector(
-        onTap: () =>
-            _openEditor(heading: heading, hint: hint, starter: starter),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: facetedDecoration(
-            cut: 7,
-            color: Palette.xp.withValues(alpha: 0.08),
-            borderColor: Palette.xp.withValues(alpha: 0.28),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 13, color: Palette.xpLight),
-              const SizedBox(width: 6),
-              Text(
+  ) => Semantics(
+    button: true,
+    label: 'Start journal prompt: $label',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openEditor(heading: heading, hint: hint, starter: starter),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        decoration: facetedDecoration(
+          cut: 7,
+          color: Palette.xp.withValues(alpha: 0.08),
+          borderColor: Palette.xp.withValues(alpha: 0.28),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 13, color: Palette.xpLight),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
                 label,
                 style: Type.label.copyWith(
                   fontSize: Type.minLabel,
                   color: Palette.xpLight,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     ),
@@ -980,8 +996,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         const SizedBox(height: 6),
         Text(
           'Write one line above. Your journal keeps the date, today’s quests, '
-          'your goal threads, and the build you had when you wrote it — no '
-          'manual tagging required.',
+          'your goal threads, and the build you had when you wrote it, so '
+          'there is nothing to tag by hand.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(
             fontSize: 13,

@@ -85,7 +85,7 @@ const momentumKits = <MomentumKitSpec>[
     eyebrow: 'BEGINNERS & OLDER ADULTS',
     title: 'Steady Day',
     promise: 'A plain, balanced day: move gently, tend a need, reach outward.',
-    detail: 'No optimization language, no intensity contest, no failure state.',
+    detail: 'Gentle wording and an easy pace. Any day you show up counts.',
     stat: Stat.soc,
   ),
   MomentumKitSpec(

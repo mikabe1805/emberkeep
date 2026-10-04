@@ -101,7 +101,7 @@ class _FriendlyError extends StatelessWidget {
           ),
           SizedBox(height: 10),
           Text(
-            'A snag — but your progress is safe.',
+            'A small snag. Your progress is safe.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,

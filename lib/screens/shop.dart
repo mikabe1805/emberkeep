@@ -279,7 +279,8 @@ class _ShopScreenState extends State<ShopScreen> {
                     title: 'Change your space',
                     accent: current.accent,
                     subtitle: 'one room, wherever your day takes you',
-                    pill: '${state.embers} GLIMMERS',
+                    pill:
+                        '${state.embers} ${state.embers == 1 ? 'GLIMMER' : 'GLIMMERS'}',
                   ),
                   Expanded(
                     child: ListView(

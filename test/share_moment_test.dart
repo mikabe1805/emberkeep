@@ -79,7 +79,7 @@ void main() {
       MaterialApp(home: ShareMomentSheet(state: state, level: 7)),
     );
     await tester.pump();
-    expect(find.text('Just the image — no link, no code.'), findsOneWidget);
+    expect(find.text('Just the image, with no link or code.'), findsOneWidget);
 
     state.roomCode = 'ABC234';
     await tester.pumpWidget(

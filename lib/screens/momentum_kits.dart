@@ -789,7 +789,7 @@ String _capacityCopy(MomentumKitKind kind, int value) {
     return switch (value) {
       1 => 'One basic kindness. That is a complete day.',
       2 => 'Tend yourself, then make one corner lighter.',
-      _ => 'A small, balanced board — still deliberately gentle.',
+      _ => 'A small, balanced board that stays gentle on purpose.',
     };
   }
   if (kind == MomentumKitKind.examSeason) {

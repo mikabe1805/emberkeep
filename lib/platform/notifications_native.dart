@@ -211,8 +211,8 @@ class Notifications {
       await _plugin.cancel(_dailyId);
       await _plugin.zonedSchedule(
         _dailyId,
-        'Your quests are waiting',
-        'One small win before the day gets away from you.',
+        'Your room is open',
+        'Today’s quests are on the board, ready whenever you are.',
         _nextInstanceOfTime(hour, minute),
         _details(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

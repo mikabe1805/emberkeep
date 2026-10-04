@@ -119,7 +119,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
             behavior: SnackBarBehavior.floating,
             backgroundColor: Palette.card,
             content: Text(
-              'Couldn’t remove this space yet. Nothing changed — reconnect and try again.',
+              'Couldn’t remove this space yet. Nothing changed, so reconnect and try again.',
               style: Type.body.copyWith(color: Palette.textHi),
             ),
           ),
@@ -473,7 +473,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
       case SparkSendResult.alreadyWaiting:
         _toast('A note from you is already waiting by their fire.');
       case SparkSendResult.failed:
-        _toast('The connection went quiet — try again in a bit.');
+        _toast('The connection went quiet. Try again in a bit.');
     }
   }
 
@@ -546,7 +546,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
               const SizedBox(height: 6),
               Text(
                 'Your space isn’t shared yet. Sitting in company shares it '
-                'with a room code — that’s how friends see you beside their '
+                'with a room code, which is how friends see you beside their '
                 'fire. You can stop sharing any time from Me.',
                 textAlign: TextAlign.center,
                 style: Type.body.copyWith(
@@ -1323,7 +1323,8 @@ class _CircleKeepCard extends StatelessWidget {
                       style: Type.display.copyWith(fontSize: 17),
                     ),
                     Text(
-                      '$code · $buildTitle · LEVEL $level · $memories MEMORIES',
+                      '$code · $buildTitle · LEVEL $level · '
+                      '$memories ${memories == 1 ? 'MEMORY' : 'MEMORIES'}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(fontSize: Type.minLabel),
@@ -1638,7 +1639,7 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
           if (widget.firstShare) ...[
             const SizedBox(height: 8),
             Text(
-              'Your space isn’t shared yet — lighting the timer shares it '
+              'Your space isn’t shared yet. Lighting the timer shares it '
               'with a room code, so friends who hold it can sit with you.',
               style: Type.body.copyWith(
                 fontSize: 12.5,

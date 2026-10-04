@@ -1,3 +1,4 @@
+import 'package:emberkeep/content/goal_catalog.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/goal_adjustment.dart';
 import 'package:emberkeep/goal_planner.dart';
@@ -377,4 +378,69 @@ void main() {
     expect(f.quests, [same(result.replacement)]);
     expect(f.goal.openingSeen, isTrue);
   });
+
+  test(
+    'a catalog workout Quest still matches the plan an older save holds',
+    () {
+      // Build 49 and earlier saved these rungs inside each workout plan step
+      // (actionTitle and questTemplate). "Add missing actions" binds a Quest
+      // built from today's catalog to that step, and the adjustment review
+      // refuses a Quest whose text no longer matches. Renaming the rungs needs
+      // a decode migration for those saves first.
+      const savedRungs = [
+        'Workout — 20 minutes',
+        'Workout — 30 minutes',
+        'Workout — 45 minutes',
+        'Workout — full hour',
+      ];
+      final idea = goalCatalog.firstWhere(
+        (idea) => idea.title == 'The strength path',
+      );
+      final template = idea.quests.firstWhere(
+        (template) => template.title == 'Full workout session',
+      );
+      final savedTemplate = Quest.fromJson(
+        template.build(goalTitle: idea.title).toJson()..['ladder'] = savedRungs,
+      );
+      final plan = GoalPlanner.fromActions(
+        title: idea.title,
+        stat: idea.stat,
+        type: GoalRouteType.routine,
+        actions: [savedTemplate.displayTitle],
+        questTemplates: [savedTemplate],
+        now: now,
+        outcome: idea.title,
+        successProof: idea.finishLine,
+        obstacleCue: idea.frictionCue,
+      );
+      expect(plan.steps.single.actionTitle, 'Workout — 20 minutes');
+      final goal = Goal(
+        title: idea.title,
+        stat: idea.stat,
+        target: 3,
+        plan: plan,
+        openingSeen: true,
+      );
+      final state = GameState()..addGoal(goal);
+
+      final fresh = template.build(goalTitle: idea.title)
+        ..goalPlanStepId = plan.steps.single.id
+        ..goalPlanRevision = plan.revision
+        ..goalPlanAttempt = 1;
+
+      // With renamed rungs this threw "The live Quest action no longer
+      // matches the plan." and the too-big and low-energy reviews did nothing.
+      final draft = GoalAdjustment.buildDraft(
+        state: state,
+        goal: goal,
+        quests: [fresh],
+        signal: GoalPlanSignal.tooBig,
+        now: now,
+      );
+      expect(draft.originalQuest, isNotNull);
+      expect(draft.originalQuest!.goalPlanStepId, plan.steps.single.id);
+      expect(draft.originalQuest!.displayTitle, 'Workout — 20 minutes');
+      expect(fresh.ladder, savedRungs);
+    },
+  );
 }

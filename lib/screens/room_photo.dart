@@ -344,7 +344,7 @@ class _RoomPhotoScreenState extends State<RoomPhotoScreen> {
                             const SizedBox(height: 5),
                             Text(
                               state.shareRoomPhoto
-                                  ? 'Edits here change only this device. Your shared room keeps its current uploaded copy until you choose Update shared copy—or turn it off—from Personalize your space.'
+                                  ? 'Edits here change only this device. Your shared room keeps its current uploaded copy until you choose Update shared copy, or turn the photo off, in Personalize your space.'
                                   : 'It appears to room visitors only if you later choose Show in my shared room from Personalize your space. Discover cards never show it.',
                               style: Type.body.copyWith(
                                 fontSize: 13,

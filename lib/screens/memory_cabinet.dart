@@ -69,7 +69,7 @@ class MemoryCabinetScreen extends StatelessWidget {
                         const _SectionHeading(
                           title: 'ACHIEVEMENT HEIRLOOMS',
                           subtitle:
-                              'earned objects — never bought, never random',
+                              'each one earned by something you actually did',
                           accent: Palette.unlock,
                         ),
                         const SizedBox(height: 9),

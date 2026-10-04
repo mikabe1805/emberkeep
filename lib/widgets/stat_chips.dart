@@ -69,7 +69,8 @@ class _StatChipsState extends State<StatChips> {
                                 : () => widget.onSelect!(s),
                             label: widget.onSelect == null
                                 ? null
-                                : 'Explore ${s.label}, ${widget.values[s] ?? 0} points',
+                                : 'Explore ${s.label}, ${widget.values[s] ?? 0} '
+                                      '${(widget.values[s] ?? 0) == 1 ? 'point' : 'points'}',
                             excludeSemantics: widget.onSelect != null,
                             child: Material(
                               color: Colors.transparent,

@@ -33,7 +33,7 @@ const spaceThemes = <SpaceTheme>[
     id: 'wall_walnut',
     name: 'The Writer’s Hearth',
     subtitle: 'walnut, books, and a working fire',
-    description: 'The original room—warm, practical, and already lived in.',
+    description: 'The original room. Warm, practical, and already lived in.',
     price: 0,
     plateAsset: 'assets/rooms/wall_walnut-quest-depth-v1.webp',
     previewAsset: 'assets/rooms/previews/wall_walnut-quest-depth-v1.webp',
