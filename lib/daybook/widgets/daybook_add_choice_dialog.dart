@@ -105,21 +105,21 @@ class DaybookAddChoiceDialog extends StatelessWidget {
               ),
               const SizedBox(height: 9),
               _DaybookAddChoice(
+                key: const ValueKey('academic-add-choice-import'),
+                icon: Icons.school_outlined,
+                title: 'ADD YOUR CLASSES',
+                subtitle: 'From a calendar file, a link, or typed in',
+                onTap: () =>
+                    Navigator.of(context).pop(DaybookAddTarget.importClasses),
+              ),
+              const SizedBox(height: 7),
+              _DaybookAddChoice(
                 key: const ValueKey('academic-add-choice-class'),
                 icon: Icons.calendar_view_week_outlined,
                 title: 'CLASS',
                 subtitle: 'A lecture, lab, meeting, or recurring class',
                 onTap: () =>
                     Navigator.of(context).pop(DaybookAddTarget.classMeeting),
-              ),
-              const SizedBox(height: 7),
-              _DaybookAddChoice(
-                key: const ValueKey('academic-add-choice-import'),
-                icon: Icons.upload_file_outlined,
-                title: 'IMPORT CLASSES',
-                subtitle: 'Review an .ics schedule before adding it',
-                onTap: () =>
-                    Navigator.of(context).pop(DaybookAddTarget.importClasses),
               ),
               const SizedBox(height: 7),
               _DaybookAddChoice(
