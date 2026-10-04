@@ -96,6 +96,21 @@
         "id": "large-text-reduce-motion",
         "state": "130% text and Reduced Motion on Tuesday 11:52",
         "why_can_disprove": "Clipped titles, an overflowing HUD or motion under Reduced Motion would fail rubric 7."
+      },
+      {
+        "id": "board-slide",
+        "state": "Tue 15:36 BOARD rising over the room",
+        "why_can_disprove": "Two rooms and two HUDs that disagree would read as a collage."
+      },
+      {
+        "id": "two-digit-count",
+        "state": "YOUR 24TH LECTURE on the class tier, the day tier and at 130%",
+        "why_can_disprove": "A numeral breaking out of the diamond, or a diamond crowding the headline, would show most of the term."
+      },
+      {
+        "id": "other-room-style",
+        "state": "The archive room between classes, the celebration and back",
+        "why_can_disprove": "A plate that changes scale between the room and the celebration doubles during the fade."
       }
     ]
   },
@@ -113,8 +128,8 @@
       "id": "board-on-a-class-day",
       "surface_or_primitive": "The full board behind BOARD on a class day, with a ROOM line above the dock",
       "state": "BOARD, ROOM, reopening after a class boundary, Goals hand-off",
-      "expected_effect": "The board keeps its state while the room shows and returns with one calm slide, no blur.",
-      "verification_plan": "Widget tests for BOARD and ROOM and resume; renders D4a and D4b.",
+      "expected_effect": "The board keeps its state while the room shows; BOARD fades the room back as the board rises, the board already on the same numbers and its window on the class day's hour; no blur.",
+      "verification_plan": "Widget tests for BOARD, ROOM, resume, the Goals hand-off, the dock's clear-focus bump and the hidden-tab mount; renders D4a, D4b.",
       "disposition": "update",
       "reason": ""
     },
@@ -132,7 +147,7 @@
       "surface_or_primitive": "CalendarPage Add your classes sheet",
       "state": "Opened from the Quests board row",
       "expected_effect": "The shell switches to Plans and the sheet opens once per request.",
-      "verification_plan": "Shell wiring through addClassesRequestId; manual check on device.",
+      "verification_plan": "Shell tests: an empty loaded timetable on a weekday offers the row, the tap opens the Plans sheet once per request, a loading or non-empty timetable offers none; on device.",
       "disposition": "update",
       "reason": ""
     },
@@ -144,6 +159,42 @@
       "verification_plan": "Next slice's own record.",
       "disposition": "deferred",
       "reason": "Rubric item 6 is a separate piece of the class-day journey and is not in this slice's scope."
+    },
+    {
+      "id": "rolling-number-reduce-motion",
+      "surface_or_primitive": "RollingNumber (Me page, board header, class-day HUD)",
+      "state": "MediaQuery.disableAnimations on: OS Reduce Motion, or the class day's hidden side",
+      "expected_effect": "The number lands at once instead of rolling, as the stat chips and the XP bar already did; unchanged with animations on.",
+      "verification_plan": "Full suite; the BOARD-after-a-mark and hidden-tab widget tests; render D4a.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "home-room-window-layer",
+      "surface_or_primitive": "HomeRoom writer room far plane",
+      "state": "The board backdrop on a class day",
+      "expected_effect": "The window shows the class day's hour; without a class day nothing is passed and the room is unchanged.",
+      "verification_plan": "Full suite (no-timetable and non-class-day board tests); renders D4a, D4b, N1.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "quest-undo-later-edits",
+      "surface_or_primitive": "Quest undo on the board: Today's three, tomorrow's three, Gentle Mode's three, Not in school",
+      "state": "An armed undo, then one of these edits",
+      "expected_effect": "The edit settles the armed undo (engine map 5.3.4), so a restore never quietly reverts it.",
+      "verification_plan": "Widget tests for Not in school and Today's three under a kept class; full suite.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "add-classes-row-anchor",
+      "surface_or_primitive": "The Add your classes row on the no-timetable board",
+      "state": "The hero just kept and still selected (no hero shown)",
+      "expected_effect": "The row stays under the first Quest instead of disappearing until another row is chosen.",
+      "verification_plan": "Widget test: Not in school with an armed Quest undo; render N1.",
+      "disposition": "update",
+      "reason": ""
     }
   ],
   "unverified_property": "Whether the press, the camera's ease back and the celebration's timing feel rewarding rather than slow on his iPhone, with sound and haptics, on an ordinary Tuesday and on the seventh mark of a week.",
@@ -163,7 +214,11 @@
       "lib/engine.dart",
       "test/class_day_board_test.dart",
       "test/class_day_model_test.dart",
-      "test/design_renders/class_day_board_build_test.dart"
+      "test/design_renders/class_day_board_build_test.dart",
+      "lib/widgets/count_up.dart",
+      "lib/widgets/home_room.dart",
+      "test/class_credit_test.dart",
+      "test/class_day_plumbing_test.dart"
     ],
     "exclude": []
   }
