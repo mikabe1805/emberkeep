@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "brief_id": "class-day-journey-board-2026-10-04",
+  "brief_sha256": "c9317d626b0dca47ae23051cc5c2d4c0e9866921541c5fa341fe523dd6552cfc",
+  "phase": "slice",
+  "implementation_revision": "commit:750d1224d67fbbcfce6e687ca1fccd4520e512fc",
+  "revision_captured_at": "2026-10-04T06:56:29-04:00",
+  "checks": [
+    {
+      "id": "slice-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Mount the real QuestsPage on his Fall 2026 timetable with instant-correct clocks; assert keepClass effects, Quest counters, the flushed Quest commit, the whole-save undo and the level-up line.",
+      "input_state": "Tue Oct 6 11:52 and 15:35, Mon Oct 5 19:15, Thu Oct 8 15:22, Fri Oct 9 18:56; a level-18 save near and far from level 19.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "A mark pays +25 XP and +3 MIND (lab +30, +5 CRAFT), the full day +10 once; totalCompletions and history never move; a staged Quest reward lands before the class write and its undo is gone; the swipe restores the snapshot taken before the keep; the real level-up says 11 quests and one class since level 18.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Widget, model and full-suite results for the board and celebration",
+          "path": "design/execution-mode/active/class-day-journey/test-report.md",
+          "generated_at": "2026-10-04T06:58:50-04:00",
+          "content_sha256": "baa54922bbed1336b77500807aa1b2c7e65deedec354187b8e099d0f47f86fed",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Widget tests for every row state and tier, the finger hold, quick chain, shortcut, undo and short swipe, BOARD and ROOM, resume and the class boundary timer; harness renders of the press.",
+      "input_state": "The same days; Reduce Motion; 130% text at 393 x 852.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "I WAS THERE after a class, I'M HERE in session, STARTS IN 12 MIN only inside 15 minutes; the class tier is back at 2.4 s unless a finger is down, the quick tier at about 1.4 s, the day and week tiers wait; one shortcut marks three classes with one celebration; a short swipe keeps the class.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Widget, model and full-suite results for the board and celebration",
+          "path": "design/execution-mode/active/class-day-journey/test-report.md",
+          "generated_at": "2026-10-04T06:58:50-04:00",
+          "content_sha256": "baa54922bbed1336b77500807aa1b2c7e65deedec354187b8e099d0f47f86fed",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "render",
+          "state": "Finger down on I WAS THERE",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2a_tue1152_press.png",
+          "generated_at": "2026-10-04T06:57:22-04:00",
+          "content_sha256": "30b8bf70906558b442b48ff4013e1bdb631e2fcdc19440891736ee939d893597",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Released: the card ring closed",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2b_tue1152_contact_100ms.png",
+          "generated_at": "2026-10-04T06:57:23-04:00",
+          "content_sha256": "12eb52b2f70f4badaecb47e2e5d34dd0c6f2132459d1c0507d08794aa1d05e52",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Render every journey frame in the real app and inspect each beside concept B at the same size.",
+      "input_state": "393 x 852 at 3x with real safe areas, his timetable, the week played forward through the engine.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "The room fills the frame above one restrained glass card on the floor line, the whole lamp in frame and the fireplace out of it; the celebration keeps the level-up's dim with no blur, the lamp answering on the desk, no ring over the painting and no plate drawn on it.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Concept B beside the build: Tuesday first frame, press, celebration, day tier, back home",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-1.png",
+          "generated_at": "2026-10-04T06:58:01-04:00",
+          "content_sha256": "5c9b96c37209dde6e6404fcb3d1f78dabe42945d1fb24e68ffe6a77fc2828ab2",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Concept B beside the build: Monday shortcut, Thursday quick, week, level-up, 130% text, Reduce Motion, no timetable",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-2.png",
+          "generated_at": "2026-10-04T06:58:03-04:00",
+          "content_sha256": "3d6b571fdb738c76898217b36076167ecdd6d4ba1292a397b70cc0766b0becb1",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-between-classes",
+      "requirement_id": "state:between-classes",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the Tuesday 11:52 first frame.",
+      "input_state": "Tue Oct 6 11:52, Computer Architecture ended, Discrete at 2:00.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "One luminous I WAS THERE; Discrete shows its start time on a dim future mark; the HUD keeps level, XP and six stats in two lines; Today's three and BOARD are one line.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Tuesday between classes",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B1_tue1152_between_classes.png",
+          "generated_at": "2026-10-04T06:57:21-04:00",
+          "content_sha256": "62b78ba07e55e74161d9bebf473f89ca9d24614a47f7398ef6e9ffd6b4361699",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-press-and-celebration",
+      "requirement_id": "state:press-and-celebration",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the press at 100 ms, the celebration at 300 ms and settled.",
+      "input_state": "The Tuesday 11:52 mark.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "The ring closes in the card; the takeover fades in on the room's own framing with no doubled image; YOU WERE THERE., YOUR FIRST LECTURE, +25 XP into the rail, +3 MIND, First one down. Discrete Structures II is at 2:00 PM.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "300 ms",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2c_tue1152_celebration_300ms.png",
+          "generated_at": "2026-10-04T06:57:24-04:00",
+          "content_sha256": "bbf28ff24074c3faa4ad157dd2f3ee91a1409035e63f0398c088aaed6ff66fed",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "settled",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2d_tue1152_celebration_settled.png",
+          "generated_at": "2026-10-04T06:57:25-04:00",
+          "content_sha256": "8d1fca1fee2f754d0df70ee47d74de4073ad4698c6bd0aeff9c1b9f5036cdc1e",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-day-tier",
+      "requirement_id": "state:day-tier",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the Tuesday 15:35 day tier and the record after it.",
+      "input_state": "Tue Oct 6 15:35 with Computer Architecture kept at 11:53.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "TUESDAY, DONE., Two for two., All of Tuesday's classes +10, +60 XP for the day; still up at 5.7 s; the record adds up with the +10 shown.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "day tier",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D2b_tue1535_day_settled.png",
+          "generated_at": "2026-10-04T06:57:35-04:00",
+          "content_sha256": "eda71f8ede03d593332c5e577594d9dfd4542e0e21242db47e40124aeeaf3c9a",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "record",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D3_tue1536_back_home.png",
+          "generated_at": "2026-10-04T06:57:35-04:00",
+          "content_sha256": "a71fa63311ffde99bcd4b780eda90ff19a6699d22a8428078e66416eebd70afe",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-shortcut-monday",
+      "requirement_id": "state:shortcut-monday",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect Monday 19:15 before and after the shortcut.",
+      "input_state": "Mon Oct 5 19:15, three classes ended, none marked.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "Two quiet dots and one foremost class; the shortcut marks all three with one MONDAY, DONE. and Three for three.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "three waiting",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X1_mon1915_three_waiting.png",
+          "generated_at": "2026-10-04T06:57:39-04:00",
+          "content_sha256": "71ece6e6215bcee3f9b5042cc80c0a9222f666fd4044bc34be83dd03f555cceb",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "one celebration",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X2b_mon1915_monday_done.png",
+          "generated_at": "2026-10-04T06:57:41-04:00",
+          "content_sha256": "9fccf60fa5596ec1491926a75c8220b1b349335abf7c622263789028ea696845",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-large-text-reduce-motion",
+      "requirement_id": "state:large-text-reduce-motion",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect 130% text and Reduced Motion frames.",
+      "input_state": "In-app text at 130%; Reduce Motion on.",
+      "inspected_by": "slice author (no independent reviewer yet)",
+      "observation": "Titles wrap without clipping, the HUD fits, the celebration scrolls if it must; Reduce Motion lands everything at once behind one short fade.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "130% room",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T1_tue1152_text_130.png",
+          "generated_at": "2026-10-04T06:57:58-04:00",
+          "content_sha256": "b6237453d7f9c31948c3809468db85619c5b0c97f78817ccbbd837fb912952e6",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "130% celebration",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T2_tue1152_text_130_celebration.png",
+          "generated_at": "2026-10-04T06:57:59-04:00",
+          "content_sha256": "db378e761409a2578fc47ce0c10cf4e8867a827c79bde8f553746da7985cfb55",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Reduce Motion at 300 ms",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/R1_tue1152_reduce_motion_300ms.png",
+          "generated_at": "2026-10-04T06:57:56-04:00",
+          "content_sha256": "8d1fca1fee2f754d0df70ee47d74de4073ad4698c6bd0aeff9c1b9f5036cdc1e",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "pending",
+    "authored_implementation": true,
+    "result": "pending",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "report_path": "",
+    "findings": []
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "Mika has not seen this build. He judges it on his phone; until then the judges' rubric stands in for his reasons."
+  },
+  "remaining_gates": [
+    {
+      "id": "independent-critique",
+      "gate": "A reviewer who did not author the slice reviews the renders and tests",
+      "why": "The execution mode requires an independent critique before expansion.",
+      "owner_or_system": "workflow reviewer",
+      "next_action": "Review compare-sheet-1.png, compare-sheet-2.png and test-report.md against source.md.",
+      "blocking": true
+    },
+    {
+      "id": "owner-slice-verdict",
+      "gate": "Mika's verdict on the class-day board and celebration",
+      "why": "He has not given a verdict on concept B or this build.",
+      "owner_or_system": "Mika",
+      "next_action": "Mark his real classes on a TestFlight build for a school week.",
+      "blocking": true
+    },
+    {
+      "id": "device-feel",
+      "gate": "Sound, haptics, the camera's ease back and the glass blur on his iPhone",
+      "why": "flutter_tester renders are silent and run on Windows; feel and performance need the device.",
+      "owner_or_system": "Mika on his phone",
+      "next_action": "Press I WAS THERE with sound on; check the celebration is not slow on the seventh mark of a week.",
+      "blocking": true
+    },
+    {
+      "id": "evening-slice",
+      "gate": "Rubric item 6, the evening in the room",
+      "why": "Built by the next slice of the class-day journey.",
+      "owner_or_system": "next workflow piece",
+      "next_action": "Build the evening on this board's seams (ClassDayRoom, the class-day mode in QuestsPage).",
+      "blocking": false
+    }
+  ],
+  "deviations": [
+    {
+      "source_decision": "Rubric 3 names the class tier headline YOU WERE THERE.",
+      "implementation_decision": "A mark made while the class is in session (I'M HERE) says YOU'RE HERE.; every ended class says YOU WERE THERE.",
+      "reason": "The button says I'M HERE while he is in the room; a past-tense answer to it would read wrong.",
+      "user_visible_consequence": "Only an in-session mark shows the present-tense headline.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Rubric 5: undo is a swipe on the kept row through RewardUndoSlot.",
+      "implementation_decision": "A single mark keeps its swipe undo; the shortcut that keeps several classes at once offers none.",
+      "reason": "RewardUndoSlot covers one reward; one swipe quietly reverting three rows would surprise.",
+      "user_visible_consequence": "After I went to all of today's classes, no kept row swipes to undo.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Concept B shows a week strip with empty diamonds on the glass and the room under the status bar.",
+      "implementation_decision": "No week strip on the card; the status band stays the app's plain band.",
+      "reason": "Never punish: no hollow sockets or counts of unmarked classes. Every tab keeps the shell's SafeArea band.",
+      "user_visible_consequence": "The card is shorter and the room starts below the status bar.",
+      "status": "resolved",
+      "owner_approval_required": false
+    }
+  ],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pending",
+    "owner_device_accepted": "pending"
+  }
+}

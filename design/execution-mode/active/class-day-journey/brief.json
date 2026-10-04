@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "id": "class-day-journey-board-2026-10-04",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-10-04T12:00:00-04:00",
+  "surface": "Quests tab on a class day (the room, the glass card, Today's three line, BOARD), the class celebration overlay, the chained LevelUpOverlay, and the no-timetable Add your classes row",
+  "scope": "Board and celebration piece of the class-day journey: rubric items 1 to 5, 7 and 8 in source.md. On a day with classes the Quests tab opens on the room with today's classes on one glass card; I WAS THERE (or I'M HERE) keeps the class through GameState.keepClass and plays the class celebration (class, quick, day and week tiers), then the real level-up chain. Undo through RewardUndoSlot. The evening (rubric 6) is the next slice and is not built here.",
+  "user_job": "Open the app at any point in a class day, mark the class he just went to in one press, and get a rewarding full-screen answer in the level-up's own language that says what he did and what is next, without the board getting busier.",
+  "active_sources": [
+    {
+      "id": "owner-direction-and-rubric",
+      "kind": "owner_request",
+      "location": "design/execution-mode/active/class-day-journey/source.md",
+      "content_sha256": "9c2b7c3b921500f40f1e31ff6417dd04d4f232e373361bc609cdba4a7a9223f4",
+      "approved_at": "2026-10-03",
+      "judged_state": "His class-day direction (mark a class at any point, a well done screen, XP) and the judges' rubric standing in for his reasons until he gives his own.",
+      "viewport": "393x852 iPhone, normal text and 130%, Reduced Motion",
+      "priority": 1
+    },
+    {
+      "id": "concept-b-in-the-room",
+      "kind": "approved_concept",
+      "location": "design/comparisons/2026-10-03/class-day/concept-b-room/CONCEPT.md",
+      "content_sha256": "fc0dbc3d069fd482d7d118de09a761b20f5cbd874b0cf2e42f1ed24e0723bfa2",
+      "approved_at": "2026-10-03",
+      "judged_state": "Concept B frames F1 to F3b, X1 and X2, Q1 and Q2, U1, R1, L1, F0 and F8b: the room first, the glass at the floor line, the level-up grammar celebration and its tiers.",
+      "viewport": "393x852 at 3x, real dock",
+      "priority": 2
+    }
+  ],
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "A class is kept only through GameState.keepClass with the day's class keys: XP, one stat, Glimmers and the full-day bonus, never a Quest completion (no history, totalCompletions or Today's three). A pending Quest commit is flushed and an armed Quest undo is replaced before a class write. A level crossed by a mark plays the real LevelUpOverlay after the celebration, naming the classes since the last level.",
+      "proof": "Widget tests mount the real QuestsPage on his Fall 2026 timetable with instant-correct clocks and assert exact XP, stats, kept records, unchanged Quest counters, the flushed commit, the level-up line and the whole-save undo restore."
+    },
+    "interaction": {
+      "decision": "One luminous control on the glass: I WAS THERE after a class, I'M HERE in session, nothing before it starts (a countdown only inside 15 minutes). The press closes the card's own ring on contact with the completion composite and a light haptic. Quiet rows are dim dots that a tap brings forward; two or more waiting classes add one quiet shortcut. The class tier returns at 2.4 s unless a finger is on the glass, the quick tier at 1.4 s, the day and week tiers wait for a tap. The latest kept row swipes left past 42% to undo.",
+      "proof": "Widget tests for every state and tier, the finger hold, the quick chain, the shortcut, undo and a short swipe; harness renders of the press at contact, 300 ms and settled."
+    },
+    "visual": {
+      "decision": "The layered depth room fills the frame above a restrained glass card whose top edge sits on the floor line; the whole lamp stays in frame and the fireplace stays out of it. The celebration is the level-up's walnut dim with no blur, the lamp's light answering on the desk, a Fraunces headline and the numeral diamond. No ring floats over the painting and nothing is drawn onto it.",
+      "proof": "Harness renders of the real app at 393x852 for every frame in build/journey/board, inspected one by one beside concept B's frames."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Add a class card above the Quest hero on the existing board.",
+      "why": "Concept B was chosen because the class day changes the frame; another card on the board is the visual busyness he hates around the main quest."
+    },
+    {
+      "fallback": "Show a check ring floating over the desk in the celebration, or a brass plate drawn onto the painting.",
+      "why": "The judges named both as B's artificial moves; the confirmation lives in the card's own ring and controls live in the glass."
+    },
+    {
+      "fallback": "Count unmarked classes (1 of 2, hollow sockets, a week strip with empty diamonds).",
+      "why": "Never punish: an unmarked class is neutral forever and every tally counts up."
+    },
+    {
+      "fallback": "Route a class mark through commit() as a disguised Quest completion.",
+      "why": "It would bump totalCompletions, history and the Quest streak, which the engine map forbids for class credit."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Tuesday Oct 6, his real timetable: Computer Architecture ended at 11:40, Discrete Structures II at 2:00. He opens the app at 11:52 and marks the class, then at 15:35 marks the last class of the day.",
+    "real_inputs": "The real LifeRpgApp booted on a Mika-like save with his Fall 2026 .ics imported through the app's own importer and repository; the engine's keepClass, RewardUndoSlot and applyLevelUps.",
+    "user_action": "Press I WAS THERE at 11:52, let the celebration return, swipe the kept row to undo and mark again; at 15:35 press I WAS THERE on Discrete Structures II and tap the day tier away.",
+    "expected_outcome": "YOU WERE THERE. with YOUR FIRST LECTURE, +25 XP into the rail, +3 MIND, First one down. Discrete Structures II is at 2:00 PM.; back on its own at 2.4 s. TUESDAY, DONE. with Two for two., the +10 line and Nothing else until Wednesday's 8:30 lab., held for a tap; then the record card with tomorrow's lab.",
+    "state_boundary": "The keep persists through the shell's save; the undo restores the whole snapshot through RewardUndoSlot only while the class is the newest reward.",
+    "required_states": [
+      {
+        "id": "between-classes",
+        "state": "Tue 11:52 room with Computer Architecture foremost and Discrete upcoming",
+        "why_can_disprove": "A busy or second bright control, a cropped lamp, or a hollow socket for a past class would break the first frame."
+      },
+      {
+        "id": "press-and-celebration",
+        "state": "Press at contact, 300 ms and settled class tier",
+        "why_can_disprove": "A doubled room during the takeover, a ring floating over the desk, or the wrong XP or line would break the moment."
+      },
+      {
+        "id": "day-tier",
+        "state": "Tue 15:35 last class kept, TUESDAY, DONE. held",
+        "why_can_disprove": "Two for two or the +10 shown when not true, or an auto-return, would break the tier rules."
+      },
+      {
+        "id": "shortcut-monday",
+        "state": "Mon 19:15 three waiting, one shortcut, one celebration",
+        "why_can_disprove": "Three celebrations or a missing shortcut would break his Extra Credit idea."
+      },
+      {
+        "id": "large-text-reduce-motion",
+        "state": "130% text and Reduced Motion on Tuesday 11:52",
+        "why_can_disprove": "Clipped titles, an overflowing HUD or motion under Reduced Motion would fail rubric 7."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "quest-board-non-class-days",
+      "surface_or_primitive": "QuestsPage board without a timetable or on a day without classes",
+      "state": "Every existing Quest board test and the no-timetable render",
+      "expected_effect": "Unchanged, except one Add your classes row under the hero on weekdays when the shell knows the timetable is empty.",
+      "verification_plan": "Full flutter test suite; no-timetable render N1; widget tests for the row, Not in school and the weekend.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "board-on-a-class-day",
+      "surface_or_primitive": "The full board behind BOARD on a class day, with a ROOM line above the dock",
+      "state": "BOARD, ROOM, reopening after a class boundary, Goals hand-off",
+      "expected_effect": "The board keeps its state while the room shows and returns with one calm slide, no blur.",
+      "verification_plan": "Widget tests for BOARD and ROOM and resume; renders D4a and D4b.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "level-up-overlay",
+      "surface_or_primitive": "LevelUpOverlay evidence line",
+      "state": "Quests and classes since the last level",
+      "expected_effect": "Names classes beside quests; unchanged when no class was kept.",
+      "verification_plan": "Overlay widget tests and render L2.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "plans-import-sheet",
+      "surface_or_primitive": "CalendarPage Add your classes sheet",
+      "state": "Opened from the Quests board row",
+      "expected_effect": "The shell switches to Plans and the sheet opens once per request.",
+      "verification_plan": "Shell wiring through addClassesRequestId; manual check on device.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "evening-and-close-the-day",
+      "surface_or_primitive": "After-class evening, the camera walk, music and Close the day in the room",
+      "state": "After the last class and from the wind-down",
+      "expected_effect": "Built by the next slice (rubric 6); until then the room shows the record card and the board keeps CLOSE DAY.",
+      "verification_plan": "Next slice's own record.",
+      "disposition": "deferred",
+      "reason": "Rubric item 6 is a separate piece of the class-day journey and is not in this slice's scope."
+    }
+  ],
+  "unverified_property": "Whether the press, the camera's ease back and the celebration's timing feel rewarding rather than slow on his iPhone, with sound and haptics, on an ordinary Tuesday and on the seventh mark of a week.",
+  "decisive_check": {
+    "method": "Mika marks his real classes on his own phone through one school week of a TestFlight build, with sound on.",
+    "target": "The class, quick, day and week tiers on his real Monday, Tuesday, Thursday and Friday.",
+    "pass_condition": "He reports the moment as rewarding and not slow, the room as the right first frame on a class day, and nothing as busy or artificial."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/widgets/class_day",
+      "lib/screens/quests.dart",
+      "lib/screens/shell.dart",
+      "lib/screens/calendar.dart",
+      "lib/widgets/levelup_overlay.dart",
+      "lib/widgets/quest_card.dart",
+      "lib/engine.dart",
+      "test/class_day_board_test.dart",
+      "test/class_day_model_test.dart",
+      "test/design_renders/class_day_board_build_test.dart"
+    ],
+    "exclude": []
+  }
+}
