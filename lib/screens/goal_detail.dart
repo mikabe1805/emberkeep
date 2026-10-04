@@ -567,7 +567,7 @@ class GoalDetailScreen extends StatelessWidget {
     return Semantics(
       container: true,
       label:
-          '$evidence $milestone. $doneToday of $doneDenom done today. $active linked quests.',
+          '$evidence $milestone. $doneToday of $doneDenom done today. $active linked ${active == 1 ? 'quest' : 'quests'}.',
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 3),
         child: Column(
@@ -643,7 +643,7 @@ class GoalDetailScreen extends StatelessWidget {
                 if (days != null) ...[
                   Text('·', style: Type.body.copyWith(color: Palette.textLo)),
                   Text(
-                    '$days days here',
+                    '$days ${days == 1 ? 'day' : 'days'} here',
                     style: Type.body.copyWith(
                       fontSize: 12,
                       color: Palette.textMid,

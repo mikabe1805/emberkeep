@@ -6086,7 +6086,7 @@ class _SpaceRail extends StatelessWidget {
         const SizedBox(width: 9),
         Expanded(
           child: Text(
-            '$embers GLIMMERS',
+            '$embers ${embers == 1 ? 'GLIMMER' : 'GLIMMERS'}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Type.label.copyWith(
@@ -6135,7 +6135,8 @@ class _SpaceRail extends StatelessWidget {
     );
     return Pressable(
       material: MaterialSound.brass,
-      semanticLabel: 'Open room chooser. $embers Glimmers available.',
+      semanticLabel:
+          'Open room chooser. $embers ${embers == 1 ? 'Glimmer' : 'Glimmers'} available.',
       onTapUp: (_) => onChangeSpace(),
       pressDepth: 2,
       edgeColor: Colors.transparent,

@@ -1323,7 +1323,8 @@ class _CircleKeepCard extends StatelessWidget {
                       style: Type.display.copyWith(fontSize: 17),
                     ),
                     Text(
-                      '$code · $buildTitle · LEVEL $level · $memories MEMORIES',
+                      '$code · $buildTitle · LEVEL $level · '
+                      '$memories ${memories == 1 ? 'MEMORY' : 'MEMORIES'}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(fontSize: Type.minLabel),

@@ -257,7 +257,9 @@ class MomentCard extends StatelessWidget {
     final facts = <String>[
       if (name.isNotEmpty) name,
       if (state.streakDays > 0) 'day ${state.streakDays}',
-      if (state.totalCompletions > 0) '${state.totalCompletions} quests kept',
+      if (state.totalCompletions > 0)
+        '${state.totalCompletions} '
+            '${state.totalCompletions == 1 ? 'quest' : 'quests'} kept',
     ];
     return AspectRatio(
       aspectRatio: 4 / 5,

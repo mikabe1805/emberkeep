@@ -363,7 +363,7 @@ class VisitRoomScreen extends StatelessWidget {
                       ),
                       if (memories > 0)
                         Text(
-                          '$memories memories held',
+                          '$memories ${memories == 1 ? 'memory' : 'memories'} held',
                           style: Type.body.copyWith(
                             fontSize: 11.5,
                             color: Palette.textLo,

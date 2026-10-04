@@ -144,7 +144,8 @@ Quest? _nextQuestToday(Goal goal, List<Quest> quests) {
 String _goalProgressCopy(Goal goal) {
   if (goal.complete) return 'Completed';
   if (goal.kind == GoalKind.achieve) {
-    return '${goal.progress} of ${goal.target} actions';
+    return '${goal.progress} of ${goal.target} '
+        '${goal.target == 1 ? 'action' : 'actions'}';
   }
   final remaining = (goal.target - goal.progress).clamp(0, goal.target);
   final kept = '${goal.progress} action${goal.progress == 1 ? '' : 's'} kept';
@@ -1199,7 +1200,7 @@ class _GoalsPageState extends State<GoalsPage> {
         backgroundColor: Palette.card,
         content: Text(
           added > 0
-              ? '$added actions added to “${existingGoal.title}”'
+              ? '$added ${added == 1 ? 'action' : 'actions'} added to “${existingGoal.title}”'
               : 'Those actions are already on your board',
           style: Type.body.copyWith(color: Palette.textHi),
         ),

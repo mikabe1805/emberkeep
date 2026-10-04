@@ -104,10 +104,11 @@ class InsightsPage extends StatelessWidget {
           trailing: noteCount == 0
               ? null
               : Semantics(
-                  label: '$noteCount journal entries kept',
+                  label:
+                      '$noteCount journal ${noteCount == 1 ? 'entry' : 'entries'} kept',
                   child: Text(
                     key: const ValueKey('journal-entry-count'),
-                    '$noteCount ENTRIES',
+                    '$noteCount ${noteCount == 1 ? 'ENTRY' : 'ENTRIES'}',
                     style: Type.label.copyWith(
                       fontSize: Type.minLabel,
                       color: Palette.textLo,
@@ -422,7 +423,7 @@ class InsightsPage extends StatelessWidget {
                   Text(
                     'WRITTEN ${months[note.at.month - 1]} ${note.at.day}'
                     '${note.trace == null ? '' : '  ·  LV ${note.trace!.level}'}'
-                    '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} QUESTS' : ''}'
+                    '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} ${note.trace!.questTitles.length == 1 ? 'QUEST' : 'QUESTS'}' : ''}'
                     '${then == null ? '' : '  ·  $then'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -502,7 +503,8 @@ class InsightsPage extends StatelessWidget {
                   Text(
                     chronicle.total == 0
                         ? 'your patterns will appear here after a few active days'
-                        : '${chronicle.litDays} days active · ${chronicle.total} quests · ready to share',
+                        : '${chronicle.litDays} ${chronicle.litDays == 1 ? 'day' : 'days'} active · '
+                              '${chronicle.total} ${chronicle.total == 1 ? 'quest' : 'quests'} · ready to share',
                     style: Type.body.copyWith(
                       fontSize: 12,
                       color: Palette.textLo,
@@ -1251,7 +1253,8 @@ class InsightsPage extends StatelessWidget {
       lines.add(
         state.totalCompletions == 0
             ? 'No activity recorded yet.'
-            : '${state.totalCompletions} quests logged across '
+            : '${state.totalCompletions} '
+                  '${state.totalCompletions == 1 ? 'quest' : 'quests'} logged across '
                   '${state.history.length} active day${state.history.length == 1 ? '' : 's'}.',
       );
     }

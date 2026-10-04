@@ -897,7 +897,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     final accent = _routine!.stat.color;
     return Semantics(
       container: true,
-      label: '$_remaining seconds remaining',
+      label: '$_remaining ${_remaining == 1 ? 'second' : 'seconds'} remaining',
       child: Column(
         children: [
           Expanded(
