@@ -12,7 +12,11 @@
 //     setUpAll(setUpRoomRenders);
 //     tearDownAll(tearDownRoomRenders);
 //     final sheet = FrameSheet(classDayDir('my-study'));
-//     tearDownAll(sheet.writeManifest);
+//     // Only a render run writes: a plain `flutter test` (CI) must leave the
+//     // checkout untouched, and tearDownAll runs even when every test skips.
+//     tearDownAll(() {
+//       if (_renders) sheet.writeManifest();
+//     });
 //
 //     roomRenderTest('Tuesday after class', skip: !_renders, (tester) async {
 //       final at = DateTime(2026, 10, 6, 15, 35);
@@ -558,7 +562,8 @@ MikaAccount mikaAccount({
 
 /// His real Fall 2026 timetable (test/support/rutgers_fall_2026_ics_fixture
 /// .dart), parsed by the app's importer and applied to an empty schedule the
-/// way Plans does on import (calendar.dart `_saveAcademicScheduleImport`).
+/// way Plans does on import (the Add your classes sheet applies a Room of
+/// Days file through the same importer).
 /// [importedAt] defaults to 2026-08-27, the day the .ics was made [inferred:
 /// whether it is imported on his phone is unknown].
 AcademicSchedule mikaSchedule({DateTime? importedAt}) {
@@ -1040,7 +1045,11 @@ class FrameSheet {
     return file;
   }
 
+  /// Writes frames.json beside the frames. Nothing is written when no frame
+  /// was taken this run, so a skipped render file never adds a file to the
+  /// checkout.
   void writeManifest() {
+    if (frames.isEmpty) return;
     final manifest = File('$directory/frames.json');
     final merged = <String, Map<String, dynamic>>{};
     if (manifest.existsSync()) {

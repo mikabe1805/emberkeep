@@ -287,6 +287,24 @@ void main() {
     expect(compact, contains('community rules and safety guide'));
   });
 
+  test('public privacy copy covers class files and calendar links', () {
+    final privacy = _source('web/privacy.html').replaceAll(RegExp(r'\s+'), ' ');
+
+    for (final disclosure in const [
+      'reads it locally',
+      'The source file is not uploaded by Room of Days',
+      'Class reminders stay off unless you turn them on',
+      'paste a calendar link',
+      'downloads that calendar once, directly from the address you pasted',
+      'does not pass through a Room of Days service',
+      'no account details or cookies',
+      'does not keep the link or the downloaded calendar',
+      'only the classes you confirm are saved, on your device',
+    ]) {
+      expect(privacy, contains(disclosure));
+    }
+  });
+
   test('production discovery deployment stays fail-closed', () {
     final environment = _source('functions/.env.emberkeep-5b33b');
     final firebase = _source('firebase.json');

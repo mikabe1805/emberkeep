@@ -10,9 +10,11 @@ import '../academic_calendar/domain/academic_schedule.dart';
 import '../academic_calendar/import/academic_schedule_file_picker.dart';
 import '../academic_calendar/import/academic_schedule_file_inbox.dart';
 import '../academic_calendar/import/academic_schedule_ics_import.dart';
+import '../academic_calendar/import/calendar_link.dart';
+import '../academic_calendar/import/device_calendar_reader.dart';
 import '../academic_calendar/services/notebook_handoff.dart';
 import '../academic_calendar/widgets/academic_calendar_sections.dart';
-import '../academic_calendar/widgets/academic_schedule_import_dialog.dart';
+import '../academic_calendar/widgets/add_classes_sheet.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../daybook/data/daybook_preferences.dart';
@@ -29,6 +31,8 @@ import '../daybook/widgets/daybook_task_editor.dart';
 import '../engine.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
+import '../platform/share_stub.dart'
+    if (dart.library.js_interop) '../platform/share_web.dart';
 import '../tokens.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/facets.dart';
@@ -84,6 +88,8 @@ class CalendarPage extends StatefulWidget {
     this.academicScheduleFilePicker,
     this.academicScheduleFileInbox,
     this.requestReminderPermission,
+    this.calendarLinkFetcher,
+    this.deviceCalendarReader,
     this.onScheduleChanged,
     this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
   });
@@ -103,9 +109,16 @@ class CalendarPage extends StatefulWidget {
   final AcademicScheduleFilePicker? academicScheduleFilePicker;
   final AcademicScheduleFileInbox? academicScheduleFileInbox;
 
-  /// Notification permission is requested only from the review's explicit
-  /// class-reminder switch.
+  /// Notification permission is requested only from the explicit
+  /// class-reminder switch that follows an import.
   final Future<bool> Function()? requestReminderPermission;
+
+  /// Reads a pasted calendar link; null uses the device fetch.
+  final CalendarLinkFetcher? calendarLinkFetcher;
+
+  /// The phone's own calendars (iOS EventKit). Null until that slice ships;
+  /// when set, the Add your classes sheet offers it as a way in.
+  final DeviceCalendarReader? deviceCalendarReader;
   final ValueChanged<AcademicSchedule>? onScheduleChanged;
   final DaybookPlaceSearchFactory placeSearchFactory;
 
@@ -127,6 +140,10 @@ class _CalendarPageState extends State<CalendarPage> {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
+
+  /// Completes once the saved schedule has loaded. Adding classes waits on
+  /// it, so nothing is ever built on the empty schedule Plans starts with.
+  late final Future<void> _academicLoad;
   bool _academicImportOpen = false;
   int _viewInteractionRevision = 0;
   Future<void> _viewSaveTail = Future<void>.value();
@@ -154,7 +171,8 @@ class _CalendarPageState extends State<CalendarPage> {
     widget.academicScheduleFileInbox?.addListener(
       _onIncomingAcademicScheduleFile,
     );
-    unawaited(_loadAcademicCalendar());
+    _academicLoad = _loadAcademicCalendar();
+    unawaited(_academicLoad);
   }
 
   @override
@@ -238,7 +256,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final inbox = widget.academicScheduleFileInbox;
     final source = inbox?.takeNext();
     if (source == null) return;
-    await _showAcademicScheduleImport(initialSource: source);
+    await _showAddClasses(initialSource: source);
     if (mounted && (inbox?.isNotEmpty ?? false)) {
       _onIncomingAcademicScheduleFile();
     }
@@ -522,32 +540,50 @@ class _CalendarPageState extends State<CalendarPage> {
     return true;
   }
 
-  Future<bool> _saveAcademicScheduleImport(
-    AcademicScheduleImportDraft draft,
-  ) async {
-    late final AcademicSchedule next;
-    try {
-      next = draft.applyTo(_academicSchedule, updatedAt: Clock.now().toUtc());
-    } on ArgumentError {
-      return false;
-    } on FormatException {
-      return false;
-    }
-    if (!await _scheduleRepository.save(next)) return false;
+  /// Saves what the Add your classes sheet builds (an import, a typed class,
+  /// or a reminder choice) on the schedule Plans holds right now, and keeps
+  /// the selected day inside its term.
+  Future<AddClassesSaved?> _saveAddedClasses(AddClassesChange change) async {
+    await _academicLoad;
+    final before = _academicSchedule;
+    final step = change(before);
+    final next = step.next;
+    final term = step.term;
+    if (!await _scheduleRepository.save(next)) return null;
     _reportScheduleChange(next);
-    if (!mounted) return true;
+    final saved = AddClassesSaved(before: before, next: next, term: term);
+    if (!mounted) return saved;
 
     final selected = CivilDate.fromDateTime(_selected);
     setState(() {
       _academicSchedule = next;
-      if (!selected.isWithin(draft.term.startDate, draft.term.endDate)) {
-        _selected = draft.term.startDate.dateArithmeticValue;
+      if (!selected.isWithin(term.startDate, term.endDate)) {
+        _selected = DateTime(
+          term.startDate.year,
+          term.startDate.month,
+          term.startDate.day,
+        );
         _month = DateTime(_selected.year, _selected.month);
-        _threeDayStart = draft.term.startDate;
+        _threeDayStart = term.startDate;
       }
     });
     _persistAcademicView();
-    return true;
+    return saved;
+  }
+
+  /// SEE MY WEEK: the WEEK view on the week the sheet showed.
+  void _showWeekOf(CivilDate date) {
+    _recordViewInteraction();
+    setState(() {
+      _academicMode = AcademicCalendarMode.week;
+      _selected = DateTime(date.year, date.month, date.day);
+      _month = DateTime(date.year, date.month);
+      _threeDayStart = date;
+    });
+    _persistAcademicView();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScroll.hasClients) _calendarScroll.jumpTo(0);
+    });
   }
 
   Future<bool> _saveAcademicWork(AcademicWorkItem item) async {
@@ -1084,6 +1120,17 @@ class _CalendarPageState extends State<CalendarPage> {
                 lightDirection: widget.lightDirection ?? widget.parallax,
               ),
             ],
+            // With no classes yet, Plans ends on a calm way to add them. It
+            // sits after the day, never above it, so a person who uses Plans
+            // without classes keeps their own days first; the ADD menu offers
+            // the same sheet from the top of the page.
+            if (!_academicLoading &&
+                !_academicSchedule.courses.any(
+                  (course) => !course.archived,
+                )) ...[
+              const SizedBox(height: 14),
+              AddClassesDoorway(onTap: () => unawaited(_showAddClasses())),
+            ],
           ],
         );
       },
@@ -1304,25 +1351,43 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Future<void> _showAcademicScheduleImport({
+  /// The one way classes come in: the Plans doorway, the ADD menu, and every
+  /// .ics opened from Mail, Files or Safari. Room of Days files still apply
+  /// through the original importer inside the sheet's review.
+  Future<void> _showAddClasses({
     AcademicScheduleImportSource? initialSource,
   }) async {
     if (_academicImportOpen || !mounted) return;
     _academicImportOpen = true;
+    AddClassesResult? result;
     try {
-      await showDialog<void>(
-        context: context,
-        barrierColor: Palette.dialogBarrier,
-        builder: (_) => AcademicScheduleImportDialog(
-          filePicker: _academicScheduleFilePicker,
-          initialSource: initialSource,
-          requestReminderPermission: widget.requestReminderPermission,
-          onImport: _saveAcademicScheduleImport,
+      // The sheet shows (and builds on) the saved schedule, never the empty
+      // one Plans holds while it is still opening.
+      try {
+        await _academicLoad;
+      } catch (_) {
+        return;
+      }
+      if (!mounted) return;
+      result = await showAddClassesSheet(
+        context,
+        schedule: _academicSchedule,
+        filePicker: _academicScheduleFilePicker,
+        timeZoneIdProvider: widget.timeZoneIdProvider,
+        initialSource: initialSource,
+        requestReminderPermission: widget.requestReminderPermission,
+        linkFetcher: widget.calendarLinkFetcher,
+        deviceCalendar: widget.deviceCalendarReader,
+        onSave: _saveAddedClasses,
+        onShareStarter: () => shareCalendarFile(
+          buildRoomOfDaysAcademicScheduleTemplate(),
+          'room-of-days-class-schedule-starter.ics',
         ),
       );
     } finally {
       _academicImportOpen = false;
     }
+    if (result != null && mounted) _showWeekOf(result.focusDate);
     _onIncomingAcademicScheduleFile();
   }
 
@@ -1369,7 +1434,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
         );
       case DaybookAddTarget.importClasses:
-        await _showAcademicScheduleImport();
+        await _showAddClasses();
       case DaybookAddTarget.assignment || DaybookAddTarget.exam:
         await showDialog<void>(
           context: context,
