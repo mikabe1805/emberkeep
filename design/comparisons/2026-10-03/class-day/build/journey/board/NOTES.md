@@ -41,13 +41,13 @@ term); P1 to P4 give him the archive room style.
 | C2 | Tue 14:40 | In session: I'M HERE |
 | D1 | Tue 15:35 | The last class ready |
 | D2a, D2b | +300 ms, settled | TUESDAY, DONE., the day's rows, All of Tuesday's classes +10, +60 XP with +6 MIND (the day's, as the XP is), Two for two. Nothing else until Wednesday's 8:30 lab. Held for a tap |
-| D3 | Tue 15:36 | Back home: the record (both attended, +60 XP, the +10, tomorrow's lab) |
-| D4a, D4b | Tue 15:36 | BOARD: the room fades back as the board rises, its HUD already on the same numbers and its window on the same afternoon; then the full board with the ROOM line |
-| X1 | Mon 19:15 | Three waiting: the 5:40 lecture foremost, two quiet dots, I went to all of today's classes; the lamp lit under the stat row |
+| D3 | Tue 15:36 | Back home: since the evening slice, the room has walked to the window and the armchair with the day on one line (`../evening/`) |
+| D4a, D4b | Tue 15:36 | BOARD from the evening: the room fades back as the board rises, its HUD already on the same numbers and its window on the same afternoon; then the full board with the ROOM line |
+| X1 | Mon 19:15 | Three waiting: the 5:40 lecture foremost, two quiet dots, I went to all of today's classes. Since the evening slice the wind-down has begun at 7:00, so this is the evening's framing with Write a line and CLOSE THE DAY under the card |
 | X2a, X2b | +300 ms, settled | One celebration for all three: MONDAY, DONE., 3, CLASSES TODAY, +85 XP with +9 MIND, Three for three. Tomorrow starts late: Computer Architecture at 10:20. |
-| X3 | Mon 19:16 | The record: all three attended (the newest row carries the shortcut's undo) |
+| X3 | Mon 19:16 | The evening (the wind-down began at 7:00): all three attended on one line, which carries the shortcut's undo |
 | Q1, Q2, Q3 | Thu 15:22 | Two waiting before the lab; the quiet row brought forward; THAT ONE TOO. at 700 ms, count landed, held on the kept framing, no time and room line, back at 1.4 s |
-| W1, W2 | Fri 18:56 | The week's last class; THAT'S THE WEEK., +360 XP with the week's +30 MIND and +10 CRAFT, Twelve for twelve., Free until Monday at 8:30. |
+| W1, W2 | Fri 18:56 | The week's last class (the evening's framing: the wind-down began at 6:50); THAT'S THE WEEK., +360 XP with the week's +30 MIND and +10 CRAFT, Twelve for twelve., Free until Monday at 8:30. |
 | W3 | Fri 18:56 | The same week with Tuesday's Discrete unmarked: Eleven classes this week. No denominator |
 | L1, L2 | Tue 11:52 | LEVEL 19 READY on the rail; then the real LevelUpOverlay, 11 quests and 4 classes since level 18 |
 | N1 | Tue 11:52 | No timetable: the board as today, one Add your classes row under the hero |
@@ -58,6 +58,6 @@ term); P1 to P4 give him the archive room style.
 
 ## Not shown here
 
-The evening (the camera walk to the armchair, music, Close the day in the glass) is the next
-slice. flutter_tester renders are silent: the completion composite, the stat note, haptics and
+The evening (the camera walk to the armchair, music, Close the day in the glass) is rendered in
+`../evening/`. flutter_tester renders are silent: the completion composite, the stat note, haptics and
 the press feel need his phone (the widget tests record the sound events and the haptic call).

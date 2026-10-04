@@ -101,7 +101,9 @@ Future<void> _dismissCelebration(WidgetTester tester) async {
   if (_celebration.evaluate().isEmpty) return;
   await tester.tapAt(const Offset(196, 420));
   await tester.pump();
-  await settle(tester, total: const Duration(milliseconds: 1200));
+  // A held tier that ends the day hands the room to the evening: let the
+  // camera's walk to the armchair (2.4 s) settle.
+  await settle(tester, total: const Duration(milliseconds: 3000));
 }
 
 void main() {
@@ -303,8 +305,8 @@ void main() {
         tester,
         'D3_tue1536_back_home',
         at: home,
-        surface: 'Quests, class day',
-        note: 'the record: both attended, tomorrow next',
+        surface: 'Quests, class day evening',
+        note: 'the evening: both attended on one line (the evening slice)',
       );
       await tester.tap(find.byKey(const Key('class-day-toggle-board')));
       await tester.pump();
