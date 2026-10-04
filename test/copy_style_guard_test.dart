@@ -8,8 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 /// classes) and comments are not copy and are ignored.
 ///
 /// A few files belong to other work in flight and still hold em dashes. Each
-/// keeps a ceiling that may only go down; when a file reaches zero, delete its
-/// line here.
+/// keeps a ceiling: the guard fails when a file passes it. Those files are
+/// owned by sibling branches that do not carry this test, so a ceiling above
+/// the real count (or a file that moved or reached zero) is printed as a note
+/// instead of failing; lower or delete the line here when the note appears,
+/// in the same commit that merges the branch.
 const _pendingCeilings = <String, int>{
   'lib/screens/quests.dart': 20,
   'lib/screens/shell.dart': 6,
@@ -29,26 +32,34 @@ const _pendingCeilings = <String, int>{
   'lib/content/ladders.dart': 5,
 };
 
+/// Every non-raw string literal under lib/ that holds an em dash, by path.
+Map<String, List<String>> _emDashLiterals() {
+  final files =
+      Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
+  expect(files, isNotEmpty);
+  final byPath = <String, List<String>>{};
+  for (final file in files) {
+    final path = file.path.replaceAll(r'\', '/');
+    final hits = <String>[
+      for (final literal in dartStringLiterals(file.readAsStringSync()))
+        if (!literal.raw && literal.text.contains('—'))
+          '$path:${literal.line}  ${literal.text.trim()}',
+    ];
+    if (hits.isNotEmpty) byPath[path] = hits;
+  }
+  return byPath;
+}
+
 void main() {
   test('no em dash in a lib/ string literal', () {
     final offenders = <String>[];
     final overCeiling = <String>[];
-    final files =
-        Directory('lib')
-            .listSync(recursive: true)
-            .whereType<File>()
-            .where((f) => f.path.endsWith('.dart'))
-            .toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
-    expect(files, isNotEmpty);
-    for (final file in files) {
-      final path = file.path.replaceAll(r'\', '/');
-      final hits = <String>[
-        for (final literal in dartStringLiterals(file.readAsStringSync()))
-          if (!literal.raw && literal.text.contains('—'))
-            '$path:${literal.line}  ${literal.text.trim()}',
-      ];
-      if (hits.isEmpty) continue;
+    for (final MapEntry(key: path, value: hits) in _emDashLiterals().entries) {
       final ceiling = _pendingCeilings[path];
       if (ceiling == null) {
         offenders.addAll(hits);
@@ -65,6 +76,63 @@ void main() {
           'a colon or a middle dot, whichever reads naturally). '
           '${overCeiling.join('; ')}',
     );
+  });
+
+  test('ceilings above the real count are reported as a note', () {
+    final counts = {
+      for (final MapEntry(key: path, value: hits) in _emDashLiterals().entries)
+        path: hits.length,
+    };
+    final slack = <String>[
+      for (final MapEntry(key: path, value: ceiling)
+          in _pendingCeilings.entries)
+        if (!File(path).existsSync())
+          '$path no longer exists: delete its ceiling'
+        else if ((counts[path] ?? 0) == 0)
+          '$path has no em dash left: delete its ceiling'
+        else if (counts[path]! < ceiling)
+          '$path has ${counts[path]}: lower its ceiling to ${counts[path]}',
+    ];
+    // A note, not a failure: sibling branches shrink these files without
+    // this test, and their merge should not turn CI red for that alone.
+    for (final line in slack) {
+      // ignore: avoid_print
+      print('copy_style_guard note: $line');
+    }
+    expect(_pendingCeilings.values.every((ceiling) => ceiling > 0), isTrue);
+  });
+
+  test('the daily nudge reads as an open door, with no deadline', () {
+    // The 9:00 nudge is the one line the app sends unasked. It once read
+    // "Your quests are waiting" and "One small win before the day gets away
+    // from you."; it stays an invitation. The scan reads every literal in the
+    // file, so it holds for LF and CRLF checkouts alike.
+    final source = File(
+      'lib/platform/notifications_native.dart',
+    ).readAsStringSync().replaceAll('\r\n', '\n');
+    final copy = [
+      for (final literal in dartStringLiterals(source))
+        if (!literal.raw) literal.text,
+    ];
+    final title = copy.indexOf('Your room is open');
+    expect(title, isNot(-1));
+    expect(
+      copy[title + 1],
+      'Today’s quests are on the board, ready whenever you are.',
+    );
+    expect(copy, isNot(contains('Your quests are waiting')));
+    expect(
+      copy,
+      isNot(contains('One small win before the day gets away from you.')),
+    );
+    final pressure = RegExp(
+      r'\b(fail\w*|missed|lost|lose|broke|skipped|waiting|gets away|hurry|'
+      r'last chance|before it.s too late)\b',
+      caseSensitive: false,
+    );
+    for (final line in copy) {
+      expect(pressure.hasMatch(line), isFalse, reason: line);
+    }
   });
 
   test('the literal scanner sees copy and skips comments and raw strings', () {
