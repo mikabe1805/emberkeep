@@ -1,6 +1,7 @@
 // Add your classes (2026-10-03): the one sheet every way in opens. The Plans
 // doorway, the Plans ADD menu and every .ics opened from outside all land
 // here; Room of Days files still apply through the original importer.
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:emberkeep/academic_calendar/data/academic_calendar_preferences.dart';
@@ -10,6 +11,8 @@ import 'package:emberkeep/academic_calendar/import/academic_schedule_file_inbox.
 import 'package:emberkeep/academic_calendar/import/academic_schedule_file_picker.dart';
 import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.dart';
 import 'package:emberkeep/academic_calendar/import/calendar_link.dart';
+import 'package:emberkeep/academic_calendar/import/device_calendar_reader.dart';
+import 'package:emberkeep/academic_calendar/import/quick_class_entry.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/add_classes_sheet.dart';
 import 'package:emberkeep/clock.dart';
@@ -393,6 +396,195 @@ void main() {
       expect(course.code, 'MATH 152');
       expect(course.title, 'Calculus II');
     });
+
+    testWidgets('typing a class in after fall ends starts next spring', (
+      tester,
+    ) async {
+      // Tuesday Dec 22 2026, noon in New York: winter break, when students
+      // set up next term.
+      Clock.freeze(DateTime.utc(2026, 12, 22, 17).toLocal());
+      final saves = _Saves();
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: saves,
+        start: AddClassesStart.quick,
+      );
+      expect(
+        find.text('Spring 2027 · from this week through May 15'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        _key('add-classes-quick-name'),
+        'CS 112 Data Structures',
+      );
+      await _tapVisible(tester, _key('add-classes-day-2'));
+      await _tapVisible(tester, _key('add-classes-quick-add'));
+
+      expect(tester.takeException(), isNull);
+      expect(saves.count, 1);
+      expect(find.text('ADDED · 1'), findsOneWidget);
+      expect(find.text('ADDING…'), findsNothing);
+      final term = saves.last!.terms.single;
+      expect(term.name, 'Spring 2027');
+      expect(term.endDate, CivilDate(2027, 5, 15));
+    });
+
+    testWidgets('typing a class in after spring ends starts summer', (
+      tester,
+    ) async {
+      Clock.freeze(DateTime.utc(2027, 5, 20, 16).toLocal());
+      final saves = _Saves();
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: saves,
+        start: AddClassesStart.quick,
+      );
+      expect(
+        find.text('Summer 2027 · from this week through Aug 15'),
+        findsOneWidget,
+      );
+      await tester.enterText(_key('add-classes-quick-name'), 'BIO 110 Lab');
+      await _tapVisible(tester, _key('add-classes-day-4'));
+      await _tapVisible(tester, _key('add-classes-quick-add'));
+
+      expect(tester.takeException(), isNull);
+      expect(saves.count, 1);
+      expect(saves.last!.terms.single.name, 'Summer 2027');
+    });
+
+    testWidgets('a save that throws leaves the sheet ready to try again', (
+      tester,
+    ) async {
+      final saves = _Saves(throws: true);
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: saves,
+        start: AddClassesStart.quick,
+      );
+      await tester.enterText(_key('add-classes-quick-name'), 'CS 111 Intro');
+      await _tapVisible(tester, _key('add-classes-day-2'));
+      await _tapVisible(tester, _key('add-classes-quick-add'));
+
+      expect(tester.takeException(), isNull);
+      expect(saves.count, 1);
+      expect(
+        find.text('Couldn’t save on this phone just now. Try again.'),
+        findsOneWidget,
+      );
+      expect(find.text('ADD THIS CLASS'), findsOneWidget);
+      // Nothing typed is cleared, and the sheet can still close.
+      expect(find.text('CS 111 Intro'), findsOneWidget);
+      await tester.tap(_key('add-classes-close'));
+      await tester.pumpAndSettle();
+      expect(_key('add-classes-sheet'), findsNothing);
+    });
+
+    testWidgets('each save builds on the schedule as it is when it saves', (
+      tester,
+    ) async {
+      final saves = _Saves();
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: saves,
+        start: AddClassesStart.quick,
+      );
+      // The host's schedule changes after the sheet opened (Plans finished
+      // reading the saved one, say).
+      _launcher.schedule = _math151();
+
+      await tester.enterText(_key('add-classes-quick-name'), 'CS 111 Intro');
+      await _tapVisible(tester, _key('add-classes-day-2'));
+      await _tapVisible(tester, _key('add-classes-quick-add'));
+
+      expect(saves.count, 1);
+      expect(saves.last!.terms, hasLength(1));
+      expect(saves.last!.courses.map((course) => course.code).toSet(), {
+        'MATH 151',
+        'CS 111',
+      });
+    });
+  });
+
+  group('this phone’s calendar', () {
+    testWidgets('the way in shows only when the phone can be read', (
+      tester,
+    ) async {
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: _Saves(),
+      );
+      expect(find.text('FROM A CALENDAR FILE'), findsOneWidget);
+      expect(_key('add-classes-device'), findsNothing);
+    });
+
+    testWidgets('what it reads goes through the same review', (tester) async {
+      final saves = _Saves();
+      final reader = _FakeDeviceCalendar(
+        () async => AcademicScheduleImportSource(
+          name: 'This iPhone',
+          contents: googleCalendarStudentExport(),
+        ),
+      );
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: saves,
+        deviceCalendar: reader,
+      );
+      expect(find.text('FROM THIS IPHONE’S CALENDAR'), findsOneWidget);
+
+      await _tapVisible(tester, _key('add-classes-device'));
+
+      expect(reader.reads, 1);
+      expect(find.text('Pick your classes'), findsOneWidget);
+      expect(find.text('ADD 4 COURSES'), findsOneWidget);
+      expect(saves.count, 0);
+    });
+
+    testWidgets('declining access stays on the ways in, with no message', (
+      tester,
+    ) async {
+      final reader = _FakeDeviceCalendar(() async => null);
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: _Saves(),
+        deviceCalendar: reader,
+      );
+
+      await _tapVisible(tester, _key('add-classes-device'));
+
+      expect(reader.reads, 1);
+      expect(find.text('FROM THIS IPHONE’S CALENDAR'), findsOneWidget);
+      expect(_key('add-classes-error'), findsNothing);
+      expect(_key('add-classes-confirm'), findsNothing);
+    });
+
+    testWidgets('a read that goes wrong says so plainly', (tester) async {
+      final reader = _FakeDeviceCalendar(
+        () async => throw StateError('EventKit unavailable'),
+      );
+      await _pumpSheet(
+        tester,
+        picker: const _FakePicker(null),
+        saves: _Saves(),
+        deviceCalendar: reader,
+      );
+
+      await _tapVisible(tester, _key('add-classes-device'));
+
+      expect(
+        find.text('Couldn’t read this phone’s calendar just now. Try again.'),
+        findsOneWidget,
+      );
+      expect(find.text('FROM THIS IPHONE’S CALENDAR'), findsOneWidget);
+    });
   });
 
   group('in Plans', () {
@@ -425,10 +617,13 @@ void main() {
       await tester.tap(_key('add-classes-file'));
       await tester.pumpAndSettle();
       await _tapVisible(tester, _key('add-classes-confirm'));
+      expect(_plansScroll(tester).position.pixels, greaterThan(0));
       await tester.tap(_key('add-classes-see-week'));
       await tester.pumpAndSettle();
 
       expect(_key('add-classes-sheet'), findsNothing);
+      // SEE MY WEEK brings Plans back to its top, on the WEEK view.
+      expect(_plansScroll(tester).position.pixels, 0);
       // With classes in, the end of Plans no longer offers the doorway.
       await tester.fling(
         find
@@ -448,10 +643,17 @@ void main() {
       tester,
     ) async {
       final repository = InMemoryAcademicScheduleRepository();
+      final preferences = InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-10-04',
+        ),
+      );
       await _pumpCalendar(
         tester,
         repository: repository,
         picker: _rutgersPicker(),
+        preferences: preferences,
       );
 
       await tester.tap(_key('academic-add-class'));
@@ -481,6 +683,48 @@ void main() {
       await tester.pumpAndSettle();
       expect(_key('add-classes-sheet'), findsNothing);
       expect(repository.saveCount, 1);
+      // SEE MY WEEK: the WEEK view, on the week of the next class (Monday
+      // Oct 5, 8:30 AM, the morning after this Sunday evening).
+      expect(preferences.state.mode, AcademicCalendarMode.week);
+      expect(preferences.state.selectedDate, '2026-10-05');
+      expect(_plansScroll(tester).position.pixels, 0);
+    });
+
+    testWidgets('adding classes while Plans is still opening keeps what was '
+        'saved', (tester) async {
+      final repository = _GatedRepository(_math151());
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        picker: const _FakePicker(null),
+      );
+      expect(find.text('Opening your schedule…'), findsOneWidget);
+
+      await tester.tap(_key('academic-add-class'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(_key('academic-add-choice-import'));
+      await tester.pumpAndSettle();
+      await tester.tap(_key('academic-add-choice-import'));
+      await tester.pumpAndSettle();
+      // The sheet waits for the saved schedule.
+      expect(_key('add-classes-sheet'), findsNothing);
+
+      repository.gate.complete();
+      await tester.pumpAndSettle();
+      expect(_key('add-classes-sheet'), findsOneWidget);
+      await tester.tap(_key('add-classes-type'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Fall 2026 · through'), findsOneWidget);
+      await tester.enterText(_key('add-classes-quick-name'), 'CS 111 Intro');
+      await _tapVisible(tester, _key('add-classes-day-2'));
+      await _tapVisible(tester, _key('add-classes-quick-add'));
+
+      expect(repository.saveCount, 1);
+      expect(repository.schedule.terms, hasLength(1));
+      expect(repository.schedule.courses.map((course) => course.code).toSet(), {
+        'MATH 151',
+        'CS 111',
+      });
     });
 
     testWidgets('a file opened from outside opens the same sheet', (
@@ -603,6 +847,15 @@ void main() {
   }
 }
 
+ScrollableState _plansScroll(WidgetTester tester) => tester.state(
+  find
+      .descendant(
+        of: find.byType(CalendarPage),
+        matching: find.byType(Scrollable),
+      )
+      .first,
+);
+
 Set<int> _reminders(AcademicSchedule schedule) => {
   for (final series in schedule.meetingSeries)
     for (final rule in series.reminders)
@@ -626,16 +879,76 @@ _FakePicker _rutgersPicker({bool includeIgnoredEvent = false}) => _FakePicker(
 );
 
 final class _Saves {
-  _Saves({this.succeed = true});
+  _Saves({this.succeed = true, this.throws = false});
   final bool succeed;
+
+  /// The save itself throws (a storage plugin error, say).
+  final bool throws;
   int count = 0;
   AcademicSchedule? last;
 
   Future<bool> save(AcademicSchedule next, AcademicTerm term) async {
     count += 1;
+    if (throws) throw StateError('storage unavailable');
     if (succeed) last = next;
     return succeed;
   }
+}
+
+final class _FakeDeviceCalendar implements DeviceCalendarReader {
+  _FakeDeviceCalendar(this.answer);
+  final Future<AcademicScheduleImportSource?> Function() answer;
+  int reads = 0;
+
+  @override
+  Future<AcademicScheduleImportSource?> read() {
+    reads += 1;
+    return answer();
+  }
+}
+
+/// Holds the saved schedule back until [gate] completes, the way a slow
+/// first read of the phone's storage does.
+final class _GatedRepository implements AcademicScheduleRepository {
+  _GatedRepository(this.schedule);
+  AcademicSchedule schedule;
+  final gate = Completer<void>();
+  int saveCount = 0;
+
+  @override
+  Future<AcademicSchedule> load() async {
+    await gate.future;
+    return schedule;
+  }
+
+  @override
+  Future<bool> save(AcademicSchedule next) async {
+    saveCount += 1;
+    schedule = next;
+    return true;
+  }
+}
+
+/// MATH 151 on Monday, Wednesday and Friday mornings, typed in on Oct 4.
+AcademicSchedule _math151() {
+  final today = CivilDate(2026, 10, 4);
+  final term = QuickClassPlanner.termFor(
+    AcademicSchedule.empty(),
+    today,
+    timeZoneId: 'America/New_York',
+  );
+  return QuickClassPlanner.add(
+    AcademicSchedule.empty(),
+    QuickClassEntry(
+      name: 'MATH 151 Calculus I',
+      weekdays: {DateTime.monday, DateTime.wednesday, DateTime.friday},
+      startMinute: 9 * 60,
+      lengthMinutes: 50,
+    ),
+    term: term,
+    today: today,
+    updatedAt: DateTime.utc(2026, 10, 4, 12),
+  );
 }
 
 late _SheetLauncher _launcher;
@@ -646,11 +959,18 @@ final class _SheetLauncher {
     required this.saves,
     this.requestReminderPermission,
     this.linkFetcher,
+    this.deviceCalendar,
+    this.start = AddClassesStart.ways,
   });
   final AcademicScheduleFilePicker picker;
   final _Saves saves;
   final Future<bool> Function()? requestReminderPermission;
   final CalendarLinkFetcher? linkFetcher;
+  final DeviceCalendarReader? deviceCalendar;
+  final AddClassesStart start;
+
+  /// What the host (Plans) holds; each save applies the sheet's change to it
+  /// as it is at that moment.
   AcademicSchedule schedule = AcademicSchedule.empty();
 
   Future<void> open(BuildContext context) async {
@@ -661,11 +981,19 @@ final class _SheetLauncher {
       timeZoneIdProvider: () async => 'America/New_York',
       requestReminderPermission: requestReminderPermission,
       linkFetcher: linkFetcher,
+      deviceCalendar: deviceCalendar,
+      start: start,
       onShareStarter: () async => true,
-      onSave: (next, term) async {
-        final saved = await saves.save(next, term);
-        if (saved) schedule = next;
-        return saved;
+      onSave: (change) async {
+        final before = schedule;
+        final step = change(before);
+        if (!await saves.save(step.next, step.term)) return null;
+        schedule = step.next;
+        return AddClassesSaved(
+          before: before,
+          next: step.next,
+          term: step.term,
+        );
       },
     );
   }
@@ -677,6 +1005,9 @@ Future<void> _pumpSheet(
   required _Saves saves,
   Future<bool> Function()? requestReminderPermission,
   CalendarLinkFetcher? linkFetcher,
+  DeviceCalendarReader? deviceCalendar,
+  AddClassesStart start = AddClassesStart.ways,
+  AcademicSchedule? schedule,
   Size size = const Size(430, 932),
   double textScale = 1,
 }) async {
@@ -685,7 +1016,10 @@ Future<void> _pumpSheet(
     saves: saves,
     requestReminderPermission: requestReminderPermission,
     linkFetcher: linkFetcher,
+    deviceCalendar: deviceCalendar,
+    start: start,
   );
+  if (schedule != null) _launcher.schedule = schedule;
   await _configureView(tester, size: size, textScale: textScale);
   await tester.pumpWidget(
     MaterialApp(
@@ -723,9 +1057,10 @@ Future<void> _openSheet(WidgetTester tester) async {
 
 Future<void> _pumpCalendar(
   WidgetTester tester, {
-  required InMemoryAcademicScheduleRepository repository,
+  required AcademicScheduleRepository repository,
   required AcademicScheduleFilePicker picker,
   AcademicScheduleFileInbox? inbox,
+  InMemoryAcademicCalendarPreferences? preferences,
 }) async {
   await _configureView(tester, size: const Size(430, 932), textScale: 1);
   await tester.pumpWidget(
@@ -738,12 +1073,14 @@ Future<void> _pumpCalendar(
           quests: const [],
           onAdd: (_) => true,
           scheduleRepository: repository,
-          calendarPreferences: InMemoryAcademicCalendarPreferences(
-            state: const AcademicCalendarViewState(
-              mode: AcademicCalendarMode.month,
-              selectedDate: '2026-10-04',
-            ),
-          ),
+          calendarPreferences:
+              preferences ??
+              InMemoryAcademicCalendarPreferences(
+                state: const AcademicCalendarViewState(
+                  mode: AcademicCalendarMode.month,
+                  selectedDate: '2026-10-04',
+                ),
+              ),
           notebookHandoff: const _NoopHandoff(),
           academicScheduleFilePicker: picker,
           academicScheduleFileInbox: inbox,

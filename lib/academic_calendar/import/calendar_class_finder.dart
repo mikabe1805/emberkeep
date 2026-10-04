@@ -379,7 +379,9 @@ final class CalendarClassImportDraft {
 
   /// The term the selected classes fall in: a Room of Days term when the file
   /// names one, otherwise the span of the selected classes, named by season.
-  /// Open-ended classes run to the end of that season.
+  /// Open-ended classes run to the end of that season. Its ID comes from the
+  /// calendar's own dates, never from today, so reading the same calendar
+  /// again in a later week finds the same term.
   AcademicTerm get term {
     if (termOverride != null) return termOverride!;
     final picked = selected.isEmpty ? activeCandidates : selected;
@@ -406,14 +408,36 @@ final class CalendarClassImportDraft {
       );
     }
     final span = _termSpan(picked, today);
-    final name = '${seasonAround(span.$1).name} ${span.$1.year}';
     return AcademicTerm(
-      termId: _stableId('term', '$name|${span.$1}|${span.$2}'),
-      name: name,
-      startDate: span.$1,
-      endDate: span.$2,
+      termId: _stableId('term', '${span.name}|${span.anchor}|${span.end}'),
+      name: span.name,
+      startDate: span.start,
+      endDate: span.end,
       timeZoneId: timeZoneId,
     );
+  }
+
+  /// The term these classes join in [existing]: the same term from an earlier
+  /// read of this calendar, else a term already in Plans with the same name
+  /// whose dates meet these (typed classes, or a different pick from the same
+  /// calendar), else [term] as a new one.
+  AcademicTerm termIn(AcademicSchedule existing) {
+    final t = term;
+    final same = existing.terms
+        .where((item) => item.termId == t.termId)
+        .firstOrNull;
+    if (same != null) return same;
+    final named = existing.terms.where(
+      (item) =>
+          !item.archived &&
+          item.name == t.name &&
+          _overlapDays(
+                (item.startDate, item.endDate),
+                (t.startDate, t.endDate),
+              ) >
+              0,
+    );
+    return named.firstOrNull ?? t;
   }
 
   bool get usesSeasonEnd =>
@@ -436,26 +460,25 @@ final class CalendarClassImportDraft {
   /// a meeting the student moved or cancelled by hand. A school portal that
   /// hands out new event IDs with every export still lands on the meetings
   /// already there: a course's meeting with the same days, times and kind is
-  /// refreshed instead of added twice.
+  /// refreshed instead of added twice. A class read again keeps the course
+  /// it already sits in for this term.
   AcademicSchedule applyTo(
     AcademicSchedule existing, {
     required DateTime updatedAt,
   }) {
-    final t = term;
-    final existingTerm = existing.terms
-        .where((item) => item.termId == t.termId)
-        .firstOrNull;
-    final resolvedTerm = existingTerm ?? t;
+    final resolvedTerm = termIn(existing);
     var next = existing;
     final groups = selectedCourses;
     for (var index = 0; index < groups.length; index++) {
       final group = groups[index];
-      final courseId = _stableId(
-        'course',
-        '${resolvedTerm.termId}|${group.code}|${group.title}',
-      );
+      final courseId =
+          _courseHolding(existing, group, resolvedTerm)?.courseId ??
+          _stableId(
+            'course',
+            '${resolvedTerm.termId}|${group.code}|${group.title}',
+          );
       for (final candidate in group.candidates) {
-        final first = _later(candidate.firstDate, resolvedTerm.startDate);
+        final first = _placementStart(candidate, resolvedTerm);
         final last = _earlier(
           candidate.lastDate ?? resolvedTerm.endDate,
           resolvedTerm.endDate,
@@ -473,7 +496,12 @@ final class CalendarClassImportDraft {
           colorLabel: priorCourse?.colorLabel ?? palette.$2,
           meetingSeriesIds: priorCourse?.meetingSeriesIds ?? const [],
         );
-        final seriesId = _seriesIdFor(next, candidate, courseId);
+        final seriesId = _seriesIdFor(
+          next,
+          candidate,
+          courseId,
+          resolvedTerm.termId,
+        );
         final prior = next.meetingSeriesById(seriesId);
         final fields = candidate.roomOfDays;
         final series = MeetingSeries(
@@ -549,14 +577,22 @@ final class CalendarClassImportDraft {
 }
 
 /// The stable series ID for [candidate], or the ID of the same weekly meeting
-/// already in [schedule] under an older event ID.
+/// already in [schedule] under an older event ID. The same calendar event
+/// read for another term (a weekly event with no end, read again next
+/// season) gets its own series there, so last term's meetings stay as they
+/// were.
 String _seriesIdFor(
   AcademicSchedule schedule,
   ClassCandidate candidate,
   String courseId,
+  String termId,
 ) {
   final stable = _stableId('meeting', candidate.key);
-  if (schedule.meetingSeriesById(stable) != null) return stable;
+  if (schedule.meetingSeriesById(stable) case final found?) {
+    final owner = schedule.courseById(found.courseId);
+    if (owner == null || owner.termId == termId) return stable;
+    return _stableId('meeting', '${candidate.key}|$termId');
+  }
   final twin = schedule.meetingSeries.where(
     (series) =>
         series.tombstonedAt == null &&
@@ -571,18 +607,71 @@ String _seriesIdFor(
   return twin.firstOrNull?.meetingSeriesId ?? stable;
 }
 
-/// First and last day of a term made from [picked]. An open-ended series (a
-/// gym slot from June) never drags the term back before this week.
-(CivilDate, CivilDate) _termSpan(List<ClassCandidate> picked, CivilDate today) {
+/// A course in [term] that already holds one of [group]'s meetings from an
+/// earlier read of the same calendar, so reading it again refreshes that
+/// course instead of starting a second one beside it.
+AcademicCourse? _courseHolding(
+  AcademicSchedule schedule,
+  ClassReviewCourse group,
+  AcademicTerm term,
+) {
+  for (final candidate in group.candidates) {
+    final series = schedule.meetingSeriesById(
+      _stableId('meeting', candidate.key),
+    );
+    if (series == null || series.tombstonedAt != null) continue;
+    final course = schedule.courseById(series.courseId);
+    if (course != null && !course.archived && course.termId == term.termId) {
+      return course;
+    }
+  }
+  return null;
+}
+
+/// The first day [item] places meetings in [term]. A class that meets every
+/// other week starts on one of its own weeks, counted from the calendar's
+/// first meeting, so a term that opens on an off week never shifts it.
+CivilDate _placementStart(ClassCandidate item, AcademicTerm term) {
+  final first = _later(item.firstDate, term.startDate);
+  if (item.intervalWeeks <= 1) return first;
+  final weeks =
+      _days(
+        item.firstDate.startOfWeek(DateTime.monday),
+        first.startOfWeek(DateTime.monday),
+      ) ~/
+      7;
+  final behind = weeks % item.intervalWeeks;
+  if (behind == 0) return first;
+  final onWeek = first
+      .startOfWeek(DateTime.monday)
+      .addDays(7 * (item.intervalWeeks - behind));
+  for (var day = 0; day < 7; day++) {
+    final date = onWeek.addDays(day);
+    if (item.weekdays.contains(date.weekday)) return date;
+  }
+  return onWeek;
+}
+
+/// The term made from [picked]: its season name, the first and last day it
+/// places meetings, and the calendar's own first date, which the term's ID
+/// is built from. An open-ended series (a gym slot from June) never drags
+/// the term back before this week.
+({String name, CivilDate start, CivilDate end, CivilDate anchor}) _termSpan(
+  List<ClassCandidate> picked,
+  CivilDate today,
+) {
   CivilDate startOf(ClassCandidate item) => item.endWasOpen
       ? _later(item.firstDate, today.startOfWeek(DateTime.monday))
       : item.firstDate;
   final start = picked.isEmpty ? today : picked.map(startOf).reduce(_earlier);
+  final anchor = picked.isEmpty
+      ? start
+      : picked.map((item) => item.firstDate).reduce(_earlier);
   final season = seasonAround(start);
   final ends = [for (final item in picked) item.lastDate ?? season.end];
   var end = ends.isEmpty ? season.end : ends.reduce(_later);
   if (end.compareTo(start) < 0) end = start;
-  return (start, end);
+  return (name: season.name, start: start, end: end, anchor: anchor);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -616,9 +705,9 @@ int _overlapDays((CivilDate, CivilDate) a, (CivilDate, CivilDate) b) =>
       [
         ClassTermChoice(
           index: 0,
-          name: '${seasonAround(span.$1).name} ${span.$1.year}',
-          startDate: span.$1,
-          endDate: span.$2,
+          name: span.name,
+          startDate: span.start,
+          endDate: span.end,
           likelyCourseCount: 0,
           candidateKeys: {for (final item in candidates) item.key},
         ),
@@ -714,9 +803,9 @@ int _overlapDays((CivilDate, CivilDate) a, (CivilDate, CivilDate) b) =>
     choices.add(
       ClassTermChoice(
         index: i,
-        name: '${seasonAround(span.$1).name} ${span.$1.year}',
-        startDate: span.$1,
-        endDate: span.$2,
+        name: span.name,
+        startDate: span.start,
+        endDate: span.end,
         likelyCourseCount: _groupCourses(clusters[i]).length,
         candidateKeys: Set.unmodifiable(members[i]),
       ),
@@ -816,7 +905,16 @@ abstract final class CalendarClassFinder {
     for (final event in masters) {
       final start = event.time('DTSTART', zone)!;
       final end = _endOf(event, start, zone)!;
-      final rule = _Rule.parse(event.value('RRULE')!, start.date, zone)!;
+      // The rule's days are written in the event's own zone (UTC for a time
+      // ending in Z). When reading the start in [zone] moves it to another
+      // day (an evening class written in UTC), every meeting day moves too.
+      final written = event.rawTime('DTSTART')!.date;
+      final rule = _Rule.parse(
+        event.value('RRULE')!,
+        written,
+        zone,
+        dayShift: _days(written, start.date),
+      )!;
       final uid = event.text('UID') ?? '${event.text('SUMMARY')}|$start';
       final skipped = <CivilDate>{
         for (final item in event.times('EXDATE', zone)) item.date,
@@ -1431,7 +1529,16 @@ final class _Rule {
 
   /// Weekly rules only (and DAILY limited to weekdays, which some tools
   /// write for MWF classes). Anything else is not a class pattern.
-  static _Rule? parse(String raw, CivilDate firstDate, tz.Location zone) {
+  ///
+  /// [firstDate] is DTSTART's date as written. [dayShift] is how many days
+  /// reading that start in [zone] moved it; the meeting days and a COUNT's
+  /// last meeting move by the same amount. UNTIL is read in [zone] itself.
+  static _Rule? parse(
+    String raw,
+    CivilDate firstDate,
+    tz.Location zone, {
+    int dayShift = 0,
+  }) {
     final parts = <String, String>{
       for (final piece in raw.split(';'))
         if (piece.contains('='))
@@ -1480,8 +1587,13 @@ final class _Rule {
         }
         if (date.year > firstDate.year + 2) break;
       }
+      last = last?.addDays(dayShift);
     }
-    return _Rule(weekdays: days, intervalWeeks: interval, lastDate: last);
+    return _Rule(
+      weekdays: {for (final day in days) (day - 1 + dayShift) % 7 + 1},
+      intervalWeeks: interval,
+      lastDate: last,
+    );
   }
 }
 
@@ -1500,7 +1612,7 @@ int? _weekdayFrom(String token) {
 }
 
 List<CivilDate> _meetingDates(ClassCandidate item, AcademicTerm term) {
-  final first = _later(item.firstDate, term.startDate);
+  final first = _placementStart(item, term);
   final last = _earlier(item.lastDate ?? term.endDate, term.endDate);
   final moved = {for (final move in item.moves) move.from};
   final anchor = first.startOfWeek(term.weekStartsOn);
@@ -1525,34 +1637,38 @@ List<CivilDate> _meetingDates(ClassCandidate item, AcademicTerm term) {
 // Seasons
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// A typical term around [date], used to name a term and to end classes that
-/// a calendar left open-ended. The student can change the end in review.
+/// A typical term around [date] and its year ("Fall 2026"), used to name a
+/// term and to end classes that a calendar left open-ended. Once a season's
+/// usual end has passed, the next season is the one ahead: late December
+/// belongs to next spring and late May to summer, which is when students set
+/// up their next classes. The student can change the end in review.
 ({String name, CivilDate end}) seasonAround(CivilDate date) {
+  final year = date.year;
   final m = date.month;
-  if (m >= 8) return (name: 'Fall', end: CivilDate(date.year, 12, 20));
-  if (m <= 5) {
-    return (
-      name: m == 1 && date.day < 10 ? 'Winter' : 'Spring',
-      end: m == 1 && date.day < 10
-          ? CivilDate(date.year, 1, 24)
-          : CivilDate(date.year, 5, 15),
-    );
+  final d = date.day;
+  if (m == 12 && d > 20) {
+    return (name: 'Spring ${year + 1}', end: CivilDate(year + 1, 5, 15));
   }
-  return (name: 'Summer', end: CivilDate(date.year, 8, 15));
+  if (m >= 8) return (name: 'Fall $year', end: CivilDate(year, 12, 20));
+  if (m == 1 && d < 10) {
+    return (name: 'Winter $year', end: CivilDate(year, 1, 24));
+  }
+  if (m < 5 || (m == 5 && d <= 15)) {
+    return (name: 'Spring $year', end: CivilDate(year, 5, 15));
+  }
+  return (name: 'Summer $year', end: CivilDate(year, 8, 15));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Time zones
 // ─────────────────────────────────────────────────────────────────────────────
 
-bool _zonesReady = false;
-
 tz.Location? zoneNamed(String? raw) {
   if (raw == null) return null;
-  if (!_zonesReady) {
-    tz_data.initializeTimeZones();
-    _zonesReady = true;
-  }
+  // Loading the zone database also resets tz.local to UTC, which would undo
+  // the device zone the notification scheduler set. Load it only once, and
+  // only when nothing else has.
+  if (!tz.timeZoneDatabase.isInitialized) tz_data.initializeTimeZones();
   var name = raw.trim().replaceAll('"', '');
   if (name.isEmpty) return null;
   tz.Location? attempt(String value) {

@@ -140,6 +140,10 @@ class _CalendarPageState extends State<CalendarPage> {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
+
+  /// Completes once the saved schedule has loaded. Adding classes waits on
+  /// it, so nothing is ever built on the empty schedule Plans starts with.
+  late final Future<void> _academicLoad;
   bool _academicImportOpen = false;
   int _viewInteractionRevision = 0;
   Future<void> _viewSaveTail = Future<void>.value();
@@ -167,7 +171,8 @@ class _CalendarPageState extends State<CalendarPage> {
     widget.academicScheduleFileInbox?.addListener(
       _onIncomingAcademicScheduleFile,
     );
-    unawaited(_loadAcademicCalendar());
+    _academicLoad = _loadAcademicCalendar();
+    unawaited(_academicLoad);
   }
 
   @override
@@ -535,15 +540,19 @@ class _CalendarPageState extends State<CalendarPage> {
     return true;
   }
 
-  /// Saves what the Add your classes sheet built (an import, a typed class,
-  /// or a reminder choice) and keeps the selected day inside its term.
-  Future<bool> _saveAddedClasses(
-    AcademicSchedule next,
-    AcademicTerm term,
-  ) async {
-    if (!await _scheduleRepository.save(next)) return false;
+  /// Saves what the Add your classes sheet builds (an import, a typed class,
+  /// or a reminder choice) on the schedule Plans holds right now, and keeps
+  /// the selected day inside its term.
+  Future<AddClassesSaved?> _saveAddedClasses(AddClassesChange change) async {
+    await _academicLoad;
+    final before = _academicSchedule;
+    final step = change(before);
+    final next = step.next;
+    final term = step.term;
+    if (!await _scheduleRepository.save(next)) return null;
     _reportScheduleChange(next);
-    if (!mounted) return true;
+    final saved = AddClassesSaved(before: before, next: next, term: term);
+    if (!mounted) return saved;
 
     final selected = CivilDate.fromDateTime(_selected);
     setState(() {
@@ -559,7 +568,7 @@ class _CalendarPageState extends State<CalendarPage> {
       }
     });
     _persistAcademicView();
-    return true;
+    return saved;
   }
 
   /// SEE MY WEEK: the WEEK view on the week the sheet showed.
@@ -1352,6 +1361,14 @@ class _CalendarPageState extends State<CalendarPage> {
     _academicImportOpen = true;
     AddClassesResult? result;
     try {
+      // The sheet shows (and builds on) the saved schedule, never the empty
+      // one Plans holds while it is still opening.
+      try {
+        await _academicLoad;
+      } catch (_) {
+        return;
+      }
+      if (!mounted) return;
       result = await showAddClassesSheet(
         context,
         schedule: _academicSchedule,

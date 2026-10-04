@@ -42,7 +42,7 @@ const quickClassLengths = <int>[50, 75, 80, 110, 180];
 
 abstract final class QuickClassPlanner {
   /// The term a typed class joins: the active term for [today] if Plans has
-  /// one, otherwise this season, starting the Monday of this week.
+  /// one, otherwise [newTermAround] today.
   static AcademicTerm termFor(
     AcademicSchedule schedule,
     CivilDate today, {
@@ -50,14 +50,28 @@ abstract final class QuickClassPlanner {
   }) {
     final existing = schedule.termFor(today);
     if (existing != null) return existing;
-    final start = today.startOfWeek(DateTime.monday);
-    final season = seasonAround(today);
+    final fresh = newTermAround(today);
     return AcademicTerm(
       termId: AcademicIds.create('term'),
-      name: '${season.name} ${today.year}',
-      startDate: start,
-      endDate: season.end,
+      name: fresh.name,
+      startDate: fresh.start,
+      endDate: fresh.end,
       timeZoneId: timeZoneId,
+    );
+  }
+
+  /// The term a first typed class starts: this season from the Monday of
+  /// this week. After a season's usual end it is the next season (late
+  /// December starts next spring, late May starts summer), so the term
+  /// always reaches past today.
+  static ({String name, CivilDate start, CivilDate end}) newTermAround(
+    CivilDate today,
+  ) {
+    final season = seasonAround(today);
+    return (
+      name: season.name,
+      start: today.startOfWeek(DateTime.monday),
+      end: season.end,
     );
   }
 

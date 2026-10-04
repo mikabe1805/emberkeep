@@ -27,9 +27,36 @@ import '../import/class_import_reminders.dart';
 import '../import/device_calendar_reader.dart';
 import '../import/quick_class_entry.dart';
 
-/// Saves a finished schedule. Returns false when the local save did not work.
+/// One edit the sheet makes (an import, a typed class, a reminder choice),
+/// written as a function of the schedule it applies to.
+typedef AddClassesChange = AddClassesStep Function(AcademicSchedule base);
+
+/// What an [AddClassesChange] made from its base: the next schedule and the
+/// term Plans should keep in view.
+final class AddClassesStep {
+  const AddClassesStep({required this.next, required this.term});
+  final AcademicSchedule next;
+  final AcademicTerm term;
+}
+
+/// A change that was saved, with the schedule it was built on.
+final class AddClassesSaved {
+  const AddClassesSaved({
+    required this.before,
+    required this.next,
+    required this.term,
+  });
+  final AcademicSchedule before;
+  final AcademicSchedule next;
+  final AcademicTerm term;
+}
+
+/// Applies [change] to the schedule Plans holds at the moment of saving (never
+/// a copy from when the sheet opened, which may be older) and saves it.
+/// Returns null when the local save did not work. An [ArgumentError] from the
+/// change reaches the sheet unsaved.
 typedef AddClassesSave =
-    Future<bool> Function(AcademicSchedule next, AcademicTerm term);
+    Future<AddClassesSaved?> Function(AddClassesChange change);
 
 /// Where the sheet opens.
 enum AddClassesStart { ways, link, quick }
@@ -351,10 +378,39 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
     });
   }
 
-  void _finish(AcademicSchedule before, AcademicSchedule next) {
-    _schedule = next;
-    _written.addAll(meetingSeriesWrittenBetween(before, next));
-    _reminderOffset = classReminderOffsetOf(next, _written);
+  void _finish(AddClassesSaved saved) {
+    _schedule = saved.next;
+    _written.addAll(meetingSeriesWrittenBetween(saved.before, saved.next));
+    _reminderOffset = classReminderOffsetOf(saved.next, _written);
+  }
+
+  static const _saveTrouble =
+      'Couldn’t save on this phone just now. Try again.';
+
+  /// Saves [change] through Plans. Null, with the message shown, when it did
+  /// not save; the sheet stays where it is so nothing typed is lost.
+  Future<AddClassesSaved?> _save(
+    AddClassesChange change, {
+    required String doesNotFit,
+  }) async {
+    String? trouble;
+    AddClassesSaved? saved;
+    try {
+      saved = await widget.onSave(change);
+      if (saved == null) trouble = _saveTrouble;
+    } on ArgumentError {
+      trouble = doesNotFit;
+    } catch (_) {
+      trouble = _saveTrouble;
+    }
+    if (!mounted) return null;
+    if (trouble != null) {
+      setState(() {
+        _busy = false;
+        _error = trouble;
+      });
+    }
+    return saved;
   }
 
   Future<void> _import() async {
@@ -366,43 +422,30 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
       _error = null;
     });
     final updatedAt = Clock.now().toUtc();
-    late final AcademicSchedule next;
-    late final AcademicTerm term;
-    try {
-      if (_roomOfDays case final legacy?) {
-        next = legacy.applyTo(_schedule, updatedAt: updatedAt);
-        term = legacy.term;
-      } else {
-        next = draft.applyTo(_schedule, updatedAt: updatedAt);
-        term = draft.term;
-      }
-    } on ArgumentError {
-      setState(() {
-        _busy = false;
-        _error = 'Some of these dates don’t fit together. Try a shorter term.';
-      });
-      return;
-    }
-    final saved = await widget.onSave(next, term);
-    if (!mounted) return;
-    if (!saved) {
-      setState(() {
-        _busy = false;
-        _error = 'Couldn’t save on this phone just now. Try again.';
-      });
-      return;
-    }
+    final legacy = _roomOfDays;
+    final saved = await _save(
+      (base) => legacy != null
+          ? AddClassesStep(
+              next: legacy.applyTo(base, updatedAt: updatedAt),
+              term: legacy.term,
+            )
+          : AddClassesStep(
+              next: draft.applyTo(base, updatedAt: updatedAt),
+              term: draft.termIn(base),
+            ),
+      doesNotFit: 'Some of these dates don’t fit together. Try a shorter term.',
+    );
+    if (saved == null || !mounted) return;
     Sfx.instance.playInteraction(
       InteractionSound.place,
       material: MaterialSound.brass,
     );
     Haptics.success();
     setState(() {
-      _finish(_schedule, next);
+      _finish(saved);
       _busy = false;
-      _addedCourses =
-          _roomOfDays?.courses.length ?? draft.selectedCourses.length;
-      _resultTerm = term;
+      _addedCourses = legacy?.courses.length ?? draft.selectedCourses.length;
+      _resultTerm = saved.term;
       _stage = _Stage.done;
     });
     _toTop();
@@ -427,24 +470,23 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
     });
     final zone = await _zone();
     if (!mounted) return;
-    final term = QuickClassPlanner.termFor(_schedule, _today, timeZoneId: zone);
-    final next = QuickClassPlanner.add(
-      _schedule,
-      entry,
-      term: term,
-      today: _today,
-      updatedAt: Clock.now().toUtc(),
-      colorIndex: _schedule.courses.length,
-    );
-    final saved = await widget.onSave(next, term);
-    if (!mounted) return;
-    if (!saved) {
-      setState(() {
-        _busy = false;
-        _error = 'Couldn’t save on this phone just now. Try again.';
-      });
-      return;
-    }
+    final today = _today;
+    final updatedAt = Clock.now().toUtc();
+    final saved = await _save((base) {
+      final term = QuickClassPlanner.termFor(base, today, timeZoneId: zone);
+      return AddClassesStep(
+        next: QuickClassPlanner.add(
+          base,
+          entry,
+          term: term,
+          today: today,
+          updatedAt: updatedAt,
+          colorIndex: base.courses.length,
+        ),
+        term: term,
+      );
+    }, doesNotFit: 'Couldn’t add that class just now. Try again.');
+    if (saved == null || !mounted) return;
     Sfx.instance.playInteraction(
       InteractionSound.place,
       material: MaterialSound.glass,
@@ -452,9 +494,9 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
     Haptics.light();
     final reading = entry.reading;
     setState(() {
-      _finish(_schedule, next);
+      _finish(saved);
       _busy = false;
-      _resultTerm = term;
+      _resultTerm = saved.term;
       _added.add(
         '${reading.codeFound ? '${reading.code} · ' : ''}${reading.title}'
         '\n${_daysLabel(entry.weekdays)} · ${_clock(entry.startMinute)}',
@@ -496,24 +538,27 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
       _busy = true;
       _error = null;
     });
-    final next = withClassReminders(
-      _schedule,
-      _written,
-      offsetMinutes: offset,
-      updatedAt: Clock.now().toUtc(),
+    final written = Set<String>.of(_written);
+    final updatedAt = Clock.now().toUtc();
+    final saved = await _save(
+      (base) => AddClassesStep(
+        next: withClassReminders(
+          base,
+          written,
+          offsetMinutes: offset,
+          updatedAt: updatedAt,
+        ),
+        term: term,
+      ),
+      doesNotFit: _saveTrouble,
     );
-    final saved = await widget.onSave(next, term);
-    if (!mounted) return false;
+    if (saved == null || !mounted) return false;
     setState(() {
       _busy = false;
-      if (saved) {
-        _schedule = next;
-        _reminderOffset = offset;
-      } else {
-        _error = 'Couldn’t save on this phone just now. Try again.';
-      }
+      _schedule = saved.next;
+      _reminderOffset = offset;
     });
-    return saved;
+    return true;
   }
 
   @override
@@ -1060,10 +1105,10 @@ class _AddClassesSheetState extends State<AddClassesSheet> {
 
   Widget _quickBody() {
     final existing = _schedule.termFor(_today);
-    final season = seasonAround(_today);
+    final fresh = QuickClassPlanner.newTermAround(_today);
     final termLine = existing != null
         ? '${existing.name} · through ${_monthDay(existing.endDate)}'
-        : '${season.name} ${_today.year} · from this week through ${_monthDay(season.end)}';
+        : '${fresh.name} · from this week through ${_monthDay(fresh.end)}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

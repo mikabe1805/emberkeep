@@ -848,7 +848,15 @@ abstract final class AcademicIds {
 }
 
 abstract final class OccurrenceMaterializer {
-  static bool _timeZonesReady = false;
+  /// Loads the zone database the first time it is needed. Loading it also
+  /// resets tz.local to UTC, which would undo the device zone the
+  /// notification scheduler set, so it never loads over a database that is
+  /// already there.
+  static void _ensureTimeZones() {
+    if (!time_zone.timeZoneDatabase.isInitialized) {
+      time_zone_data.initializeTimeZones();
+    }
+  }
 
   static List<ClassOccurrence> rebuild({
     required AcademicTerm term,
@@ -950,10 +958,7 @@ abstract final class OccurrenceMaterializer {
     int endMinute,
     String timeZoneId,
   ) {
-    if (!_timeZonesReady) {
-      time_zone_data.initializeTimeZones();
-      _timeZonesReady = true;
-    }
+    _ensureTimeZones();
     final location = time_zone.getLocation(timeZoneId);
     time_zone.TZDateTime atMinute(int minute) => time_zone.TZDateTime(
       location,
@@ -974,10 +979,7 @@ abstract final class OccurrenceMaterializer {
   ) => _resolveInstants(date, startMinute, endMinute, timeZoneId);
 
   static time_zone.TZDateTime localTime(DateTime instant, String timeZoneId) {
-    if (!_timeZonesReady) {
-      time_zone_data.initializeTimeZones();
-      _timeZonesReady = true;
-    }
+    _ensureTimeZones();
     return time_zone.TZDateTime.from(
       instant.toUtc(),
       time_zone.getLocation(timeZoneId),

@@ -865,4 +865,293 @@ void main() {
       expect((busy as CalendarClassesRead).draft.titlesHidden, isTrue);
     });
   });
+
+  group('Reading the same calendar again', () {
+    // Google Calendar's default "repeats weekly" has no end.
+    final openEnded = _feed('''
+BEGIN:VEVENT
+UID:cs101-lecture@google.com
+DTSTART;TZID=America/New_York:20260901T100000
+DTEND;TZID=America/New_York:20260901T111500
+RRULE:FREQ=WEEKLY;BYDAY=TU,TH
+LOCATION:Hill Center 114
+SUMMARY:CS 101 Lecture
+END:VEVENT''');
+
+    test('an open-ended class read again a few weeks later keeps one term, '
+        'one course and every meeting already placed', () {
+      final first = CalendarClassFinder.find(
+        openEnded,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 9, 20),
+      ).applyTo(AcademicSchedule.empty(), updatedAt: DateTime.utc(2026, 9, 20));
+      final again = CalendarClassFinder.find(
+        openEnded,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 10, 4),
+      ).applyTo(first, updatedAt: DateTime.utc(2026, 10, 4));
+
+      expect(again.terms, hasLength(1));
+      expect(again.courses, hasLength(1));
+      expect(again.meetingSeries, hasLength(1));
+      expect(
+        again.occurrences.where((item) => item.tombstonedAt != null),
+        isEmpty,
+      );
+      expect(_rows(again), _rows(first));
+      expect(_live(again).first.date, CivilDate(2026, 9, 15));
+    });
+
+    test('a different pick from the same calendar joins the same term', () {
+      final first = _google()
+          ._only('psyc100xx1@google.com')
+          .applyTo(
+            AcademicSchedule.empty(),
+            updatedAt: DateTime.utc(2026, 10, 3),
+          );
+      expect(first.courses, hasLength(1));
+      final all = _google();
+      expect(all.term.termId, isNot(first.terms.single.termId));
+      final again = all.applyTo(first, updatedAt: DateTime.utc(2026, 10, 4));
+
+      expect(again.terms, hasLength(1));
+      expect(again.courses, hasLength(4));
+      expect(
+        again.courses.where((course) => course.title == 'Intro to Psychology'),
+        hasLength(1),
+      );
+      expect(
+        again.occurrences.where((item) => item.tombstonedAt != null),
+        isEmpty,
+      );
+    });
+
+    test('the same open-ended class read next season starts a new term and '
+        'leaves last term as it was', () {
+      final fall = CalendarClassFinder.find(
+        openEnded,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 9, 20),
+      ).applyTo(AcademicSchedule.empty(), updatedAt: DateTime.utc(2026, 9, 20));
+      final spring = CalendarClassFinder.find(
+        openEnded,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2027, 1, 17),
+      ).applyTo(fall, updatedAt: DateTime.utc(2027, 1, 17));
+
+      expect(spring.terms.map((term) => term.name), [
+        'Fall 2026',
+        'Spring 2027',
+      ]);
+      expect(spring.courses, hasLength(2));
+      expect(spring.meetingSeries, hasLength(2));
+      expect(
+        spring.occurrences.where((item) => item.tombstonedAt != null),
+        isEmpty,
+      );
+      final fallTerm = spring.terms.first;
+      expect(
+        _live(spring).where(
+          (item) => item.date.isWithin(fallTerm.startDate, fallTerm.endDate),
+        ),
+        hasLength(_live(fall).length),
+      );
+      expect(
+        _live(
+          spring,
+        ).where((item) => item.date.compareTo(CivilDate(2027, 1, 11)) >= 0),
+        isNotEmpty,
+      );
+    });
+  });
+
+  group('Times written in another zone', () {
+    test('a class written in UTC keeps its own evening', () {
+      // Tuesday 8:30 PM in New York, written as Wednesday 00:30 UTC.
+      final feed = _feed('''
+BEGIN:VEVENT
+UID:night-lecture@school.edu
+DTSTART:20260909T003000Z
+DTEND:20260909T014500Z
+RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=14
+LOCATION:Hamilton Hall 302
+SUMMARY:HIST 220 Lecture
+END:VEVENT''');
+      final draft = CalendarClassFinder.find(
+        feed,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 9, 6),
+      );
+      final item = draft.candidates.single;
+      expect(item.weekdays, {DateTime.tuesday});
+      expect(item.firstDate, CivilDate(2026, 9, 8));
+      expect(item.lastDate, CivilDate(2026, 12, 8));
+      expect(item.startMinute, 20 * 60 + 30);
+      expect(item.looksLikeClass, isTrue);
+      expect(draft.projectedOccurrenceCount, 14);
+
+      final schedule = draft.applyTo(
+        AcademicSchedule.empty(),
+        updatedAt: DateTime.utc(2026, 9, 6),
+      );
+      final meetings = _live(schedule);
+      expect(meetings, hasLength(14));
+      expect(
+        meetings.every((item) => item.date.weekday == DateTime.tuesday),
+        isTrue,
+      );
+      expect(meetings.first.startInstant, DateTime.utc(2026, 9, 9, 0, 30));
+    });
+
+    test('a class in another zone than the calendar lands on the converted '
+        'days', () {
+      // An online class at 7 PM in Chicago, in a calendar kept on London time.
+      final feed = _crlfFeed('''
+BEGIN:VCALENDAR
+VERSION:2.0
+X-WR-TIMEZONE:Europe/London
+BEGIN:VEVENT
+UID:stat400-online@school.edu
+DTSTART;TZID=America/Chicago:20260908T190000
+DTEND;TZID=America/Chicago:20260908T201500
+RRULE:FREQ=WEEKLY;BYDAY=TU,TH;UNTIL=20261210T235959Z
+SUMMARY:STAT 400 Lecture
+END:VEVENT
+END:VCALENDAR''');
+      final draft = CalendarClassFinder.find(
+        feed,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 9, 6),
+      );
+      expect(draft.timeZoneId, 'Europe/London');
+      final item = draft.candidates.single;
+      expect(item.weekdays, {DateTime.wednesday, DateTime.friday});
+      expect(item.firstDate, CivilDate(2026, 9, 9));
+      expect(item.startMinute, 60);
+
+      final schedule = draft.applyTo(
+        AcademicSchedule.empty(),
+        updatedAt: DateTime.utc(2026, 9, 6),
+      );
+      final meetings = _live(schedule);
+      expect(meetings.first.startInstant, DateTime.utc(2026, 9, 9));
+      expect(
+        meetings.every(
+          (item) =>
+              item.date.weekday == DateTime.wednesday ||
+              item.date.weekday == DateTime.friday,
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('Every other week', () {
+    test('an open-ended class read in an off week keeps its own weeks', () {
+      final feed = _feed('''
+BEGIN:VEVENT
+UID:chem101-lab@google.com
+DTSTART;TZID=America/New_York:20260901T140000
+DTEND;TZID=America/New_York:20260901T165000
+RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU
+SUMMARY:CHEM 101 Lab
+END:VEVENT''');
+      // Monday Oct 5: the calendar meets Sep 29 and Oct 13, not this week.
+      final draft = CalendarClassFinder.find(
+        feed,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 10, 5),
+      );
+      expect(draft.candidates.single.looksLikeClass, isTrue);
+      final schedule = draft.applyTo(
+        AcademicSchedule.empty(),
+        updatedAt: DateTime.utc(2026, 10, 5),
+      );
+      final dates = [for (final item in _live(schedule)) item.date];
+      expect(dates, [
+        CivilDate(2026, 10, 13),
+        CivilDate(2026, 10, 27),
+        CivilDate(2026, 11, 10),
+        CivilDate(2026, 11, 24),
+        CivilDate(2026, 12, 8),
+      ]);
+      expect(draft.projectedOccurrenceCount, dates.length);
+    });
+  });
+
+  group('Late in a season', () {
+    test('typing a class in after fall ends starts next spring', () {
+      final term = QuickClassPlanner.termFor(
+        AcademicSchedule.empty(),
+        CivilDate(2026, 12, 22),
+        timeZoneId: 'America/New_York',
+      );
+      expect(term.name, 'Spring 2027');
+      expect(term.startDate, CivilDate(2026, 12, 21));
+      expect(term.endDate, CivilDate(2027, 5, 15));
+    });
+
+    test('typing a class in after spring ends starts summer', () {
+      final term = QuickClassPlanner.termFor(
+        AcademicSchedule.empty(),
+        CivilDate(2027, 5, 20),
+        timeZoneId: 'America/New_York',
+      );
+      expect(term.name, 'Summer 2027');
+      expect(term.startDate, CivilDate(2027, 5, 17));
+      expect(term.endDate, CivilDate(2027, 8, 15));
+      final schedule = QuickClassPlanner.add(
+        AcademicSchedule.empty(),
+        QuickClassEntry(
+          name: 'BIO 110 Lab',
+          weekdays: {DateTime.thursday},
+          startMinute: 9 * 60,
+          lengthMinutes: 110,
+        ),
+        term: term,
+        today: CivilDate(2027, 5, 20),
+        updatedAt: DateTime.utc(2027, 5, 20, 17),
+      );
+      expect(_live(schedule).first.date, CivilDate(2027, 5, 20));
+    });
+
+    test('an open-ended class read in late December joins next spring', () {
+      final feed = _feed('''
+BEGIN:VEVENT
+UID:cs101-lecture@google.com
+DTSTART;TZID=America/New_York:20260901T100000
+DTEND;TZID=America/New_York:20260901T111500
+RRULE:FREQ=WEEKLY;BYDAY=TU,TH
+LOCATION:Hill Center 114
+SUMMARY:CS 101 Lecture
+END:VEVENT''');
+      final draft = CalendarClassFinder.find(
+        feed,
+        fallbackTimeZoneId: 'America/New_York',
+        today: CivilDate(2026, 12, 22),
+      );
+      expect(draft.term.name, 'Spring 2027');
+      expect(draft.term.startDate, CivilDate(2026, 12, 21));
+      expect(draft.term.endDate, CivilDate(2027, 5, 15));
+      expect(draft.projectedOccurrenceCount, greaterThan(1));
+    });
+  });
+}
+
+/// One or more VEVENTs in a plain calendar with no zone of its own.
+String _feed(String events) =>
+    _crlfFeed('BEGIN:VCALENDAR\nVERSION:2.0\n$events\nEND:VCALENDAR');
+
+String _crlfFeed(String text) =>
+    '${text.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n')}\r\n';
+
+extension on CalendarClassImportDraft {
+  /// Only the meetings of the calendar event [uid] picked.
+  CalendarClassImportDraft _only(String uid) {
+    var draft = this;
+    for (final item in candidates) {
+      draft = draft.withSelected(item.key, item.key == uid);
+    }
+    return draft;
+  }
 }
