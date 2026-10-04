@@ -32,6 +32,8 @@ class RewardReceipt extends StatefulWidget {
     required this.onDone,
     this.state,
     this.onReflect,
+    this.xpBefore,
+    this.levelBefore,
   });
 
   final RewardBundle bundle;
@@ -46,6 +48,13 @@ class RewardReceipt extends StatefulWidget {
   /// Saves one optional, day-attached line without forcing a full journal
   /// detour in the middle of the completion reward.
   final ValueChanged<String>? onReflect;
+
+  /// XP and level just before this reward, for the level line. The board's
+  /// staged commit can land before the receipt is built, so [state]'s live
+  /// XP may already include [bundle]. Without these the receipt reads
+  /// [state] as not yet committed.
+  final int? xpBefore;
+  final int? levelBefore;
 
   @override
   State<RewardReceipt> createState() => _RewardReceiptState();
@@ -87,8 +96,12 @@ class _RewardReceiptState extends State<RewardReceipt>
     super.initState();
     final b = widget.bundle;
     final state = widget.state;
-    final projectedXp = state == null ? null : state.xp + b.xp;
-    final nextLevel = state == null ? null : state.level + 1;
+    final projectedXp = state == null
+        ? null
+        : (widget.xpBefore ?? state.xp) + b.xp;
+    final nextLevel = state == null
+        ? null
+        : (widget.levelBefore ?? state.level) + 1;
     final nextLevelCost = nextLevel == null ? null : state!.xpNeeded(nextLevel);
     final levelProgress = projectedXp == null || nextLevelCost == null
         ? null

@@ -217,6 +217,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   final Set<Timer> _achievementToastTimers = {};
   int _activeReceipts = 0;
 
+  /// The completion's passing layers (XP flight, flecks, combo flourish,
+  /// receipt, day-cleared wash) live in the root Overlay, and the Overlay
+  /// keeps such entries above every route. Opening the ledger retires them,
+  /// so none paints over the folio or catches its taps.
+  final Set<_BoardLayer> _boardLayers = {};
+
+  /// Completion chains (receipt, epic, goal, then level-ups) still running.
+  /// The ledger resolves level-ups on close only when none is: a running
+  /// chain reaches its own level-up step and picks up a ledger level too.
+  int _completionChains = 0;
+
+  /// Chain steps that arrived while the ledger was open. They resume, in
+  /// order, once it closes.
+  final List<VoidCallback> _afterLedger = [];
+
   /// The reward rail is a protected band above the dock. The board measures the
   /// featured card against it so a completion can never park its receipt on top
   /// of the next quest's action — the bible's one hard rule for the rail.
@@ -1094,6 +1109,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final s = _state; // guard: the dev reset button can swap state mid-flight
     // capture the pre-completion state so an accidental tap can be undone
     final snapshot = widget.onSnapshot();
+    // The receipt projects the level from these. The staged commit can land
+    // before the receipt is built (the ledger, a tab change or backgrounding
+    // all flush it), so the receipt must not read the live XP.
+    final xpBefore = s.xp;
+    final levelBefore = s.level;
+    _completionChains++;
     final bundle = s.roll(
       q,
       verified: verified,
@@ -1132,15 +1153,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // a flourish for a roll of clears — escalating warmth, never a takeover
     if (_combo >= 2) {
       Haptics.rise();
-      late final OverlayEntry flourish;
-      flourish = OverlayEntry(
-        builder: (_) => _ComboFlourish(
-          combo: _combo,
+      final combo = _combo;
+      _showBoardLayer(
+        overlay,
+        (finish) => _ComboFlourish(
+          combo: combo,
           flameHue: flameHueFor(_state),
-          onDone: () => flourish.remove(),
+          onDone: finish,
         ),
       );
-      overlay.insert(flourish);
     }
 
     // Routine clears belong to the check + XP flight. Flecks are reserved for a
@@ -1152,9 +1173,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         q.dread;
     if (showBurst) {
       final comboBoost = min(_combo - 1, 5);
-      late final OverlayEntry burst;
-      burst = OverlayEntry(
-        builder: (_) => ParticleBurst(
+      _showBoardLayer(
+        overlay,
+        (finish) => ParticleBurst(
           origin: tapPos,
           colors:
               cosmeticFor(s.equippedSkin)?.particles ??
@@ -1162,53 +1183,58 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           count: (5 + 12 * bundle.magnitude).round() + comboBoost * 3,
           vibrancy: 0.38 + bundle.magnitude + comboBoost * 0.08,
           reduce: still,
-          onDone: () => burst.remove(),
+          onDone: finish,
         ),
       );
-      overlay.insert(burst);
     }
 
     // A single bright trace carries the reward from the checked ring to the
     // XP rail. The stat chip then pulses when the commit lands, so the loop is
     // visibly game-first: quest -> XP -> build.
-    late final OverlayEntry xpFlight;
-    xpFlight = OverlayEntry(
-      builder: (_) => QuestCompletionStitch(
+    _showBoardLayer(
+      overlay,
+      (finish) => QuestCompletionStitch(
         origin: tapPos,
         destination: _xpDestination(),
         xp: bundle.xp,
         statColor: q.stat.color,
         reduceMotion: still,
-        onDone: () => xpFlight.remove(),
+        onDone: finish,
       ),
     );
-    overlay.insert(xpFlight);
 
     // The reward receipt starts quickly so there's no dead gap after the tap;
     // epic + level-ups still resolve once it finishes so big moments never
     // land on top of mid-flight bubbles.
     Future.delayed(const Duration(milliseconds: 240), () {
       if (!mounted) return;
+      if (_nightRoute != null) {
+        // The ledger opened first and already shows this reward; the receipt
+        // would only paint over the folio. The chain waits for the close.
+        _afterReceipt(s, q, bundle);
+        return;
+      }
       _activeReceipts++;
-      late final OverlayEntry receipt;
-      receipt = OverlayEntry(
-        builder: (_) => Stack(
+      _showBoardLayer(
+        overlay,
+        (finish) => Stack(
           children: [
             RewardReceipt(
               bundle: bundle,
               anchor: tapPos,
               state: s,
+              xpBefore: xpBefore,
+              levelBefore: levelBefore,
               onReflect: (text) => _keepQuestReflection(s, q, text),
-              onDone: () {
-                receipt.remove();
-                _activeReceipts--;
-                _afterReceipt(s, q, bundle);
-              },
+              onDone: finish,
             ),
           ],
         ),
+        onFinished: () {
+          _activeReceipts--;
+          _afterReceipt(s, q, bundle);
+        },
       );
-      overlay.insert(receipt);
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _clearFeaturedOfRewardRail(),
       );
@@ -1223,6 +1249,49 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _pendingSnapshot = snapshot;
     _pendingTitle = q.title;
     _commitTimer = Timer(const Duration(milliseconds: 520), _flushCommit);
+  }
+
+  /// Inserts one passing reward layer into the root Overlay. The layer calls
+  /// `finish` when it has played out; the ledger can also finish it early.
+  /// Either way it leaves once and [onFinished] runs once.
+  void _showBoardLayer(
+    OverlayState overlay,
+    Widget Function(VoidCallback finish) build, {
+    VoidCallback? onFinished,
+  }) {
+    if (_nightRoute != null) {
+      // Nothing passes over the open ledger (a completion bound from
+      // outside the board can still arrive while it is up).
+      onFinished?.call();
+      return;
+    }
+    late final _BoardLayer layer;
+    layer = _BoardLayer(() {
+      _boardLayers.remove(layer);
+      onFinished?.call();
+    });
+    layer.entry = OverlayEntry(builder: (_) => build(layer.finish));
+    _boardLayers.add(layer);
+    overlay.insert(layer.entry);
+  }
+
+  /// Takes every passing reward layer off the screen now. A receipt's chain
+  /// continues from its usual next step.
+  void _retireBoardLayers() {
+    for (final layer in [..._boardLayers]) {
+      layer.finish();
+    }
+  }
+
+  /// A completion chain stopped before its level-up step (undo, reset).
+  void _dropCompletionChain() {
+    if (_completionChains > 0) _completionChains--;
+  }
+
+  /// A completion chain reached its level-up step.
+  void _endCompletionChain(GameState s) {
+    _dropCompletionChain();
+    _resolveLevelUps(s);
   }
 
   /// Arms the just-completed card so it can be swiped left to undo a misfire;
@@ -1321,7 +1390,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// EPIC (d≥7) quests get their full-screen moment before any level-up.
   void _afterReceipt(GameState s, Quest q, RewardBundle bundle) {
-    if (!mounted || !identical(s, _state)) return;
+    if (!mounted || !identical(s, _state)) return _dropCompletionChain();
+    if (_nightRoute != null) {
+      // Full-screen beats never land on the open ledger; they follow it.
+      _afterLedger.add(() => _afterReceipt(s, q, bundle));
+      return;
+    }
     if (q.difficulty >= 7) {
       late final OverlayEntry epic;
       epic = OverlayEntry(
@@ -1344,7 +1418,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Goal celebrations: a crossed finish line gets the full sunlit moment;
   /// a milestone on an ongoing practice gets a gold banner.
   void _afterEpic(GameState s) {
-    if (!mounted || !identical(s, _state)) return;
+    if (!mounted || !identical(s, _state)) return _dropCompletionChain();
 
     final milestone = s.takeJustMilestoned();
     if (milestone != null) {
@@ -1373,13 +1447,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           reduceMotion: s.reduceMotion,
           onDismiss: () {
             done.remove();
-            _resolveLevelUps(s);
+            _endCompletionChain(s);
           },
         ),
       );
       Overlay.of(context).insert(done);
     } else {
-      _resolveLevelUps(s);
+      _endCompletionChain(s);
     }
   }
 
@@ -1747,20 +1821,42 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           ),
     );
     _nightRoute = route;
+    // The root Overlay keeps hand-inserted entries above every route, so a
+    // receipt still on screen would sit over the folio and take its taps.
+    // The ledger already shows the reward; the receipt's chain waits for the
+    // close (see _afterReceipt).
+    _retireBoardLayers();
     unawaited(
       Navigator.of(context, rootNavigator: true).push(route).then((_) {
         if (identical(_nightRoute, route)) _nightRoute = null;
-        if (!mounted || !identical(s, _state)) return;
+        final waiting = [..._afterLedger];
+        _afterLedger.clear();
+        if (!mounted || !identical(s, _state)) {
+          // Each waiting step sees the swap and ends its chain.
+          for (final resume in waiting) {
+            resume();
+          }
+          return;
+        }
         // A night-confirmed all-day line can be the day's last clear. Extra
         // Credit and kept classes never supply the Quest history it needs.
         if (_remainingToday() == 0 && !_anySnoozedToday()) {
           s.recordPerfectDay();
         }
         setState(() {});
-        // The receipt is seen first; a level crossed by Extra Credit (or a
-        // Quest that landed while the ledger was open) resolves now, then the
-        // usual streak, rank and achievement beats follow.
-        _resolveLevelUps(s);
+        if (waiting.isEmpty && _completionChains == 0) {
+          // A level crossed by Extra Credit, or by a Quest whose chain has
+          // already finished, resolves now; then the usual streak, rank and
+          // achievement beats follow.
+          _resolveLevelUps(s);
+        } else {
+          // A Quest's chain is still running. It reaches its own level-up
+          // step after its epic and goal beats and picks up any level the
+          // ledger added, so nothing lands over a beat still playing.
+          for (final resume in waiting) {
+            resume();
+          }
+        }
         if (s.nightDoneDay == Days.nightKey(Clock.now())) {
           widget.onNightClosed?.call();
         }
@@ -2059,23 +2155,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (_clearedDay == today || _remainingToday() != 0) return;
     _clearedDay = today;
     Future.delayed(const Duration(milliseconds: 720), () {
-      if (!mounted || _remainingToday() != 0) return;
+      // The open ledger is already the day's close; no wash over the folio.
+      if (!mounted || _remainingToday() != 0 || _nightRoute != null) return;
       Haptics.flourish();
       Sfx.instance.play('streak');
       final size = MediaQuery.sizeOf(context);
-      late final OverlayEntry wash;
-      wash = OverlayEntry(
-        builder: (_) => ParticleBurst(
+      _showBoardLayer(
+        Overlay.of(context),
+        (finish) => ParticleBurst(
           origin: Offset(size.width / 2, size.height * 0.3),
           colors: const [Palette.xpLight, Palette.xp, Palette.streak],
           count: 34,
           vibrancy: 0.6,
           spread: size.width * 0.85,
           reduce: _state.reduceMotion,
-          onDone: () => wash.remove(),
+          onDone: finish,
         ),
       );
-      Overlay.of(context).insert(wash);
     });
   }
 
@@ -5436,6 +5532,25 @@ class _FocusLensToggle extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// One passing reward layer in the root Overlay. [finish] removes it and runs
+/// its continuation exactly once, whether the layer played out or the ledger
+/// retired it early (a retired layer's widget is disposed and never calls
+/// back, but a late call is harmless).
+class _BoardLayer {
+  _BoardLayer(this._onFinished);
+
+  final VoidCallback _onFinished;
+  late final OverlayEntry entry;
+  bool _finished = false;
+
+  void finish() {
+    if (_finished) return;
+    _finished = true;
+    entry.remove();
+    _onFinished();
   }
 }
 

@@ -2,6 +2,7 @@
 // 2026-09-03) onto the Build 49 board: the night ledger is an owned route
 // with its own Navigator, so the writing opens above the folio.
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
@@ -9,8 +10,10 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/achievement_toast.dart';
 import 'package:emberkeep/widgets/honey_button.dart';
 import 'package:emberkeep/widgets/levelup_overlay.dart';
+import 'package:emberkeep/widgets/reward_receipt.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -23,6 +26,17 @@ const _sheetKey = Key('extra-credit-sheet');
 const _fieldKey = Key('extra-credit-field');
 const _saveKey = Key('extra-credit-save');
 const _words = 'I went to all my classes';
+
+/// No crit, no loot, the first message: a Quest's reward is the same on
+/// every run, and the receipt's height with it.
+class _NoLuck implements Random {
+  @override
+  bool nextBool() => false;
+  @override
+  double nextDouble() => 0.999;
+  @override
+  int nextInt(int max) => 0;
+}
 
 GameState _state({bool empty = false}) {
   final state = GameState()
@@ -49,6 +63,7 @@ Future<void> _mountBoard(
   Size size = const Size(430, 932),
   double textScale = 1,
   VoidCallback? onPersist,
+  void Function(VoidCallback flush)? onBindFlush,
 }) async {
   tester.view.devicePixelRatio = 1;
   await tester.binding.setSurfaceSize(size);
@@ -80,6 +95,7 @@ Future<void> _mountBoard(
           onRemove: (_) {},
           onSnapshot: () => jsonEncode(state.toJson()),
           onRestore: (_) {},
+          onBindFlush: onBindFlush,
         ),
       ),
     ),
@@ -152,11 +168,13 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     Sfx.instance.soundEnabled = false;
     Clock.freeze(DateTime(2026, 9, 3, 21, 30));
+    GameState.debugRandomFactory = _NoLuck.new;
   });
 
   tearDown(() {
     Clock.reset();
     Sfx.instance.soundEnabled = true;
+    GameState.debugRandomFactory = null;
   });
 
   testWidgets('real Quest board ledger claims, edits, and restores once', (
@@ -447,8 +465,148 @@ void main() {
     expect(state.totalXp, greaterThan(0));
     expect(state.nightQuestTitles, ['Take a walk']);
     expect(find.text('ONE THREAD FINISHED'), findsOneWidget);
+    // The receipt was due 240 ms after the tap, with the ledger already
+    // open. The ledger shows the reward; the receipt never paints over it.
+    for (var beat = 0; beat < 8; beat++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(RewardReceipt), findsNothing);
+    }
     await tester.tap(find.text('NOT YET'));
     await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('a receipt still on screen leaves the opened ledger clear', (
+    tester,
+  ) async {
+    // His evening: the last Quest, then the close-day door a beat later,
+    // on a 393 x 852 phone where the receipt spans the lower folio.
+    final state = _state(empty: true);
+    await _mountBoard(tester, state, size: const Size(393, 852));
+    final action = _actionIn('Take a walk');
+    await tester.ensureVisible(action);
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.tap(action);
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.byType(RewardReceipt).hitTestable(), findsOneWidget);
+
+    await _openLedger(tester);
+    // Build 49's ledger was an overlay entry inserted after the receipt, so
+    // it covered it. As a route, the root Overlay would lift the receipt
+    // (with its SWIPE TO UNDO and Journal door) over the folio.
+    expect(find.byType(RewardReceipt), findsNothing);
+    for (final label in ['MARK TOMORROW', 'CLOSE THE DAY']) {
+      final target = find.text(label).last;
+      await tester.ensureVisible(target);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(target.hitTestable(), findsOneWidget, reason: label);
+    }
+    // Through the rest of the receipt's life, nothing returns over it.
+    for (var beat = 0; beat < 16; beat++) {
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(RewardReceipt), findsNothing);
+    }
+    expect(find.text('CLOSE THE DAY').last.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // Closing resumes the reward chain from where the receipt left it.
+    await tester.ensureVisible(find.text('NOT YET'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('NOT YET'));
+    await tester.pump();
+    var toasted = false;
+    for (var beat = 0; beat < 20 && !toasted; beat++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      toasted = find.byType(AchievementToast).evaluate().isNotEmpty;
+    }
+    expect(toasted, isTrue, reason: 'the first-clear trophy still arrives');
+    expect(find.byType(RewardReceipt), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('a level crossed mid-receipt lands once, after the ledger', (
+    tester,
+  ) async {
+    final state = _state(empty: true)..reduceMotion = false;
+    state.xp = state.xpNeeded(2) - 1;
+    await _mountBoard(tester, state, size: const Size(430, 1400));
+    final action = _actionIn('Take a walk');
+    await tester.ensureVisible(action);
+    await tester.tap(action);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(RewardReceipt), findsOneWidget);
+    await _openLedger(tester);
+    expect(find.byType(LevelUpOverlay), findsNothing);
+    await tester.tap(find.text('NOT YET'));
+    await tester.pump();
+
+    // The receipt, then the level, then the streak, rank and trophy beats
+    // after it is dismissed: never two of them at once.
+    var levelUps = 0;
+    var levelUpOnScreen = false;
+    for (var beat = 0; beat < 60; beat++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      final levelUp = find.byType(LevelUpOverlay).evaluate().length;
+      expect(levelUp, lessThanOrEqualTo(1));
+      if (levelUp == 1 && !levelUpOnScreen) levelUps++;
+      levelUpOnScreen = levelUp == 1;
+      if (levelUpOnScreen) {
+        expect(find.byType(RewardReceipt), findsNothing);
+        expect(find.byType(AchievementToast), findsNothing);
+      }
+    }
+    expect(levelUps, 1);
+    expect(state.level, 2);
+
+    // Dismissed, the chain carries on to the trophy.
+    tester.widget<LevelUpOverlay>(find.byType(LevelUpOverlay)).onDismiss();
+    var toasted = false;
+    for (var beat = 0; beat < 20 && !toasted; beat++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      toasted = find.byType(AchievementToast).evaluate().isNotEmpty;
+    }
+    expect(toasted, isTrue);
+    expect(find.byType(LevelUpOverlay), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('a reward that lands before its receipt keeps the level line', (
+    tester,
+  ) async {
+    // 20 XP short of level 2. The shell flushes the staged commit (a tab
+    // change, backgrounding) inside the receipt's 240 ms lead.
+    final state = _state(empty: true);
+    final cost = state.xpNeeded(2);
+    state.xp = cost - 20;
+    final before = state.xp;
+    VoidCallback? flush;
+    await _mountBoard(
+      tester,
+      state,
+      size: const Size(430, 1400),
+      onBindFlush: (bound) => flush = bound,
+    );
+    final action = _actionIn('Take a walk');
+    await tester.ensureVisible(action);
+    await tester.tap(action);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(state.xp, before, reason: 'still inside the staged commit');
+    flush!();
+    await tester.pump();
+    final gained = state.xp - before;
+    expect(gained, inInclusiveRange(1, 19), reason: 'one ordinary roll');
+
+    await tester.pump(const Duration(milliseconds: 200));
+    final receipt = tester.widget<RewardReceipt>(find.byType(RewardReceipt));
+    expect(receipt.bundle.xp, gained);
+    // Read from the live XP, the reward counted twice: '20 - 2 x gained'
+    // short, or LEVEL 2 READY with no level-up to follow.
+    expect(find.text('${20 - gained} XP · LEVEL 2'), findsOneWidget);
+    expect(find.text('LEVEL 2 READY'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 5));
   });
