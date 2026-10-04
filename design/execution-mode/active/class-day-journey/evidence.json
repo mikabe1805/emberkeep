@@ -3,8 +3,8 @@
   "brief_id": "class-day-journey-board-2026-10-04",
   "brief_sha256": "c9317d626b0dca47ae23051cc5c2d4c0e9866921541c5fa341fe523dd6552cfc",
   "phase": "slice",
-  "implementation_revision": "commit:750d1224d67fbbcfce6e687ca1fccd4520e512fc",
-  "revision_captured_at": "2026-10-04T06:56:29-04:00",
+  "implementation_revision": "commit:7533556a5be6cf0bdeb0dc33e69b472d61357b5c",
+  "revision_captured_at": "2026-10-04T07:04:51-04:00",
   "checks": [
     {
       "id": "slice-product",
@@ -22,8 +22,8 @@
           "kind": "test_report",
           "state": "Widget, model and full-suite results for the board and celebration",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T06:58:50-04:00",
-          "content_sha256": "baa54922bbed1336b77500807aa1b2c7e65deedec354187b8e099d0f47f86fed",
+          "generated_at": "2026-10-04T07:06:36-04:00",
+          "content_sha256": "ff4851fdc04cc925dad18d03b1d71e984915b2cd4aff90dbf5abb97497fc2e84",
           "data_source": "test_output"
         }
       ]
@@ -44,15 +44,15 @@
           "kind": "test_report",
           "state": "Widget, model and full-suite results for the board and celebration",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T06:58:50-04:00",
-          "content_sha256": "baa54922bbed1336b77500807aa1b2c7e65deedec354187b8e099d0f47f86fed",
+          "generated_at": "2026-10-04T07:06:36-04:00",
+          "content_sha256": "ff4851fdc04cc925dad18d03b1d71e984915b2cd4aff90dbf5abb97497fc2e84",
           "data_source": "test_output"
         },
         {
           "kind": "render",
           "state": "Finger down on I WAS THERE",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2a_tue1152_press.png",
-          "generated_at": "2026-10-04T06:57:22-04:00",
+          "generated_at": "2026-10-04T07:05:06-04:00",
           "content_sha256": "30b8bf70906558b442b48ff4013e1bdb631e2fcdc19440891736ee939d893597",
           "data_source": "deterministic_fixture"
         },
@@ -60,7 +60,7 @@
           "kind": "render",
           "state": "Released: the card ring closed",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2b_tue1152_contact_100ms.png",
-          "generated_at": "2026-10-04T06:57:23-04:00",
+          "generated_at": "2026-10-04T07:05:07-04:00",
           "content_sha256": "12eb52b2f70f4badaecb47e2e5d34dd0c6f2132459d1c0507d08794aa1d05e52",
           "data_source": "deterministic_fixture"
         }
@@ -82,7 +82,7 @@
           "kind": "comparison",
           "state": "Concept B beside the build: Tuesday first frame, press, celebration, day tier, back home",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-1.png",
-          "generated_at": "2026-10-04T06:58:01-04:00",
+          "generated_at": "2026-10-04T07:05:44-04:00",
           "content_sha256": "5c9b96c37209dde6e6404fcb3d1f78dabe42945d1fb24e68ffe6a77fc2828ab2",
           "data_source": "deterministic_fixture"
         },
@@ -90,7 +90,7 @@
           "kind": "comparison",
           "state": "Concept B beside the build: Monday shortcut, Thursday quick, week, level-up, 130% text, Reduce Motion, no timetable",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-2.png",
-          "generated_at": "2026-10-04T06:58:03-04:00",
+          "generated_at": "2026-10-04T07:05:46-04:00",
           "content_sha256": "3d6b571fdb738c76898217b36076167ecdd6d4ba1292a397b70cc0766b0becb1",
           "data_source": "deterministic_fixture"
         }
@@ -112,7 +112,7 @@
           "kind": "render",
           "state": "Tuesday between classes",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B1_tue1152_between_classes.png",
-          "generated_at": "2026-10-04T06:57:21-04:00",
+          "generated_at": "2026-10-04T07:05:05-04:00",
           "content_sha256": "62b78ba07e55e74161d9bebf473f89ca9d24614a47f7398ef6e9ffd6b4361699",
           "data_source": "deterministic_fixture"
         }
@@ -134,7 +134,7 @@
           "kind": "render",
           "state": "300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2c_tue1152_celebration_300ms.png",
-          "generated_at": "2026-10-04T06:57:24-04:00",
+          "generated_at": "2026-10-04T07:05:08-04:00",
           "content_sha256": "bbf28ff24074c3faa4ad157dd2f3ee91a1409035e63f0398c088aaed6ff66fed",
           "data_source": "deterministic_fixture"
         },
@@ -142,7 +142,7 @@
           "kind": "render",
           "state": "settled",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2d_tue1152_celebration_settled.png",
-          "generated_at": "2026-10-04T06:57:25-04:00",
+          "generated_at": "2026-10-04T07:05:09-04:00",
           "content_sha256": "8d1fca1fee2f754d0df70ee47d74de4073ad4698c6bd0aeff9c1b9f5036cdc1e",
           "data_source": "deterministic_fixture"
         }
@@ -164,7 +164,7 @@
           "kind": "render",
           "state": "day tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D2b_tue1535_day_settled.png",
-          "generated_at": "2026-10-04T06:57:35-04:00",
+          "generated_at": "2026-10-04T07:05:19-04:00",
           "content_sha256": "eda71f8ede03d593332c5e577594d9dfd4542e0e21242db47e40124aeeaf3c9a",
           "data_source": "deterministic_fixture"
         },
@@ -172,7 +172,7 @@
           "kind": "render",
           "state": "record",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D3_tue1536_back_home.png",
-          "generated_at": "2026-10-04T06:57:35-04:00",
+          "generated_at": "2026-10-04T07:05:19-04:00",
           "content_sha256": "a71fa63311ffde99bcd4b780eda90ff19a6699d22a8428078e66416eebd70afe",
           "data_source": "deterministic_fixture"
         }
@@ -194,7 +194,7 @@
           "kind": "render",
           "state": "three waiting",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X1_mon1915_three_waiting.png",
-          "generated_at": "2026-10-04T06:57:39-04:00",
+          "generated_at": "2026-10-04T07:05:23-04:00",
           "content_sha256": "71ece6e6215bcee3f9b5042cc80c0a9222f666fd4044bc34be83dd03f555cceb",
           "data_source": "deterministic_fixture"
         },
@@ -202,7 +202,7 @@
           "kind": "render",
           "state": "one celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X2b_mon1915_monday_done.png",
-          "generated_at": "2026-10-04T06:57:41-04:00",
+          "generated_at": "2026-10-04T07:05:25-04:00",
           "content_sha256": "9fccf60fa5596ec1491926a75c8220b1b349335abf7c622263789028ea696845",
           "data_source": "deterministic_fixture"
         }
@@ -224,7 +224,7 @@
           "kind": "render",
           "state": "130% room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T1_tue1152_text_130.png",
-          "generated_at": "2026-10-04T06:57:58-04:00",
+          "generated_at": "2026-10-04T07:05:41-04:00",
           "content_sha256": "b6237453d7f9c31948c3809468db85619c5b0c97f78817ccbbd837fb912952e6",
           "data_source": "deterministic_fixture"
         },
@@ -232,7 +232,7 @@
           "kind": "render",
           "state": "130% celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T2_tue1152_text_130_celebration.png",
-          "generated_at": "2026-10-04T06:57:59-04:00",
+          "generated_at": "2026-10-04T07:05:42-04:00",
           "content_sha256": "db378e761409a2578fc47ce0c10cf4e8867a827c79bde8f553746da7985cfb55",
           "data_source": "deterministic_fixture"
         },
@@ -240,7 +240,7 @@
           "kind": "render",
           "state": "Reduce Motion at 300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/R1_tue1152_reduce_motion_300ms.png",
-          "generated_at": "2026-10-04T06:57:56-04:00",
+          "generated_at": "2026-10-04T07:05:39-04:00",
           "content_sha256": "8d1fca1fee2f754d0df70ee47d74de4073ad4698c6bd0aeff9c1b9f5036cdc1e",
           "data_source": "deterministic_fixture"
         }

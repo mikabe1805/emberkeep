@@ -4,19 +4,19 @@ Run on Windows, Flutter 3.44.2, 2026-10-04, branch `claude/class-day-journey`.
 
 ## Full suite
 
-`flutter test --no-pub -r expanded`: **1,490 passed, 40 skipped (capture-gated renders), 0
-failed** (`04:00 +1490 ~40: All tests passed!`). The suite was 1,444 before this slice; the 46
+`flutter test --no-pub`: **1,490 passed, 40 skipped (capture-gated renders), 0 failed**
+(`02:14 +1490 ~40: All tests passed!`, on the tree of 7533556). The suite was 1,444 before this slice; the 46
 new tests are below. The first full run on this slice failed only the three
 `class_day_plumbing_test.dart` cases that tap board doors on a class day; they now tap BOARD
 first, as a person would (the Quests tab opens on the room).
 
 `flutter analyze --no-pub lib test`: no issues.
 
-After the implementation commit (750d122) the class-day files, the copy guard and the sound-lane
-guard were run again: `flutter test --no-pub test/class_day_board_test.dart
+After the last implementation commit (7533556) the class-day files, the copy guard and the
+sound-lane guard were run again: `flutter test --no-pub test/class_day_board_test.dart
 test/class_day_model_test.dart test/class_day_plumbing_test.dart test/copy_style_guard_test.dart
 test/interaction_sound_quality_test.dart`: **77 passed**. The full-suite run above is the same
-code as that commit (the commit added no change after it).
+code as that commit.
 
 ## New tests
 
