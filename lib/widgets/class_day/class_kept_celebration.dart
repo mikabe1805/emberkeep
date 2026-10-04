@@ -45,6 +45,7 @@ class ClassKeptCelebration extends StatefulWidget {
     this.scrimHeight = classStatusScrimHeight,
     this.camera,
     this.onLeaving,
+    this.holdFraming = false,
     this.reduceMotion = false,
   });
 
@@ -81,6 +82,11 @@ class ClassKeptCelebration extends StatefulWidget {
   /// under the still-opaque takeover, so the fade lands on the room as it
   /// will stay.
   final VoidCallback? onLeaving;
+
+  /// The room is already in the evening (the window and the armchair, the
+  /// lamp in frame): the camera holds that framing and the lamp answers
+  /// where it stands, so a mark never swings the camera across the room.
+  final bool holdFraming;
   final bool reduceMotion;
 
   @override
@@ -145,7 +151,8 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
     }
   }
 
-  /// Back on its own (or when the finger lifts): a short fade, then gone.
+  /// Back on its own, when the finger lifts, or at the tap that a held tier
+  /// waits for: a short fade, then gone.
   void _goBack() {
     if (_dismissed || _exit.isAnimating) return;
     _autoReturn?.cancel();
@@ -236,17 +243,22 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
             behavior: HitTestBehavior.opaque,
             onTap: () {
               HapticFeedback.selectionClick();
-              _dismiss();
+              // The held tiers leave the way the others do: the words go,
+              // the dim lifts and the takeover fades onto the room (which
+              // may already be turning to the evening under it).
+              _goBack();
             },
             child: AnimatedBuilder(
               animation: Listenable.merge([_c, _exit]),
               builder: (context, _) {
-                final target = RoomShot.kept(width: width);
                 final camera = widget.camera;
                 final room =
                     (layered ? camera?.shot : null) ??
                     widget.fromShot ??
-                    target;
+                    RoomShot.kept(width: width);
+                final target = widget.holdFraming
+                    ? (widget.fromShot ?? room)
+                    : RoomShot.kept(width: width);
                 // The quick tier holds the kept framing: the camera already
                 // made that move a moment ago, and a second swing at 1.5x is
                 // a rush.
@@ -281,6 +293,9 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                 // and is back when the camera is.
                 final scrim = widget.reduceMotion || _quick
                     ? 0.0
+                    // Held in the evening, the window never leaves the frame.
+                    : widget.holdFraming
+                    ? 1.0
                     : 1 - travel * (1 - home);
                 final dim =
                     _iv(160, 560, Curves.easeOut) *

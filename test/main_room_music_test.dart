@@ -227,6 +227,36 @@ void main() {
     await music.dispose();
   });
 
+  test('a preferred take plays next, once, and the rotation carries on', () {
+    final rotation = MusicRotation(
+      random: math.Random(4),
+      compositionGroups: MainRoomMusic.compositionGroups,
+    )..preferNext(MainRoomMusic.lampLeftOnTake);
+    final takes = [for (var i = 0; i < 6; i++) rotation.next()];
+    expect(takes.first, MainRoomMusic.lampLeftOnTake);
+    // Its composition counts as just played: never twice in a row.
+    expect(takes[1], isNot(MainRoomMusic.lampLeftOnTake));
+    expect(() => rotation.preferNext(24), throwsRangeError);
+  });
+
+  test('Lamp left on starts first and is named while it plays', () async {
+    final starts = <String>[];
+    final music =
+        MainRoomMusic.testing(rotation: MusicRotation(random: math.Random(3)))
+          ..debugBypassPlayback = true
+          ..debugOnStartTake = starts.add;
+    expect(music.nowPlaying.value, isNull);
+    music.preferNextTake(MainRoomMusic.lampLeftOnTake);
+    await music.setEnabled(true);
+    expect(starts.single, 'music/lamp-left-on.m4a');
+    expect(music.nowPlaying.value, 'music/lamp-left-on.m4a');
+    // Already playing: a preference never cuts into the take.
+    music.preferNextTake(1);
+    await music.setEnabled(false);
+    expect(music.nowPlaying.value, isNull);
+    await music.dispose();
+  });
+
   test('earned cues duck the main bed and recover without a jump', () {
     final ducker = MusicDucker();
     final start = DateTime.utc(2026, 9, 1, 12);

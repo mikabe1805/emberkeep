@@ -19,6 +19,7 @@ import '../../academic_calendar/services/class_day_projection.dart';
 import '../../academic_calendar/domain/academic_schedule.dart' show CivilDate;
 import '../../audio.dart' show InteractionSound, MaterialSound;
 import '../../engine.dart';
+import '../../main_room_music.dart' show MainRoomMusic;
 import '../../tokens.dart';
 import '../count_up.dart';
 import '../facets.dart';
@@ -28,6 +29,8 @@ import '../quest_card.dart' show QuestCheckRing;
 import '../routine_ledger.dart' show LedgerType;
 import 'class_day_model.dart';
 import 'class_room_stage.dart';
+
+part 'class_evening.dart';
 
 /// Where the room's camera was last laid out, so the celebration can start
 /// its move from exactly that framing.
@@ -57,7 +60,7 @@ double classStatusAbove(BuildContext context) {
   return math.max(0.0, viewTop - MediaQuery.paddingOf(context).top);
 }
 
-class ClassDayRoom extends StatelessWidget {
+class ClassDayRoom extends StatefulWidget {
   const ClassDayRoom({
     super.key,
     required this.state,
@@ -74,6 +77,8 @@ class ClassDayRoom extends StatelessWidget {
     this.reduceMotion = false,
     this.lightDirection,
     this.quiet = false,
+    this.evening,
+    this.walkFrom,
   });
 
   final GameState state;
@@ -105,13 +110,99 @@ class ClassDayRoom extends StatelessWidget {
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
+  /// The evening (the last class is over, and every class is kept or the
+  /// wind-down has begun): the camera walks to the window and the armchair
+  /// and the glass holds the day folded to one line, the music, a page in the
+  /// journal and closing the day. Null during the class day.
+  final ClassEvening? evening;
+
+  /// Where the camera's walk starts when the evening arrives under the
+  /// celebration (its framing); null starts from wherever the room was.
+  final RoomShot? walkFrom;
+
+  /// The walk between the desk and the evening: slow and eased, the real
+  /// planes moving at their own rates, never a blur.
+  static const walkDuration = Duration(milliseconds: 2400);
+
+  @override
+  State<ClassDayRoom> createState() => _ClassDayRoomState();
+}
+
+enum _Move { walk, fade }
+
+class _ClassDayRoomState extends State<ClassDayRoom>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _move = AnimationController(
+    vsync: this,
+    duration: ClassDayRoom.walkDuration,
+    value: 1,
+  );
+  _Move _kind = _Move.walk;
+  RoomShot? _from;
+
+  /// The framing on screen at the last frame.
+  RoomShot? _shown;
+
+  @override
+  void didUpdateWidget(ClassDayRoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final turned = (oldWidget.evening == null) != (widget.evening == null);
+    if (!turned || _shown == null) return;
+    // The room turns: on the depth room the camera walks; under Reduce
+    // Motion, or on a painted plate, a still fades into the next.
+    final walks = classRoomIsLayered(widget.state) && !widget.reduceMotion;
+    _kind = walks ? _Move.walk : _Move.fade;
+    _from = walks ? (widget.walkFrom ?? _shown) : _shown;
+    _move.duration = walks
+        ? ClassDayRoom.walkDuration
+        : Duration(milliseconds: widget.reduceMotion ? 320 : 420);
+    _move.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _move.dispose();
+    super.dispose();
+  }
+
+  bool get _moving => _move.value < 1 && _from != null;
+
+  /// The camera at this frame of the walk: eased, with the near planes
+  /// swinging wider than the far ones while it pans (the armchair passes the
+  /// window), settling as it arrives.
+  RoomShot _shotAt(RoomShot target) {
+    final from = _from;
+    if (!_moving || _kind != _Move.walk || from == null) return target;
+    final t = Curves.easeInOutSine.transform(_move.value);
+    final base = RoomShot.lerp(from, target, t);
+    final direction = (target.left - from.left).sign;
+    return RoomShot(
+      left: base.left,
+      top: base.top,
+      scale: base.scale,
+      tilt: base.tilt + Offset(0.9 * direction * math.sin(math.pi * t), 0),
+    );
+  }
+
+  /// The glass arrives as the camera settles (the last 45% of the walk), or
+  /// with the fade.
+  double get _glassArrive {
+    if (!_moving) return 1;
+    final v = _move.value;
+    if (_kind == _Move.fade) return Curves.easeOut.transform(v);
+    return Curves.easeOut.transform(((v - 0.55) / 0.45).clamp(0.0, 1.0));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final widget = this.widget;
+    final card = widget.card;
+    final evening = widget.evening;
     final hour = RoomHour.atInstant(
-      now,
+      widget.now,
       card.day.classes.isEmpty ? null : card.day.classes.first.timeZoneId,
     );
-    final layered = classRoomIsLayered(state);
+    final layered = classRoomIsLayered(widget.state);
     // The painting runs up under the status bar (the shell's SafeArea keeps
     // the page below it), so the room is opened into, never placed under a
     // band. The HUD stays where it was, on the room's own soft dark.
@@ -127,10 +218,40 @@ class ClassDayRoom extends StatelessWidget {
       91.0,
       above + topPad + classStatusScrimHeight - 59,
     );
+    // Once the day's classes are kept, or in the evening, the lamp keeps a
+    // quieter, lasting warmth.
+    final warmth = evening != null || card.allKept ? 1.0 : 0.0;
+    final Widget body = evening == null
+        ? ClassCardBody(
+            state: widget.state,
+            card: card,
+            now: widget.now,
+            onMark: widget.onMark,
+            onSelect: widget.onSelect,
+            onUndo: widget.onUndo,
+            undoIdentity: widget.undoIdentity,
+            reduceMotion: widget.reduceMotion,
+            lightDirection: widget.lightDirection,
+          )
+        : SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ClassEveningBody(
+              state: widget.state,
+              card: card,
+              now: widget.now,
+              evening: evening,
+              onMark: widget.onMark,
+              onSelect: widget.onSelect,
+              onUndo: widget.onUndo,
+              undoIdentity: widget.undoIdentity,
+              reduceMotion: widget.reduceMotion,
+              lightDirection: widget.lightDirection,
+            ),
+          );
     return ColoredBox(
       color: Palette.parchment,
       child: Padding(
-        padding: EdgeInsets.only(bottom: dockHeight),
+        padding: EdgeInsets.only(bottom: widget.dockHeight),
         child: CustomMultiChildLayout(
           delegate: _ClassDayDelegate(above: above, topPad: topPad),
           children: [
@@ -140,76 +261,111 @@ class ClassDayRoom extends StatelessWidget {
                 builder: (context, box) {
                   final floorAt =
                       box.maxHeight - _ClassDayDelegate.behindGlass - 4;
-                  final shot = RoomShot.desk(
-                    floorAt: floorAt,
-                    width: box.maxWidth,
-                    headroom: headroom,
-                  );
-                  final imageBottom = (962 - shot.top) * shot.scale;
-                  final fadeEnd = math.min(box.maxHeight, imageBottom) - 2;
-                  final fadeStart = math.min(floorAt + 30, fadeEnd - 70);
-                  camera
-                    ..shot = shot
-                    ..fadeStart = fadeStart
-                    ..fadeEnd = fadeEnd
-                    ..scrimHeight = scrimHeight;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final ro = context.findRenderObject();
-                    if (ro is RenderBox && ro.attached && ro.hasSize) {
-                      camera.stage = ro.localToGlobal(Offset.zero) & ro.size;
-                    }
-                  });
-                  return layered
-                      ? ClassRoomStage(
-                          key: const Key('class-day-stage'),
-                          hour: hour,
-                          shot: shot,
-                          warmth: card.allKept ? 1 : 0,
-                          fadeStart: fadeStart,
-                          fadeEnd: fadeEnd,
-                          scrimHeight: scrimHeight,
+                  final target = evening == null
+                      ? RoomShot.desk(
+                          floorAt: floorAt,
+                          width: box.maxWidth,
+                          headroom: headroom,
                         )
-                      : ClassRoomPlate(
-                          state: state,
-                          fadeStart: fadeStart,
-                          fadeEnd: fadeEnd,
+                      : RoomShot.evening(
+                          floorAt: floorAt,
+                          width: box.maxWidth,
+                          headroom: headroom,
+                        );
+                  return AnimatedBuilder(
+                    animation: _move,
+                    builder: (context, _) {
+                      final shot = _shotAt(target);
+                      _shown = shot;
+                      double fadeEndFor(RoomShot at) =>
+                          math.min(box.maxHeight, (962 - at.top) * at.scale) -
+                          2;
+                      double fadeStartFor(RoomShot at) =>
+                          math.min(floorAt + 30, fadeEndFor(at) - 70);
+                      widget.camera
+                        ..shot = shot
+                        ..fadeStart = fadeStartFor(shot)
+                        ..fadeEnd = fadeEndFor(shot)
+                        ..scrimHeight = scrimHeight;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final ro = context.findRenderObject();
+                        if (ro is RenderBox && ro.attached && ro.hasSize) {
+                          widget.camera.stage =
+                              ro.localToGlobal(Offset.zero) & ro.size;
+                        }
+                      });
+                      if (!layered) {
+                        return ClassRoomPlate(
+                          state: widget.state,
+                          fadeStart: fadeStartFor(shot),
+                          fadeEnd: fadeEndFor(shot),
                           scrimHeight: scrimHeight,
                         );
+                      }
+                      Widget stageAt(RoomShot at, {Key? key}) => ClassRoomStage(
+                        key: key,
+                        hour: hour,
+                        shot: at,
+                        warmth: warmth,
+                        fadeStart: fadeStartFor(at),
+                        fadeEnd: fadeEndFor(at),
+                        scrimHeight: scrimHeight,
+                      );
+                      final from = _from;
+                      if (_moving && _kind == _Move.fade && from != null) {
+                        // Reduce Motion: one still fades into the other.
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            stageAt(from),
+                            Opacity(
+                              opacity: Curves.easeOut.transform(_move.value),
+                              child: stageAt(
+                                shot,
+                                key: const Key('class-day-stage'),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return stageAt(shot, key: const Key('class-day-stage'));
+                    },
+                  );
                 },
               ),
             ),
             LayoutId(
               id: _Slot.glass,
               child: _Quiet(
-                quiet: quiet,
-                child: ClassGlass(
-                  key: const Key('class-day-glass'),
-                  child: ClassCardBody(
-                    state: state,
-                    card: card,
-                    now: now,
-                    onMark: onMark,
-                    onSelect: onSelect,
-                    onUndo: onUndo,
-                    undoIdentity: undoIdentity,
-                    reduceMotion: reduceMotion,
-                    lightDirection: lightDirection,
+                quiet: widget.quiet,
+                child: AnimatedBuilder(
+                  animation: _move,
+                  builder: (context, child) {
+                    final arrive = _glassArrive;
+                    return Opacity(
+                      opacity: arrive,
+                      child: IgnorePointer(ignoring: arrive < 1, child: child),
+                    );
+                  },
+                  child: ClassGlass(
+                    key: const Key('class-day-glass'),
+                    child: body,
                   ),
                 ),
               ),
             ),
             LayoutId(
               id: _Slot.line,
-              child: _Quiet(quiet: quiet, child: bottomLine),
+              child: _Quiet(quiet: widget.quiet, child: widget.bottomLine),
             ),
             LayoutId(
               id: _Slot.hud,
               child: _Quiet(
-                quiet: quiet,
+                quiet: widget.quiet,
                 child: ClassDayHud(
-                  state: state,
+                  state: widget.state,
                   date: card.day.date,
-                  onExploreStat: onExploreStat,
+                  onExploreStat: widget.onExploreStat,
                 ),
               ),
             ),

@@ -12,9 +12,17 @@ import 'platform/audio_support_stub.dart'
 /// never silently collapse back into the meditation loop.
 abstract interface class MainRoomMusicPlayback {
   bool get isPlaying;
+
+  /// The take sounding now (its asset path), or null while silent. The
+  /// evening's music control names Lamp left on from this.
+  ValueListenable<String?> get nowPlaying;
   Future<void> setEnabled(bool enabled);
   Future<void> setForeground(bool foreground);
   Future<void> retryAfterUserGesture();
+
+  /// The next take to start is [take] (1-based), once; the rotation carries
+  /// on from there. Ignored while a take is already playing.
+  void preferNextTake(int take);
   Future<void> dispose();
 }
 
@@ -101,7 +109,29 @@ class MusicRotation {
   final List<int> _compositionBag = <int>[];
   int? _lastComposition;
 
+  int? _preferred;
+
+  /// Plays [take] next, once (the evening's "Lamp left on" button). Its
+  /// composition counts as just played, so the rotation does not return to it
+  /// straight away.
+  void preferNext(int take) {
+    RangeError.checkValueInInterval(take, 1, takeCount, 'take');
+    _preferred = take;
+  }
+
   int next() {
+    final preferred = _preferred;
+    if (preferred != null) {
+      _preferred = null;
+      final composition = _compositionGroups.indexWhere(
+        (group) => group.contains(preferred),
+      );
+      _lastComposition = composition;
+      _compositionBag.remove(composition);
+      _takeBags[composition].remove(preferred);
+      _lastTakeByComposition[composition] = preferred;
+      return preferred;
+    }
     if (_compositionBag.isEmpty) _refillCompositions();
     final composition = _compositionBag.removeLast();
     _lastComposition = composition;
@@ -306,6 +336,17 @@ class MainRoomMusic implements MainRoomMusicPlayback {
 
   bool get enabled => _enabled;
 
+  final ValueNotifier<String?> _nowPlaying = ValueNotifier<String?>(null);
+
+  @override
+  ValueListenable<String?> get nowPlaying => _nowPlaying;
+
+  @override
+  void preferNextTake(int take) {
+    if (_disposed || _hasActiveVoice) return;
+    _rotation.preferNext(take);
+  }
+
   bool get _hasActiveVoice => _debugPlaying || _current != null;
 
   @override
@@ -381,6 +422,7 @@ class MainRoomMusic implements MainRoomMusicPlayback {
     final take = _rotation.next();
     final asset = takeAssets[take - 1];
     debugOnStartTake?.call(asset);
+    _nowPlaying.value = asset;
     if (debugBypassPlayback) {
       _debugPlaying = true;
       return;
@@ -438,7 +480,10 @@ class MainRoomMusic implements MainRoomMusicPlayback {
           identical(_draining, voice));
 
   void _onVoiceStartFailed(_MusicVoice voice) {
-    if (identical(_current, voice)) _current = null;
+    if (identical(_current, voice)) {
+      _current = null;
+      _nowPlaying.value = null;
+    }
     if (identical(_outgoing, voice)) _outgoing = null;
     _retire(voice);
   }
@@ -451,6 +496,7 @@ class MainRoomMusic implements MainRoomMusicPlayback {
     }
     if (!identical(_current, voice)) return;
     _current = null;
+    _nowPlaying.value = null;
     _retire(voice);
     if (_enabled && _foreground) _startTake(fadeIn: Duration.zero);
   }
@@ -504,6 +550,8 @@ class MainRoomMusic implements MainRoomMusicPlayback {
   }
 
   void _fadeOutAndStop({Duration fade = stopFadeOut}) {
+    // Stopping is said at once; the fade is only the sound leaving.
+    _nowPlaying.value = null;
     if (debugBypassPlayback) {
       _debugPlaying = false;
       return;
@@ -582,6 +630,7 @@ class MainRoomMusic implements MainRoomMusicPlayback {
     _outgoing = null;
     _draining = null;
     _debugPlaying = false;
+    _nowPlaying.value = null;
     _retire(current);
     _retire(outgoing);
     _retire(draining);

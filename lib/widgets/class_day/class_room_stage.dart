@@ -163,6 +163,26 @@ class RoomShot {
   /// The window, the armchair and the lamp.
   static const corner = RoomShot(left: 54, top: 30, scale: 0.56);
 
+  /// The evening: the window, the armchair and the lamp, the part of the
+  /// room for resting. As at the desk, the floor line sits at [floorAt] on
+  /// the glass's top edge and the lamp's shade stays below [headroom] (the
+  /// HUD); the armchair (image x 400) is the centre, the window's frame stays
+  /// in on the left, and the fireplace stays out on the right.
+  static RoomShot evening({
+    required double floorAt,
+    double width = 393,
+    double headroom = 92,
+  }) {
+    final byFloor = floorAt / 760;
+    final byLamp =
+        (floorAt - headroom) / (RoomMarks.floor - RoomMarks.shadeTop);
+    final scale = math.min(byFloor, byLamp).clamp(0.44, 0.74).toDouble();
+    final top = math.max(0.0, RoomMarks.floor - floorAt / scale);
+    final span = width / scale;
+    final left = (400 - span / 2).clamp(40.0, math.max(40.0, 1060 - span));
+    return RoomShot(left: left.toDouble(), top: top, scale: scale);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is RoomShot &&

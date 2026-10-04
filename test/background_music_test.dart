@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:emberkeep/background_music.dart';
 import 'package:emberkeep/main_room_music.dart';
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _MainMusic implements MainRoomMusicPlayback {
@@ -14,6 +15,12 @@ class _MainMusic implements MainRoomMusicPlayback {
 
   @override
   bool get isPlaying => enabled && foreground && !disposed;
+
+  @override
+  final ValueNotifier<String?> nowPlaying = ValueNotifier<String?>(null);
+
+  @override
+  void preferNextTake(int take) => calls.add('main:prefer:$take');
 
   @override
   Future<void> dispose() async {
@@ -369,6 +376,81 @@ void main() {
     await music.leaveFocusSession();
     expect(music.currentRole, RoomMusicRole.main);
     expect(main.calls.where((call) => call == 'main:start'), hasLength(2));
+  });
+
+  group("the evening room's music choice", () {
+    test('a press plays Lamp left on first, for tonight only', () async {
+      final main = _MainMusic();
+      final music = _controller(main, _FocusTransport());
+      await music.setEnabled(false);
+      expect(music.mainWanted.value, isFalse);
+      expect(main.calls, isEmpty, reason: 'nothing starts on its own');
+
+      await music.setRoomChoice(
+        true,
+        startWithTake: MainRoomMusic.lampLeftOnTake,
+      );
+      expect(main.calls, ['main:prefer:23', 'main:start']);
+      expect(music.currentRole, RoomMusicRole.main);
+      expect(music.mainWanted.value, isTrue);
+      expect(music.roomMusicOn, isTrue);
+      expect(music.enabled, isFalse, reason: 'the saved setting is untouched');
+
+      await music.setRoomChoice(false);
+      expect(main.calls.last, 'main:pause');
+      expect(music.mainWanted.value, isFalse);
+    });
+
+    test('quiet for tonight over a saved setting that is on', () async {
+      final main = _MainMusic();
+      final music = _controller(main, _FocusTransport());
+      await music.setEnabled(true);
+      await music.setRoomChoice(false);
+      expect(music.roomMusicOn, isFalse);
+      expect(main.calls, ['main:start', 'main:pause']);
+      expect(music.enabled, isTrue);
+      // Back to the saved setting.
+      await music.setRoomChoice(null);
+      expect(main.calls.last, 'main:start');
+    });
+
+    test('a playing rotation is never restarted on Lamp left on', () async {
+      final main = _MainMusic();
+      final music = _controller(main, _FocusTransport());
+      await music.setEnabled(true);
+      await music.setRoomChoice(
+        true,
+        startWithTake: MainRoomMusic.lampLeftOnTake,
+      );
+      expect(main.calls, ['main:start']);
+    });
+
+    test(
+      "the saved setting changing in Me gives tonight's choice up",
+      () async {
+        final main = _MainMusic();
+        final music = _controller(main, _FocusTransport());
+        await music.setRoomChoice(true);
+        await music.setEnabled(true);
+        expect(music.roomChoice, isNull);
+        await music.setEnabled(false);
+        expect(music.roomMusicOn, isFalse);
+        expect(main.calls.last, 'main:pause');
+      },
+    );
+
+    test('Focus still owns its own session over the choice', () async {
+      final main = _MainMusic();
+      final focus = _FocusTransport();
+      final music = _controller(main, focus);
+      await music.setRoomChoice(true);
+      await music.enterFocusSession();
+      await music.setSessionMuted(true);
+      expect(music.currentRole, isNull);
+      expect(music.mainWanted.value, isFalse);
+      await music.leaveFocusSession();
+      expect(music.currentRole, RoomMusicRole.main);
+    });
   });
 
   test('dispose is terminal for both music roles', () async {

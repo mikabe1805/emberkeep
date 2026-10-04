@@ -404,16 +404,15 @@ void main() {
       expect(_celebration, findsOneWidget, reason: 'the day waits for a tap');
       await _dismiss(tester);
       expect(_celebration, findsNothing);
-      // The record: both attended, the day's XP, what is next.
-      expect(find.text('TUESDAY · BOTH ATTENDED'), findsOneWidget);
+      // Every class kept and the last one over: the evening. The day folds
+      // to one line with its XP (the +10 included).
+      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      expect(find.byKey(const Key('class-evening')), findsOneWidget);
+      expect(find.text('Tuesday’s classes, both attended'), findsOneWidget);
       expect(find.text('+60 XP'), findsOneWidget);
-      expect(
-        find.byKey(const Key('class-day-record-bonus')),
-        findsOneWidget,
-        reason: 'the +10 is on the record, so the rows add up',
-      );
-      expect(find.text('TOMORROW · 8:30 AM'), findsOneWidget);
-      expect(find.text('Computer Architecture Lab'), findsOneWidget);
+      expect(find.text('Write a line'), findsOneWidget);
+      // 3:35 PM is not the wind-down yet: nothing asks to close the day.
+      expect(find.byKey(const Key('class-evening-close-day')), findsNothing);
     });
 
     testWidgets('the first mark after the last class ended is the day tier '
@@ -453,7 +452,7 @@ void main() {
         '10:20.',
       );
       await _dismiss(tester);
-      expect(find.text('MONDAY · ALL THREE ATTENDED'), findsOneWidget);
+      expect(find.text('Monday’s classes, all three attended'), findsOneWidget);
       expect(find.byKey(const Key('class-all-of-today')), findsNothing);
     });
 

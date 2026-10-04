@@ -5,6 +5,7 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.dart';
 import 'package:emberkeep/academic_calendar/services/class_day_projection.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/routines.dart' show isWindDownTime;
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_day_model.dart';
@@ -440,6 +441,145 @@ void main() {
       expect(plan.tier, ClassCelebrationTier.weekDone);
       expect(plan.closing.first, 'One class this week.');
       expect(plan.closing.join(' '), isNot(contains('Zero')));
+    });
+  });
+
+  group('the evening and the wind-down', () {
+    GameState kept(DateTime at, Set<String> codes) {
+      Clock.freeze(at);
+      final day = _day(at);
+      final state = GameState();
+      for (final entry in day.classes) {
+        if (!codes.contains(entry.courseCode)) continue;
+        expect(
+          state.keepClass(entry.facts, dayClassKeys: day.dayClassKeys),
+          isNotNull,
+        );
+      }
+      return state;
+    }
+
+    test('the wind-down window waits for the last class to end', () {
+      final end = DateTime(2026, 10, 5, 19);
+      expect(isWindDownTime(DateTime(2026, 10, 5, 17, 45)), isTrue);
+      expect(
+        isWindDownTime(DateTime(2026, 10, 5, 17, 45), lastClassEnd: end),
+        isFalse,
+      );
+      expect(
+        isWindDownTime(DateTime(2026, 10, 5, 18, 59), lastClassEnd: end),
+        isFalse,
+      );
+      expect(
+        isWindDownTime(DateTime(2026, 10, 5, 19), lastClassEnd: end),
+        isTrue,
+      );
+      // An afternoon that ended early is still not the wind-down.
+      expect(
+        isWindDownTime(
+          DateTime(2026, 10, 6, 15, 35),
+          lastClassEnd: DateTime(2026, 10, 6, 15, 20),
+        ),
+        isFalse,
+      );
+      expect(
+        isWindDownTime(
+          DateTime(2026, 10, 7, 1, 30),
+          lastClassEnd: DateTime(2026, 10, 6, 15, 20),
+        ),
+        isTrue,
+      );
+    });
+
+    test('never during his Monday 5:40 lecture or his Thursday lab', () {
+      expect(classWindDown(_day(_ny(5, 17, 45)), _ny(5, 17, 45)), isFalse);
+      expect(classWindDown(_day(_ny(5, 18, 59)), _ny(5, 18, 59)), isFalse);
+      expect(classWindDown(_day(_ny(5, 19, 0)), _ny(5, 19, 0)), isTrue);
+      expect(classWindDown(_day(_ny(8, 18, 45)), _ny(8, 18, 45)), isFalse);
+      expect(classWindDown(_day(_ny(8, 18, 55)), _ny(8, 18, 55)), isTrue);
+      // Tuesday ends at 3:20; the wind-down is still 5 PM.
+      expect(classWindDown(_day(_ny(6, 15, 35)), _ny(6, 15, 35)), isFalse);
+      expect(classWindDown(_day(_ny(6, 17, 0)), _ny(6, 17, 0)), isTrue);
+      // Past midnight it is still Tuesday's night.
+      expect(classWindDown(_day(_ny(7, 1, 30)), _ny(7, 1, 30)), isTrue);
+    });
+
+    test('the wind-down starts at 5 PM or at the last class end', () {
+      expect(classWindDownStart(_day(_ny(6, 9, 0))), _ny(6, 17, 0).toUtc());
+      expect(classWindDownStart(_day(_ny(5, 9, 0))), _ny(5, 19, 0).toUtc());
+      expect(classWindDownStart(_day(_ny(8, 9, 0))), _ny(8, 18, 50).toUtc());
+      // After Tuesday's last class, the next thing that changes the room by
+      // itself is the wind-down at 5.
+      expect(
+        nextClassBoundary(_day(_ny(6, 15, 35)), _ny(6, 15, 35)),
+        _ny(6, 17, 0).toUtc(),
+      );
+    });
+
+    test('the evening: every class kept after the last one, or the '
+        'wind-down', () {
+      ClassCard card(DateTime at, GameState state) =>
+          ClassCard.read(_day(at), state, at);
+      const tuesday = {'14:332:331', '01:198:206'};
+      // Both kept, the last over: the evening, at 3:35 PM.
+      var at = _ny(6, 15, 35);
+      expect(classEveningAt(card(at, kept(at, tuesday)), at), isTrue);
+      // One unmarked: the day still leads with it until 5 PM.
+      expect(classEveningAt(card(at, kept(at, {'14:332:331'})), at), isFalse);
+      at = _ny(6, 17, 0);
+      expect(classEveningAt(card(at, kept(at, {'14:332:331'})), at), isTrue);
+      // Kept during the last class (I'M HERE): the evening waits for its end.
+      at = _ny(6, 14, 40);
+      expect(classEveningAt(card(at, kept(at, tuesday)), at), isFalse);
+      // Monday: never during the late lecture; from 7 PM, marks or not.
+      at = _ny(5, 17, 45);
+      expect(classEveningAt(card(at, GameState()), at), isFalse);
+      at = _ny(5, 19, 15);
+      expect(classEveningAt(card(at, GameState()), at), isTrue);
+    });
+
+    test('the record folds to one line that only counts what he went to', () {
+      Clock.freeze(_ny(6, 20, 30));
+      var at = _ny(6, 20, 30);
+      String line(Set<String> codes) =>
+          classRecordLine(ClassCard.read(_day(at), kept(at, codes), at));
+      expect(
+        line({'14:332:331', '01:198:206'}),
+        'Tuesday’s classes, both attended',
+      );
+      expect(line({'14:332:331'}), 'Tuesday’s classes, one attended');
+      expect(line({}), 'Tuesday’s classes');
+      at = _ny(5, 20, 30);
+      expect(
+        line({'14:332:361', '14:332:345'}),
+        'Monday’s classes, all three attended',
+      );
+      for (final words in [
+        line({}),
+        line({'14:332:361'}),
+      ]) {
+        expect(words, isNot(contains(' of ')));
+        expect(words, isNot(matches(RegExp(r'\d'))));
+      }
+    });
+
+    test('the 9 PM night reminder never lands in one of his classes', () {
+      // The default reminder (GameState.nightReminderHour) against the end
+      // of every class day of his week.
+      final reminder = GameState().nightReminderHour;
+      expect(reminder, 21);
+      for (var d = 5; d <= 9; d++) {
+        final day = _day(_ny(d, 12, 0));
+        final last = OccurrenceMaterializer.localTime(
+          day.lastClassEnd!,
+          'America/New_York',
+        );
+        expect(
+          last.hour * 60 + last.minute,
+          lessThanOrEqualTo(reminder * 60),
+          reason: 'Oct $d ends at $last',
+        );
+      }
     });
   });
 

@@ -10,6 +10,7 @@ library;
 
 import '../../academic_calendar/domain/academic_schedule.dart';
 import '../../academic_calendar/services/class_day_projection.dart';
+import '../../content/routines.dart' show isWindDownTime;
 import '../../engine.dart';
 import '../../models.dart';
 import '../../tokens.dart';
@@ -214,10 +215,82 @@ DateTime? nextClassBoundary(ClassDay day, DateTime now) {
   if (day.classes.isNotEmpty) {
     consider(classNightEndFor(day.date, day.classes.first.timeZoneId));
   }
+  // The wind-down turns the room to the evening even with a class unmarked.
+  consider(classWindDownStart(day));
   return best;
 }
 
 const _minute = Duration(minutes: 1);
+
+// ── The evening ───────────────────────────────────────────────────────────
+
+/// [now] on the timetable's own wall clock, so a phone or a test host in
+/// another zone still reads the class day's hour. Comparisons on the result
+/// stay instant-correct.
+DateTime classLocalTime(ClassDay day, DateTime now) {
+  if (day.classes.isNotEmpty) {
+    try {
+      return OccurrenceMaterializer.localTime(
+        now,
+        day.classes.first.timeZoneId,
+      );
+    } catch (_) {}
+  }
+  return now.toLocal();
+}
+
+/// The wind-down on a class day: the usual 17:00 to 04:00 window on the
+/// timetable's clock, and never before the day's last class is over (his
+/// Monday lecture runs 5:40 to 7:00, his Thursday lab until 6:50).
+bool classWindDown(ClassDay day, DateTime now) =>
+    isWindDownTime(classLocalTime(day, now), lastClassEnd: day.lastClassEnd);
+
+/// When [day]'s wind-down begins: 17:00 in the timetable's zone, or the end
+/// of the last class when that is later. Null on a day without classes.
+DateTime? classWindDownStart(ClassDay day) {
+  final end = day.lastClassEnd;
+  if (end == null) return null;
+  try {
+    final (five, _) = OccurrenceMaterializer.resolveInstants(
+      day.date,
+      17 * 60,
+      17 * 60,
+      day.classes.first.timeZoneId,
+    );
+    return five.isAfter(end) ? five : end;
+  } catch (_) {
+    return end;
+  }
+}
+
+/// The evening owns the room once the day's last class is over and either
+/// every class is kept or the wind-down has begun. A class still unmarked
+/// then is neutral: it can be marked until its night ends, and nothing waits
+/// on it.
+bool classEveningAt(ClassCard card, DateTime now) {
+  final day = card.day;
+  if (!day.isClassDay || !day.afterLastClass(now)) return false;
+  return card.allKept || classWindDown(day, now);
+}
+
+/// The day's record folded to one line: "Tuesday’s classes, both
+/// attended". It counts what he went to and never what he did not: no
+/// total beside a partial count.
+String classRecordLine(ClassCard card) {
+  final name = weekdayOf(card.day.date);
+  final total = card.day.classes.length;
+  final kept = card.keptCount;
+  final noun = total == 1 ? '$name’s class' : '$name’s classes';
+  if (kept == 0) return noun;
+  if (kept >= total) {
+    return switch (total) {
+      1 => '$noun, attended',
+      2 => '$noun, both attended',
+      _ => '$noun, all ${classCountWord(total)} attended',
+    };
+  }
+  return '$noun, ${classCountWord(kept)} attended';
+}
 
 /// The next class start or end after [now]: the moment something becomes
 /// markable. Reopening the app after it brings the room back from the board.

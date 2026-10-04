@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../background_music.dart';
+import '../main_room_music.dart' show MainRoomMusic;
 import '../academic_calendar/services/class_day_projection.dart';
 import '../clock.dart';
 import '../content/achievements.dart';
@@ -325,6 +326,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   DateTime? _lastClassMarkAt;
   OverlayEntry? _classCelebration;
   final ClassRoomCamera _classCamera = ClassRoomCamera();
+
+  /// The celebration has begun going back: the room may turn under it.
+  bool _classCelebrationLeaving = false;
+
+  /// Whether the room showed the evening at its last build. While a
+  /// celebration is up the room keeps that frame, so the camera's walk to the
+  /// armchair starts only once the moment is over.
+  bool _eveningShown = false;
+
+  /// Where that walk starts: the held celebration's own framing.
+  RoomShot? _eveningWalkFrom;
+
+  /// The class day on which the evening's music control set tonight's
+  /// choice; it gives way to the saved setting once that evening is over.
+  String? _eveningMusicDay;
 
   /// The real level-up is up: the room's words step back behind it.
   bool _levelTakeover = false;
@@ -3224,6 +3240,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _classBoundaryTimer?.cancel();
       _classBoundaryTimer = null;
       _classBoundaryAt = null;
+      _eveningShown = false;
+      _settleEveningMusic(null, false);
       return _buildBoard(context);
     }
     _armClassBoundary(classDay, now);
@@ -3333,12 +3351,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             slot.canRestore(_state)
         ? slot.classIdentity
         : null;
+    final celebrating = _classCelebration != null && !_classCelebrationLeaving;
+    final evening = celebrating ? _eveningShown : classEveningAt(card, now);
+    _eveningShown = evening;
+    _settleEveningMusic(day, evening);
     return ClassDayRoom(
       key: const Key('class-day-room'),
       state: _state,
       card: card,
       now: now,
       camera: _classCamera,
+      evening: evening ? _classEvening(day, now) : null,
+      walkFrom: _eveningWalkFrom,
       dockHeight: _dockHeight(context),
       reduceMotion: reduceMotion,
       lightDirection: _activeLight,
@@ -3361,6 +3385,125 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         onBoard: () => _showBoard(day),
       ),
     );
+  }
+
+  /// The evening's doors: a page in the journal, the room's music, and
+  /// closing the day once the wind-down has begun and tonight is open.
+  ClassEvening _classEvening(ClassDay day, DateTime now) {
+    final nightOpen = _state.nightDoneDay != Days.nightKey(now);
+    final music = widget.musicController;
+    return ClassEvening(
+      onWrite: _writeALine,
+      onCloseDay: nightOpen && classWindDown(day, now)
+          ? () => _openNight(alreadyAcknowledged: true)
+          : null,
+      music: music == null
+          ? null
+          : ClassEveningMusic(
+              on: music.mainWanted,
+              nowPlaying: music.nowPlaying,
+              onToggle: () => _toggleEveningMusic(day),
+            ),
+    );
+  }
+
+  /// Tonight's music from the evening glass: a press starts Lamp left on and
+  /// then the room's rotation, or quiets it, for this evening only. The
+  /// saved setting in Me is never written, and nothing here starts music
+  /// without a press.
+  void _toggleEveningMusic(ClassDay day) {
+    final music = widget.musicController;
+    if (music == null) return;
+    _eveningMusicDay = day.dayKey;
+    if (music.roomMusicOn) {
+      unawaited(music.setRoomChoice(false));
+    } else {
+      unawaited(
+        music.setRoomChoice(true, startWithTake: MainRoomMusic.lampLeftOnTake),
+      );
+      // The press is the gesture a browser waits for before audio.
+      unawaited(music.retryAfterUserGesture());
+    }
+  }
+
+  /// Once the evening that chose it is over, the music follows the saved
+  /// setting again.
+  void _settleEveningMusic(ClassDay? day, bool evening) {
+    final chosenOn = _eveningMusicDay;
+    if (chosenOn == null) return;
+    if (evening && day?.dayKey == chosenOn) return;
+    _eveningMusicDay = null;
+    final music = widget.musicController;
+    if (music == null || music.roomChoice == null) return;
+    // After this frame: the control listening to it may still be built.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(music.setRoomChoice(null));
+    });
+  }
+
+  /// "Write a line": a fresh journal page stamped with today, as the
+  /// Journal's own new page is.
+  Future<void> _writeALine() async {
+    if (_journalRouteOpen) return;
+    _flushCommit();
+    final state = _state;
+    final trace = state.todayJournalTrace(widget.quests);
+    Note? current;
+    _journalRouteOpen = true;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => JournalEntryScreen(
+            key: const ValueKey('class-evening-journal'),
+            accent: Palette.xp,
+            themeId: state.canvasTheme,
+            reduceMotion: state.reduceMotion,
+            heading: 'Journal',
+            hint: 'A line about today.',
+            trace: trace,
+            commit: (payload, existing, markEdited) {
+              final source = existing ?? current;
+              final Note saved;
+              if (source == null) {
+                // A whole-save undo of the day's marks predates this page;
+                // it must never erase it, so the first save settles it.
+                if (mounted && identical(state, _state)) {
+                  _settleUndoBeforeLaterEdit();
+                }
+                saved = Note(
+                  at: Clock.now(),
+                  text: payload.text,
+                  context: state.buildTitle,
+                  rich: payload.rich,
+                  images: payload.images,
+                  trace: trace,
+                );
+                state.setJournal([...state.journal, saved]);
+              } else {
+                saved = source.copyWith(
+                  text: payload.text,
+                  rich: payload.rich,
+                  images: payload.images,
+                  editedAt: markEdited ? Clock.now() : null,
+                );
+                state.setJournal(state.journal.replacing(saved));
+              }
+              current = saved;
+              return saved;
+            },
+            onDelete: (note) {
+              for (final image in note.images) {
+                journal_media.delete(image);
+              }
+              state.setJournal(state.journal.without(note));
+              if (current?.id == note.id) current = null;
+            },
+          ),
+        ),
+      );
+    } finally {
+      _journalRouteOpen = false;
+    }
   }
 
   /// Marks [rows] (one class, or every waiting class through the shortcut)
@@ -3441,6 +3584,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final reduceMotion =
         s.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    // In the evening the camera already stands at the window and the
+    // armchair, the lamp in frame: the moment plays there.
+    final inEvening = _eveningShown;
+    final width = MediaQuery.sizeOf(context).width;
+    _classCelebrationLeaving = false;
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => ClassKeptCelebration(
@@ -3451,6 +3599,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           day.classes.isEmpty ? null : day.classes.first.timeZoneId,
         ),
         fromShot: classRoomIsLayered(s) ? _classCamera.shot : null,
+        holdFraming: inEvening,
         stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
         stageHeight: _classCamera.stage?.height,
         fadeStart: _classCamera.fadeStart,
@@ -3460,14 +3609,27 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // Going back: the just-kept row settles into the card under the
         // takeover, so the fade lands on the room as it will stay.
         onLeaving: () {
-          if (mounted) setState(() => _heldClass = null);
+          if (!mounted) return;
+          setState(() {
+            _heldClass = null;
+            _classCelebrationLeaving = true;
+            // A held moment that ends the day hands the room to the
+            // evening: the walk to the armchair starts from its framing.
+            if (plan.held && !inEvening && classRoomIsLayered(s)) {
+              _eveningWalkFrom = RoomShot.kept(width: width);
+            }
+          });
         },
         reduceMotion: reduceMotion,
         onDismiss: () {
           entry.remove();
           if (identical(_classCelebration, entry)) _classCelebration = null;
           if (!mounted) return;
-          setState(() => _heldClass = null);
+          setState(() {
+            _heldClass = null;
+            _classCelebrationLeaving = false;
+            _eveningWalkFrom = null;
+          });
           // A level crossed by the mark plays the real level-up next, then
           // the streak chest, the rank-up beat and achievement toasts.
           _resolveLevelUps(s);
@@ -3661,8 +3823,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ? 1
         : visible.length + (remaining == 0 ? 1 : 0);
     final nightOpen = _state.nightDoneDay != nightDay;
+    // On a class day the wind-down waits for the last class to end (never
+    // during a 5:40 to 7:00 PM lecture or a lab until 6:50).
+    final windDown = classDay == null
+        ? isWindDownTime(now)
+        : classWindDown(classDay, now);
     final showCloseDayRail =
-        nightOpen && isWindDownTime(now) && (remaining > 0 || visible.isEmpty);
+        nightOpen && windDown && (remaining > 0 || visible.isEmpty);
     // Closing the day actually closes it: once tonight's ledger is written the
     // board rests until morning (or an explicit "I'm not done yet").
     final dayResting = _state.dayRestingNow;

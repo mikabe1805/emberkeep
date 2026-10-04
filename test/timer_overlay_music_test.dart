@@ -46,6 +46,12 @@ final class _MainMusic implements MainRoomMusicPlayback {
   bool get isPlaying => enabled && foreground;
 
   @override
+  final ValueNotifier<String?> nowPlaying = ValueNotifier<String?>(null);
+
+  @override
+  void preferNextTake(int take) {}
+
+  @override
   Future<void> dispose() async => enabled = false;
 
   @override

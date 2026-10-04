@@ -603,4 +603,12 @@ Quest workoutRewardQuest(Routine routine, {required int difficulty}) => Quest(
 /// purpose: a 3am wind-down is still the end of someone's day, not a failure
 /// to match a conventional schedule. The routine remains manually reachable
 /// outside this window.
-bool isWindDownTime(DateTime now) => now.hour >= 17 || now.hour < 4;
+///
+/// On a class day, [lastClassEnd] (an instant) holds the window back until
+/// the day's last class is over: a 5:40 to 7:00 PM lecture or a lab until
+/// 6:50 is never part of the wind-down. [now]'s wall clock is read for the
+/// window, so a caller with a timetable passes the time in its zone.
+bool isWindDownTime(DateTime now, {DateTime? lastClassEnd}) {
+  if (!(now.hour >= 17 || now.hour < 4)) return false;
+  return lastClassEnd == null || !now.isBefore(lastClassEnd);
+}
