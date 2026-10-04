@@ -558,7 +558,8 @@ MikaAccount mikaAccount({
 
 /// His real Fall 2026 timetable (test/support/rutgers_fall_2026_ics_fixture
 /// .dart), parsed by the app's importer and applied to an empty schedule the
-/// way Plans does on import (calendar.dart `_saveAcademicScheduleImport`).
+/// way Plans does on import (the Add your classes sheet applies a Room of
+/// Days file through the same importer).
 /// [importedAt] defaults to 2026-08-27, the day the .ics was made [inferred:
 /// whether it is imported on his phone is unknown].
 AcademicSchedule mikaSchedule({DateTime? importedAt}) {
