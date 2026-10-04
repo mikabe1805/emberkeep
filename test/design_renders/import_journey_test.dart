@@ -12,6 +12,12 @@ import 'package:emberkeep/academic_calendar/import/calendar_link.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// The plugin hides its platform base class, which is what holds the
+// registered implementation this file swaps for a test and puts back. It
+// arrives with flutter_local_notifications, so no new dependency.
+// ignore: depend_on_referenced_packages
+import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart'
+    show FlutterLocalNotificationsPlatform;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -107,6 +113,31 @@ Future<void> _readLink(
   }
 }
 
+/// flutter_tester registers no notifications plugin. Registers the iOS one,
+/// answering [answer] on its channel, and when the test ends puts back what
+/// was registered before. Nothing was, the first time, and an unset platform
+/// cannot be unset again, so an inert stand-in takes its place: later tests
+/// in this file boot with no iOS plugin and no channel answers, as before.
+void _useIosNotifications(Future<Object?> Function(MethodCall call) answer) {
+  FlutterLocalNotificationsPlatform? previous;
+  try {
+    previous = FlutterLocalNotificationsPlatform.instance;
+  } on Error {
+    previous = null;
+  }
+  IOSFlutterLocalNotificationsPlugin.registerWith();
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  messenger.setMockMethodCallHandler(_notificationsChannel, answer);
+  addTearDown(() {
+    messenger.setMockMethodCallHandler(_notificationsChannel, null);
+    FlutterLocalNotificationsPlatform.instance =
+        previous ?? _NoNotificationsPlugin();
+  });
+}
+
+final class _NoNotificationsPlugin extends FlutterLocalNotificationsPlatform {}
+
 /// iPhone SE (1st gen): 320 x 568 pt at 2x, 20 pt status bar, at 130% text.
 void _smallPhoneLargeText(WidgetTester tester) {
   tester.view.devicePixelRatio = 2;
@@ -134,7 +165,11 @@ void main() {
         .setMockMethodCallHandler(zoneChannel, null);
   });
   final sheet = FrameSheet(_out);
-  tearDownAll(sheet.writeManifest);
+  // tearDownAll runs even when every test here skips: only a render run may
+  // write, or a plain `flutter test` leaves frames.json in the checkout.
+  tearDownAll(() {
+    if (_renders) sheet.writeManifest();
+  });
 
   // Sunday evening, the week before classes get counted: a student sets up.
   final at = DateTime(2026, 10, 4, 19, 30);
@@ -143,29 +178,23 @@ void main() {
     tester,
   ) async {
     // The notification prompt answers yes, so the reminder choice can be
-    // shown turned on. flutter_tester registers no plugin implementation.
-    IOSFlutterLocalNotificationsPlugin.registerWith();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(_notificationsChannel, (call) async {
-          return switch (call.method) {
-            'initialize' || 'requestPermissions' => true,
-            'checkPermissions' => const <String, bool>{
-              'isEnabled': true,
-              'isAlertEnabled': true,
-              'isBadgeEnabled': true,
-              'isSoundEnabled': true,
-              'isProvisionalEnabled': false,
-              'isCriticalEnabled': false,
-            },
-            'pendingNotificationRequests' ||
-            'getActiveNotifications' => const <Object?>[],
-            _ => null,
-          };
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(_notificationsChannel, null),
-    );
+    // shown turned on.
+    _useIosNotifications((call) async {
+      return switch (call.method) {
+        'initialize' || 'requestPermissions' => true,
+        'checkPermissions' => const <String, bool>{
+          'isEnabled': true,
+          'isAlertEnabled': true,
+          'isBadgeEnabled': true,
+          'isSoundEnabled': true,
+          'isProvisionalEnabled': false,
+          'isCriticalEnabled': false,
+        },
+        'pendingNotificationRequests' ||
+        'getActiveNotifications' => const <Object?>[],
+        _ => null,
+      };
+    });
     final account = mikaAccount(renderAt: at);
     await bootRoom(tester, account);
     await openTab(tester, RoomTab.plans);
@@ -316,6 +345,48 @@ void main() {
       surface: 'Classes added (typed)',
     );
   });
+
+  roomRenderTest(
+    'import: typing a class in over winter break',
+    skip: !_renders,
+    (tester) async {
+      // After fall ends, a first typed class starts next spring.
+      final winter = DateTime(2026, 12, 22, 12);
+      final account = mikaAccount(
+        renderAt: winter,
+        lastActive: DateTime(2026, 12, 21),
+      );
+      await bootRoom(tester, account);
+      await openTab(tester, RoomTab.plans);
+      await precacheArt(tester, RoomArt.plans);
+      await settle(tester, total: const Duration(milliseconds: 800));
+      await _tap(tester, _key('academic-add-class'));
+      await _tap(tester, _key('academic-add-choice-import'));
+      await _tap(tester, _key('add-classes-type'));
+      await tester.enterText(
+        _key('add-classes-quick-name'),
+        'CS 112 Data Structures',
+      );
+      await _tap(tester, _key('add-classes-day-2'));
+      await _tap(tester, _key('add-classes-day-4'));
+      await _scrollSheet(tester, 400);
+      await sheet.shot(
+        tester,
+        'I22_type_winter_break',
+        at: winter,
+        surface: 'Type them in, Dec 22',
+        note: 'the term line names next spring',
+      );
+      await _tap(tester, _key('add-classes-quick-add'));
+      await _tap(tester, _key('add-classes-quick-done'));
+      await sheet.shot(
+        tester,
+        'I23_type_winter_result',
+        at: winter,
+        surface: 'Classes added (typed over winter break)',
+      );
+    },
+  );
 
   roomRenderTest('import: a Canvas feed', skip: !_renders, (tester) async {
     final account = mikaAccount(renderAt: at);
@@ -489,19 +560,13 @@ void main() {
       surface: '320 pt phone at 130% text: the result',
     );
     // The notification prompt answers no this time.
-    IOSFlutterLocalNotificationsPlugin.registerWith();
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(_notificationsChannel, (call) async {
-          return switch (call.method) {
-            'initialize' => true,
-            'requestPermissions' => false,
-            _ => null,
-          };
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(_notificationsChannel, null),
-    );
+    _useIosNotifications((call) async {
+      return switch (call.method) {
+        'initialize' => true,
+        'requestPermissions' => false,
+        _ => null,
+      };
+    });
     await _scrollSheet(tester, 500);
     await _tap(tester, _key('add-classes-reminder-switch'));
     await sheet.shot(

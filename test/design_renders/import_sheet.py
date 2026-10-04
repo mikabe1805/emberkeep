@@ -3,7 +3,8 @@
   python test/design_renders/import_sheet.py <frames dir> <out.png>
 
 Bands follow the journey (way in, link and review, typing, edges), not the
-clock: every frame is Sunday Oct 4 2026, 19:30.
+clock: every frame is Sunday Oct 4 2026, 19:30, except I22 and I23 (Tuesday
+Dec 22 2026, noon, after fall ends).
 """
 
 import json
@@ -28,6 +29,7 @@ BANDS = [
     ('3  NO CALENDAR AT ALL: TYPE THEM IN (FROM THE ADD MENU)', ['I09a', 'I09', 'I10', 'I11']),
     ("4  EDGES: CANVAS, MIKA'S OWN FILE, TWO TERMS, A WEB PAGE, BUSY ONLY", ['I12', 'I13', 'I14', 'I15', 'I15b', 'I16', 'I17']),
     ('5  A 320 PT PHONE AT 130% TEXT', ['I18', 'I19', 'I20', 'I21']),
+    ('6  WINTER BREAK: A FIRST CLASS TYPED ON DEC 22 STARTS NEXT SPRING', ['I22', 'I23']),
 ]
 
 
@@ -64,7 +66,8 @@ def main():
     y += 66
     for line in textwrap.wrap(
         'Room of Days, the real app (LifeRpgApp) rendered by flutter_tester at 393 x 852 pt @3x '
-        '(I18 to I21: 320 x 568 pt @2x at 130% text) from the cdj-import branch. Sunday Oct 4 2026, 19:30. '
+        '(I18 to I21: 320 x 568 pt @2x at 130% text) from the cdj-import branch. Sunday Oct 4 2026, 19:30 '
+        '(I22 and I23: Tuesday Dec 22 2026, noon). '
         'Calendar samples are invented (a Central-time student, a Canvas feed, an Outlook calendar); '
         "I13 and I14 use Mika's real Fall 2026 Room of Days file. No sound, haptics or device fonts.",
         width=150,
