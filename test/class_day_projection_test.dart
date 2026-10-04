@@ -104,52 +104,112 @@ void main() {
     expect(day.dayClassKeys, hasLength(2));
   });
 
-  // The engine reads the device's own night (Days.nightKey). On a phone in
-  // the timetable's zone that is the class's day; a test host many hours
-  // from New York cannot hold both at once, so this half runs only where
-  // the host's night and the timetable's day agree.
-  test(
-    'his Tuesday through the engine, with the full-day bonus',
-    () {
-      final now = _tuesdayMidday;
-      final day = projectClassDay(schedule, now);
+  // The facts carry the class's own day, its instants and the end of its
+  // night in the timetable's zone, so the engine judges the window exactly
+  // as the projection does, on a host in any zone.
+  test('his Tuesday through the engine, with the full-day bonus', () {
+    final now = _tuesdayMidday;
+    final day = projectClassDay(schedule, now);
 
-      // The facts carry the class's own day and instants into the engine.
-      Clock.freeze(now.toLocal());
-      final state = GameState();
-      final architecture = day.classes.first.facts;
-      expect(architecture.dayKey, '2026-10-06');
-      expect(architecture.kind, 'lecture');
-      expect(architecture.startMinute, 620);
-      expect(architecture.identity, day.classes.first.occurrenceKey);
-      final first = state.keepClass(
-        architecture,
-        dayClassKeys: day.dayClassKeys,
-      )!;
-      expect(first.dayComplete, isFalse);
-      expect(
-        state.checkClassKeep(day.classes.last.facts),
-        ClassKeepCheck.notStartedYet,
-        reason: 'Discrete starts at 2:00 PM',
-      );
+    Clock.freeze(now.toLocal());
+    final state = GameState();
+    final architecture = day.classes.first.facts;
+    expect(architecture.dayKey, '2026-10-06');
+    expect(architecture.kind, 'lecture');
+    expect(architecture.startMinute, 620);
+    expect(architecture.identity, day.classes.first.occurrenceKey);
+    expect(architecture.nightEndsAt, DateTime.utc(2026, 10, 7, 8));
+    final first = state.keepClass(
+      architecture,
+      dayClassKeys: day.dayClassKeys,
+    )!;
+    expect(first.dayComplete, isFalse);
+    expect(
+      state.checkClassKeep(day.classes.last.facts),
+      ClassKeepCheck.notStartedYet,
+      reason: 'Discrete starts at 2:00 PM',
+    );
 
-      Clock.freeze(_tuesdayAfterClasses.toLocal());
-      final last = state.keepClass(
-        day.classes.last.facts,
-        dayClassKeys: day.dayClassKeys,
-      )!;
-      expect(last.dayComplete, isTrue);
-      expect(last.fullDayBonus, 10);
-      expect(state.totalXp, 60);
-    },
-    skip:
-        [
-          _tuesdayMidday,
-          _tuesdayAfterClasses,
-        ].every((moment) => Days.nightKey(moment.toLocal()) == '2026-10-06')
-        ? false
-        : 'host zone is too far from New York for one shared day',
-  );
+    Clock.freeze(_tuesdayAfterClasses.toLocal());
+    final last = state.keepClass(
+      day.classes.last.facts,
+      dayClassKeys: day.dayClassKeys,
+    )!;
+    expect(last.dayComplete, isTrue);
+    expect(last.fullDayBonus, 10);
+    expect(state.totalXp, 60);
+  });
+
+  test('a phone in another zone keeps what the board shows', () {
+    // 2:30 AM Tuesday in New York: still Monday's night on the board. A
+    // phone on UTC (6:30 AM Tuesday, its own night already Tuesday) keeps
+    // Monday's evening class; at 4:00 AM New York the board and the engine
+    // both move on together.
+    final lateNight = _edt(10, 6, 2, 30);
+    final board = projectClassDay(schedule, lateNight);
+    expect(board.dayKey, '2026-10-05');
+    final signals = board.classes.last.facts;
+    expect(signals.nightEndsAt, DateTime.utc(2026, 10, 6, 8));
+    expect(Days.nightKey(lateNight), '2026-10-06');
+
+    final state = GameState();
+    Clock.freeze(lateNight);
+    expect(state.checkClassKeep(signals), ClassKeepCheck.open);
+    Clock.freeze(_edt(10, 6, 4));
+    expect(projectClassDay(schedule, _edt(10, 6, 4)).dayKey, '2026-10-06');
+    expect(state.checkClassKeep(signals), ClassKeepCheck.outsideWindow);
+    Clock.freeze(lateNight.toLocal());
+    expect(
+      state.keepClass(signals, dayClassKeys: board.dayClassKeys),
+      isNotNull,
+    );
+  });
+
+  test('office hours stay keepable but a full day never waits on them', () {
+    final json = schedule.toJson();
+    for (final occurrence in (json['occurrences'] as List).cast<Map>()) {
+      final date = occurrence['date'];
+      // Monday's 5:40 PM meeting, and all of Friday, become office hours.
+      if ((date == '2026-10-05' && occurrence['localStartMinute'] == 1060) ||
+          date == '2026-10-09') {
+        occurrence['kind'] = MeetingKind.officeHours.name;
+      }
+    }
+    final edited = AcademicSchedule.fromJson(json);
+    final monday = projectClassDay(edited, _edt(10, 5, 19, 15));
+    expect(monday.classes, hasLength(3), reason: 'still on the board');
+    final officeHours = monday.classes.last;
+    expect(officeHours.kind, MeetingKind.officeHours);
+    expect(officeHours.countsTowardDay, isFalse);
+    expect(monday.dayClassKeys, hasLength(2));
+    expect(monday.dayClassKeys, isNot(contains(officeHours.occurrenceKey)));
+
+    Clock.freeze(_edt(10, 5, 19, 15).toLocal());
+    final state = GameState();
+    state.keepClass(monday.classes[0].facts, dayClassKeys: monday.dayClassKeys);
+    final second = state.keepClass(
+      monday.classes[1].facts,
+      dayClassKeys: monday.dayClassKeys,
+    )!;
+    expect(second.dayComplete, isTrue);
+    expect(second.fullDayBonus, 10);
+    final drop = state.keepClass(
+      officeHours.facts,
+      dayClassKeys: monday.dayClassKeys,
+    )!;
+    expect(drop.fullDayBonus, 0, reason: 'the bonus is paid once');
+    expect(drop.xp, ClassPay.lecture.xp);
+
+    expect(
+      restDayFor(edited, '2026-10-09'),
+      isTrue,
+      reason: 'only office hours',
+    );
+    expect(restDayFor(edited, '2026-10-05'), isFalse);
+    final friday = projectClassDay(edited, _edt(10, 9, 12));
+    expect(friday.isClassDay, isTrue);
+    expect(friday.dayClassKeys, isEmpty);
+  });
 
   test('his Thursday lab is a lab, in session at 5:15 PM', () {
     final day = projectClassDay(schedule, _edt(10, 8, 17, 15));

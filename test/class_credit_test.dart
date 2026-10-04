@@ -87,6 +87,10 @@ const _questKeys = [
   'level',
 ];
 
+GameState _reload(GameState state) => GameState.fromJson(
+  jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>,
+);
+
 class _NoLuck implements Random {
   @override
   bool nextBool() => false;
@@ -263,6 +267,99 @@ void main() {
       );
     });
 
+    test('the window follows the timetable zone, not the phone', () {
+      // ECE 345 on Monday, 5:40 to 7:00 PM in New York (EDT, UTC-4). Its
+      // night ends at 04:00 EDT Tuesday, 08:00 UTC. Every moment below is an
+      // instant, so the answers are the same on a host in any zone.
+      ClassFacts signals({DateTime? nightEndsAt}) => ClassFacts(
+        occurrenceKey: 'occ-345-1005-1060',
+        courseCode: '14:332:345',
+        title: 'Linear Systems & Signals',
+        kind: 'lecture',
+        dayKey: '2026-10-05',
+        startMinute: 1060,
+        startsAt: DateTime.utc(2026, 10, 5, 21, 40),
+        endsAt: DateTime.utc(2026, 10, 5, 23),
+        nightEndsAt: nightEndsAt,
+      );
+      final nightEnd = DateTime.utc(2026, 10, 6, 8);
+      expect(
+        GameState.classNightEnd(signals()),
+        nightEnd,
+        reason: 'worked out from the start and its local minute',
+      );
+      expect(GameState.classNightEnd(signals(nightEndsAt: nightEnd)), nightEnd);
+
+      for (final facts in [signals(), signals(nightEndsAt: nightEnd)]) {
+        final state = GameState();
+        // A phone on UTC (or UTC+8, where it is already Tuesday morning)
+        // reads Tuesday's night; the class is still Monday's to keep.
+        final phoneOnUtc = DateTime.utc(2026, 10, 6, 6, 30);
+        expect(Days.nightKey(phoneOnUtc), '2026-10-06');
+        Clock.freeze(phoneOnUtc);
+        expect(state.checkClassKeep(facts), ClassKeepCheck.open);
+        Clock.freeze(phoneOnUtc.toLocal());
+        expect(state.checkClassKeep(facts), ClassKeepCheck.open);
+
+        Clock.freeze(DateTime.utc(2026, 10, 5, 21, 24).toLocal());
+        expect(state.checkClassKeep(facts), ClassKeepCheck.notStartedYet);
+        Clock.freeze(DateTime.utc(2026, 10, 5, 7, 59).toLocal());
+        expect(
+          state.checkClassKeep(facts),
+          ClassKeepCheck.outsideWindow,
+          reason: 'before its own day began',
+        );
+        Clock.freeze(DateTime.utc(2026, 10, 6, 8));
+        expect(
+          state.checkClassKeep(facts),
+          ClassKeepCheck.outsideWindow,
+          reason: 'its night is over',
+        );
+
+        // A queued mark made in class counts for two more nights.
+        final madeInClass = DateTime.utc(2026, 10, 5, 22);
+        Clock.freeze(DateTime.utc(2026, 10, 8, 7, 59).toLocal());
+        expect(
+          state.checkClassKeep(facts, at: madeInClass),
+          ClassKeepCheck.open,
+        );
+        Clock.freeze(DateTime.utc(2026, 10, 8, 8).toLocal());
+        expect(
+          state.checkClassKeep(facts, at: madeInClass),
+          ClassKeepCheck.outsideWindow,
+        );
+        Clock.freeze(DateTime.utc(2026, 10, 7, 12).toLocal());
+        expect(
+          state.checkClassKeep(facts, at: DateTime.utc(2026, 10, 6, 8, 30)),
+          ClassKeepCheck.outsideWindow,
+          reason: 'made after its night ended',
+        );
+
+        Clock.freeze(phoneOnUtc);
+        final credit = state.keepClass(facts)!;
+        expect(credit.dayKey, '2026-10-05');
+        expect(state.classesKeptOn('2026-10-05'), hasLength(1));
+      }
+    });
+
+    test('facts without a usable start fall back to the phone night', () {
+      Clock.freeze(DateTime(2026, 10, 6, 12));
+      final state = GameState();
+      // A start seven minutes off its local minute is no real zone offset.
+      final skewed = ClassFacts(
+        courseCode: 'X 1',
+        title: 'Skewed',
+        kind: 'lecture',
+        dayKey: _tue,
+        startMinute: 600,
+        startsAt: DateTime(2026, 10, 6, 10, 7),
+      );
+      expect(GameState.classNightEnd(skewed), isNull);
+      expect(state.checkClassKeep(skewed), ClassKeepCheck.open);
+      Clock.freeze(DateTime(2026, 10, 7, 4, 1));
+      expect(state.checkClassKeep(skewed), ClassKeepCheck.outsideWindow);
+    });
+
     test('a class cannot be kept before it is about to start', () {
       Clock.freeze(DateTime(2026, 10, 6, 9, 50));
       final state = GameState();
@@ -310,6 +407,75 @@ void main() {
         );
       },
     );
+
+    test('a long course code is stored short and still keeps once', () {
+      Clock.freeze(DateTime(2026, 10, 6, 12));
+      final state = GameState();
+      const typed = 'Introduction to Computer Architecture and Lab';
+      expect(typed.length, greaterThan(KeptClass.maxCodeLength));
+      const facts = ClassFacts(
+        courseCode: '  $typed ',
+        title: '',
+        kind: 'lecture',
+        dayKey: _tue,
+        startMinute: 600,
+      );
+      expect(state.checkClassKeep(facts), ClassKeepCheck.open);
+      final credit = state.keepClass(facts, dayClassKeys: [facts.identity])!;
+      final stored = credit.kept.courseCode;
+      expect(stored.length, lessThanOrEqualTo(KeptClass.maxCodeLength));
+      expect(typed, startsWith(stored));
+      expect(credit.courseCount, 1);
+      expect(credit.dayComplete, isTrue, reason: 'one identity for both');
+      expect(credit.fullDayBonus, ClassPay.fullDayBonusXp);
+      expect(state.keptCountForCourse(typed), 1);
+      expect(state.keepClass(facts), isNull);
+      expect(state.checkClassKeep(facts), ClassKeepCheck.alreadyKept);
+
+      final restored = _reload(state);
+      expect(restored.classesKeptOn(_tue), hasLength(1));
+      expect(restored.keptCountForCourse(typed), 1);
+      expect(restored.checkClassKeep(facts), ClassKeepCheck.alreadyKept);
+
+      // A cut never splits a letter from its accent.
+      final accented = 'e\u0301' * 30;
+      final cut = KeptClass.cleanCode(accented)!;
+      expect(cut.length, lessThanOrEqualTo(KeptClass.maxCodeLength));
+      expect(cut.characters.every((g) => g == 'e\u0301'), isTrue);
+      expect(KeptClass.cleanCode('   '), isNull);
+      expect(KeptClass.cleanCode(' ECE 345 '), 'ECE 345');
+    });
+
+    test('a day holds at most the classes a save can prove', () {
+      Clock.freeze(DateTime(2026, 10, 6, 23));
+      final state = GameState();
+      ClassFacts nth(int i) => ClassFacts(
+        occurrenceKey: 'occ-$i',
+        courseCode: 'C$i',
+        title: 'Class $i',
+        kind: 'lecture',
+        dayKey: _tue,
+        startMinute: i * 10,
+      );
+      for (var i = 0; i < DayRecord.maxClassesPerDay; i++) {
+        expect(state.keepClass(nth(i)), isNotNull, reason: 'class $i');
+      }
+      final xp = state.totalXp;
+      final extra = nth(DayRecord.maxClassesPerDay);
+      expect(state.checkClassKeep(extra), ClassKeepCheck.dayFull);
+      expect(state.keepClass(extra), isNull);
+      expect(state.totalXp, xp);
+
+      final restored = _reload(state);
+      expect(
+        restored.classesKeptOn(_tue),
+        hasLength(DayRecord.maxClassesPerDay),
+      );
+      for (var i = 0; i <= DayRecord.maxClassesPerDay; i++) {
+        expect(restored.keepClass(nth(i)), isNull, reason: 'class $i');
+      }
+      expect(restored.totalXp, xp, reason: 'nothing is paid twice');
+    });
 
     test('malformed facts are refused without throwing', () {
       Clock.freeze(DateTime(2026, 10, 6, 12));
@@ -397,6 +563,59 @@ void main() {
       state.keepClass(_architecture(key: null), dayClassKeys: keys);
       final last = state.keepClass(_discrete(key: null), dayClassKeys: keys)!;
       expect(last.fullDayBonus, 10);
+    });
+
+    test('two meetings of one course on one day keep apart', () {
+      // His Monday: ECE 361 at 8:30, then ECE 345 at 2:00 and again at 5:40.
+      for (final keyed in [true, false]) {
+        Clock.freeze(DateTime(2026, 10, 5, 19, 15));
+        final state = GameState();
+        ClassFacts monday(String code, String title, int start) => ClassFacts(
+          occurrenceKey: keyed ? 'occ-$code-$start' : null,
+          courseCode: code,
+          title: title,
+          kind: 'lecture',
+          dayKey: '2026-10-05',
+          startMinute: start,
+          startsAt: DateTime(2026, 10, 5, start ~/ 60, start % 60),
+          endsAt: DateTime(2026, 10, 5, start ~/ 60 + 1, start % 60 + 20),
+        );
+        final devices = monday('14:332:361', 'Electronic Devices', 510);
+        final early = monday('14:332:345', 'Linear Systems & Signals', 840);
+        final late = monday('14:332:345', 'Linear Systems & Signals', 1060);
+        final keys = [
+          for (final f in [devices, early, late]) f.identity,
+        ];
+        expect(keys.toSet(), hasLength(3), reason: 'keyed: $keyed');
+
+        final first = state.keepClass(early, dayClassKeys: keys)!;
+        expect(first.courseCount, 1);
+        final second = state.keepClass(late, dayClassKeys: keys)!;
+        expect(second.courseCount, 2, reason: 'keyed: $keyed');
+        expect(second.dayComplete, isFalse);
+        expect(second.fullDayBonus, 0);
+        final third = state.keepClass(devices, dayClassKeys: keys)!;
+        expect(third.courseCount, 1);
+        expect(third.dayComplete, isTrue);
+        expect(third.fullDayBonus, ClassPay.fullDayBonusXp);
+        expect(third.keptToday, 3);
+        expect(state.totalXp, 85);
+        expect(state.keptClassCounts, {'14:332:361': 1, '14:332:345': 2});
+        for (final facts in [early, late, devices]) {
+          expect(
+            state.checkClassKeep(facts),
+            ClassKeepCheck.alreadyKept,
+            reason: 'keyed: $keyed',
+          );
+          expect(state.keepClass(facts, dayClassKeys: keys), isNull);
+        }
+        expect(state.totalXp, 85, reason: 'the bonus is paid once');
+
+        final restored = _reload(state);
+        expect(restored.classesKeptOn('2026-10-05'), hasLength(3));
+        expect(restored.keptCountForCourse('14:332:345'), 2);
+        expect(restored.checkClassKeep(late), ClassKeepCheck.alreadyKept);
+      }
     });
 
     test('per-course counts and the total only grow, past the record trim', () {
@@ -751,6 +970,39 @@ void main() {
         back.keepClass(_architecture()),
         isNotNull,
         reason: 'it can be kept again',
+      );
+    });
+
+    test('an Extra Credit wording edit settles an armed slot', () {
+      Clock.freeze(DateTime(2026, 10, 6, 21));
+      final state = GameState();
+      state.addExtraCredit('Went to office hours', dayKey: _tue);
+      final slot = RewardUndoSlot.beforeClass(
+        state,
+        _discrete(),
+        snapshot: snapshot(state),
+      );
+      state.keepClass(_discrete());
+      expect(slot.canRestore(state), isTrue);
+
+      expect(state.updateExtraCredit(_tue, ' Went to  office hours '), isTrue);
+      expect(
+        slot.canRestore(state),
+        isTrue,
+        reason: 'the same words change nothing',
+      );
+      expect(
+        state.updateExtraCredit(_tue, 'Stayed after for office hours'),
+        isTrue,
+      );
+      expect(
+        slot.canRestore(state),
+        isFalse,
+        reason: 'a restore would put the old words back',
+      );
+      expect(
+        state.extraCreditForDay(_tue)!.title,
+        'Stayed after for office hours',
       );
     });
 

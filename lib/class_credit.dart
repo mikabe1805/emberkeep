@@ -59,6 +59,15 @@ final class ClassPay {
 
   static ClassPay forKind(String kind) => isLabKind(kind) ? lab : lecture;
 
+  /// Meeting kinds that are optional drop-in time. They are kept and paid
+  /// like any class, but a day is complete without them (the full-day bonus
+  /// never waits on one) and a term day holding only these is a rest day.
+  /// Whether they should pay at all is still open for Mika; decide it here.
+  static const optionalKinds = {'officeHours'};
+
+  /// Whether a class of [kind] belongs to the set a full day is judged by.
+  static bool countsTowardDay(String kind) => !optionalKinds.contains(kind);
+
   /// Glimmers track XP the way Quest receipts do.
   static int glimmersFor(int xp) => xp ~/ 3;
 }
@@ -76,6 +85,7 @@ final class ClassFacts {
     required this.startMinute,
     this.startsAt,
     this.endsAt,
+    this.nightEndsAt,
   });
 
   /// The timetable occurrence, when there is one.
@@ -99,8 +109,19 @@ final class ClassFacts {
   final DateTime? startsAt;
   final DateTime? endsAt;
 
+  /// When this class's own night ends: 04:00 the next morning in the
+  /// timetable's zone, as an instant. With it (or, failing that, with
+  /// [startsAt]) the keep window is judged by instants, so a phone in another
+  /// zone keeps exactly the classes its timetable shows.
+  final DateTime? nightEndsAt;
+
+  /// The course code as a kept record stores it (trimmed, at most
+  /// [KeptClass.maxCodeLength] UTF-16 units), or null when nothing is left.
+  String? get keptCode => KeptClass.cleanCode(courseCode);
+
   /// The key a day's class list uses for this class.
-  String get identity => occurrenceKey ?? '$courseCode@$startMinute';
+  String get identity =>
+      occurrenceKey ?? '${keptCode ?? courseCode.trim()}@$startMinute';
 
   String get label => KeptClass.cleanLabel(title, courseCode);
 }
@@ -116,8 +137,14 @@ enum ClassKeepCheck {
   /// It has not started yet (more than [GameState.classKeepLead] away).
   notStartedYet,
 
-  /// Its day is not the current night, nor a queued mark from the last two.
+  /// It is not the class's own night (04:00 to 04:00 in the timetable's
+  /// zone), or a queued mark was made outside that night or arrived more
+  /// than [GameState.classKeepRecentNights] nights after it ended.
   outsideWindow,
+
+  /// Its day already holds [DayRecord.maxClassesPerDay] kept classes, the
+  /// most a save keeps for one day, so one more could not be proven later.
+  dayFull,
 
   /// The facts do not describe a class (bad day key, empty code, bad start).
   invalid,
@@ -134,6 +161,7 @@ final class ClassStreakEffect {
     this.restarted = false,
     this.freezeEarned = false,
     this.freezeReturned = false,
+    this.relit = false,
     this.milestone,
     this.milestoneGlimmers = 0,
   });
@@ -161,6 +189,12 @@ final class ClassStreakEffect {
 
   /// A late mark landed on a day a freeze had held, so the freeze came back.
   final bool freezeReturned;
+
+  /// A late mark lit a day older than the last streak day, and the streak
+  /// days after it were counted again in day order, as if the mark had come
+  /// on time. [streakDays] is the streak after that recount and
+  /// [freezesUsed] the freezes it spent on balance.
+  final bool relit;
 
   /// A 7, 30 or 100 day crossing, with its chest of Glimmers.
   final int? milestone;

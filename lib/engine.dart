@@ -1428,8 +1428,10 @@ class GameState extends ChangeNotifier {
   final List<String> todayQuestTitles = [];
 
   // ── the day's own records (schema 29): kept classes and Extra Credit ──
-  /// How many day records the save keeps, plus the active night, which is
-  /// never trimmed. The same horizon as [history].
+  /// How many of the newest day records the save keeps (the same horizon as
+  /// [history]). The active night (and a record just written for it or a
+  /// recent night) is never trimmed: when a backward clock leaves it older
+  /// than these, it is kept in addition to them.
   static const dayRecordHorizon = 180;
 
   /// A queued mark (widget or notification) may land up to this many nights
@@ -1464,7 +1466,7 @@ class GameState extends ChangeNotifier {
   Map<String, int> get keptClassCounts => Map.unmodifiable(_keptClassCounts);
 
   int keptCountForCourse(String courseCode) =>
-      _keptClassCounts[courseCode.trim()] ?? 0;
+      _keptClassCounts[KeptClass.cleanCode(courseCode)] ?? 0;
 
   static const _maxCourseCounters = 500;
 
@@ -1475,7 +1477,7 @@ class GameState extends ChangeNotifier {
   KeptClass? keptClassFor(ClassFacts facts) =>
       dayRecordFor(facts.dayKey)?.keptMatching(
         occurrenceKey: facts.occurrenceKey,
-        courseCode: facts.courseCode.trim(),
+        courseCode: facts.keptCode ?? facts.courseCode.trim(),
         startMinute: facts.startMinute,
       );
 
@@ -1486,25 +1488,55 @@ class GameState extends ChangeNotifier {
     ...{for (final kept in classesKeptOn(dayKey)) kept.label},
   ];
 
-  /// Bumps on every reward (Quest commit, class keep, Extra Credit). Not
-  /// saved: it exists so a [RewardUndoSlot] can tell that a later reward has
-  /// landed since its snapshot.
+  /// Bumps on every reward (Quest commit, class keep, Extra Credit) and on an
+  /// Extra Credit wording edit, which a whole-save restore would otherwise
+  /// quietly put back (engine map 5.3.4). Not saved: it exists so a
+  /// [RewardUndoSlot] can tell that something newer has landed since its
+  /// snapshot.
   int get rewardSerial => _rewardSerial;
   int _rewardSerial = 0;
 
+  /// When [facts]'s own night ends (04:00 the morning after its day, in its
+  /// timetable's zone), as a UTC instant. [ClassFacts.nightEndsAt] when given;
+  /// else worked out from [ClassFacts.startsAt] and the local start minute,
+  /// which together carry the timetable zone's offset at the start. Null when
+  /// neither is known or they disagree beyond any real zone offset.
+  static DateTime? classNightEnd(ClassFacts facts) {
+    final given = facts.nightEndsAt;
+    if (given != null) return given.toUtc();
+    final startsAt = facts.startsAt;
+    final day = Days.tryParse(facts.dayKey);
+    if (startsAt == null || day == null) return null;
+    final wall = DateTime.utc(
+      day.year,
+      day.month,
+      day.day,
+    ).add(Duration(minutes: facts.startMinute));
+    final offset = wall.difference(startsAt.toUtc()).inMinutes;
+    if (offset < -12 * 60 || offset > 14 * 60 || offset % 15 != 0) return null;
+    return DateTime.utc(
+      day.year,
+      day.month,
+      day.day + 1,
+      4,
+    ).subtract(Duration(minutes: offset));
+  }
+
   /// Whether [facts] can be kept now (or, for a queued mark, at [at]).
   ///
-  /// The window is the class's own civil day while that day is the current
-  /// night ([Days.nightKey]). A queued widget or notification mark carries
-  /// [at], the moment it was made: it counts when it was made during the
-  /// class's own night and that night is at most [classKeepRecentNights]
-  /// back. Nothing earlier, nothing in the future.
+  /// The window is the class's own night: its civil day from 04:00 until
+  /// 04:00 the next morning, in the timetable's zone. When the facts carry
+  /// instants ([ClassFacts.nightEndsAt] or [ClassFacts.startsAt]) the window
+  /// is judged by instants, so a phone in another zone keeps exactly what
+  /// its timetable shows; without them, by the device's own night
+  /// ([Days.nightKey]). A queued widget or notification mark carries [at],
+  /// the moment it was made: it counts when it was made inside the window
+  /// and that night ended at most [classKeepRecentNights] nights ago.
+  /// Nothing earlier, nothing in the future.
   ClassKeepCheck checkClassKeep(ClassFacts facts, {DateTime? at}) {
     final day = Days.tryParse(facts.dayKey);
-    final code = facts.courseCode.trim();
     if (day == null ||
-        code.isEmpty ||
-        code.length > KeptClass.maxCodeLength ||
+        facts.keptCode == null ||
         facts.startMinute < 0 ||
         facts.startMinute >= 24 * 60 ||
         (facts.occurrenceKey != null &&
@@ -1513,21 +1545,45 @@ class GameState extends ChangeNotifier {
       return ClassKeepCheck.invalid;
     }
     if (keptClassFor(facts) != null) return ClassKeepCheck.alreadyKept;
+    // The decoder keeps at most this many per day; one more could be paid
+    // now and dropped on the next load, taking its proof with it.
+    if (classesKeptOn(facts.dayKey).length >= DayRecord.maxClassesPerDay) {
+      return ClassKeepCheck.dayFull;
+    }
     final now = Clock.now();
-    final currentNight = Days.nightKey(now);
-    if (at == null) {
-      if (facts.dayKey != currentNight) return ClassKeepCheck.outsideWindow;
+    if (at != null &&
+        at.toUtc().isAfter(now.toUtc().add(const Duration(minutes: 1)))) {
+      return ClassKeepCheck.outsideWindow;
+    }
+    final nightEnd = classNightEnd(facts);
+    if (nightEnd != null) {
+      // Twenty-four hours back; on a daylight-saving change day this start
+      // sits an hour off, around 4:00 AM, when no class meets.
+      final nightStart = nightEnd.subtract(const Duration(days: 1));
+      final moment = (at ?? now).toUtc();
+      if (moment.isBefore(nightStart) || !moment.isBefore(nightEnd)) {
+        return ClassKeepCheck.outsideWindow;
+      }
+      if (at != null &&
+          !now.toUtc().isBefore(
+            nightEnd.add(const Duration(days: classKeepRecentNights)),
+          )) {
+        return ClassKeepCheck.outsideWindow;
+      }
     } else {
-      final markedAt = at.toLocal();
-      if (markedAt.isAfter(now.add(const Duration(minutes: 1)))) {
-        return ClassKeepCheck.outsideWindow;
-      }
-      if (Days.nightKey(markedAt) != facts.dayKey) {
-        return ClassKeepCheck.outsideWindow;
-      }
-      final nightsBack = Days.between(day, Days.parse(currentNight));
-      if (nightsBack < 0 || nightsBack > classKeepRecentNights) {
-        return ClassKeepCheck.outsideWindow;
+      final currentNight = Days.nightKey(now);
+      if (at == null) {
+        if (facts.dayKey != currentNight) return ClassKeepCheck.outsideWindow;
+      } else {
+        // Read the mark's night on the same clock face as now.
+        final markedAt = now.isUtc ? at.toUtc() : at.toLocal();
+        if (Days.nightKey(markedAt) != facts.dayKey) {
+          return ClassKeepCheck.outsideWindow;
+        }
+        final nightsBack = Days.between(day, Days.parse(currentNight));
+        if (nightsBack < 0 || nightsBack > classKeepRecentNights) {
+          return ClassKeepCheck.outsideWindow;
+        }
       }
     }
     final startsAt = facts.startsAt;
@@ -1549,8 +1605,10 @@ class GameState extends ChangeNotifier {
   /// into the usual rank-up beat), a Me ledger line with the class label, and
   /// achievements. Pass [dayClassKeys] (every real class that day, as
   /// identities) to pay the full-day bonus on the keep that completes the
-  /// day. Returns null when the class is already kept or outside its window.
-  /// Level-ups are left to the caller's usual chain.
+  /// day. Returns null whenever [checkClassKeep] is not open: already kept,
+  /// outside its window, not started, a full day, or not a class. A course
+  /// code longer than [KeptClass.maxCodeLength] is stored shortened
+  /// ([ClassFacts.keptCode]). Level-ups are left to the caller's usual chain.
   ClassCredit? keepClass(
     ClassFacts facts, {
     List<String> dayClassKeys = const [],
@@ -1558,7 +1616,7 @@ class GameState extends ChangeNotifier {
   }) {
     if (checkClassKeep(facts, at: at) != ClassKeepCheck.open) return null;
     final now = Clock.now();
-    final code = facts.courseCode.trim();
+    final code = facts.keptCode!;
     final kind = KeptClass.cleanKind(facts.kind);
     final pay = ClassPay.forKind(kind);
     final kept = KeptClass(
@@ -1660,14 +1718,12 @@ class GameState extends ChangeNotifier {
     );
   }
 
-  /// Rule A: a kept class lights its day. A mark for a day a freeze already
-  /// held returns that freeze, since the day turned out to be lived.
+  /// Rule A: a kept class lights its day. A mark for a day older than the
+  /// last streak day recounts the days after it ([_relightEarlierDay]).
   ClassStreakEffect _lightStreakForClass(String dayKey) {
     final last = lastStreakDay;
     if (last != null && dayKey.compareTo(last) < 0) {
-      if (!frozenStreakDays.remove(dayKey)) return ClassStreakEffect.none;
-      streakFreezes = min(streakFreezeCapacity, streakFreezes + 1);
-      return ClassStreakEffect(streakDays: streakDays, freezeReturned: true);
+      return _relightEarlierDay(dayKey);
     }
     final step = _advanceStreakDay(dayKey, fromClass: true);
     if (!step.advanced) return ClassStreakEffect.none;
@@ -1684,6 +1740,157 @@ class GameState extends ChangeNotifier {
       milestoneGlimmers: milestone == null ? 0 : streakMilestones[milestone]!,
     );
   }
+
+  /// Rule A, a late mark: [dayKey] is older than the last streak day (a
+  /// Quest after midnight lit the next calendar day first, or a queued mark
+  /// was replayed after a later day lit). The remembered advances after it
+  /// run again in day order from the streak just before the first of them,
+  /// as if the mark had come on time, so the order of a Quest and a class
+  /// mark does not change the streak.
+  ///
+  /// The recount is kept only when it leaves the streak longer, or as long
+  /// with at least as many freezes: a mark never takes a streak day or a
+  /// freeze away. Otherwise (and when the remembered days cannot place this
+  /// one) the live streak stands, and a freeze that held the day comes back.
+  ClassStreakEffect _relightEarlierDay(String dayKey) {
+    final steps = _streakSteps;
+    final from = steps.indexWhere((step) => step.dayKey.compareTo(dayKey) >= 0);
+    if (from < 0 || steps.last.dayKey != lastStreakDay) {
+      return _returnHeldFreeze(dayKey);
+    }
+    final first = steps[from];
+    final before = first.lastBefore;
+    if (first.dayKey == dayKey || before == dayKey) {
+      return ClassStreakEffect.none; // already a streak day
+    }
+    if (before != null && before.compareTo(dayKey) > 0) {
+      return _returnHeldFreeze(dayKey);
+    }
+    final replaced = steps.sublist(from);
+    final wasHeld = frozenStreakDays.contains(dayKey);
+    final live = (
+      streak: streakDays,
+      freezes: streakFreezes,
+      progress: streakFreezeProgress,
+      held: {...frozenStreakDays},
+    );
+
+    // Rewind to just before the first advance after this day.
+    streakDays = first.streakBefore;
+    streakFreezes = first.freezesBefore;
+    streakFreezeProgress = first.progressBefore;
+    for (final step in replaced) {
+      frozenStreakDays.removeAll(step.held);
+    }
+    final rerun = _StreakRerun(before);
+    var best = 0;
+    var restarts = 0;
+    final lateStep = _advanceStreakDay(dayKey, fromClass: true, rerun: rerun);
+    if (lateStep.restarted) restarts++;
+    best = max(best, streakDays);
+    for (var i = 0; i < replaced.length; i++) {
+      final original = replaced[i];
+      if (i > 0) {
+        // Freezes that arrived from elsewhere between the two advances (the
+        // level-6 gift, a returned freeze) stay where they arrived.
+        streakFreezes =
+            (streakFreezes +
+                    original.freezesBefore -
+                    replaced[i - 1].freezesAfter)
+                .clamp(0, streakFreezeCapacity);
+      }
+      final step = _advanceStreakDay(
+        original.dayKey,
+        fromClass: !original.quest,
+        rerun: rerun,
+      );
+      if (step.restarted) restarts++;
+      best = max(best, streakDays);
+    }
+    streakFreezes = (streakFreezes + live.freezes - replaced.last.freezesAfter)
+        .clamp(0, streakFreezeCapacity);
+
+    final better =
+        streakDays > live.streak ||
+        (streakDays == live.streak && streakFreezes >= live.freezes);
+    if (!better) {
+      streakDays = live.streak;
+      streakFreezes = live.freezes;
+      streakFreezeProgress = live.progress;
+      frozenStreakDays
+        ..clear()
+        ..addAll(live.held);
+      return _returnHeldFreeze(dayKey);
+    }
+
+    _lastStreakDay = rerun.last;
+    if (best > bestStreak) bestStreak = best;
+    final restartsBefore = replaced.where((step) => step.restarted).length;
+    comebacks = max(0, comebacks - restartsBefore + restarts);
+    // A chest the original order already paid is never paid twice.
+    final paid = {for (final step in replaced) ?step.milestone};
+    int? milestone;
+    var chests = 0;
+    for (final step in rerun.steps) {
+      final crossed = step.milestone;
+      if (crossed != null && paid.add(crossed)) {
+        _streakMilestoneQ.add(crossed);
+        embers += streakMilestones[crossed]!;
+        chests += streakMilestones[crossed]!;
+        milestone ??= crossed;
+      }
+    }
+    // A welcome-back waits only on a class day that still began the streak
+    // again; one the original order left was either used or never owed.
+    final newest = rerun.steps.last;
+    if (newest.quest || !newest.restarted) {
+      comebackPendingDay = null;
+    } else if (!replaced.last.restarted) {
+      comebackPendingDay = newest.dayKey;
+    }
+    steps
+      ..removeRange(from, steps.length)
+      ..addAll(rerun.steps);
+    return ClassStreakEffect(
+      lit: true,
+      relit: true,
+      streakDays: streakDays,
+      freezesUsed: max(0, live.freezes - streakFreezes),
+      restDaysPassed: lateStep.restDaysPassed,
+      freezeEarned: streakFreezes > live.freezes + (wasHeld ? 1 : 0),
+      freezeReturned: wasHeld,
+      milestone: milestone,
+      milestoneGlimmers: chests,
+    );
+  }
+
+  /// The fallback for a late mark the remembered days cannot recount: a day
+  /// a freeze held turned out to be lived, so that freeze comes back.
+  ClassStreakEffect _returnHeldFreeze(String dayKey) {
+    if (!frozenStreakDays.remove(dayKey)) return ClassStreakEffect.none;
+    streakFreezes = min(streakFreezeCapacity, streakFreezes + 1);
+    return ClassStreakEffect(streakDays: streakDays, freezeReturned: true);
+  }
+
+  /// Keeps the last few advances, enough for a queued mark from
+  /// [classKeepRecentNights] nights back (with a day to spare for a phone
+  /// in another zone than its timetable).
+  void _rememberStreakStep(_StreakStep step) {
+    _streakSteps.add(step);
+    final night = Days.nightDate(Clock.now());
+    final oldest = Days.key(
+      DateTime(night.year, night.month, night.day - classKeepRecentNights - 2),
+    );
+    _streakSteps.removeWhere((kept) => kept.dayKey.compareTo(oldest) < 0);
+    if (_streakSteps.length > _maxStreakSteps) {
+      _streakSteps.removeRange(0, _streakSteps.length - _maxStreakSteps);
+    }
+  }
+
+  static const _maxStreakSteps = 8;
+
+  /// The last few streak advances, oldest first (see [_StreakStep]).
+  final List<_StreakStep> _streakSteps = [];
 
   /// One optional acknowledgement for real effort that was not planned as a
   /// Quest. It is separate so it cannot fabricate Quest-only progression.
@@ -1727,6 +1934,8 @@ class GameState extends ChangeNotifier {
   }
 
   /// Editing preserves the original award and day; it can never award twice.
+  /// A real change of wording bumps [rewardSerial], so an armed whole-save
+  /// undo settles instead of quietly putting the old words back.
   bool updateExtraCredit(String dayKey, String title) {
     final cleaned = ExtraCreditEntry.cleanTitle(title);
     if (cleaned == null || dayKey != Days.nightKey(Clock.now())) {
@@ -1737,6 +1946,7 @@ class GameState extends ChangeNotifier {
     if (record == null || entry == null) return false;
     if (entry.title == cleaned) return true;
     _putDayRecord(record.copyWith(extraCredit: entry.copyWith(title: cleaned)));
+    _rewardSerial++;
     notifyListeners();
     return true;
   }
@@ -1755,16 +1965,21 @@ class GameState extends ChangeNotifier {
     _trimDayRecords(retain: {Days.nightKey(Clock.now()), record.dayKey});
   }
 
-  /// Trim by day key: the oldest days go first, never a retained one.
+  /// Trim by day key: keep the newest [dayRecordHorizon] days, plus any
+  /// retained day (the active night, the record just written) older than
+  /// those. [_dayRecords] is kept in day order.
   void _trimDayRecords({required Set<String> retain}) {
     if (_dayRecords.length <= dayRecordHorizon) return;
-    final candidates =
-        _dayRecords.where((r) => !retain.contains(r.dayKey)).toList()
-          ..sort((a, b) => a.dayKey.compareTo(b.dayKey));
-    var i = 0;
-    while (_dayRecords.length > dayRecordHorizon && i < candidates.length) {
-      _dayRecords.remove(candidates[i++]);
-    }
+    final newest = {
+      for (final record in _dayRecords.skip(
+        _dayRecords.length - dayRecordHorizon,
+      ))
+        record.dayKey,
+    };
+    _dayRecords.removeWhere(
+      (record) =>
+          !newest.contains(record.dayKey) && !retain.contains(record.dayKey),
+    );
   }
 
   /// One rollover-deep snapshot keeps a just-finished day available to the
@@ -2010,14 +2225,14 @@ class GameState extends ChangeNotifier {
   /// [ClassDayRules.restDaysPause], rest days inside it are passed over: they
   /// neither count as quiet days nor need a freeze.
   ({bool gap, List<String> days, List<String> restDays, bool covered})
-  _streakSituationFor(String dayKey) {
+  _streakSituationFor(String dayKey, {({String? day})? from}) {
     const none = (
       gap: false,
       days: <String>[],
       restDays: <String>[],
       covered: false,
     );
-    final last = lastStreakDay;
+    final last = from == null ? lastStreakDay : from.day;
     if (last == null || last == dayKey) return none;
     final d = Days.tryParse(last);
     final target = Days.tryParse(dayKey);
@@ -2060,6 +2275,11 @@ class GameState extends ChangeNotifier {
   /// [ClassDayRules.classDayLightsStreak]) class keeps share this one block,
   /// so milestone chests and freeze cadence follow streak days whichever
   /// lit them. A Quest passes the freeze numbers its receipt already showed.
+  ///
+  /// Every advance is remembered for a few nights ([_streakSteps]). With
+  /// [rerun], this is one advance of a late mark's recount: it reads and
+  /// moves the recount's own last day, records into it, and leaves chests,
+  /// comebacks and the best streak to [_relightEarlierDay].
   ({
     bool advanced,
     int freezesUsed,
@@ -2074,8 +2294,9 @@ class GameState extends ChangeNotifier {
     int? freezeBalanceAfter,
     int? freezeProgressAfter,
     int? freezeCadenceAfter,
+    _StreakRerun? rerun,
   }) {
-    final last = lastStreakDay;
+    final last = rerun == null ? lastStreakDay : rerun.last;
     // A Quest advances on any new calendar day (unchanged behavior, even on a
     // backward clock). A class mark may arrive for a recent past day, so it
     // advances only a day after the last streak day.
@@ -2092,7 +2313,15 @@ class GameState extends ChangeNotifier {
         milestone: null,
       );
     }
-    final sit = _streakSituationFor(dayKey);
+    // A Quest on a backward clock: the remembered day order no longer holds,
+    // so no late mark may recount across it.
+    if (rerun == null && last != null && dayKey.compareTo(last) < 0) {
+      _streakSteps.clear();
+    }
+    final sit = _streakSituationFor(dayKey, from: (day: last));
+    final streakBefore = streakDays;
+    final freezesBefore = streakFreezes;
+    final progressBefore = streakFreezeProgress;
     var freezesUsed = 0;
     var restarted = false;
     if (!sit.gap) {
@@ -2103,11 +2332,16 @@ class GameState extends ChangeNotifier {
       freezesUsed = sit.days.length;
       streakDays += 1;
     } else {
-      comebacks++; // a real lapse — reset, but the return is celebrated
+      // a real lapse — reset, but the return is celebrated
+      if (rerun == null) comebacks++;
       streakDays = 1;
       restarted = true;
     }
-    _lastStreakDay = dayKey;
+    if (rerun == null) {
+      _lastStreakDay = dayKey;
+    } else {
+      rerun.last = dayKey;
+    }
     // Showing up replenishes freezes without asking for a perfect board.
     // Progress can sit one day from ready while the reserve is full; if a
     // later completion spends a freeze, that same active day may refill it.
@@ -2141,11 +2375,30 @@ class GameState extends ChangeNotifier {
     // inflation the shop economy can't take).
     int? milestone;
     if (streakMilestones.containsKey(streakDays)) {
-      _streakMilestoneQ.add(streakDays);
-      embers += streakMilestones[streakDays]!;
       milestone = streakDays;
+      if (rerun == null) {
+        _streakMilestoneQ.add(streakDays);
+        embers += streakMilestones[streakDays]!;
+      }
     }
-    if (streakDays > bestStreak) bestStreak = streakDays;
+    final step = _StreakStep(
+      dayKey: dayKey,
+      quest: !fromClass,
+      lastBefore: last,
+      streakBefore: streakBefore,
+      freezesBefore: freezesBefore,
+      progressBefore: progressBefore,
+      freezesAfter: streakFreezes,
+      held: freezesUsed > 0 ? List.unmodifiable(sit.days) : const [],
+      restarted: restarted,
+      milestone: milestone,
+    );
+    if (rerun == null) {
+      if (streakDays > bestStreak) bestStreak = streakDays;
+      _rememberStreakStep(step);
+    } else {
+      rerun.steps.add(step);
+    }
     return (
       advanced: true,
       freezesUsed: freezesUsed,
@@ -2904,6 +3157,9 @@ class GameState extends ChangeNotifier {
     'lastCompletionDay': lastCompletionDay,
     if (lastStreakDay != null) 'lastStreakDay': lastStreakDay,
     if (comebackPendingDay != null) 'comebackPendingDay': comebackPendingDay,
+    // The last few streak advances, so a late class mark can recount them.
+    if (_streakSteps.isNotEmpty)
+      'streakSteps': [for (final step in _streakSteps) step.toJson()],
     'lastActiveDay': lastActiveDay,
     'totalCompletions': totalCompletions,
     'completionsAtLastLevel': completionsAtLastLevel,
@@ -3251,6 +3507,7 @@ class GameState extends ChangeNotifier {
     s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
     s._lastStreakDay = Days.validKey(j['lastStreakDay']);
     s.comebackPendingDay = Days.validKey(j['comebackPendingDay']);
+    s._decodeStreakSteps(j['streakSteps']);
     s.lastActiveDay = Days.validKey(j['lastActiveDay']);
     s.totalCompletions = j['totalCompletions'] as int? ?? 0;
     s.completionsAtLastLevel = j['completionsAtLastLevel'] as int?;
@@ -3366,6 +3623,30 @@ class GameState extends ChangeNotifier {
     return s;
   }
 
+  /// The remembered streak advances. All or nothing: a malformed entry, a
+  /// broken day chain, or a log that does not end on the last streak day is
+  /// dropped whole, and a late mark then falls back to returning a held
+  /// freeze. Never reads the clock.
+  void _decodeStreakSteps(Object? raw) {
+    if (raw is! List) return;
+    final recent = raw.length > _maxStreakSteps
+        ? raw.sublist(raw.length - _maxStreakSteps)
+        : raw;
+    final steps = <_StreakStep>[];
+    for (final item in recent) {
+      final step = _StreakStep.fromJson(item);
+      if (step == null) return;
+      if (steps.isNotEmpty &&
+          (step.dayKey.compareTo(steps.last.dayKey) <= 0 ||
+              step.lastBefore != steps.last.dayKey)) {
+        return;
+      }
+      steps.add(step);
+    }
+    if (steps.isEmpty || steps.last.dayKey != lastStreakDay) return;
+    _streakSteps.addAll(steps);
+  }
+
   /// Tolerant decode of the day's own records. Never throws: a bad record is
   /// dropped, a repeated day folds into one (newest wins, nothing re-awards),
   /// and only an oversized list consults the clock, to protect the active
@@ -3445,16 +3726,126 @@ class GameState extends ChangeNotifier {
   }
 }
 
+/// One streak advance, remembered for a few nights: the day it lit, whether
+/// a Quest lit it, the streak just before it, and what it held and paid. A
+/// late class mark for an earlier day runs the advances after that day again
+/// from here, in day order (rule A). Saved, so a reload between a Quest and a
+/// late mark changes nothing.
+final class _StreakStep {
+  const _StreakStep({
+    required this.dayKey,
+    required this.quest,
+    required this.lastBefore,
+    required this.streakBefore,
+    required this.freezesBefore,
+    required this.progressBefore,
+    required this.freezesAfter,
+    this.held = const [],
+    this.restarted = false,
+    this.milestone,
+  });
+
+  final String dayKey;
+  final bool quest;
+
+  /// The last streak day before this advance.
+  final String? lastBefore;
+  final int streakBefore;
+  final int freezesBefore;
+  final int progressBefore;
+  final int freezesAfter;
+
+  /// The quiet days this advance held with freezes.
+  final List<String> held;
+  final bool restarted;
+
+  /// The 7/30/100 chest this advance paid.
+  final int? milestone;
+
+  Map<String, dynamic> toJson() => {
+    'day': dayKey,
+    if (quest) 'quest': true,
+    if (lastBefore != null) 'last': lastBefore,
+    'streak': streakBefore,
+    'freezes': freezesBefore,
+    'progress': progressBefore,
+    'freezesAfter': freezesAfter,
+    if (held.isNotEmpty) 'held': held,
+    if (restarted) 'restarted': true,
+    if (milestone != null) 'milestone': milestone,
+  };
+
+  /// Total: anything malformed returns null (and drops the whole log).
+  static _StreakStep? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final day = Days.validKey(raw['day']);
+    final rawLast = raw['last'];
+    final last = Days.validKey(rawLast);
+    final streak = raw['streak'];
+    final freezes = raw['freezes'];
+    final progress = raw['progress'];
+    final after = raw['freezesAfter'];
+    final quest = raw['quest'] ?? false;
+    final restarted = raw['restarted'] ?? false;
+    final milestone = raw['milestone'];
+    final rawHeld = raw['held'] ?? const <Object?>[];
+    bool count(Object? value, int most) =>
+        value is int && value >= 0 && value <= most;
+    if (day == null ||
+        (rawLast != null && last == null) ||
+        !count(streak, 1 << 20) ||
+        !count(freezes, GameState.maxStreakFreezes) ||
+        !count(progress, 8) ||
+        !count(after, GameState.maxStreakFreezes) ||
+        quest is! bool ||
+        restarted is! bool ||
+        (milestone != null &&
+            !GameState.streakMilestones.containsKey(milestone)) ||
+        rawHeld is! List ||
+        rawHeld.length > 60) {
+      return null;
+    }
+    final held = <String>[];
+    for (final item in rawHeld) {
+      final key = Days.validKey(item);
+      if (key == null) return null;
+      held.add(key);
+    }
+    return _StreakStep(
+      dayKey: day,
+      quest: quest,
+      lastBefore: last,
+      streakBefore: streak as int,
+      freezesBefore: freezes as int,
+      progressBefore: progress as int,
+      freezesAfter: after as int,
+      held: List.unmodifiable(held),
+      restarted: restarted,
+      milestone: milestone as int?,
+    );
+  }
+}
+
+/// A late mark's recount in progress: its own last day and the advances it
+/// has made so far.
+final class _StreakRerun {
+  _StreakRerun(this.last);
+
+  String? last;
+  final List<_StreakStep> steps = [];
+}
+
 enum RewardUndoKind { quest, keptClass }
 
 /// The one whole-save undo slot (engine map §5.3).
 ///
 /// A Quest completion and a class keep share it: the newest reward replaces
 /// the slot, and [canRestore] refuses once any later reward (Quest, class or
-/// Extra Credit) has landed, so an undo never erases a newer reward. The
-/// restore is the whole snapshot: day records are reward-bearing and are
-/// never merged back from the live save, because the snapshot already pairs
-/// every record with the XP it paid.
+/// Extra Credit) or Extra Credit wording edit has landed, so an undo never
+/// erases a newer reward or puts older words back. The restore is the whole
+/// snapshot: day records are reward-bearing and are never merged back from
+/// the live save, because the snapshot already pairs every record with the
+/// XP it paid.
 final class RewardUndoSlot {
   RewardUndoSlot._(
     this._state,

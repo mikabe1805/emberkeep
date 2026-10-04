@@ -871,6 +871,24 @@ class KeptClass {
     return cleaned;
   }
 
+  /// The course code a kept record stores: trimmed and, when longer than
+  /// [maxCodeLength] UTF-16 units (a typed course name, say), cut at a
+  /// grapheme boundary to fit, so the decoder always reads it back. Keeps,
+  /// lookups and the per-course counters all use this one form. Null when
+  /// nothing is left.
+  static String? cleanCode(String code) {
+    final trimmed = code.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.length <= maxCodeLength) return trimmed;
+    final kept = StringBuffer();
+    for (final grapheme in trimmed.characters) {
+      if (kept.length + grapheme.length > maxCodeLength) break;
+      kept.write(grapheme);
+    }
+    final cut = kept.toString().trimRight();
+    return cut.isEmpty ? null : cut;
+  }
+
   Map<String, dynamic> toJson() => {
     if (occurrenceKey != null) 'occurrenceKey': occurrenceKey,
     'courseCode': courseCode,

@@ -197,6 +197,7 @@ void main() {
         final activeDay = Days.nightKey(Clock.now());
         final encoded = GameState().toJson()
           ..['dayRecords'] = [
+            _creditRecord('2024-12-31', 'Older than the horizon', createdAt: 0),
             _creditRecord(activeDay, 'The active night stays', createdAt: 0),
             for (var i = 1; i <= GameState.dayRecordHorizon; i++)
               _creditRecord(
@@ -208,17 +209,30 @@ void main() {
 
         final restored = GameState.fromJson(encoded);
 
+        // The newest 180 days, plus the active night beyond them.
         expect(
           restored.extraCreditEntries,
-          hasLength(GameState.dayRecordHorizon),
+          hasLength(GameState.dayRecordHorizon + 1),
         );
         expect(
           restored.extraCreditForDay(activeDay)!.title,
           'The active night stays',
         );
         // Trimming is by day: the oldest day other than the active night goes.
-        expect(restored.extraCreditForDay('2025-01-02'), isNull);
+        expect(restored.extraCreditForDay('2024-12-31'), isNull);
+        expect(restored.extraCreditForDay('2025-01-02'), isNotNull);
         expect(restored.extraCreditForDay('2025-06-30'), isNotNull);
+
+        // A forward clock trims to exactly the horizon: the active night is
+        // the newest day and counts among them.
+        Clock.freeze(DateTime(2025, 6, 30, 22));
+        final forward = GameState.fromJson(encoded);
+        expect(
+          forward.extraCreditEntries,
+          hasLength(GameState.dayRecordHorizon),
+        );
+        expect(forward.extraCreditForDay(activeDay), isNull);
+        expect(forward.extraCreditForDay('2025-06-30'), isNotNull);
       },
     );
 

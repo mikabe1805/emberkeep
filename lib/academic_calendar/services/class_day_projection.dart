@@ -78,7 +78,11 @@ final class ProjectedClass {
     startMinute: localStartMinute,
     startsAt: startsAt,
     endsAt: endsAt,
+    nightEndsAt: classNightEndFor(date, timeZoneId),
   );
+
+  /// Whether a full day waits on this class (office hours do not).
+  bool get countsTowardDay => ClassPay.countsTowardDay(kind.name);
 }
 
 /// The next real class after a projected day, with the word for its day.
@@ -134,9 +138,13 @@ final class ClassDay {
 
   String get dayKey => date.toString();
 
-  /// Every class's identity, for the engine's full-day bonus.
+  /// The identity of every class a full day is judged by, for the engine's
+  /// full-day bonus. Optional kinds (office hours, [ClassPay.optionalKinds])
+  /// stay on the board and can still be kept, but the bonus never waits on
+  /// them.
   List<String> get dayClassKeys => [
-    for (final entry in classes) entry.facts.identity,
+    for (final entry in classes)
+      if (entry.countsTowardDay) entry.facts.identity,
   ];
 
   bool afterLastClass(DateTime now) {
@@ -220,12 +228,32 @@ ClassFacts? classFactsFor(
     startMinute: occurrence.localStartMinute,
     startsAt: occurrence.startInstant.toUtc(),
     endsAt: occurrence.endInstant.toUtc(),
+    nightEndsAt: classNightEndFor(occurrence.date, occurrence.timeZoneId),
   );
 }
 
+/// When a class day's night ends: 04:00 the next morning in [timeZoneId], as
+/// a UTC instant (exact across a daylight-saving change). Null for a zone
+/// the time zone database does not know; the engine then works the end out
+/// from the class's start.
+DateTime? classNightEndFor(CivilDate date, String timeZoneId) {
+  try {
+    final (end, _) = OccurrenceMaterializer.resolveInstants(
+      date.addDays(1),
+      4 * 60,
+      4 * 60,
+      timeZoneId,
+    );
+    return end.toUtc();
+  } catch (_) {
+    return null;
+  }
+}
+
 /// A rest day for the streak's pause rule: a day inside a (not archived)
-/// term that has no real classes, such as a weekend, a recess day, or a day
-/// whose classes moved elsewhere. Days outside every term are ordinary days.
+/// term with no real classes a full day waits on, such as a weekend, a
+/// recess day, a day whose classes moved elsewhere, or a day holding only
+/// office hours. Days outside every term are ordinary days.
 bool restDayFor(AcademicSchedule schedule, String dayKey) {
   final parsed = Days.tryParse(dayKey);
   if (parsed == null) return false;
@@ -233,7 +261,11 @@ bool restDayFor(AcademicSchedule schedule, String dayKey) {
   if (schedule.termFor(date) == null) return false;
   return !schedule
       .occurrencesOn(date)
-      .any((occurrence) => _isReal(schedule, occurrence));
+      .any(
+        (occurrence) =>
+            _isReal(schedule, occurrence) &&
+            ClassPay.countsTowardDay(occurrence.kind.name),
+      );
 }
 
 bool _isReal(AcademicSchedule schedule, ClassOccurrence occurrence) {

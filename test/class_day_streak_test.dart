@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:emberkeep/clock.dart';
@@ -52,6 +53,23 @@ void _rules({bool lights = false, bool pause = false}) =>
       classDayLightsStreak: lights,
       restDaysPause: pause,
     );
+
+/// Everything the streak rules decide, in one comparable line.
+String _streakOf(GameState state) =>
+    'streak ${state.streakDays}, freezes ${state.streakFreezes}, '
+    'progress ${state.streakFreezeProgress}, '
+    'held ${(state.frozenStreakDays.toList()..sort()).join(' ')}, '
+    'last ${state.lastStreakDay}, comebacks ${state.comebacks}';
+
+/// The streak as a person would rank it: longer first, then more freezes.
+int _rank(GameState a, GameState b) {
+  final byStreak = a.streakDays.compareTo(b.streakDays);
+  return byStreak != 0 ? byStreak : a.streakFreezes.compareTo(b.streakFreezes);
+}
+
+GameState _reload(GameState state) => GameState.fromJson(
+  jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>,
+);
 
 bool _weekend(String dayKey) {
   final day = Days.parse(dayKey);
@@ -242,7 +260,8 @@ void main() {
       expect(restored.lastCompletionDay, '2026-08-01');
     });
 
-    test('a late mark for a day a freeze held gives the freeze back', () {
+    test('a late mark for a day a freeze held counts the day and gives the '
+        'freeze back', () {
       final state = GameState(rng: _NoLuck());
       _at(10, 5);
       _quest(state);
@@ -256,10 +275,21 @@ void main() {
         at: DateTime(2026, 10, 6, 15),
       )!;
       expect(credit.streak.freezeReturned, isTrue);
-      expect(credit.streak.lit, isFalse);
-      expect(state.streakFreezes, 3);
+      expect(credit.streak.lit, isTrue);
+      expect(credit.streak.relit, isTrue);
+      expect(credit.streak.streakDays, 3, reason: 'Mon, Tue and Wed lived');
       expect(state.frozenStreakDays, isEmpty);
-      expect(state.streakDays, 2);
+      expect(state.streakDays, 3);
+
+      // Exactly what a mark on Tuesday itself would have left.
+      final onTime = GameState(rng: _NoLuck());
+      _at(10, 5);
+      _quest(onTime);
+      _at(10, 6, 15);
+      onTime.keepClass(_classOn(10, 6));
+      _at(10, 7);
+      _quest(onTime);
+      expect(_streakOf(state), _streakOf(onTime));
     });
 
     test('a late mark for an older lit day leaves the streak alone', () {
@@ -275,6 +305,342 @@ void main() {
       expect(credit.streak, same(ClassStreakEffect.none));
       expect(state.streakDays, 2);
       expect(state.lastStreakDay, _key(10, 6));
+    });
+  });
+
+  group('A: the order of a Quest and a class mark', () {
+    setUp(() => _rules(lights: true));
+
+    /// Quests on Saturday and Sunday, then Monday's class and a Quest both
+    /// land after midnight, in the order given.
+    GameState monday({required bool classFirst, required int freezes}) {
+      final state = GameState(rng: _NoLuck())..streakFreezes = freezes;
+      _at(10, 3);
+      _quest(state);
+      _at(10, 4);
+      _quest(state);
+      expect(state.streakDays, 2);
+      void mark() => state.keepClass(_classOn(10, 5));
+      void quest() => _quest(state);
+      Clock.freeze(DateTime(2026, 10, 6, 0, 30));
+      classFirst ? mark() : quest();
+      Clock.freeze(DateTime(2026, 10, 6, 0, 40));
+      classFirst ? quest() : mark();
+      return state;
+    }
+
+    for (final freezes in [0, 1, 3]) {
+      test('either order after midnight gives the same streak '
+          '($freezes freezes)', () {
+        final classFirst = monday(classFirst: true, freezes: freezes);
+        final questFirst = monday(classFirst: false, freezes: freezes);
+        expect(classFirst.streakDays, 4);
+        expect(_streakOf(questFirst), _streakOf(classFirst));
+        expect(questFirst.bestStreak, 4);
+        expect(questFirst.frozenStreakDays, isEmpty);
+      });
+    }
+
+    test('the late mark reports the recount', () {
+      final state = GameState(rng: _NoLuck())..streakFreezes = 0;
+      _at(10, 3);
+      _quest(state);
+      _at(10, 4);
+      _quest(state);
+      Clock.freeze(DateTime(2026, 10, 6, 0, 30));
+      _quest(state);
+      expect(state.streakDays, 1, reason: 'Monday looked quiet');
+      expect(state.comebacks, 1);
+
+      Clock.freeze(DateTime(2026, 10, 6, 0, 40));
+      final credit = state.keepClass(_classOn(10, 5))!;
+      expect(credit.streak.lit, isTrue);
+      expect(credit.streak.relit, isTrue);
+      expect(credit.streak.streakDays, 4);
+      expect(credit.streak.freezesUsed, 0);
+      expect(state.comebacks, 0, reason: 'there was no gap after all');
+      expect(state.lastStreakDay, _key(10, 6));
+      expect(state.lastCompletionDay, _key(10, 6));
+      expect(state.history.containsKey(_key(10, 5)), isFalse);
+    });
+
+    test('a queued mark replayed after later Quests counts as if on time', () {
+      for (final nightsLate in [1, 2]) {
+        GameState run({required bool late}) {
+          final state = GameState(rng: _NoLuck())..streakFreezes = 0;
+          _at(10, 3);
+          _quest(state);
+          _at(10, 4);
+          _quest(state);
+          final madeAt = DateTime(2026, 10, 5, 15);
+          if (!late) {
+            Clock.freeze(madeAt);
+            state.keepClass(_classOn(10, 5));
+          }
+          for (var day = 6; day <= 5 + nightsLate; day++) {
+            _at(10, day, 19);
+            _quest(state);
+          }
+          if (late) {
+            _at(10, 5 + nightsLate, 20);
+            final credit = state.keepClass(_classOn(10, 5), at: madeAt)!;
+            expect(credit.streak.relit, isTrue);
+          }
+          return state;
+        }
+
+        final late = run(late: true);
+        expect(
+          _streakOf(late),
+          _streakOf(run(late: false)),
+          reason: '$nightsLate nights late',
+        );
+        expect(late.streakDays, 3 + nightsLate);
+      }
+    });
+
+    test('a reload between the Quest and the late mark changes nothing', () {
+      final state = GameState(rng: _NoLuck())..streakFreezes = 0;
+      _at(10, 3);
+      _quest(state);
+      _at(10, 4);
+      _quest(state);
+      Clock.freeze(DateTime(2026, 10, 6, 0, 30));
+      _quest(state);
+      final reloaded = _reload(state);
+      Clock.freeze(DateTime(2026, 10, 6, 0, 40));
+      reloaded.keepClass(_classOn(10, 5));
+      final classFirst = monday(classFirst: true, freezes: 0);
+      expect(_streakOf(reloaded), _streakOf(classFirst));
+    });
+
+    test('a damaged memory of the streak falls back without throwing', () {
+      final state = GameState(rng: _NoLuck())..streakFreezes = 0;
+      _at(10, 3);
+      _quest(state);
+      _at(10, 4);
+      _quest(state);
+      Clock.freeze(DateTime(2026, 10, 6, 0, 30));
+      _quest(state);
+      final json =
+          jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
+      final steps = json['streakSteps'] as List;
+      expect(steps, hasLength(3));
+      final newest = steps.last as Map;
+      for (final damage in <Object?>[
+        'nope',
+        [
+          {'day': 'not-a-day'},
+        ],
+        [
+          {...newest, 'freezes': -1},
+        ],
+        [newest, newest],
+        [steps.first, steps.last],
+      ]) {
+        final damaged = GameState.fromJson(
+          Map<String, dynamic>.of(json)..['streakSteps'] = damage,
+        );
+        Clock.freeze(DateTime(2026, 10, 6, 0, 40));
+        final credit = damaged.keepClass(_classOn(10, 5))!;
+        expect(credit.streak.relit, isFalse, reason: '$damage');
+        expect(damaged.streakDays, 1, reason: 'the live streak stands');
+      }
+    });
+
+    test('a recount pays a chest it newly crosses, once', () {
+      final state = GameState(rng: _NoLuck())
+        ..streakDays = 5
+        ..bestStreak = 5
+        ..lastCompletionDay = _key(10, 1)
+        ..streakFreezes = 0;
+      _at(10, 2);
+      _quest(state);
+      expect(state.streakDays, 6);
+      // Saturday's class is marked after a Quest at 00:30 Sunday.
+      Clock.freeze(DateTime(2026, 10, 4, 0, 30));
+      _quest(state);
+      expect(state.streakDays, 1);
+      expect(state.takeJustStreakMilestone(), isNull);
+      final embers = state.embers;
+
+      Clock.freeze(DateTime(2026, 10, 4, 0, 40));
+      final credit = state.keepClass(_classOn(10, 3))!;
+      expect(credit.streak.milestone, 7);
+      expect(credit.streak.milestoneGlimmers, 50);
+      expect(state.streakDays, 8);
+      expect(state.bestStreak, 8);
+      expect(state.embers, embers + credit.glimmers + 50);
+      expect(state.takeJustStreakMilestone(), 7);
+      expect(state.takeJustStreakMilestone(), isNull);
+    });
+
+    test('a recount never pays a chest the first order already paid', () {
+      final state = GameState(rng: _NoLuck())
+        ..streakDays = 5
+        ..bestStreak = 5
+        ..lastCompletionDay = _key(10, 2);
+      _at(10, 3);
+      _quest(state);
+      Clock.freeze(DateTime(2026, 10, 5, 0, 30));
+      _quest(state); // Saturday's 6, a held Sunday, then day 7
+      expect(state.streakDays, 7);
+      expect(state.takeJustStreakMilestone(), 7);
+      final embers = state.embers;
+
+      Clock.freeze(DateTime(2026, 10, 5, 0, 40));
+      final credit = state.keepClass(_classOn(10, 4))!;
+      expect(credit.streak.relit, isTrue);
+      expect(credit.streak.freezeReturned, isTrue);
+      expect(credit.streak.milestone, isNull);
+      expect(state.streakDays, 8);
+      expect(state.embers, embers + credit.glimmers, reason: 'no second chest');
+      expect(state.takeJustStreakMilestone(), isNull);
+    });
+
+    test('a late mark never takes a streak day or a freeze away', () {
+      // Two freezes cannot hold Saturday to Tuesday, so Wednesday's Quest
+      // begins again. Marked on time, Monday would have spent both freezes
+      // on the weekend and Wednesday would still begin again, with none
+      // left; replayed late, the mark leaves the two freezes alone.
+      final state = GameState(rng: _NoLuck())
+        ..streakDays = 5
+        ..bestStreak = 5
+        ..lastCompletionDay = _key(10, 2)
+        ..streakFreezes = 2;
+      _at(10, 7);
+      _quest(state);
+      expect(state.streakDays, 1);
+      final before = _streakOf(state);
+
+      _at(10, 7, 13);
+      final credit = state.keepClass(
+        _classOn(10, 5),
+        at: DateTime(2026, 10, 5, 15),
+      );
+      expect(credit, isNotNull, reason: 'the class itself still pays');
+      expect(credit!.streak, same(ClassStreakEffect.none));
+      expect(_streakOf(state), before);
+      expect(state.streakFreezes, 2);
+    });
+
+    test('random days: a late mark matches on time, or leaves the person '
+        'better off', () {
+      var recounts = 0;
+      var matched = 0;
+      var runs = 0;
+      for (final pause in [false, true]) {
+        _rules(lights: true, pause: pause);
+        GameState.restDayResolver = _weekend;
+        for (var seed = 0; seed < 150; seed++) {
+          final dice = Random(seed);
+          final start = DateTime(2026, 10, 1 + dice.nextInt(20));
+          final days = 1 + dice.nextInt(3);
+          final classOn = [for (var i = 0; i < days; i++) dice.nextBool()];
+          final lateDay = days - 1 - dice.nextInt(min(days, 3));
+          classOn[lateDay] = true;
+          // 0: no Quest, 1: evening, 2: 00:30 the next morning
+          final questOn = [for (var i = 0; i < days; i++) dice.nextInt(3)];
+          final queued = dice.nextBool();
+          final initialStreak = dice.nextInt(9);
+          final initialFreezes = dice.nextInt(4);
+          final initialProgress = dice.nextInt(3);
+          final lastBack = 1 + dice.nextInt(4);
+
+          DateTime on(int i, int hour, [int minute = 0]) =>
+              DateTime(start.year, start.month, start.day + i, hour, minute);
+          ClassFacts facts(int i) => ClassFacts(
+            occurrenceKey: 'occ-$seed-$i',
+            courseCode: 'ECE 333',
+            title: 'Lab',
+            kind: 'lab',
+            dayKey: Days.key(on(i, 12)),
+            startMinute: 840,
+          );
+
+          GameState run({required bool late}) {
+            final state = GameState(rng: _NoLuck())
+              ..streakDays = initialStreak
+              ..bestStreak = initialStreak
+              ..streakFreezes = initialFreezes
+              ..streakFreezeProgress = initialProgress
+              ..lastCompletionDay = initialStreak == 0
+                  ? null
+                  : Days.key(on(-lastBack, 12));
+            final events = <(DateTime, void Function())>[];
+            for (var i = 0; i < days; i++) {
+              if (classOn[i] && !(late && i == lateDay)) {
+                events.add((on(i, 14), () => state.keepClass(facts(i))));
+              }
+              if (questOn[i] == 1) {
+                events.add((on(i, 20), () => _quest(state)));
+              } else if (questOn[i] == 2) {
+                events.add((on(i + 1, 0, 30), () => _quest(state)));
+              }
+            }
+            events.sort((a, b) => a.$1.compareTo(b.$1));
+            ClassCredit? lateCredit;
+            if (late) {
+              // Right after a 00:30 Quest that came first, or (queued) at
+              // the very end, after every later Quest.
+              final DateTime delivered;
+              DateTime? madeAt;
+              if (!queued && questOn[lateDay] == 2) {
+                delivered = on(lateDay + 1, 0, 40);
+              } else {
+                final evening = on(days - 1, 21);
+                final after = events.isEmpty
+                    ? evening
+                    : events.last.$1.add(const Duration(minutes: 10));
+                delivered = after.isAfter(evening) ? after : evening;
+                madeAt = on(lateDay, 14);
+              }
+              events
+                ..add((
+                  delivered,
+                  () =>
+                      lateCredit = state.keepClass(facts(lateDay), at: madeAt),
+                ))
+                ..sort((a, b) => a.$1.compareTo(b.$1));
+            }
+            for (final (moment, act) in events) {
+              Clock.freeze(moment);
+              act();
+            }
+            if (late) {
+              expect(lateCredit, isNotNull, reason: 'seed $seed');
+              if (lateCredit!.streak.relit) recounts++;
+            }
+            return state;
+          }
+
+          final onTime = run(late: false);
+          final late = run(late: true);
+          runs++;
+          final same = _streakOf(late) == _streakOf(onTime);
+          if (same) matched++;
+          expect(
+            same || _rank(late, onTime) > 0,
+            isTrue,
+            reason:
+                'seed $seed pause $pause: late ${_streakOf(late)} vs '
+                'on time ${_streakOf(onTime)}',
+          );
+          if (same) {
+            expect(
+              late.bestStreak,
+              greaterThanOrEqualTo(onTime.bestStreak),
+              reason: 'seed $seed pause $pause',
+            );
+          }
+        }
+      }
+      expect(recounts, greaterThan(20), reason: 'the recount path ran');
+      expect(
+        matched,
+        greaterThan(runs * 9 ~/ 10),
+        reason: 'order rarely shows',
+      );
     });
   });
 
@@ -382,8 +748,9 @@ void main() {
   group('never punish', () {
     for (final lights in [false, true]) {
       for (final pause in [false, true]) {
-        test('no rule ever takes XP, stats, level or best streak '
-            '(lights: $lights, pause: $pause)', () {
+        test('no rule ever takes XP, stats, level or best streak, and the '
+            'streak only grows or begins again (lights: $lights, '
+            'pause: $pause)', () {
           _rules(lights: lights, pause: pause);
           final dice = Random(lights ? (pause ? 11 : 7) : (pause ? 5 : 3));
           GameState.restDayResolver = (key) => key.hashCode % 3 == 0;
@@ -392,9 +759,43 @@ void main() {
           var level = 1;
           var best = 0;
           var embers = 0;
+          var streak = 0;
+          var freezes = state.streakFreezes;
+          var comebacks = 0;
           final statFloor = {for (final stat in Stat.values) stat: 0};
 
-          void check(String step) {
+          /// [late]: a mark for a day older than the last streak day.
+          void check(String step, {bool late = false}) {
+            if (late) {
+              // A late mark never shortens the streak or, at the same
+              // length, spends a freeze.
+              expect(
+                state.streakDays,
+                greaterThanOrEqualTo(streak),
+                reason: step,
+              );
+              if (state.streakDays == streak) {
+                expect(
+                  state.streakFreezes,
+                  greaterThanOrEqualTo(freezes),
+                  reason: step,
+                );
+              }
+            } else if (state.streakDays < streak) {
+              // Otherwise the streak moves one day at a time, or begins
+              // again at 1 after a gap the reserve could not hold.
+              expect(state.streakDays, 1, reason: step);
+              expect(state.comebacks, comebacks + 1, reason: step);
+            } else {
+              expect(
+                state.streakDays - streak,
+                lessThanOrEqualTo(1),
+                reason: step,
+              );
+            }
+            streak = state.streakDays;
+            freezes = state.streakFreezes;
+            comebacks = state.comebacks;
             expect(state.totalXp, greaterThanOrEqualTo(totalXp), reason: step);
             expect(state.level, greaterThanOrEqualTo(level), reason: step);
             expect(state.bestStreak, greaterThanOrEqualTo(best), reason: step);
@@ -466,7 +867,26 @@ void main() {
                 ),
                 at: earlier,
               );
-              check('late $i');
+              check('late $i', late: true);
+            }
+            if (dice.nextInt(6) == 0) {
+              // After midnight: a Quest lights the new calendar day first,
+              // then a class from the night before is marked.
+              Clock.freeze(DateTime(day.year, day.month, day.day + 1, 0, 30));
+              _quest(state, 'Night owl');
+              check('after midnight quest $i');
+              Clock.freeze(DateTime(day.year, day.month, day.day + 1, 0, 40));
+              state.keepClass(
+                ClassFacts(
+                  occurrenceKey: 'night-${Days.key(day)}',
+                  courseCode: 'NIGHT',
+                  title: 'Evening seminar',
+                  kind: 'seminar',
+                  dayKey: Days.key(day),
+                  startMinute: 1260,
+                ),
+              );
+              check('after midnight class $i', late: true);
             }
             state.applyLevelUps();
             check('level $i');
