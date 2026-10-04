@@ -259,6 +259,21 @@ APK chooser during the earlier smoke as provisional and repeat after that step.
   Confirm the next class advances, the extension never displays malformed or
   stale private text, and lock-screen/app-switcher privacy treatment is
   acceptable.
+- [ ] Class day (snapshot v3): between classes the widget shows the class
+  that just ended with I WAS THERE (I'M HERE while it is in session), its end
+  time and its building and room, and the next class. After the last class it
+  reads CLASSES DONE with the day's classes: kept ones with their XP, the
+  newest waiting one with I WAS THERE, older waiting ones as quiet dots. Once
+  every class is kept it shows one quiet line and the day's class XP. From the
+  evening, and on days without classes, it keeps the everyday look, with the
+  next class's day (`WED 8:30 AM`) when that class is not today. Past local
+  midnight the previous day's three Quests no longer show.
+- [ ] Tap I WAS THERE on the small widget and on a medium row, once with Room of
+  Days closed and once while it is open in the background. The app opens on
+  Quests and the class is kept with the same celebration as the board's own
+  I WAS THERE; the widget then shows it kept. A link for a class that is
+  already kept or has not started only opens the class day. No morning
+  briefing or What's New covers the celebration on that open.
 - [ ] Leave global Background music off, then turn it on in Me. The normal room
   must play the lively jazzy umbrella-brush rotation, never the peaceful
   meditation theme. Toggle it quickly and background/resume; it must not get

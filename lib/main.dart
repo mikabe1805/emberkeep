@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'a11y.dart';
 import 'academic_calendar/import/academic_schedule_file_inbox.dart';
 import 'audio.dart';
+import 'class_day_links.dart';
 import 'main_room_music.dart';
 import 'social.dart';
 import 'storage.dart';
@@ -138,6 +139,7 @@ bool wantsGoalsPage(Uri uri) =>
 
 class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
   late final RoomLinkInbox _roomLinks;
+  late final ClassDayLinkInbox _classDayLinks;
   late final AcademicScheduleFileInbox _academicScheduleFiles;
 
   @override
@@ -148,6 +150,7 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
     // instead of becoming an unknown Navigator route.
     WidgetsBinding.instance.addObserver(this);
     _roomLinks = RoomLinkInbox();
+    _classDayLinks = ClassDayLinkInbox();
     _academicScheduleFiles = AcademicScheduleFileInbox();
     unawaited(_academicScheduleFiles.initialize());
     String? seededCode;
@@ -170,13 +173,18 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
     }
     final initialRoute = PlatformDispatcher.instance.defaultRouteName;
     final routeUri = Uri.tryParse(initialRoute);
-    if (routeUri != null) seed(routeUri);
+    if (routeUri != null) {
+      seed(routeUri);
+      // A Day Ledger widget link that arrived as the cold-start route.
+      _classDayLinks.enqueueUri(routeUri);
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _roomLinks.dispose();
+    _classDayLinks.dispose();
     _academicScheduleFiles.dispose();
     super.dispose();
   }
@@ -184,6 +192,8 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
   @override
   Future<bool> didPushRouteInformation(RouteInformation routeInformation) {
     final uri = routeInformation.uri;
+    // roomofdays://class-day links from the Day Ledger widget.
+    if (_classDayLinks.enqueueUri(uri)) return Future.value(true);
     if (_roomLinks.enqueueUri(uri)) return Future.value(true);
     // A /space link with a missing or malformed code is still ours: claim it
     // and open the visit prompt, whose code field explains what belongs
@@ -253,6 +263,7 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
       ),
       home: AppShell(
         roomLinks: _roomLinks,
+        classDayLinks: _classDayLinks,
         academicScheduleFiles: _academicScheduleFiles,
         initialPage: wantsGoalsPage(Uri.base)
             ? AppShellInitialPage.goals

@@ -12,6 +12,7 @@ import '../academic_calendar/import/academic_schedule_file_inbox.dart';
 import '../academic_calendar/services/academic_reminder_projection.dart';
 import '../academic_calendar/services/class_day_projection.dart';
 import '../background_music.dart';
+import '../class_day_links.dart';
 import '../clock.dart';
 import '../cloud.dart';
 import '../content/ladders.dart';
@@ -159,6 +160,7 @@ class AppShell extends StatefulWidget {
     super.key,
     this.initialRoomCode,
     this.roomLinks,
+    this.classDayLinks,
     this.academicScheduleFiles,
     this.scheduleRepository,
     this.widgetSnapshotWriter,
@@ -168,6 +170,9 @@ class AppShell extends StatefulWidget {
 
   final String? initialRoomCode;
   final RoomLinkInbox? roomLinks;
+
+  /// Class-day links from the Day Ledger widget (class_day_links.dart).
+  final ClassDayLinkInbox? classDayLinks;
   final AcademicScheduleFileInbox? academicScheduleFiles;
   final AcademicScheduleRepository? scheduleRepository;
   final WidgetSnapshotWriter? widgetSnapshotWriter;
@@ -203,6 +208,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   bool _academicScheduleLoaded = false;
   Future<void> _widgetWriteTail = Future<void>.value();
+
+  /// Republishes the widget snapshot at the next class boundary (a class
+  /// starting or ending, the evening, the night's end, midnight) while the
+  /// app is open. The widget's own timeline covers the time it is closed.
+  Timer? _widgetBoundary;
+
+  /// This foreground session was opened by a class-day link: the link's
+  /// class day comes first, so the morning briefing and What's New wait for
+  /// the next open instead of covering it.
+  bool _openedByClassDayLink = false;
+  bool _drainingClassDayLinks = false;
   bool _musicForeground = false;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
@@ -262,6 +278,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
+    widget.classDayLinks?.addListener(_onIncomingClassDayLink);
     widget.academicScheduleFiles?.addListener(_onIncomingAcademicScheduleFile);
     CloudSync.instance.addListener(_onCloudAccountChanged);
     _load();
@@ -290,6 +307,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
+    widget.classDayLinks?.removeListener(_onIncomingClassDayLink);
     widget.academicScheduleFiles?.removeListener(
       _onIncomingAcademicScheduleFile,
     );
@@ -298,6 +316,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       GameState.restDayResolver = null;
     }
     _midnight?.cancel();
+    _widgetBoundary?.cancel();
     _ignitionClearTimer?.cancel();
     _luxeMotion.dispose();
     unawaited(_music.dispose());
@@ -311,6 +330,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       oldWidget.roomLinks?.removeListener(_onIncomingRoomLink);
       widget.roomLinks?.addListener(_onIncomingRoomLink);
       _onIncomingRoomLink();
+    }
+    if (oldWidget.classDayLinks != widget.classDayLinks) {
+      oldWidget.classDayLinks?.removeListener(_onIncomingClassDayLink);
+      widget.classDayLinks?.addListener(_onIncomingClassDayLink);
+      // Routing changes the tab; never set state in the middle of a build.
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _onIncomingClassDayLink(),
+      );
     }
     if (oldWidget.academicScheduleFiles != widget.academicScheduleFiles) {
       oldWidget.academicScheduleFiles?.removeListener(
@@ -333,6 +360,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     });
     unawaited(_rescheduleNotifications());
     unawaited(_publishWidgetSnapshot());
+    // A widget link that arrived before the timetable can be checked now.
+    _onIncomingClassDayLink();
   }
 
   void _onIncomingAcademicScheduleFile() {
@@ -358,11 +387,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (state == null || quests == null || !_academicScheduleLoaded) {
       return Future<void>.value();
     }
+    final now = Clock.now();
     final snapshot = WidgetSnapshotBuilder.build(
       quests: quests,
       schedule: _academicSchedule,
-      now: Clock.now(),
+      now: now,
+      state: state,
     );
+    _armWidgetBoundary(snapshot.nextBoundaryAfter(now), now);
     _widgetWriteTail = _widgetWriteTail.catchError((_) {}).then<void>((
       _,
     ) async {
@@ -371,8 +403,85 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     return _widgetWriteTail;
   }
 
+  void _armWidgetBoundary(DateTime? boundary, DateTime now) {
+    _widgetBoundary?.cancel();
+    _widgetBoundary = null;
+    if (boundary == null) return;
+    // One second past the boundary, so the class has started or ended by the
+    // time the snapshot is rebuilt.
+    final wait =
+        boundary.toUtc().difference(now.toUtc()) + const Duration(seconds: 1);
+    if (wait <= Duration.zero) return;
+    _widgetBoundary = Timer(wait, () {
+      _widgetBoundary = null;
+      if (mounted) unawaited(_publishWidgetSnapshot());
+    });
+  }
+
   void _onIncomingRoomLink() {
     if (_startupSettled) unawaited(_drainPendingRoomLinks());
+  }
+
+  void _onIncomingClassDayLink() {
+    if (!mounted || !(widget.classDayLinks?.isNotEmpty ?? false)) return;
+    _openedByClassDayLink = true;
+    unawaited(_drainClassDayLinks());
+  }
+
+  /// Routes each queued Day Ledger widget link once the save and the
+  /// timetable are loaded: the Quests tab, on the class day. A mark link is
+  /// checked against the engine at that moment (`checkClassKeep`), and only a
+  /// class that can be kept right now is handed to the board, which keeps it
+  /// and plays the same celebration as its own I WAS THERE.
+  Future<void> _drainClassDayLinks() async {
+    final inbox = widget.classDayLinks;
+    if (inbox == null ||
+        _drainingClassDayLinks ||
+        !_startupSettled ||
+        !_academicScheduleLoaded ||
+        _state == null) {
+      return;
+    }
+    _drainingClassDayLinks = true;
+    try {
+      while (mounted) {
+        final event = inbox.takeNext();
+        if (event == null) break;
+        final state = _state;
+        if (state == null) break;
+        _openedByClassDayLink = true;
+        _selectTab(1);
+        ClassDayBoardSeam.instance.request(_classDayBoardRequest(event, state));
+      }
+    } finally {
+      _drainingClassDayLinks = false;
+    }
+  }
+
+  ClassDayBoardRequest _classDayBoardRequest(
+    ClassDayLinkEvent event,
+    GameState state,
+  ) {
+    final link = event.link;
+    final now = Clock.now();
+    final open = ClassDayBoardRequest.open(requestedAt: now);
+    if (!link.isMark) return open;
+    final occurrence = _academicSchedule.occurrenceByKey(link.occurrenceKey!);
+    if (occurrence == null || occurrence.date.toString() != link.dayKey) {
+      return open;
+    }
+    final facts = classFactsFor(_academicSchedule, occurrence);
+    if (facts == null ||
+        occurrence.state == OccurrenceState.cancelled ||
+        occurrence.tombstonedAt != null ||
+        state.checkClassKeep(facts) != ClassKeepCheck.open) {
+      return open;
+    }
+    return ClassDayBoardRequest.mark(
+      occurrenceKey: occurrence.occurrenceKey,
+      dayKey: link.dayKey!,
+      requestedAt: now,
+    );
   }
 
   /// Firebase account changes are the privacy boundary for the room photo.
@@ -532,6 +641,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       unawaited(_notifySocialInbox());
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
+      if (lifecycle == AppLifecycleState.paused) _openedByClassDayLink = false;
       // flush any in-flight quest completion BEFORE saving — otherwise a
       // done-marked quest can persist without its XP (deferred-commit window)
       _flushQuestsCommit?.call();
@@ -586,6 +696,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     await _connectCloud();
     if (!mounted) return;
     _startupSettled = true;
+    _onIncomingClassDayLink();
     final openedInitialRoom = await _openInitialRoom();
     final openedLinkedRoom = await _drainPendingRoomLinks();
     if (openedInitialRoom || openedLinkedRoom) {
@@ -1099,6 +1210,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// card is visible cannot turn it into a repeat-launch trap.
   void _maybeWhatsNew() {
     if (!_startupSettled ||
+        _classDayLinkFirst ||
         !_whatsNewPending ||
         _whatsNewOverlay != null ||
         _whatsNewCheckScheduled) {
@@ -1110,6 +1222,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       final state = _state;
       if (!mounted ||
           !_startupSettled ||
+          _classDayLinkFirst ||
           !_whatsNewPending ||
           state == null ||
           !state.onboarded ||
@@ -1147,6 +1260,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _maybeStartSessionIgnition();
   }
 
+  /// A class-day link opened (or is opening) this session.
+  bool get _classDayLinkFirst =>
+      _openedByClassDayLink || (widget.classDayLinks?.isNotEmpty ?? false);
+
   ClassDay? _classDayToday() {
     final day = _classDays?.call(Clock.now());
     return day != null && day.isClassDay ? day : null;
@@ -1155,6 +1272,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// Auto-greet: last night was closed out, today hasn't been briefed.
   void _maybeMorning() {
     if (!_startupSettled ||
+        _classDayLinkFirst ||
         _morningCheckScheduled ||
         _whatsNewPending ||
         _whatsNewOverlay != null ||
@@ -1168,6 +1286,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       final q = _quests;
       if (!mounted ||
           !_startupSettled ||
+          _classDayLinkFirst ||
           s == null ||
           q == null ||
           _whatsNewPending ||
