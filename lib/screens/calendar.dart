@@ -91,6 +91,7 @@ class CalendarPage extends StatefulWidget {
     this.calendarLinkFetcher,
     this.deviceCalendarReader,
     this.onScheduleChanged,
+    this.addClassesRequestId = 0,
     this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
   });
 
@@ -120,6 +121,10 @@ class CalendarPage extends StatefulWidget {
   /// when set, the Add your classes sheet offers it as a way in.
   final DeviceCalendarReader? deviceCalendarReader;
   final ValueChanged<AcademicSchedule>? onScheduleChanged;
+
+  /// A one-shot request to open the Add your classes sheet (the Quests
+  /// board's "Add your classes" row). Each new id opens it once.
+  final int addClassesRequestId;
   final DaybookPlaceSearchFactory placeSearchFactory;
 
   @override
@@ -173,11 +178,24 @@ class _CalendarPageState extends State<CalendarPage> {
     );
     _academicLoad = _loadAcademicCalendar();
     unawaited(_academicLoad);
+    _acceptAddClassesRequest();
+  }
+
+  int _handledAddClassesRequest = 0;
+
+  void _acceptAddClassesRequest() {
+    final id = widget.addClassesRequestId;
+    if (id <= 0 || id == _handledAddClassesRequest) return;
+    _handledAddClassesRequest = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_showAddClasses());
+    });
   }
 
   @override
   void didUpdateWidget(covariant CalendarPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _acceptAddClassesRequest();
     if (oldWidget.academicScheduleFileInbox ==
         widget.academicScheduleFileInbox) {
       return;

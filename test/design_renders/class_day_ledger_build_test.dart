@@ -79,6 +79,7 @@ Future<bool> _tapNow(WidgetTester tester, Finder finder, String what) async {
 }
 
 Future<void> _openLedger(WidgetTester tester) async {
+  await showQuestBoard(tester);
   final rail = find.byKey(const Key('close-day-rail'));
   await revealIn(tester, rail, questBoard);
   expect(await _tap(tester, rail, 'close-day rail'), isTrue);
@@ -285,6 +286,7 @@ void main() {
       await settle(tester);
 
       // The featured card's action: the Quest he would finish last thing.
+      await showQuestBoard(tester);
       final action = find.byKey(const ValueKey('quest-primary-action'));
       await revealIn(tester, action, questBoard);
       final card = find.ancestor(

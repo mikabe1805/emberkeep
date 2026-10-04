@@ -191,6 +191,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   String? _pendingGoalOpeningTitle;
   int _questFocusRequest = 0;
   int _workoutRequest = 0;
+
+  /// Each tap on the board's "Add your classes" opens the Plans sheet once.
+  int _addClassesRequest = 0;
+
+  void _openAddClasses() {
+    setState(() => _addClassesRequest++);
+    _selectTab(3);
+  }
+
+  /// The board offers "Add your classes" only once the timetable is known to
+  /// be empty (never while it is still loading).
+  bool get _offerAddClasses =>
+      _academicScheduleLoaded && _academicSchedule.occurrences.isEmpty;
   final List<Object> _soundTabScopes = List<Object>.generate(
     5,
     (_) => Object(),
@@ -2046,6 +2059,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           workoutRequestId: _workoutRequest,
                                           musicController: _music,
                                           classDays: _classDays,
+                                          onAddClasses: _offerAddClasses
+                                              ? _openAddClasses
+                                              : null,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)
@@ -2086,6 +2102,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                               Notifications.requestPermission,
                                           onScheduleChanged:
                                               _onAcademicScheduleChanged,
+                                          addClassesRequestId:
+                                              _addClassesRequest,
                                           onAdd: _addQuest,
                                           onCompleteQuest: (quest, anchor) =>
                                               _completeQuest?.call(

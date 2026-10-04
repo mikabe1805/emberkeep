@@ -1,0 +1,780 @@
+// The class day on the Quests tab, as words and states: which class leads the
+// glass, what every row shows, and what one mark's celebration says. Pure: it
+// reads a ClassDay, the GameState's kept records and a moment, and writes
+// nothing. The engine (GameState.keepClass) owns what a mark pays.
+//
+// Never punish: a class that ended unmarked has no state of its own. It is a
+// quiet row (a dim dot, never a hollow socket), nothing counts it, and no line
+// here ever names what was not marked. Every tally counts up.
+library;
+
+import '../../academic_calendar/domain/academic_schedule.dart';
+import '../../academic_calendar/services/class_day_projection.dart';
+import '../../engine.dart';
+import '../../models.dart';
+import '../../tokens.dart';
+
+/// How one of today's classes reads on the glass.
+enum ClassRowState {
+  /// Marked: a closed ring and what it paid.
+  kept,
+
+  /// Over, unmarked, and still markable until the class's night ends.
+  ready,
+
+  /// Happening now: "I'm here".
+  inSession,
+
+  /// Starts within [classStartsSoonLead]: the only time a countdown shows.
+  startsSoon,
+
+  /// Later today: its start time.
+  upcoming,
+
+  /// Over and no longer markable (its night has ended on this phone's clock).
+  /// A quiet row, nothing more.
+  settled,
+}
+
+/// One class row.
+final class ClassRow {
+  const ClassRow({required this.entry, required this.state, this.kept});
+
+  final ProjectedClass entry;
+  final ClassRowState state;
+  final KeptClass? kept;
+
+  String get identity => entry.facts.identity;
+
+  bool get isKept => state == ClassRowState.kept;
+
+  /// "I was there" (or "I'm here") can be pressed for it now.
+  bool get markable =>
+      state == ClassRowState.ready || state == ClassRowState.inSession;
+
+  /// Over, unmarked and markable: what the "all of today's classes" shortcut
+  /// gathers.
+  bool get waiting => state == ClassRowState.ready;
+}
+
+/// The glass card's reading of a class day at one moment.
+final class ClassCard {
+  const ClassCard._({
+    required this.day,
+    required this.rows,
+    required this.foremost,
+    required this.waiting,
+    required this.held,
+  });
+
+  /// Reads [day] against [state]'s kept records at [now]. [preferred] is a
+  /// row the person brought forward (tapping a quiet row); [held] keeps a
+  /// just-marked row foremost while its ring closes under the celebration.
+  factory ClassCard.read(
+    ClassDay day,
+    GameState state,
+    DateTime now, {
+    String? preferred,
+    String? held,
+  }) {
+    final rows = [for (final entry in day.classes) _rowFor(entry, state, now)];
+    ClassRow? find(String? identity) {
+      if (identity == null) return null;
+      for (final row in rows) {
+        if (row.identity == identity) return row;
+      }
+      return null;
+    }
+
+    final heldRow = find(held);
+    final preferredRow = find(preferred);
+    ClassRow? foremost;
+    if (heldRow != null && heldRow.isKept) {
+      foremost = heldRow;
+    } else if (preferredRow != null && preferredRow.markable) {
+      foremost = preferredRow;
+    } else {
+      // The class that most recently began and can still be marked: the one
+      // that just ended, or the one he is sitting in.
+      for (final row in rows.reversed) {
+        if (row.markable) {
+          foremost = row;
+          break;
+        }
+      }
+      // Nothing to mark: the next class leads, with when and where.
+      if (foremost == null) {
+        for (final row in rows) {
+          if (row.state == ClassRowState.startsSoon ||
+              row.state == ClassRowState.upcoming) {
+            foremost = row;
+            break;
+          }
+        }
+      }
+    }
+    return ClassCard._(
+      day: day,
+      rows: List.unmodifiable(rows),
+      foremost: foremost,
+      waiting: List.unmodifiable([
+        for (final row in rows)
+          if (row.waiting) row,
+      ]),
+      held: heldRow != null && heldRow.isKept,
+    );
+  }
+
+  final ClassDay day;
+  final List<ClassRow> rows;
+
+  /// The one row that owns the card: markable, or next. Null once the day has
+  /// nothing left to mark or wait for (the record).
+  final ClassRow? foremost;
+
+  /// Ended, unmarked, still markable.
+  final List<ClassRow> waiting;
+
+  /// The foremost row is a just-marked class held in place for its ring.
+  final bool held;
+
+  /// Two or more ended classes wait: one shortcut marks them together.
+  bool get offersShortcut => waiting.length >= 2;
+
+  /// Marking every waiting class would leave every class today kept.
+  bool get shortcutCompletesDay {
+    final keys = day.dayClassKeys;
+    if (keys.isEmpty) return false;
+    final after = {
+      for (final row in rows)
+        if (row.isKept || row.waiting) row.identity,
+    };
+    return keys.every(after.contains);
+  }
+
+  int get keptCount => rows.where((row) => row.isKept).length;
+
+  /// Every class a full day is judged by is kept.
+  bool get allKept {
+    final keys = day.dayClassKeys;
+    if (keys.isEmpty) return false;
+    final kept = {
+      for (final row in rows)
+        if (row.isKept) row.identity,
+    };
+    return keys.every(kept.contains);
+  }
+
+  /// Nothing to mark and nothing still to come: the card is the day's record.
+  bool get isRecord => foremost == null;
+
+  static ClassRow _rowFor(ProjectedClass entry, GameState state, DateTime now) {
+    final kept = state.keptClassFor(entry.facts);
+    if (kept != null) {
+      return ClassRow(entry: entry, state: ClassRowState.kept, kept: kept);
+    }
+    final moment = entry.momentAt(now);
+    final open = state.checkClassKeep(entry.facts) == ClassKeepCheck.open;
+    final rowState = switch (moment) {
+      ClassMoment.upcoming => ClassRowState.upcoming,
+      ClassMoment.startsSoon => ClassRowState.startsSoon,
+      ClassMoment.inSession =>
+        open ? ClassRowState.inSession : ClassRowState.settled,
+      ClassMoment.ended => open ? ClassRowState.ready : ClassRowState.settled,
+    };
+    return ClassRow(entry: entry, state: rowState);
+  }
+}
+
+/// The next moment the card can change by itself: a countdown starting, a
+/// minute of it passing, a class starting or ending, or the class day's night
+/// ending. Null when nothing is left to wait for.
+DateTime? nextClassBoundary(ClassDay day, DateTime now) {
+  final instant = now.toUtc();
+  DateTime? best;
+  void consider(DateTime? at) {
+    if (at == null) return;
+    final utc = at.toUtc();
+    if (!utc.isAfter(instant)) return;
+    if (best == null || utc.isBefore(best!)) best = utc;
+  }
+
+  for (final entry in day.classes) {
+    final soon = entry.startsAt.subtract(classStartsSoonLead);
+    consider(soon);
+    consider(entry.startsAt);
+    consider(entry.endsAt);
+    // Inside the countdown, the next whole minute changes "STARTS IN 12 MIN".
+    if (!instant.isBefore(soon) && instant.isBefore(entry.startsAt)) {
+      final left = entry.startsAt.difference(instant);
+      final step = left - Duration(minutes: left.inMinutes);
+      consider(instant.add(step == Duration.zero ? _minute : step));
+    }
+  }
+  if (day.classes.isNotEmpty) {
+    consider(classNightEndFor(day.date, day.classes.first.timeZoneId));
+  }
+  return best;
+}
+
+const _minute = Duration(minutes: 1);
+
+/// The next class start or end after [now]: the moment something becomes
+/// markable. Reopening the app after it brings the room back from the board.
+DateTime? nextClassStartOrEnd(ClassDay day, DateTime now) {
+  final instant = now.toUtc();
+  DateTime? best;
+  for (final entry in day.classes) {
+    for (final at in [entry.startsAt.toUtc(), entry.endsAt.toUtc()]) {
+      if (!at.isAfter(instant)) continue;
+      if (best == null || at.isBefore(best)) best = at;
+    }
+  }
+  return best;
+}
+
+// ── Words ─────────────────────────────────────────────────────────────────
+
+const classWeekdays = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+const _weekdayShort = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const _monthShort = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEP',
+  'OCT',
+  'NOV',
+  'DEC',
+];
+
+/// "TUE · OCT 6".
+String classDayStamp(CivilDate date) =>
+    '${_weekdayShort[date.weekday - 1]} · ${_monthShort[date.month - 1]} '
+    '${date.day}';
+
+String weekdayOf(CivilDate date) => classWeekdays[date.weekday - 1];
+
+/// "2:00 PM" from minutes after midnight.
+String classClock(int minute) {
+  final h24 = (minute ~/ 60) % 24;
+  final h = h24 % 12 == 0 ? 12 : h24 % 12;
+  final m = (minute % 60).toString().padLeft(2, '0');
+  return '$h:$m ${h24 < 12 ? 'AM' : 'PM'}';
+}
+
+/// "2:00" without the meridiem, for rows and closing lines.
+String classClockShort(int minute) {
+  final h24 = (minute ~/ 60) % 24;
+  final h = h24 % 12 == 0 ? 12 : h24 % 12;
+  return '$h:${(minute % 60).toString().padLeft(2, '0')}';
+}
+
+/// "HLL 114": the building and room as a student says them.
+String classPlace(ProjectedClass entry) {
+  final place = entry.place;
+  final parts = <String>[?place.building, ?place.room];
+  return parts.isEmpty ? place.label : parts.join(' ');
+}
+
+/// The course as said out loud: "Introduction to" dropped.
+String classShortTitle(String title) {
+  final t = title.trim();
+  for (final intro in const ['Introduction to ', 'Intro to ']) {
+    if (t.startsWith(intro) && t.length > intro.length) {
+      return t.substring(intro.length);
+    }
+  }
+  return t;
+}
+
+/// For rows: a long registrar title keeps the part before " & "
+/// ("Computer Architecture").
+String classBriefTitle(String title) {
+  final t = classShortTitle(title);
+  final amp = t.indexOf(' & ');
+  if (t.length > 28 && amp > 8) return t.substring(0, amp);
+  return t;
+}
+
+String classKindWord(MeetingKind kind) => switch (kind) {
+  MeetingKind.lecture => 'lecture',
+  MeetingKind.lab => 'lab',
+  MeetingKind.recitation => 'recitation',
+  MeetingKind.studio => 'studio',
+  MeetingKind.officeHours => 'office hour',
+};
+
+const _units = [
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+  'twenty',
+];
+
+/// "three", or digits from 21 on.
+String classCountWord(int n) => n >= 0 && n < _units.length ? _units[n] : '$n';
+
+/// "2:00 PM" never breaks between the time and the meridiem.
+String _keepTogether(String time) => time.replaceAll(' ', '\u00A0');
+
+String _capital(String word) =>
+    word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}';
+
+/// "9TH", "21ST", "FIRST".
+String classOrdinal(int n) {
+  if (n == 1) return 'FIRST';
+  final teen = n % 100;
+  final suffix = teen >= 11 && teen <= 13
+      ? 'TH'
+      : switch (n % 10) {
+          1 => 'ST',
+          2 => 'ND',
+          3 => 'RD',
+          _ => 'TH',
+        };
+  return '$n$suffix';
+}
+
+/// The line that says what is actually next in the timetable after [day],
+/// in a shape that follows the week, so it never repeats itself:
+/// "Free until Monday at 8:30." "Thursday is the long one: three classes,
+/// lab until 6:50." "Friday ends late: Discrete Structures II at 5:55."
+/// "Tomorrow starts late: Computer Architecture at 10:20." "Nothing else
+/// until Wednesday's 8:30 lab."
+String nextClassDayLine(ClassDay day, ClassDay? Function(CivilDate) dayOf) {
+  final next = day.nextClassAfter;
+  if (next == null) return 'Nothing else on your timetable.';
+  final nextDay = dayOf(next.date);
+  final classes = nextDay != null && nextDay.isClassDay
+      ? nextDay.classes
+      : [next.entry];
+  final first = classes.first;
+  final last = classes.reduce(
+    (a, b) => a.localEndMinute >= b.localEndMinute ? a : b,
+  );
+  final name = weekdayOf(next.date);
+  if (next.daysAhead > 1) {
+    return 'Free until $name at ${classClockShort(first.localStartMinute)}.';
+  }
+  if (classes.length >= 3 && last.localEndMinute >= 18 * 60) {
+    final what = last.kind == MeetingKind.lab ? 'lab' : 'class';
+    return '$name is the long one: ${classCountWord(classes.length)} '
+        'classes, $what until ${classClockShort(last.localEndMinute)}.';
+  }
+  final lastStart = classes.reduce(
+    (a, b) => a.localStartMinute >= b.localStartMinute ? a : b,
+  );
+  if (lastStart.localStartMinute >= 17 * 60) {
+    return '$name ends late: ${classBriefTitle(lastStart.title)} at '
+        '${classClockShort(lastStart.localStartMinute)}.';
+  }
+  if (first.localStartMinute >= 10 * 60) {
+    return 'Tomorrow starts late: ${classBriefTitle(first.title)} at '
+        '${classClockShort(first.localStartMinute)}.';
+  }
+  return "Nothing else until $name's "
+      '${classClockShort(first.localStartMinute)} ${classKindWord(first.kind)}.';
+}
+
+// ── The celebration's plan ────────────────────────────────────────────────
+
+enum ClassCelebrationTier {
+  /// A second mark within [quickWindow] of the last: "THAT ONE TOO.", played
+  /// at 1.5x and back in about 1.4 s.
+  quick,
+
+  /// "YOU WERE THERE.": back on its own at about 2.4 s.
+  classKept,
+
+  /// The first mark after the day's last class ended, or the mark that
+  /// completes the day: "TUESDAY, DONE.", held for a tap.
+  dayDone,
+
+  /// The same on the week's last class day: "THAT'S THE WEEK.", held.
+  weekDone,
+}
+
+/// One kept class as a celebration row.
+final class ClassCelebrationRow {
+  const ClassCelebrationRow({
+    required this.title,
+    required this.time,
+    required this.xp,
+    required this.stat,
+    required this.marked,
+  });
+
+  final String title;
+  final String time;
+  final int xp;
+  final Stat stat;
+
+  /// Kept by this gesture (the rest were kept earlier today).
+  final bool marked;
+}
+
+/// Everything the celebration says about one gesture (one class, or several
+/// through the shortcut), decided before it plays.
+final class ClassCelebrationPlan {
+  const ClassCelebrationPlan({
+    required this.tier,
+    required this.headline,
+    required this.numeral,
+    required this.numeralLabel,
+    required this.title,
+    required this.detail,
+    required this.rows,
+    required this.bonusLine,
+    required this.bonusXp,
+    required this.xpShown,
+    required this.xpFrom,
+    required this.caption,
+    required this.gains,
+    required this.totals,
+    required this.level,
+    required this.xpBefore,
+    required this.xpForNextLevel,
+    required this.xpGained,
+    required this.closing,
+    required this.streakLine,
+    required this.semanticsLabel,
+  });
+
+  static const quickWindow = Duration(seconds: 15);
+
+  final ClassCelebrationTier tier;
+  final String headline;
+
+  /// The diamond: his own count for this course (only grows), or the classes
+  /// kept today when one gesture kept several.
+  final int numeral;
+
+  /// "YOUR 9TH LECTURE", "CLASSES TODAY".
+  final String numeralLabel;
+
+  /// The course, for a single mark.
+  final String? title;
+
+  /// "10:20 TO 11:40 · HLL 114", for a single mark.
+  final String? detail;
+
+  /// Today's kept classes (day and week tiers, or a shortcut).
+  final List<ClassCelebrationRow> rows;
+
+  /// "All of Tuesday's classes" with [bonusXp], only when this gesture paid
+  /// the full-day bonus.
+  final String? bonusLine;
+  final int bonusXp;
+
+  /// The big number counts from [xpFrom] up to [xpShown].
+  final int xpShown;
+  final int xpFrom;
+
+  /// Small line under the rail ("TUESDAY'S CLASSES · +35 THIS MARK").
+  final String? caption;
+
+  final Map<Stat, int> gains;
+  final Map<Stat, int> totals;
+
+  /// Level rail: the level and unspent XP before, its cost, and what landed.
+  final int level;
+  final int xpBefore;
+  final int xpForNextLevel;
+  final int xpGained;
+
+  /// "Two for two." / "First one down." then what is next.
+  final List<String> closing;
+
+  /// Only when [ClassDayRules] lights the streak from classes and this mark
+  /// lit the day.
+  final String? streakLine;
+
+  final String semanticsLabel;
+
+  bool get held =>
+      tier == ClassCelebrationTier.dayDone ||
+      tier == ClassCelebrationTier.weekDone;
+
+  bool get levelReady => xpBefore + xpGained >= xpForNextLevel;
+
+  /// When it goes back to the room by itself (null: held for a tap).
+  Duration? get autoReturn => switch (tier) {
+    ClassCelebrationTier.quick => const Duration(milliseconds: 1400),
+    ClassCelebrationTier.classKept => const Duration(milliseconds: 2400),
+    _ => null,
+  };
+
+  /// The quick tier plays the class timeline at 1.5x.
+  double get speed => tier == ClassCelebrationTier.quick ? 1.5 : 1.0;
+}
+
+/// Plans the celebration for [credits] (in the order they were kept) on
+/// [day]. [state] is read after the keeps; [keptBefore] is what that day held
+/// before this gesture. [dayOf] projects other days of the timetable.
+ClassCelebrationPlan planClassCelebration({
+  required ClassDay day,
+  required GameState state,
+  required List<ProjectedClass> marked,
+  required List<ClassCredit> credits,
+  required List<KeptClass> keptBefore,
+  required DateTime now,
+  required ClassDay? Function(CivilDate) dayOf,
+  DateTime? previousMarkAt,
+}) {
+  assert(credits.isNotEmpty && credits.length == marked.length);
+  final instant = now.toUtc();
+  final dayName = weekdayOf(day.date);
+  final keys = day.dayClassKeys;
+  bool covers(Iterable<KeptClass> kept) =>
+      keys.isNotEmpty &&
+      keys.every((key) => kept.any((item) => item.answersTo(key)));
+  final keptAfter = state.classesKeptOn(day.dayKey);
+  final completeBefore = covers(keptBefore);
+  final completeAfter = covers(keptAfter);
+  final completes = completeAfter && !completeBefore;
+  final lastEnd = day.lastClassEnd;
+  final afterLast =
+      lastEnd != null &&
+      !instant.isBefore(lastEnd) &&
+      !keptBefore.any((kept) => !kept.keptAt.toUtc().isBefore(lastEnd));
+  final dayTier = completes || afterLast;
+
+  // The week (Monday to Sunday) the class day belongs to.
+  final monday = day.date.addDays(-(day.date.weekday - 1));
+  final week = <ClassDay>[];
+  var laterClassDays = false;
+  for (var i = 0; i < 7; i++) {
+    final date = monday.addDays(i);
+    final other = date == day.date ? day : dayOf(date);
+    if (other == null || !other.isClassDay) continue;
+    week.add(other);
+    if (date.compareTo(day.date) > 0) laterClassDays = true;
+  }
+  final weekTier = dayTier && !laterClassDays;
+  final quick =
+      !dayTier &&
+      previousMarkAt != null &&
+      instant.difference(previousMarkAt.toUtc()).abs() <
+          ClassCelebrationPlan.quickWindow;
+  final tier = weekTier
+      ? ClassCelebrationTier.weekDone
+      : dayTier
+      ? ClassCelebrationTier.dayDone
+      : quick
+      ? ClassCelebrationTier.quick
+      : ClassCelebrationTier.classKept;
+
+  final several = credits.length > 1;
+  final hero = credits.last;
+  final heroEntry = marked.last;
+  final inSession =
+      !several && heroEntry.momentAt(now) == ClassMoment.inSession;
+  final headline = switch (tier) {
+    ClassCelebrationTier.weekDone => "THAT'S THE WEEK.",
+    ClassCelebrationTier.dayDone => '${dayName.toUpperCase()}, DONE.',
+    ClassCelebrationTier.quick => 'THAT ONE TOO.',
+    ClassCelebrationTier.classKept =>
+      inSession ? "YOU'RE HERE." : 'YOU WERE THERE.',
+  };
+  final numeral = several ? keptAfter.length : hero.courseCount;
+  final numeralLabel = several
+      ? 'CLASSES TODAY'
+      : 'YOUR ${classOrdinal(hero.courseCount)} '
+            '${classKindWord(heroEntry.kind).toUpperCase()}';
+
+  final gained = credits.fold(0, (sum, credit) => sum + credit.xp);
+  final bonus = credits.fold(0, (sum, credit) => sum + credit.fullDayBonus);
+  final gains = <Stat, int>{};
+  for (final credit in credits) {
+    gains[credit.stat] = (gains[credit.stat] ?? 0) + credit.statGain;
+  }
+  final totals = {for (final stat in gains.keys) stat: state.stats[stat] ?? 0};
+
+  // Rows: today's kept classes in timetable order.
+  final markedKeys = {for (final entry in marked) entry.facts.identity};
+  final rows = <ClassCelebrationRow>[];
+  if (tier == ClassCelebrationTier.dayDone ||
+      tier == ClassCelebrationTier.weekDone ||
+      several) {
+    for (final entry in day.classes) {
+      final kept = state.keptClassFor(entry.facts);
+      if (kept == null) continue;
+      rows.add(
+        ClassCelebrationRow(
+          title: classBriefTitle(entry.title),
+          time: classClockShort(entry.localStartMinute),
+          xp: kept.xp,
+          stat: kept.stat,
+          marked: markedKeys.contains(entry.facts.identity),
+        ),
+      );
+    }
+  }
+
+  // The big number: this mark's XP, or the day's (or week's) class XP.
+  final dayXpAfter = state.classXpForDay(day.dayKey);
+  var weekXpAfter = 0;
+  var weekKept = 0;
+  var weekTotal = 0;
+  for (final other in week) {
+    weekXpAfter += state.classXpForDay(other.dayKey);
+    for (final entry in other.classes) {
+      if (!entry.countsTowardDay) continue;
+      weekTotal++;
+      if (state.keptClassFor(entry.facts) != null) weekKept++;
+    }
+  }
+  final (shown, from, caption) = switch (tier) {
+    ClassCelebrationTier.weekDone => (
+      weekXpAfter,
+      weekXpAfter - gained,
+      weekXpAfter == gained
+          ? "THIS WEEK'S CLASSES"
+          : "THIS WEEK'S CLASSES · +$gained THIS MARK",
+    ),
+    ClassCelebrationTier.dayDone => (
+      dayXpAfter,
+      dayXpAfter - gained,
+      dayXpAfter == gained
+          ? "${dayName.toUpperCase()}'S CLASSES"
+          : "${dayName.toUpperCase()}'S CLASSES · +$gained THIS MARK",
+    ),
+    _ => (gained, 0, null),
+  };
+
+  // Closing lines, from what is actually next.
+  final closing = <String>[];
+  if (tier == ClassCelebrationTier.weekDone) {
+    closing.add(
+      weekKept == weekTotal && weekTotal > 0
+          ? '${_capital(classCountWord(weekTotal))} for '
+                '${classCountWord(weekTotal)}.'
+          : '${_capital(classCountWord(weekKept))} '
+                '${weekKept == 1 ? 'class' : 'classes'} this week.',
+    );
+    closing.add(nextClassDayLine(day, dayOf));
+  } else if (tier == ClassCelebrationTier.dayDone) {
+    if (completeAfter) {
+      closing.add(
+        '${_capital(classCountWord(keys.length))} for '
+        '${classCountWord(keys.length)}.',
+      );
+    }
+    closing.add(nextClassDayLine(day, dayOf));
+  } else {
+    ProjectedClass? next;
+    ProjectedClass? running;
+    for (final entry in day.classes) {
+      if (markedKeys.contains(entry.facts.identity)) continue;
+      final moment = entry.momentAt(now);
+      if (moment == ClassMoment.inSession &&
+          state.keptClassFor(entry.facts) == null) {
+        running ??= entry;
+      }
+      if (moment == ClassMoment.upcoming || moment == ClassMoment.startsSoon) {
+        next ??= entry;
+      }
+    }
+    if (next != null) {
+      final nextName =
+          tier == ClassCelebrationTier.quick && next.kind == MeetingKind.lab
+          ? 'The lab'
+          : classBriefTitle(next.title);
+      final at = tier == ClassCelebrationTier.quick
+          ? '$nextName is at ${classClockShort(next.localStartMinute)}, '
+                'in ${classPlace(next)}.'
+          : '$nextName is at ${_keepTogether(classClock(next.localStartMinute))}.';
+      if (keptBefore.isEmpty && tier == ClassCelebrationTier.classKept) {
+        closing.add(
+          several
+              ? '${_capital(classCountWord(credits.length))} down.'
+              : 'First one down.',
+        );
+      }
+      closing.add(at);
+    } else if (running != null) {
+      closing.add(
+        '${classBriefTitle(running.title)} runs until '
+        '${_keepTogether(classClock(running.localEndMinute))}.',
+      );
+    } else {
+      closing.add(nextClassDayLine(day, dayOf));
+    }
+  }
+
+  final streak = hero.streak;
+  final streakLine =
+      ClassDayRules.current.classDayLightsStreak && credits.first.streak.lit
+      ? '${streak.streakDays} DAYS RUNNING · TODAY COUNTS'
+      : null;
+
+  final first = credits.first.level;
+  final title = several ? null : classShortTitle(heroEntry.title);
+  final detail = several
+      ? null
+      : '${classClockShort(heroEntry.localStartMinute)} TO '
+            '${classClockShort(heroEntry.localEndMinute)} · '
+            '${classPlace(heroEntry)}';
+  final semantics = [
+    headline,
+    ?title,
+    '$gained XP',
+    for (final entry in gains.entries) '${entry.value} ${entry.key.label}',
+    ...closing,
+  ].join(' ');
+
+  return ClassCelebrationPlan(
+    tier: tier,
+    headline: headline,
+    numeral: numeral,
+    numeralLabel: numeralLabel,
+    title: title,
+    detail: detail,
+    rows: rows,
+    bonusLine: bonus > 0 ? "All of $dayName's classes" : null,
+    bonusXp: bonus,
+    xpShown: shown,
+    xpFrom: from < 0 ? 0 : from,
+    caption: caption,
+    gains: gains,
+    totals: totals,
+    level: first.level,
+    xpBefore: first.xpBefore,
+    xpForNextLevel: first.xpForNextLevel,
+    xpGained: gained,
+    closing: closing,
+    streakLine: streakLine,
+    semanticsLabel: semantics,
+  );
+}

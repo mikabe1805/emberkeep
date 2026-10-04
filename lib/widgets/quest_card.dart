@@ -2188,3 +2188,37 @@ class _EncoreButton extends StatelessWidget {
     );
   }
 }
+
+/// The Quest's own check ring, for surfaces that keep something other than a
+/// Quest in the same language (a kept class on the class-day glass). The ring
+/// closes over its own 460 ms when [done] turns true, exactly as on a card.
+class QuestCheckRing extends StatelessWidget {
+  const QuestCheckRing({
+    super.key,
+    required this.stat,
+    required this.done,
+    this.size = 30,
+    this.showReadyCheck = false,
+    this.reduceMotion = false,
+    this.lightDirection,
+  });
+
+  final Stat stat;
+  final bool done;
+  final double size;
+
+  /// The open "ready" ring with its gap, for something that can be kept now.
+  final bool showReadyCheck;
+  final bool reduceMotion;
+  final ValueListenable<Offset>? lightDirection;
+
+  @override
+  Widget build(BuildContext context) => _CheckRing(
+    stat: stat,
+    done: done,
+    size: size,
+    showReadyCheck: showReadyCheck,
+    reduceMotion: reduceMotion,
+    lightDirection: lightDirection,
+  );
+}

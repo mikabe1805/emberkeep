@@ -91,6 +91,10 @@ class GameState extends ChangeNotifier {
   /// and does not follow the event-sound toggle.
   bool musicEnabled = false;
 
+  /// The board's "Add your classes" row was put away with "Not in school".
+  /// It stays away for good on this save; Plans keeps its own way in.
+  bool addClassesHidden = false;
+
   /// Accessibility: an in-app text-size multiplier, layered on top of the OS
   /// Text Size setting (main.dart takes the larger of the two, then clamps).
   /// 1.0 = default; presets live in a11y.dart.
@@ -124,6 +128,12 @@ class GameState extends ChangeNotifier {
   void setMusic(bool v) {
     if (musicEnabled == v) return;
     musicEnabled = v;
+    notifyListeners();
+  }
+
+  void hideAddClasses() {
+    if (addClassesHidden) return;
+    addClassesHidden = true;
     notifyListeners();
   }
 
@@ -3058,6 +3068,7 @@ class GameState extends ChangeNotifier {
     'reduceMotion': reduceMotion,
     'soundEnabled': soundEnabled,
     'musicEnabled': musicEnabled,
+    if (addClassesHidden) 'addClassesHidden': true,
     'textScale': textScale,
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
@@ -3227,6 +3238,7 @@ class GameState extends ChangeNotifier {
     s.reduceMotion = j['reduceMotion'] as bool? ?? false;
     s.soundEnabled = j['soundEnabled'] as bool? ?? true;
     s.musicEnabled = j['musicEnabled'] as bool? ?? false;
+    s.addClassesHidden = j['addClassesHidden'] == true;
     s.textScale = (j['textScale'] as num?)?.toDouble() ?? 1.0;
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;

@@ -1,0 +1,226 @@
+[
+  {
+    "file": "B1_tue1152_between_classes.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "Computer Architecture ended 11:40, Discrete at 2:00"
+  },
+  {
+    "file": "B2a_tue1152_press.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "finger down: the plate sinks into the glass"
+  },
+  {
+    "file": "B2b_tue1152_contact_100ms.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "released: the card ring closing, completion composite"
+  },
+  {
+    "file": "B2c_tue1152_celebration_300ms.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "camera easing back, headline mid-slam"
+  },
+  {
+    "file": "B2d_tue1152_celebration_settled.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "settled at 1.9 s, returns on its own at 2.4 s"
+  },
+  {
+    "file": "B3_tue1153_after_first_mark.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "back in the room: Discrete leads, Computer Architecture kept"
+  },
+  {
+    "file": "C1_tue1348_starts_in_12.png",
+    "when": "Tue Oct 6 13:48",
+    "at": "2026-10-06T13:48:00.000",
+    "surface": "Quests, class day",
+    "note": "a countdown only inside the last 15 minutes"
+  },
+  {
+    "file": "C2_tue1440_in_session.png",
+    "when": "Tue Oct 6 14:40",
+    "at": "2026-10-06T14:40:00.000",
+    "surface": "Quests, class day",
+    "note": "in session: I'M HERE"
+  },
+  {
+    "file": "D1_tue1535_last_class_ready.png",
+    "when": "Tue Oct 6 15:35",
+    "at": "2026-10-06T15:35:00.000",
+    "surface": "Quests, class day",
+    "note": "Discrete ended 3:20"
+  },
+  {
+    "file": "D2a_tue1535_day_300ms.png",
+    "when": "Tue Oct 6 15:35",
+    "at": "2026-10-06T15:35:00.000",
+    "surface": "Class celebration, day tier",
+    "note": ""
+  },
+  {
+    "file": "D2b_tue1535_day_settled.png",
+    "when": "Tue Oct 6 15:35",
+    "at": "2026-10-06T15:35:00.000",
+    "surface": "Class celebration, day tier",
+    "note": "held for a tap"
+  },
+  {
+    "file": "D3_tue1536_back_home.png",
+    "when": "Tue Oct 6 15:36",
+    "at": "2026-10-06T15:36:00.000",
+    "surface": "Quests, class day",
+    "note": "the record: both attended, tomorrow next"
+  },
+  {
+    "file": "D4a_tue1536_board_rising.png",
+    "when": "Tue Oct 6 15:36",
+    "at": "2026-10-06T15:36:00.000",
+    "surface": "Quests",
+    "note": "BOARD: the board slides up over the room, no blur"
+  },
+  {
+    "file": "D4b_tue1536_board.png",
+    "when": "Tue Oct 6 15:36",
+    "at": "2026-10-06T15:36:00.000",
+    "surface": "Quests",
+    "note": "the full board, ROOM line above the dock"
+  },
+  {
+    "file": "L1_tue1152_level_ready.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "LEVEL 19 READY on the rail"
+  },
+  {
+    "file": "L2_tue1153_you_did_it.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "LevelUpOverlay",
+    "note": "the real level-up, with the classes line"
+  },
+  {
+    "file": "N1_tue1152_no_timetable.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests",
+    "note": "the board as today, one Add your classes row under the hero"
+  },
+  {
+    "file": "Q1_thu1522_two_waiting.png",
+    "when": "Thu Oct 8 15:22",
+    "at": "2026-10-08T15:22:00.000",
+    "surface": "Quests, class day",
+    "note": "Discrete foremost, Electronics a quiet dot, the lab at 3:50"
+  },
+  {
+    "file": "Q2_thu1522_brought_forward.png",
+    "when": "Thu Oct 8 15:22",
+    "at": "2026-10-08T15:22:06.000",
+    "surface": "Quests, class day",
+    "note": "the quiet row tapped: it leads"
+  },
+  {
+    "file": "Q3_thu1522_that_one_too.png",
+    "when": "Thu Oct 8 15:22",
+    "at": "2026-10-08T15:22:06.000",
+    "surface": "Class celebration, quick tier",
+    "note": "1.5x, back at 1.4 s"
+  },
+  {
+    "file": "R1_tue1152_reduce_motion_300ms.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "everything already landed: no travel, no slam"
+  },
+  {
+    "file": "T1_tue1152_text_130.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "in-app text size 130%"
+  },
+  {
+    "file": "T2_tue1152_text_130_celebration.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": ""
+  },
+  {
+    "file": "U1_tue1153_undo_swipe.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "the kept row dragged left: UNDO behind it"
+  },
+  {
+    "file": "U2_tue1153_after_undo.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "restored: Computer Architecture ready again"
+  },
+  {
+    "file": "W1_fri1856_last_of_the_week.png",
+    "when": "Fri Oct 9 18:56",
+    "at": "2026-10-09T18:56:00.000",
+    "surface": "Quests, class day",
+    "note": ""
+  },
+  {
+    "file": "W2_fri1856_thats_the_week.png",
+    "when": "Fri Oct 9 18:56",
+    "at": "2026-10-09T18:56:00.000",
+    "surface": "Class celebration, week tier",
+    "note": "twelve for twelve"
+  },
+  {
+    "file": "W3_fri1856_eleven_this_week.png",
+    "when": "Fri Oct 9 18:56",
+    "at": "2026-10-09T18:56:00.000",
+    "surface": "Class celebration, week tier",
+    "note": "Tuesday Discrete left neutral: no denominator"
+  },
+  {
+    "file": "X1_mon1915_three_waiting.png",
+    "when": "Mon Oct 5 19:15",
+    "at": "2026-10-05T19:15:00.000",
+    "surface": "Quests, class day",
+    "note": "the 5:40 lecture foremost; the shortcut under it"
+  },
+  {
+    "file": "X2a_mon1915_monday_300ms.png",
+    "when": "Mon Oct 5 19:15",
+    "at": "2026-10-05T19:15:00.000",
+    "surface": "Class celebration, day tier",
+    "note": ""
+  },
+  {
+    "file": "X2b_mon1915_monday_done.png",
+    "when": "Mon Oct 5 19:15",
+    "at": "2026-10-05T19:15:00.000",
+    "surface": "Class celebration, day tier",
+    "note": "one celebration for all three"
+  },
+  {
+    "file": "X3_mon1916_monday_record.png",
+    "when": "Mon Oct 5 19:15",
+    "at": "2026-10-05T19:15:00.000",
+    "surface": "Quests, class day",
+    "note": ""
+  }
+]

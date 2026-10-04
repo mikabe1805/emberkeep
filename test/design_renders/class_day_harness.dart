@@ -790,6 +790,17 @@ Future<void> openTab(WidgetTester tester, RoomTab tab) async {
 /// The Quests board's scroll view (a NestedScrollView).
 final Finder questBoard = find.byKey(const ValueKey('quest-board-scroll'));
 
+/// On a class day the Quests tab opens on the room; this taps BOARD so the
+/// full board (its doors, rails and Quests) is the frame again. A no-op on
+/// any other day.
+Future<void> showQuestBoard(WidgetTester tester) async {
+  final toggle = find.byKey(const Key('class-day-toggle-board')).hitTestable();
+  if (toggle.evaluate().isEmpty) return;
+  await tester.tap(toggle.first);
+  await tester.pump();
+  await settle(tester, total: const Duration(milliseconds: 800));
+}
+
 /// Every scroll position under [scope], for "did it move" checks.
 List<double> scrollOffsets(WidgetTester tester, Finder scope) => [
   for (final s in tester.stateList<ScrollableState>(

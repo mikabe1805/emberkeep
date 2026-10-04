@@ -54,11 +54,17 @@ import '../widgets/quest_card.dart';
 import '../widgets/quest_desk.dart';
 import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
+import '../widgets/routine_ledger.dart' show LedgerType;
 import '../widgets/timer_overlay.dart';
 import '../widgets/top_three_wizard.dart';
 import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/streak_freeze_status.dart';
+import '../widgets/class_day/add_classes_row.dart';
+import '../widgets/class_day/class_day_model.dart';
+import '../widgets/class_day/class_day_room.dart';
+import '../widgets/class_day/class_kept_celebration.dart';
+import '../widgets/class_day/class_room_stage.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
 /// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
@@ -93,6 +99,7 @@ class QuestsPage extends StatefulWidget {
     this.workoutRequestId = 0,
     this.musicController,
     this.classDays,
+    this.onAddClasses,
   });
 
   final GameState state;
@@ -175,6 +182,11 @@ class QuestsPage extends StatefulWidget {
   /// The shell's class-day projection over the imported timetable, or null
   /// without one. Optional, so direct previews and tests need no schedule.
   final ClassDayLookup? classDays;
+
+  /// Opens the Add your classes sheet in Plans. The shell passes it only when
+  /// the timetable is loaded and empty; with it, weekdays show one calm
+  /// "Add your classes" row under the Quest hero until "Not in school".
+  final VoidCallback? onAddClasses;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -290,6 +302,36 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   RewardUndoSlot? _undoSlot;
 
   bool get _undoArmed => _undoSlot?.canRestore(_state) ?? false;
+
+  // ── the class day (the room owns the Quests tab on a day with classes) ──
+
+  /// One-shot timer to the next moment the class card can change by itself
+  /// (a countdown, a start, an end, the night's end). Re-armed every build.
+  Timer? _classBoundaryTimer;
+  DateTime? _classBoundaryAt;
+
+  /// The class day whose full board is showing (BOARD), and the class start
+  /// or end after which reopening the app brings the room back.
+  String? _boardOpenDay;
+  DateTime? _boardOpenUntil;
+
+  /// A Goals or workout hand-off asks for the board itself.
+  bool _boardRequested = false;
+
+  /// A quiet row the person brought forward, and a just-marked row held in
+  /// place while its ring closes under the celebration.
+  String? _preferredClass;
+  String? _heldClass;
+  DateTime? _lastClassMarkAt;
+  OverlayEntry? _classCelebration;
+  final ClassRoomCamera _classCamera = ClassRoomCamera();
+
+  /// The real level-up is up: the room's words step back behind it.
+  bool _levelTakeover = false;
+
+  /// The class-day room is the frame (set each build). Board-only passing
+  /// layers (a Quest receipt) never land over it.
+  bool _roomInView = false;
 
   /// The quest the keeper deliberately brought forward. Keeping this local to
   /// the board makes selection immediate without turning a glance into saved
@@ -672,6 +714,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (widget.focusRequestId == _handledFocusRequestId) return;
     _handledFocusRequestId = widget.focusRequestId;
     _manualQuestSelection = false;
+    if (widget.focusRequestId > 0) _boardRequested = true;
     _selectedQuest = _requestedQuest();
     if (widget.focusRequestId > 0 && _selectedQuest != null) {
       _showFocusedQuest();
@@ -700,6 +743,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (!identical(old.state, widget.state)) {
       _removeNightRoute();
       _undoSlot = null;
+      _heldClass = null;
+      _preferredClass = null;
+      _lastClassMarkAt = null;
       _pendingAchievementToasts.clear();
       for (final timer in _achievementToastTimers) {
         timer.cancel();
@@ -717,6 +763,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     if (old.focusRequestId != widget.focusRequestId) _acceptFocusRequest();
     if (old.workoutRequestId != widget.workoutRequestId) {
+      _boardRequested = true;
       _showRequestedWorkout();
     }
     _syncLocalMotion();
@@ -732,6 +779,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
       _flushCommit();
+    }
+    // Opening the app again re-reads where the class day is. Once a class
+    // has started or ended since the board was opened, the room leads again.
+    if (lifecycle == AppLifecycleState.resumed && mounted) {
+      final until = _boardOpenUntil;
+      if (until != null && !Clock.now().toUtc().isBefore(until)) {
+        _boardOpenDay = null;
+        _boardOpenUntil = null;
+      }
+      _preferredClass = null;
+      setState(() {});
     }
   }
 
@@ -806,6 +864,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _classBoundaryTimer?.cancel();
+    _classCelebration?.remove();
+    _classCelebration = null;
     _removeNightRoute();
     _localMotion?.dispose();
     _boardScroll.removeListener(_handleScrollLight);
@@ -1208,9 +1269,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // land on top of mid-flight bubbles.
     Future.delayed(const Duration(milliseconds: 240), () {
       if (!mounted) return;
-      if (_nightRoute != null) {
-        // The ledger opened first and already shows this reward; the receipt
-        // would only paint over the folio. The chain waits for the close.
+      // TickerMode is on only while the Quests tab is the one on screen.
+      if (_nightRoute != null ||
+          (_roomInView && TickerMode.valuesOf(context).enabled)) {
+        // The ledger opened first and already shows this reward (or the
+        // class-day room took the frame back): the receipt would only paint
+        // over it. The chain goes on from its next step.
         _afterReceipt(s, q, bundle);
         return;
       }
@@ -2040,16 +2104,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // the takeover's dim, and the overflow pour plays on dismissal where it
     // can actually be seen (DESIGN.md §6).
     late final OverlayEntry takeover;
+    setState(() => _levelTakeover = true);
+    void stepForward() {
+      if (mounted) setState(() => _levelTakeover = false);
+    }
+
     takeover = OverlayEntry(
       builder: (_) => LevelUpOverlay(
         level: result.leveledTo!,
         unlock: result.unlock,
         nextUnlock: s.nextUnlockLabel(),
         questsSince: result.questsSince,
+        classesSince: result.classesSince,
         previousLevel: result.previousLevel,
         reduceMotion: s.reduceMotion,
         onDismiss: () {
           takeover.remove();
+          stepForward();
           if (mounted && identical(s, _state)) {
             setState(() {});
             // streak milestone (if any), then rank-ups, then achievements
@@ -2061,6 +2132,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // must not swallow the streak/rank/achievement beats behind it.
         onShare: () {
           takeover.remove();
+          stepForward();
           if (!mounted) return;
           unawaited(
             showShareMoment(context, s, level: result.leveledTo!).whenComplete(
@@ -3132,11 +3204,269 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final now = Clock.now();
+    final classDay = _todayClasses();
+    if (classDay == null) {
+      _roomInView = false;
+      _classBoundaryTimer?.cancel();
+      _classBoundaryTimer = null;
+      _classBoundaryAt = null;
+      return _buildBoard(context);
+    }
+    _armClassBoundary(classDay, now);
+    if (_boardRequested) {
+      _boardRequested = false;
+      _boardOpenDay = classDay.dayKey;
+      _boardOpenUntil = nextClassStartOrEnd(classDay, now);
+    }
+    final showBoard = _boardOpenDay == classDay.dayKey;
+    _roomInView = !showBoard;
+    final reduceMotion =
+        _state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return _ClassDaySwitch(
+      showBoard: showBoard,
+      reduceMotion: reduceMotion,
+      room: (context) => _classRoom(context, classDay, now, reduceMotion),
+      board: (context) => Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildBoard(context, classDay: classDay),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: _dockHeight(context),
+            child: _BoardRoomLine(
+              day: classDay,
+              state: _state,
+              onRoom: _showRoom,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The shell's dock (88 pt plus the home indicator) sits over the page.
+  double _dockHeight(BuildContext context) =>
+      88 + MediaQuery.paddingOf(context).bottom;
+
+  void _armClassBoundary(ClassDay day, DateTime now) {
+    final next = nextClassBoundary(day, now);
+    if (next == _classBoundaryAt && (_classBoundaryTimer?.isActive ?? false)) {
+      return;
+    }
+    _classBoundaryTimer?.cancel();
+    _classBoundaryTimer = null;
+    _classBoundaryAt = next;
+    if (next == null) return;
+    final wait =
+        next.difference(now.toUtc()) + const Duration(milliseconds: 200);
+    _classBoundaryTimer = Timer(wait, () {
+      _classBoundaryTimer = null;
+      _classBoundaryAt = null;
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _showBoard(ClassDay day) {
+    Haptics.tap();
+    setState(() {
+      _boardOpenDay = day.dayKey;
+      _boardOpenUntil = nextClassStartOrEnd(day, Clock.now());
+    });
+  }
+
+  void _showRoom() {
+    Haptics.tap();
+    // Leaving the board takes its passing reward layers with it; a receipt's
+    // chain continues from its next step.
+    _retireBoardLayers();
+    setState(() {
+      _boardOpenDay = null;
+      _boardOpenUntil = null;
+    });
+  }
+
+  void _hideAddClasses() {
+    _state.hideAddClasses();
+    widget.onPersist();
+    Haptics.tap();
+    setState(() {});
+  }
+
+  Widget _classRoom(
+    BuildContext context,
+    ClassDay day,
+    DateTime now,
+    bool reduceMotion,
+  ) {
+    final card = ClassCard.read(
+      day,
+      _state,
+      now,
+      preferred: _preferredClass,
+      held: _heldClass,
+    );
+    final slot = _undoSlot;
+    final undoIdentity =
+        _heldClass == null &&
+            slot != null &&
+            slot.kind == RewardUndoKind.keptClass &&
+            slot.dayKey == day.dayKey &&
+            slot.canRestore(_state)
+        ? slot.classIdentity
+        : null;
+    return ClassDayRoom(
+      key: const Key('class-day-room'),
+      state: _state,
+      card: card,
+      now: now,
+      camera: _classCamera,
+      dockHeight: _dockHeight(context),
+      reduceMotion: reduceMotion,
+      lightDirection: _activeLight,
+      quiet: _levelTakeover,
+      onMark: (rows) => _markClasses(day, rows),
+      onSelect: (row) {
+        Haptics.tap();
+        setState(() => _preferredClass = row.identity);
+      },
+      onExploreStat: _exploreStat,
+      onUndo: undoIdentity == null ? null : _undoLast,
+      undoIdentity: undoIdentity,
+      bottomLine: ClassDayBottomLine(
+        three: _ClassDayThreeLine(
+          quests: widget.quests,
+          now: now,
+          reduceMotion: reduceMotion,
+          onChoose: _chooseToday,
+        ),
+        onBoard: () => _showBoard(day),
+      ),
+    );
+  }
+
+  /// Marks [rows] (one class, or every waiting class through the shortcut)
+  /// through the engine's own keep path, then plays the class celebration and,
+  /// after it, the usual chain (level-up, streak chest, rank-up, toasts).
+  void _markClasses(ClassDay day, List<ClassRow> rows) {
+    if (rows.isEmpty || _classCelebration != null || _heldClass != null) {
+      return;
+    }
+    // Land any Quest reward still staged, so the snapshot and the class XP
+    // both build on it (engine map 5.3). The class slot below replaces an
+    // armed Quest undo: one slot, the newest reward.
+    _flushCommit();
+    _retireBoardLayers();
+    final s = _state;
+    final now = Clock.now();
+    final keptBefore = [...s.classesKeptOn(day.dayKey)];
+    final single = rows.length == 1;
+    final snapshot = single ? widget.onSnapshot() : null;
+    final entries = [for (final row in rows) row.entry];
+    final slot = snapshot == null
+        ? null
+        : RewardUndoSlot.beforeClass(
+            s,
+            entries.single.facts,
+            snapshot: snapshot,
+          );
+    final credits = <ClassCredit>[];
+    final marked = <ProjectedClass>[];
+    for (final entry in entries) {
+      final credit = s.keepClass(entry.facts, dayClassKeys: day.dayClassKeys);
+      if (credit == null) continue;
+      credits.add(credit);
+      marked.add(entry);
+    }
+    if (credits.isEmpty) {
+      setState(() {});
+      return;
+    }
+    for (final credit in credits) {
+      _pendingAchievementToasts.addAll(credit.achievements);
+    }
+    widget.onPersist();
+    Storage.logEvent('class_kept', [credits.length]);
+    // Acknowledged on contact: the card's own ring closes, the completion
+    // voice plays, one light tap.
+    Sfx.instance.playCompletionAccepted(
+      transitionId: marked.last.facts.identity,
+    );
+    Haptics.light();
+    final previous = _lastClassMarkAt;
+    _lastClassMarkAt = now;
+    final plan = planClassCelebration(
+      day: day,
+      state: s,
+      marked: marked,
+      credits: credits,
+      keptBefore: keptBefore,
+      now: now,
+      previousMarkAt: previous,
+      dayOf: (date) => widget.classDays?.call(now, day: date),
+    );
+    setState(() {
+      _undoSlot = credits.length == 1 ? slot : null;
+      _heldClass = single ? marked.single.facts.identity : null;
+      _preferredClass = null;
+    });
+    _showClassCelebration(s, day, plan, now);
+  }
+
+  void _showClassCelebration(
+    GameState s,
+    ClassDay day,
+    ClassCelebrationPlan plan,
+    DateTime now,
+  ) {
+    final reduceMotion =
+        s.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => ClassKeptCelebration(
+        plan: plan,
+        state: s,
+        hour: RoomHour.atInstant(
+          now,
+          day.classes.isEmpty ? null : day.classes.first.timeZoneId,
+        ),
+        fromShot: classRoomIsLayered(s) ? _classCamera.shot : null,
+        stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
+        reduceMotion: reduceMotion,
+        onDismiss: () {
+          entry.remove();
+          if (identical(_classCelebration, entry)) _classCelebration = null;
+          if (!mounted) return;
+          setState(() => _heldClass = null);
+          // A level crossed by the mark plays the real level-up next, then
+          // the streak chest, the rank-up beat and achievement toasts.
+          _resolveLevelUps(s);
+        },
+      ),
+    );
+    _classCelebration = entry;
+    Overlay.of(context).insert(entry);
+  }
+
+  /// The Quest board: every day without classes, and on a class day once
+  /// BOARD brings it back. [classDay] is set on a class day, where the board
+  /// keeps one line above the dock that returns to the room.
+  Widget _buildBoard(BuildContext context, {ClassDay? classDay}) {
+    final now = Clock.now();
     final reduceMotion =
         _state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     final next = _state.xpNeeded(_state.level + 1);
     final deskLook = activeQuestDeskLook(_state);
+    // No timetable yet: one calm way in under the Quest hero, weekdays only,
+    // until "Not in school".
+    final showAddClasses =
+        classDay == null &&
+        widget.onAddClasses != null &&
+        !_state.addClassesHidden &&
+        now.weekday <= DateTime.friday;
 
     // Visible today: recurring quests on their scheduled days (round-7);
     // events only once due. Due/overdue events lead the list.
@@ -3691,7 +4021,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           // this board was the one list that used its own number,
                           // so its last quest stopped 14px shy of where every
                           // other page's does.
-                          padding: const EdgeInsets.fromLTRB(12, 3, 12, 130),
+                          padding: EdgeInsets.fromLTRB(
+                            12,
+                            3,
+                            12,
+                            classDay == null ? 130 : 182,
+                          ),
                           itemCount: listItemCount + 1,
                           separatorBuilder: (_, _) => const SizedBox(height: 8),
                           itemBuilder: (_, item) {
@@ -3976,6 +4311,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             // affordance than chasing the snackbar)
                             if (isDone &&
                                 _undoArmed &&
+                                _undoSlot!.kind == RewardUndoKind.quest &&
                                 q.title == _undoSlot!.label) {
                               return Dismissible(
                                 key: ValueKey('undo-${q.title}'),
@@ -4059,6 +4395,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                         ],
                                       ),
                                     ),
+                                  ),
+                                ],
+                              );
+                            }
+                            if (isFeatured && showAddClasses) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  deliveredCard,
+                                  const SizedBox(height: 8),
+                                  AddClassesRow(
+                                    onTap: widget.onAddClasses!,
+                                    onHide: _hideAddClasses,
                                   ),
                                 ],
                               );
@@ -6516,6 +6865,273 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The room and the full board on a class day. BOARD slides the board up
+/// over the room and ROOM lets it back down: one calm move, no blur. Reduced
+/// Motion crossfades. Only the side that shows is built once it settles.
+class _ClassDaySwitch extends StatefulWidget {
+  const _ClassDaySwitch({
+    required this.showBoard,
+    required this.reduceMotion,
+    required this.room,
+    required this.board,
+  });
+
+  final bool showBoard;
+  final bool reduceMotion;
+  final WidgetBuilder room;
+  final WidgetBuilder board;
+
+  @override
+  State<_ClassDaySwitch> createState() => _ClassDaySwitchState();
+}
+
+class _ClassDaySwitchState extends State<_ClassDaySwitch>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+    value: widget.showBoard ? 1 : 0,
+  );
+
+  @override
+  void didUpdateWidget(_ClassDaySwitch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.showBoard == widget.showBoard) return;
+    _c.duration = widget.reduceMotion
+        ? const Duration(milliseconds: 200)
+        : const Duration(milliseconds: 460);
+    if (widget.showBoard) {
+      _c.forward();
+    } else {
+      _c.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Both sides stay built, so the board keeps its scroll, its selection and
+    // its settled numbers while the room shows (nothing recounts from zero
+    // on BOARD). The side out of view is offstage with its tickers paused.
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final v = _c.value;
+        final t = widget.reduceMotion ? v : Curves.easeInOutCubic.transform(v);
+        // One fixed tree shape for both sides, so neither loses its state
+        // when the move starts or settles.
+        Widget side(bool shown, double opacity, double drop, Widget child) =>
+            Offstage(
+              offstage: !shown,
+              child: TickerMode(
+                enabled: shown,
+                child: Opacity(
+                  opacity: opacity,
+                  child: FractionalTranslation(
+                    translation: Offset(0, drop),
+                    child: child,
+                  ),
+                ),
+              ),
+            );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            side(
+              v < 1,
+              widget.reduceMotion ? 1 - v : 1,
+              0,
+              widget.room(context),
+            ),
+            side(
+              v > 0,
+              widget.reduceMotion ? v : 1,
+              widget.reduceMotion ? 0 : 1 - t,
+              widget.board(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Today's three on the class-day room: the board's own pips, one line,
+/// and the way into choosing.
+class _ClassDayThreeLine extends StatelessWidget {
+  const _ClassDayThreeLine({
+    required this.quests,
+    required this.now,
+    required this.reduceMotion,
+    required this.onChoose,
+  });
+
+  final List<Quest> quests;
+  final DateTime now;
+  final bool reduceMotion;
+  final VoidCallback onChoose;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasField = hasDateScopedDailyField(quests, now);
+    final chosen = selectedDailyFieldForDay(quests, now);
+    final today = Days.key(now);
+    final pips = <_ThreePip>[
+      for (var slot = 0; slot < 3; slot++)
+        if (!hasField || slot >= chosen.length)
+          _ThreePip.empty
+        else if (chosen[slot].doneFor(now))
+          _ThreePip.kept
+        else if (chosen[slot].snoozedDay == today)
+          _ThreePip.resting
+        else
+          _ThreePip.open,
+    ];
+    final kept = chosen.where((q) => q.doneFor(now)).length;
+    final allKept = hasField && chosen.isNotEmpty && kept == chosen.length;
+    final status = !hasField || chosen.isEmpty
+        ? 'choose'
+        : allKept
+        ? 'all kept'
+        : kept > 0
+        ? '$kept kept'
+        : '${chosen.length} chosen';
+    return Pressable(
+      key: const Key('class-day-todays-three'),
+      onTapUp: (_) => onChoose(),
+      material: MaterialSound.parchment,
+      interactionSound: InteractionSound.navigate,
+      pressDepth: 1,
+      borderRadius: BorderRadius.circular(6),
+      edgeColor: Colors.transparent,
+      semanticLabel: hasField
+          ? 'Today’s three, $status. Edit today’s three.'
+          : 'Choose today’s three: up to three Quests to carry.',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Row(
+          children: [
+            _ThreePips(pips: pips, glow: allKept, reduceMotion: reduceMotion),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Today’s three',
+                      style: LedgerType.body.copyWith(
+                        fontSize: 18,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '  ·  $status',
+                      style: LedgerType.body.copyWith(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: allKept ? Palette.xpLight : Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// On a class day the full board keeps one line above the dock that lets it
+/// back down to the room.
+class _BoardRoomLine extends StatelessWidget {
+  const _BoardRoomLine({
+    required this.day,
+    required this.state,
+    required this.onRoom,
+  });
+
+  final ClassDay day;
+  final GameState state;
+  final VoidCallback onRoom;
+
+  @override
+  Widget build(BuildContext context) {
+    final kept = [
+      for (final entry in day.classes) ?state.keptClassFor(entry.facts),
+    ];
+    final name = weekdayOf(day.date);
+    return DecoratedBox(
+      key: const Key('class-day-board-room-line'),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x0017120F), Color(0xF017120F), Color(0xFF17120F)],
+          stops: [0, 0.38, 1],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 2),
+        child: ClassDayBottomLine(
+          boardLabel: 'ROOM',
+          boardIcon: Icons.keyboard_arrow_down_rounded,
+          onBoard: onRoom,
+          three: Row(
+            children: [
+              for (final record in kept)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: QuestCheckRing(
+                    stat: record.stat,
+                    done: true,
+                    size: 18,
+                    reduceMotion: true,
+                  ),
+                ),
+              if (kept.isNotEmpty) const SizedBox(width: 6),
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '$name’s classes',
+                        style: LedgerType.body.copyWith(
+                          fontSize: 18,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                      if (kept.isNotEmpty)
+                        TextSpan(
+                          text: '  ·  ${kept.length} attended',
+                          style: LedgerType.body.copyWith(
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

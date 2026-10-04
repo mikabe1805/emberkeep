@@ -22,6 +22,7 @@ class LevelUpOverlay extends StatefulWidget {
     this.onShare,
     this.reduceMotion = false,
     this.questsSince,
+    this.classesSince = 0,
     this.previousLevel,
   });
 
@@ -33,6 +34,10 @@ class LevelUpOverlay extends StatefulWidget {
   /// Quests finished since the last level, when the save knows it. "YOU DID
   /// IT." lands harder when it can point at what the person actually did.
   final int? questsSince;
+
+  /// Classes kept since the last level. Named beside the Quests, so a level
+  /// a class week carried says what carried it.
+  final int classesSince;
   final int? previousLevel;
 
   /// Opens the share-a-moment preview. A level-up is the exact moment someone
@@ -337,13 +342,12 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                     ),
                                   ),
                                 ),
-                                if (widget.questsSince case final count?
-                                    when count > 0) ...[
+                                if (_evidenceLine() case final line?) ...[
                                   const SizedBox(height: 14),
                                   Opacity(
                                     opacity: unlockIn,
                                     child: Text(
-                                      _evidenceLine(count),
+                                      line,
                                       textAlign: TextAlign.center,
                                       style: Type.body.copyWith(
                                         fontSize: 15,
@@ -483,11 +487,20 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
     );
   }
 
-  String _evidenceLine(int count) {
-    final quests = count == 1 ? 'one quest' : '$count quests';
+  /// "11 quests and 24 classes since level 21". Null when nothing is
+  /// counted.
+  String? _evidenceLine() {
+    final count = widget.questsSince ?? 0;
+    final classes = widget.classesSince;
+    final parts = [
+      if (count > 0) count == 1 ? 'one quest' : '$count quests',
+      if (classes > 0) classes == 1 ? 'one class' : '$classes classes',
+    ];
+    if (parts.isEmpty) return null;
+    final what = parts.join(' and ');
     final previous = widget.previousLevel;
-    if (previous == null || previous <= 1) return '$quests since you began';
-    return '$quests since level $previous';
+    if (previous == null || previous <= 1) return '$what since you began';
+    return '$what since level $previous';
   }
 
   Widget _revealRule({bool flip = false}) => Container(

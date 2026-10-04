@@ -132,8 +132,19 @@ Future<GameState> _mountBoard(
   return state;
 }
 
+/// On a class day the Quests tab opens on the room; BOARD brings the full
+/// board (and its doors) back.
+Future<void> _openBoard(WidgetTester tester) async {
+  final toggle = find.byKey(const Key('class-day-toggle-board'));
+  if (toggle.evaluate().isEmpty) return;
+  await tester.tap(toggle);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 600));
+}
+
 /// Scrolls the board to [door] and taps it.
 Future<void> _tapDoor(WidgetTester tester, Finder door) async {
+  await _openBoard(tester);
   if (door.evaluate().isEmpty) {
     await tester.scrollUntilVisible(
       door,
