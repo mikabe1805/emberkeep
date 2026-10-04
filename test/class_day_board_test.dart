@@ -7,6 +7,7 @@
 // No test reads a wall time after 8 PM New York, where a UTC host's local
 // date would already be the next day.
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.dart';
@@ -19,6 +20,7 @@ import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_kept_celebration.dart';
 import 'package:emberkeep/widgets/levelup_overlay.dart';
+import 'package:emberkeep/widgets/stat_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,6 +69,33 @@ class _Board {
   final restored = <String>[];
   int persisted = 0;
   int addClassesTaps = 0;
+
+  /// What the shell would hand the page next: a focus request (a Goals
+  /// hand-off, or the dock's plain clear-focus bump) and whether the Quests
+  /// tab is the one on screen (the shell's TickerMode).
+  final props = ValueNotifier(const _Props());
+}
+
+class _Props {
+  const _Props({
+    this.focusRequestId = 0,
+    this.focusQuestTitle,
+    this.tabShown = true,
+  });
+
+  final int focusRequestId;
+  final String? focusQuestTitle;
+  final bool tabShown;
+}
+
+/// Keeps [count] earlier classes of [code] on the save (as weeks of the term
+/// would have), so the next keep of that course is the count after it.
+GameState _withCourseCount(GameState state, String code, int count) {
+  final json = jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
+  json['keptClassCounts'] = {code: count};
+  return GameState.fromJson(json)
+    ..soundEnabled = false
+    ..reduceMotion = state.reduceMotion;
 }
 
 Future<_Board> _mount(
@@ -77,6 +106,8 @@ Future<_Board> _mount(
   double textScale = 1,
   bool timetable = true,
   bool offerAddClasses = false,
+  bool tabShown = true,
+  bool secondQuest = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   await tester.binding.setSurfaceSize(const Size(393, 852));
@@ -95,8 +126,15 @@ Future<_Board> _mount(
       difficulty: 4,
       schedule: QuestSchedule.daily,
     ),
+    if (secondQuest)
+      Quest(
+        title: 'Walk to campus',
+        stat: Stat.vit,
+        difficulty: 2,
+        schedule: QuestSchedule.daily,
+      ),
   ];
-  final board = _Board(s, quests);
+  final board = _Board(s, quests)..props.value = _Props(tabShown: tabShown);
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -106,17 +144,27 @@ Future<_Board> _mount(
           textScaler: TextScaler.linear(textScale),
         ),
         child: Scaffold(
-          body: QuestsPage(
-            state: s,
-            quests: quests,
-            onRefresh: () => 0,
-            onPersist: () => board.persisted++,
-            onAdd: (_) => true,
-            onRemove: (_) {},
-            onSnapshot: () => jsonEncode(s.toJson()),
-            onRestore: board.restored.add,
-            classDays: timetable ? _lookup : null,
-            onAddClasses: offerAddClasses ? () => board.addClassesTaps++ : null,
+          body: ValueListenableBuilder<_Props>(
+            valueListenable: board.props,
+            builder: (context, props, _) => TickerMode(
+              enabled: props.tabShown,
+              child: QuestsPage(
+                state: s,
+                quests: quests,
+                onRefresh: () => 0,
+                onPersist: () => board.persisted++,
+                onAdd: (_) => true,
+                onRemove: (_) {},
+                onSnapshot: () => jsonEncode(s.toJson()),
+                onRestore: board.restored.add,
+                classDays: timetable ? _lookup : null,
+                onAddClasses: offerAddClasses
+                    ? () => board.addClassesTaps++
+                    : null,
+                focusRequestId: props.focusRequestId,
+                focusQuestTitle: props.focusQuestTitle,
+              ),
+            ),
           ),
         ),
       ),
@@ -218,7 +266,10 @@ void main() {
       await tester.pump();
       expect(find.text('STARTS IN 12 MIN'), findsOneWidget);
       expect(_there, findsNothing);
+      // What was kept, beside the day's name: never beside its total.
+      expect(find.text('TUESDAY'), findsOneWidget);
       expect(find.text('1 ATTENDED'), findsOneWidget);
+      expect(find.textContaining('CLASSES'), findsNothing);
     });
 
     testWidgets("in session: I'M HERE, and the press keeps it", (tester) async {
@@ -267,6 +318,9 @@ void main() {
       // The card's own ring closes under the press, held in place.
       expect(find.text('I WAS THERE'), findsOneWidget);
       expect(find.text('1 ATTENDED'), findsOneWidget);
+      // No total beside the kept count (it would read as 1 of 2).
+      expect(find.text('TUESDAY'), findsOneWidget);
+      expect(find.textContaining('2 CLASSES'), findsNothing);
 
       await _pumpFor(tester, const Duration(milliseconds: 1600));
       expect(_celebration, findsOneWidget);
@@ -656,5 +710,400 @@ void main() {
       expect(find.text('MARK COMPLETE'), findsOneWidget);
       expect(find.byKey(const Key('add-classes-row')), findsNothing);
     });
+  });
+
+  group('undo, hand-offs and later edits', () {
+    testWidgets("the shortcut's three marks undo together from the newest "
+        'kept row', (tester) async {
+      final board = await _mount(tester, at: _ny(5, 19, 15));
+      final before = jsonEncode(board.state.toJson());
+      await tester.tap(find.byKey(const Key('class-all-of-today')));
+      await tester.pump();
+      expect(board.state.classesKeptOn('2026-10-05'), hasLength(3));
+      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _dismiss(tester);
+      // The newest kept row (the 5:40 lecture) carries the gesture's undo.
+      final last = _lookup(_ny(5, 19, 15)).classes.last.facts.identity;
+      final row = find.byKey(ValueKey('class-undo-$last'));
+      expect(row, findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Dismissible && '${w.key}'.contains('class-undo-'),
+        ),
+        findsOneWidget,
+        reason: 'one undo for one gesture',
+      );
+      await tester.drag(row, const Offset(-260, 0));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(board.restored, [before]);
+      final restored = GameState.fromJson(
+        (jsonDecode(board.restored.single) as Map).cast<String, dynamic>(),
+      );
+      expect(restored.classesKeptOn('2026-10-05'), isEmpty);
+      expect(restored.xp, 284);
+    });
+
+    testWidgets('a Goals hand-off on a class day opens the board', (
+      tester,
+    ) async {
+      final board = await _mount(tester, at: _ny(6, 11, 52));
+      expect(_room, findsOneWidget);
+      board.props.value = const _Props(
+        focusRequestId: 1,
+        focusQuestTitle: 'Read ten pages',
+      );
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsNothing);
+      expect(find.text('MARK COMPLETE'), findsOneWidget);
+    });
+
+    testWidgets("the dock's clear-focus bump leaves the room where it is", (
+      tester,
+    ) async {
+      final board = await _mount(tester, at: _ny(6, 11, 52));
+      board.props.value = const _Props(focusRequestId: 1);
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsOneWidget, reason: 'no Quest was named');
+      // After a real hand-off and ROOM, the plain bump keeps the room.
+      board.props.value = const _Props(
+        focusRequestId: 2,
+        focusQuestTitle: 'Read ten pages',
+      );
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsNothing);
+      await tester.tap(find.byKey(const Key('class-day-toggle-room')));
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsOneWidget);
+      board.props.value = const _Props(focusRequestId: 3);
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsOneWidget);
+    });
+
+    testWidgets('a hand-off on a day without classes never carries over to '
+        "Monday's room", (tester) async {
+      final board = await _mount(tester, at: _ny(10, 11, 0));
+      board.props.value = const _Props(
+        focusRequestId: 1,
+        focusQuestTitle: 'Read ten pages',
+      );
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 300));
+      expect(_room, findsNothing, reason: 'Saturday is the board');
+      Clock.freeze(_ny(12, 8, 0));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(_room, findsOneWidget);
+    });
+
+    testWidgets('Not in school settles an armed Quest undo', (tester) async {
+      final board = await _mount(
+        tester,
+        at: _ny(6, 11, 52),
+        timetable: false,
+        offerAddClasses: true,
+        secondQuest: true,
+      );
+      await tester.tap(find.text('MARK COMPLETE').first);
+      await tester.pump();
+      await _pumpFor(tester, const Duration(seconds: 3));
+      expect(board.state.totalCompletions, 1);
+      expect(find.byKey(const ValueKey('undo-Read ten pages')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('not-in-school')));
+      await tester.pump();
+      expect(board.state.addClassesHidden, isTrue);
+      expect(
+        find.byKey(const ValueKey('undo-Read ten pages')),
+        findsNothing,
+        reason: 'a restore would bring the row back',
+      );
+    });
+
+    testWidgets("choosing today's three under a kept class settles its undo", (
+      tester,
+    ) async {
+      await _mount(tester, at: _ny(6, 11, 52));
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
+      expect(find.byKey(ValueKey('class-undo-$identity')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('class-day-todays-three')));
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 800));
+      await tester.tap(find.byKey(const ValueKey('top-three-Read ten pages')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('top-three-save')));
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 800));
+      expect(
+        find.byKey(ValueKey('class-undo-$identity')),
+        findsNothing,
+        reason: 'a restore would quietly drop the choice',
+      );
+    });
+  });
+
+  group('the board on a day without classes', () {
+    testWidgets('a Quest level-up keeps the header behind the takeover until '
+        'it is dismissed', (tester) async {
+      final state = _mika()..xp = 869;
+      await _mount(tester, at: _ny(10, 11, 0), state: state);
+      await tester.tap(find.text('MARK COMPLETE'));
+      await tester.pump();
+      for (var i = 0; i < 80; i++) {
+        if (find.byType(LevelUpOverlay).evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.byType(LevelUpOverlay), findsOneWidget);
+      expect(state.level, 19);
+      expect(
+        find.text('LEVEL 18', findRichText: true),
+        findsOneWidget,
+        reason:
+            'the full bar stays behind the dim; the pour plays on dismissal',
+      );
+      await _pumpFor(tester, const Duration(seconds: 1));
+    });
+  });
+
+  group('the board out of view', () {
+    testWidgets("BOARD after a mark shows the board's numbers already landed", (
+      tester,
+    ) async {
+      final state = _mika()..stats[Stat.intl] = 25;
+      await _mount(tester, at: _ny(6, 11, 52), state: state);
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await tester.tap(find.byKey(const Key('class-day-toggle-board')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final chips = find.byType(StatChips);
+      expect(
+        find.descendant(of: chips, matching: find.text('28')),
+        findsOneWidget,
+        reason: 'MIND landed offstage, never rolling from 25 in view',
+      );
+      expect(find.textContaining('284 / 870'), findsNothing);
+      expect(find.textContaining('309'), findsWidgets);
+    });
+
+    testWidgets('mounted while the Quests tab is hidden, the board still '
+        'shows its real numbers on the first BOARD', (tester) async {
+      final state = _mika()
+        ..stats[Stat.intl] = 25
+        ..stats[Stat.str] = 88;
+      // The shell's TickerMode is off while another tab is on screen (the
+      // timetable arriving from Plans mounts the class day there).
+      final board = await _mount(
+        tester,
+        at: _ny(6, 11, 52),
+        state: state,
+        tabShown: false,
+      );
+      await _pumpFor(tester, const Duration(seconds: 3));
+      board.props.value = const _Props();
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('class-day-toggle-board')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final chips = find.byType(StatChips);
+      expect(
+        find.descendant(of: chips, matching: find.text('25')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: chips, matching: find.text('88')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('sound and touch', () {
+    testWidgets('I WAS THERE: one completion composite and a light tap; the '
+        'stat note in the celebration; boing on undo; no levelup', (
+      tester,
+    ) async {
+      final played = <String>[];
+      final haptics = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate') {
+            haptics.add('${call.arguments}');
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await _mount(tester, at: _ny(6, 11, 52));
+      Sfx.instance
+        ..soundEnabled = true
+        ..debugBypassPlayback = true
+        ..debugOnPlay = played.add;
+      addTearDown(Sfx.instance.debugResetForTesting);
+      await _tapThere(tester);
+      expect(played.where((e) => e == 'complete'), hasLength(1));
+      expect(haptics, contains('HapticFeedbackType.lightImpact'));
+      await _pumpFor(tester, const Duration(milliseconds: 900));
+      expect(played, contains('stat_${Stat.intl.index}'));
+      await _pumpFor(tester, const Duration(milliseconds: 1700));
+      expect(_celebration, findsNothing);
+      final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
+      await tester.drag(
+        find.byKey(ValueKey('class-undo-$identity')),
+        const Offset(-260, 0),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(played, contains('boing'));
+      expect(played, isNot(contains('levelup')));
+      expect(played.where((e) => e == 'complete'), hasLength(1));
+    });
+
+    testWidgets('a level crossed by a mark plays levelup once, after the '
+        'celebration', (tester) async {
+      final played = <String>[];
+      final state = _mika()..xp = 850;
+      await _mount(tester, at: _ny(6, 11, 52), state: state);
+      Sfx.instance
+        ..soundEnabled = true
+        ..debugBypassPlayback = true
+        ..debugOnPlay = played.add;
+      addTearDown(Sfx.instance.debugResetForTesting);
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 2000));
+      expect(played, isNot(contains('levelup')));
+      await _pumpFor(tester, const Duration(milliseconds: 1600));
+      expect(find.byType(LevelUpOverlay), findsOneWidget);
+      expect(played.where((e) => e == 'levelup'), hasLength(1));
+    });
+  });
+
+  group('after midnight, until the night ends', () {
+    testWidgets("01:30 Wednesday still marks Tuesday's classes; after 04:00 "
+        'the card is Wednesday', (tester) async {
+      final board = await _mount(tester, at: _ny(7, 1, 30));
+      expect(find.text('TUESDAY · 2 CLASSES'), findsOneWidget);
+      expect(find.text('Discrete Structures II'), findsOneWidget);
+      expect(find.text('PHY 001 · ended 3:20'), findsOneWidget);
+      expect(find.text('I WAS THERE'), findsOneWidget);
+      await _tapThere(tester);
+      expect(board.state.classesKeptOn('2026-10-06'), hasLength(1));
+      await _pumpFor(tester, const Duration(milliseconds: 3000));
+      await _dismiss(tester);
+
+      Clock.freeze(_ny(7, 4, 0, 5));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(find.textContaining('WEDNESDAY'), findsOneWidget);
+      expect(find.text('I WAS THERE'), findsNothing);
+      expect(find.text('Computer Architecture Lab'), findsOneWidget);
+    });
+
+    testWidgets('the night-end timer turns the card over by itself', (
+      tester,
+    ) async {
+      await _mount(tester, at: _ny(7, 3, 59, 50));
+      expect(find.text('TUESDAY · 2 CLASSES'), findsOneWidget);
+      Clock.freeze(_ny(7, 4, 0, 1));
+      await tester.pump(const Duration(seconds: 11));
+      expect(find.textContaining('WEDNESDAY'), findsOneWidget);
+    });
+  });
+
+  group('the celebration, refined', () {
+    testWidgets('going back on its own fades out, and the room is home at '
+        '2.4 s', (tester) async {
+      await _mount(tester, at: _ny(6, 11, 52));
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 2100));
+      double headlineOpacity() => tester
+          .widgetList<Opacity>(
+            find.ancestor(of: _headline, matching: find.byType(Opacity)),
+          )
+          .map((o) => o.opacity)
+          .reduce((a, b) => a * b);
+      expect(headlineOpacity(), 1);
+      await _pumpFor(tester, const Duration(milliseconds: 200));
+      expect(_celebration, findsOneWidget);
+      expect(headlineOpacity(), lessThan(1), reason: 'fading back');
+      await _pumpFor(tester, const Duration(milliseconds: 200));
+      expect(_celebration, findsNothing);
+    });
+
+    testWidgets('the quick tier holds still: its count has landed by about '
+        '500 ms and there is no time and room line', (tester) async {
+      await _mount(tester, at: _ny(8, 15, 22));
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 1400));
+      await _dismiss(tester);
+      Clock.freeze(_ny(8, 15, 22, 9));
+      await tester.tap(find.text('Electronics Devices'));
+      await tester.pump();
+      await _tapThere(tester);
+      await _pumpFor(tester, const Duration(milliseconds: 500));
+      expect(find.text('THAT ONE TOO.'), findsOneWidget);
+      expect(_textOf(tester, const Key('class-celebration-xp')), '+25 XP');
+      expect(find.text('8:30 TO 9:50 · SEC 111'), findsNothing);
+      final closing = find.byKey(const Key('class-celebration-closing'));
+      final opacity = tester
+          .widgetList<Opacity>(
+            find.ancestor(of: closing, matching: find.byType(Opacity)),
+          )
+          .map((o) => o.opacity)
+          .reduce((a, b) => a * b);
+      expect(opacity, 1, reason: 'the closing line came in with the headline');
+    });
+
+    for (final (label, at, side) in [
+      ('YOU WERE THERE.', _ny(6, 11, 52), 100.0),
+      ('TUESDAY, DONE.', _ny(6, 15, 35), 84.0),
+    ]) {
+      for (final scale in [1.0, 1.3]) {
+        testWidgets('a two-digit count sits inside the diamond: $label at '
+            '${(scale * 100).round()}%', (tester) async {
+          final course = label == 'YOU WERE THERE.'
+              ? '14:332:331'
+              : '01:198:206';
+          final state = _withCourseCount(_mika(), course, 23);
+          await _mount(tester, at: at, state: state, textScale: scale);
+          await _tapThere(tester);
+          await _pumpFor(tester, const Duration(milliseconds: 1900));
+          expect(find.text(label), findsOneWidget);
+          final numeral = find.byKey(const Key('class-celebration-numeral'));
+          expect(tester.widget<Text>(numeral).data, '24');
+          expect(find.text('YOUR 24TH LECTURE'), findsOneWidget);
+          final text = tester.getRect(numeral);
+          final centre = text.center;
+          final half = side * math.sqrt1_2;
+          final style = tester.widget<Text>(numeral).style!;
+          // The numeral's box keeps inside the diamond's edges.
+          expect(
+            text.width / 2 + 0.36 * style.fontSize!,
+            lessThanOrEqualTo(half),
+          );
+          expect(tester.widget<Text>(numeral).textScaler, TextScaler.noScaling);
+          // The points never reach the headline or the label.
+          final headline = tester.getRect(_headline);
+          final under = tester.getRect(
+            find.byKey(const Key('class-celebration-numeral-label')),
+          );
+          expect(headline.bottom, lessThanOrEqualTo(centre.dy - half - 4));
+          expect(under.top, greaterThanOrEqualTo(centre.dy + half + 4));
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
   });
 }

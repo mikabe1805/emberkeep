@@ -34,8 +34,27 @@ import 'class_room_stage.dart';
 class ClassRoomCamera {
   RoomShot? shot;
 
-  /// The stage's rect in global coordinates.
+  /// The stage's rect in global coordinates. It starts at the top of the
+  /// screen: the painting runs up under the status bar.
   Rect? stage;
+
+  /// Where the floor settles into the canvas, in stage coordinates (a
+  /// painted plate's celebration fades at the same lines).
+  double? fadeStart;
+  double? fadeEnd;
+
+  /// How far the status scrim reaches from the stage's top.
+  double? scrimHeight;
+}
+
+/// How far the screen reaches above [context]'s top that belongs to the
+/// status bar: an ancestor SafeArea (the shell's) took it out of the
+/// MediaQuery padding. Zero when nothing above was taken out.
+double classStatusAbove(BuildContext context) {
+  final view = View.maybeOf(context);
+  if (view == null) return 0;
+  final viewTop = view.padding.top / view.devicePixelRatio;
+  return math.max(0.0, viewTop - MediaQuery.paddingOf(context).top);
 }
 
 class ClassDayRoom extends StatelessWidget {
@@ -93,12 +112,27 @@ class ClassDayRoom extends StatelessWidget {
       card.day.classes.isEmpty ? null : card.day.classes.first.timeZoneId,
     );
     final layered = classRoomIsLayered(state);
+    // The painting runs up under the status bar (the shell's SafeArea keeps
+    // the page below it), so the room is opened into, never placed under a
+    // band. The HUD stays where it was, on the room's own soft dark.
+    final above = classStatusAbove(context);
+    final topPad = MediaQuery.paddingOf(context).top;
+    final scaler = MediaQuery.textScalerOf(context);
+    // The lamp's shade may tuck just under the stat row, never higher.
+    final headroom =
+        above + topPad + _ClassDayDelegate.hudTop + scaler.scale(20) + 34;
+    // The soft dark under the status bar and the HUD: 150 pt from the top
+    // of the screen on his phone, as in the concept.
+    final scrimHeight = math.max(
+      91.0,
+      above + topPad + classStatusScrimHeight - 59,
+    );
     return ColoredBox(
       color: Palette.parchment,
       child: Padding(
         padding: EdgeInsets.only(bottom: dockHeight),
         child: CustomMultiChildLayout(
-          delegate: _ClassDayDelegate(),
+          delegate: _ClassDayDelegate(above: above, topPad: topPad),
           children: [
             LayoutId(
               id: _Slot.stage,
@@ -109,17 +143,22 @@ class ClassDayRoom extends StatelessWidget {
                   final shot = RoomShot.desk(
                     floorAt: floorAt,
                     width: box.maxWidth,
+                    headroom: headroom,
                   );
-                  camera.shot = shot;
+                  final imageBottom = (962 - shot.top) * shot.scale;
+                  final fadeEnd = math.min(box.maxHeight, imageBottom) - 2;
+                  final fadeStart = math.min(floorAt + 30, fadeEnd - 70);
+                  camera
+                    ..shot = shot
+                    ..fadeStart = fadeStart
+                    ..fadeEnd = fadeEnd
+                    ..scrimHeight = scrimHeight;
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     final ro = context.findRenderObject();
                     if (ro is RenderBox && ro.attached && ro.hasSize) {
                       camera.stage = ro.localToGlobal(Offset.zero) & ro.size;
                     }
                   });
-                  final imageBottom = (962 - shot.top) * shot.scale;
-                  final fadeEnd = math.min(box.maxHeight, imageBottom) - 2;
-                  final fadeStart = math.min(floorAt + 30, fadeEnd - 70);
                   return layered
                       ? ClassRoomStage(
                           key: const Key('class-day-stage'),
@@ -128,11 +167,13 @@ class ClassDayRoom extends StatelessWidget {
                           warmth: card.allKept ? 1 : 0,
                           fadeStart: fadeStart,
                           fadeEnd: fadeEnd,
+                          scrimHeight: scrimHeight,
                         )
                       : ClassRoomPlate(
                           state: state,
                           fadeStart: fadeStart,
                           fadeEnd: fadeEnd,
+                          scrimHeight: scrimHeight,
                         );
                 },
               ),
@@ -199,8 +240,19 @@ class _Quiet extends StatelessWidget {
 /// room's floor line sits on the glass's top edge, so the room grows when the
 /// glass is short and the camera eases in.
 class _ClassDayDelegate extends MultiChildLayoutDelegate {
+  _ClassDayDelegate({required this.above, required this.topPad});
+
+  /// The status bar above the page: the stage reaches up through it.
+  final double above;
+
+  /// The page's own top padding (zero under the shell's SafeArea).
+  final double topPad;
+
   /// How far the room continues behind the glass before it settles.
   static const behindGlass = 130.0;
+
+  /// The HUD's top, under the page's top edge.
+  static const hudTop = 8.0;
 
   @override
   void performLayout(Size size) {
@@ -214,28 +266,34 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
       _Slot.hud,
       BoxConstraints.tightFor(width: size.width - 40),
     );
-    positionChild(_Slot.hud, const Offset(20, 8));
+    positionChild(_Slot.hud, Offset(20, topPad + hudTop));
     final glass = layoutChild(
       _Slot.glass,
       BoxConstraints(
         minWidth: size.width - 32,
         maxWidth: size.width - 32,
         // The room keeps at least a band above the glass, even at large text.
-        maxHeight: math.max(140, lineTop - 6 - (hud.height + 8 + 96)),
+        maxHeight: math.max(
+          140,
+          lineTop - 6 - (topPad + hudTop + hud.height + 96),
+        ),
       ),
     );
     final glassTop = lineTop - 6 - glass.height;
     positionChild(_Slot.glass, Offset(16, glassTop));
-    final stageHeight = math.min(size.height, glassTop + behindGlass);
+    final stageHeight = math.min(size.height, glassTop + behindGlass) + above;
     layoutChild(
       _Slot.stage,
       BoxConstraints.tightFor(width: size.width, height: stageHeight),
     );
-    positionChild(_Slot.stage, Offset.zero);
+    // From the top of the screen: nothing clips the page above its own top,
+    // so the painting shows under the status bar.
+    positionChild(_Slot.stage, Offset(0, -above));
   }
 
   @override
-  bool shouldRelayout(_ClassDayDelegate oldDelegate) => false;
+  bool shouldRelayout(_ClassDayDelegate oldDelegate) =>
+      oldDelegate.above != above || oldDelegate.topPad != topPad;
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────
@@ -294,7 +352,11 @@ class ClassDayHud extends StatelessWidget {
                 height: 6,
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(end: (state.xp / need).clamp(0.0, 1.0)),
-                  duration: Motion.barFill,
+                  // Out of view (or Reduce Motion) the rail lands at once,
+                  // so it never refills from an old value when it shows.
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : Motion.barFill,
                   curve: Motion.barCurve,
                   builder: (context, value, _) =>
                       CustomPaint(painter: _MiniRail(value)),
@@ -318,14 +380,23 @@ class ClassDayHud extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Text(
-                classDayStamp(date),
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  letterSpacing: 1.4,
-                  color: Palette.textMid,
-                  shadows: _hudShadow,
+              // Room enough that the XP and the date never read as one run,
+              // even at large text (the XP shrinks to fit first).
+              const SizedBox(width: 16),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    classDayStamp(date),
+                    maxLines: 1,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.4,
+                      color: Palette.textMid,
+                      shadows: _hudShadow,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -645,9 +716,14 @@ class ClassCardBody extends StatelessWidget {
             _ => 'ALL ${classCountWord(count).toUpperCase()} ATTENDED',
           }}';
       right = '+${state.classXpForDay(day.dayKey)} XP';
-    } else {
+    } else if (kept == 0) {
       left = '$dayName · $count ${count == 1 ? 'CLASS' : 'CLASSES'}';
-      right = kept == 0 ? null : '$kept ATTENDED';
+      right = null;
+    } else {
+      // Once anything is kept the day's total steps out: a kept count beside
+      // a total would read as N of M.
+      left = dayName;
+      right = '$kept ATTENDED';
     }
     final others = [
       for (final row in card.rows)

@@ -91,7 +91,11 @@ class _RollingNumberState extends State<RollingNumber> {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: _from, end: _to),
-      duration: widget.duration,
+      // Reduce Motion, or a surface held out of view (the class day's hidden
+      // board), lands the number at once instead of rolling it later.
+      duration: (MediaQuery.maybeDisableAnimationsOf(context) ?? false)
+          ? Duration.zero
+          : widget.duration,
       curve: widget.curve,
       builder: (_, v, _) => Text(
         '${widget.prefix}${v.round()}${widget.suffix}',

@@ -35,6 +35,13 @@
     "note": "settled at 1.9 s, returns on its own at 2.4 s"
   },
   {
+    "file": "B2e_tue1152_going_back_2300ms.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "going back on its own: the takeover fading, the camera easing back to the desk framing"
+  },
+  {
     "file": "B3_tue1153_after_first_mark.png",
     "when": "Tue Oct 6 11:52",
     "at": "2026-10-06T11:52:00.000",
@@ -98,6 +105,27 @@
     "note": "the full board, ROOM line above the dock"
   },
   {
+    "file": "K1_tue1152_your_24th_lecture.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "YOUR 24TH LECTURE: the numeral inside the diamond"
+  },
+  {
+    "file": "K2_tue1535_day_tier_24th.png",
+    "when": "Tue Oct 6 15:35",
+    "at": "2026-10-06T15:35:00.000",
+    "surface": "Class celebration, day tier",
+    "note": "TUESDAY, DONE. with a two-digit count"
+  },
+  {
+    "file": "K3_tue1152_text_130_24th.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "the numeral keeps its size inside the diamond at 130%"
+  },
+  {
     "file": "L1_tue1152_level_ready.png",
     "when": "Tue Oct 6 11:52",
     "at": "2026-10-06T11:52:00.000",
@@ -117,6 +145,34 @@
     "at": "2026-10-06T11:52:00.000",
     "surface": "Quests",
     "note": "the board as today, one Add your classes row under the hero"
+  },
+  {
+    "file": "P1_tue1152_archive_between.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "a painted plate held still behind the same layout"
+  },
+  {
+    "file": "P2_tue1152_archive_300ms.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": "the plate at the same scale and place as in the room"
+  },
+  {
+    "file": "P3_tue1152_archive_settled.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Class celebration",
+    "note": ""
+  },
+  {
+    "file": "P4_tue1153_archive_after.png",
+    "when": "Tue Oct 6 11:52",
+    "at": "2026-10-06T11:52:00.000",
+    "surface": "Quests, class day",
+    "note": "back in the room"
   },
   {
     "file": "Q1_thu1522_two_waiting.png",

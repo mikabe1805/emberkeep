@@ -3869,6 +3869,7 @@ final class RewardUndoSlot {
     required this.snapshot,
     this.classIdentity,
     this.dayKey,
+    this.rewards = 1,
   });
 
   /// Capture just before the reward is applied. [snapshot] is the shell's
@@ -3912,8 +3913,27 @@ final class RewardUndoSlot {
   final String? classIdentity;
   final String? dayKey;
 
-  /// True only while the reward this slot was taken for is the latest one on
-  /// the same live state.
+  /// How many rewards the one gesture landed after the snapshot (the class
+  /// shortcut keeps several classes at once). The restore takes them all.
+  final int rewards;
+
+  /// The same slot for a gesture that landed [count] rewards in a row, named
+  /// for the last of them ([last]'s class, when given).
+  RewardUndoSlot spanning(int count, {ClassFacts? last}) => RewardUndoSlot._(
+    _state,
+    _serialBefore,
+    kind: kind,
+    label: last?.label ?? label,
+    snapshot: snapshot,
+    classIdentity: last?.identity ?? classIdentity,
+    dayKey: last?.dayKey ?? dayKey,
+    rewards: count,
+  );
+
+  /// True only while the rewards this slot was taken for are the latest ones
+  /// on the same live state.
   bool canRestore(GameState live) =>
-      identical(live, _state) && live.rewardSerial == _serialBefore + 1;
+      rewards > 0 &&
+      identical(live, _state) &&
+      live.rewardSerial == _serialBefore + rewards;
 }

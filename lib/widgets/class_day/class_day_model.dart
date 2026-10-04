@@ -385,7 +385,9 @@ String nextClassDayLine(ClassDay day, ClassDay? Function(CivilDate) dayOf) {
   );
   final name = weekdayOf(next.date);
   if (next.daysAhead > 1) {
-    return 'Free until $name at ${classClockShort(first.localStartMinute)}.';
+    // Within the week a weekday says it; past that (a break), the date does.
+    final when = next.daysAhead > 6 ? next.dayWord : name;
+    return 'Free until $when at ${classClockShort(first.localStartMinute)}.';
   }
   if (classes.length >= 3 && last.localEndMinute >= 18 * 60) {
     final what = last.kind == MeetingKind.lab ? 'lab' : 'class';
@@ -615,11 +617,6 @@ ClassCelebrationPlan planClassCelebration({
 
   final gained = credits.fold(0, (sum, credit) => sum + credit.xp);
   final bonus = credits.fold(0, (sum, credit) => sum + credit.fullDayBonus);
-  final gains = <Stat, int>{};
-  for (final credit in credits) {
-    gains[credit.stat] = (gains[credit.stat] ?? 0) + credit.statGain;
-  }
-  final totals = {for (final stat in gains.keys) stat: state.stats[stat] ?? 0};
 
   // Rows: today's kept classes in timetable order.
   final markedKeys = {for (final entry in marked) entry.facts.identity};
@@ -647,14 +644,33 @@ ClassCelebrationPlan planClassCelebration({
   var weekXpAfter = 0;
   var weekKept = 0;
   var weekTotal = 0;
+  // Every class kept this week, optional kinds (an office hour) included.
+  var weekKeptAny = 0;
   for (final other in week) {
     weekXpAfter += state.classXpForDay(other.dayKey);
+    weekKeptAny += state.classesKeptOn(other.dayKey).length;
     for (final entry in other.classes) {
       if (!entry.countsTowardDay) continue;
       weekTotal++;
       if (state.keptClassFor(entry.facts) != null) weekKept++;
     }
   }
+
+  // The stat chip speaks for the same classes the big number does: this
+  // gesture's, the day's, or the week's. The marked class's stat leads.
+  final scope = switch (tier) {
+    ClassCelebrationTier.weekDone => [
+      for (final other in week) ...state.classesKeptOn(other.dayKey),
+    ],
+    ClassCelebrationTier.dayDone => state.classesKeptOn(day.dayKey),
+    _ => [for (final credit in credits) credit.kept],
+  };
+  final gains = <Stat, int>{hero.stat: 0};
+  for (final kept in scope) {
+    gains[kept.stat] = (gains[kept.stat] ?? 0) + kept.statGain;
+  }
+  gains.removeWhere((_, gain) => gain <= 0);
+  final totals = {for (final stat in gains.keys) stat: state.stats[stat] ?? 0};
   final (shown, from, caption) = switch (tier) {
     ClassCelebrationTier.weekDone => (
       weekXpAfter,
@@ -676,13 +692,18 @@ ClassCelebrationPlan planClassCelebration({
   // Closing lines, from what is actually next.
   final closing = <String>[];
   if (tier == ClassCelebrationTier.weekDone) {
-    closing.add(
-      weekKept == weekTotal && weekTotal > 0
-          ? '${_capital(classCountWord(weekTotal))} for '
-                '${classCountWord(weekTotal)}.'
-          : '${_capital(classCountWord(weekKept))} '
-                '${weekKept == 1 ? 'class' : 'classes'} this week.',
-    );
+    if (weekKept == weekTotal && weekTotal > 0) {
+      closing.add(
+        '${_capital(classCountWord(weekTotal))} for '
+        '${classCountWord(weekTotal)}.',
+      );
+    } else if (weekKeptAny > 0) {
+      // Counts what he went to, every kind. Never a count of nothing.
+      closing.add(
+        '${_capital(classCountWord(weekKeptAny))} '
+        '${weekKeptAny == 1 ? 'class' : 'classes'} this week.',
+      );
+    }
     closing.add(nextClassDayLine(day, dayOf));
   } else if (tier == ClassCelebrationTier.dayDone) {
     if (completeAfter) {
@@ -736,12 +757,14 @@ ClassCelebrationPlan planClassCelebration({
   final streak = hero.streak;
   final streakLine =
       ClassDayRules.current.classDayLightsStreak && credits.first.streak.lit
-      ? '${streak.streakDays} DAYS RUNNING · TODAY COUNTS'
+      ? '${streak.streakDays} ${streak.streakDays == 1 ? 'DAY' : 'DAYS'} '
+            'RUNNING · TODAY COUNTS'
       : null;
 
   final first = credits.first.level;
   final title = several ? null : classShortTitle(heroEntry.title);
-  final detail = several
+  // The quick tier says less: the course and what is next, no time and room.
+  final detail = several || tier == ClassCelebrationTier.quick
       ? null
       : '${classClockShort(heroEntry.localStartMinute)} TO '
             '${classClockShort(heroEntry.localEndMinute)} · '

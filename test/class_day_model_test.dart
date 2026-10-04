@@ -6,6 +6,7 @@ import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.
 import 'package:emberkeep/academic_calendar/services/class_day_projection.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_day_model.dart';
 import 'package:emberkeep/widgets/levelup_overlay.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,34 @@ final AcademicSchedule _fall2026 = AcademicScheduleIcsImporter.parse(
 ).applyTo(AcademicSchedule.empty(), updatedAt: DateTime.utc(2026, 8, 27));
 
 ClassDay _day(DateTime at) => projectClassDay(_fall2026, at);
+
+/// A term whose only classes are on Fridays: a lecture in the morning and an
+/// office hour in the afternoon (optional: a day is complete without it).
+String _fridayWithOfficeHourIcs() {
+  final out = StringBuffer('BEGIN:VCALENDAR\nVERSION:2.0\n');
+  void meeting(String uid, String start, String end, String kind) => out
+    ..write('BEGIN:VEVENT\nUID:$uid\n')
+    ..write('DTSTART;TZID=America/New_York:20260904T$start\n')
+    ..write('DTEND;TZID=America/New_York:20260904T$end\n')
+    ..write('RRULE:FREQ=WEEKLY;BYDAY=FR;UNTIL=20261211T045959Z\n')
+    ..write('SUMMARY:Signals and Systems\n')
+    ..write('LOCATION:EE-105\\, Busch Campus\n')
+    ..write('X-ROOM-OF-DAYS-TERM:Fall 2026\n')
+    ..write('X-ROOM-OF-DAYS-TERM-START:2026-09-01\n')
+    ..write('X-ROOM-OF-DAYS-TERM-END:2026-12-10\n')
+    ..write('X-ROOM-OF-DAYS-COURSE-CODE:14:332:345\n')
+    ..write('X-ROOM-OF-DAYS-COURSE-TITLE:Signals and Systems\n')
+    ..write('X-ROOM-OF-DAYS-SECTION:01\n')
+    ..write('X-ROOM-OF-DAYS-MEETING-KIND:$kind\n')
+    ..write('X-ROOM-OF-DAYS-CAMPUS:Busch\n')
+    ..write('X-ROOM-OF-DAYS-BUILDING:EE\n')
+    ..write('X-ROOM-OF-DAYS-ROOM:105\nEND:VEVENT\n');
+  meeting('signals-fr@test', '100000', '112000', 'lecture');
+  meeting('signals-oh-fr@test', '140000', '150000', 'office hours');
+  out.write('END:VCALENDAR\n');
+  return out.toString();
+}
+
 ClassDay? _dayOf(CivilDate date) =>
     projectClassDay(_fall2026, _ny(5, 12, 0), day: date);
 
@@ -281,6 +310,136 @@ void main() {
       expect(plan.rows, hasLength(3));
       expect(plan.title, isNull);
       expect(plan.xpGained, 85);
+    });
+
+    test('the stat chip speaks for the same classes as the big number', () {
+      final state = GameState();
+      final first = keepAndPlan(state, _ny(6, 11, 53), [0]);
+      expect(first.xpShown, 25);
+      expect(first.gains, {Stat.intl: 3}, reason: 'this mark');
+      final day = keepAndPlan(state, _ny(6, 15, 35), [1]);
+      expect(day.tier, ClassCelebrationTier.dayDone);
+      expect(day.xpShown, 60, reason: "the day's XP");
+      expect(day.gains, {Stat.intl: 6}, reason: "the day's MIND, both kept");
+      expect(day.totals, {Stat.intl: 6});
+
+      // Thursday: two lectures and the lab; the day's chips carry both.
+      final thursday = keepAndPlan(GameState(), _ny(8, 19, 0), [0, 1, 2]);
+      expect(thursday.gains, {Stat.intl: 6, Stat.foc: 5});
+    });
+
+    test('the week tier counts the week on its chips too', () {
+      final state = GameState();
+      for (final day in [5, 6, 7, 8]) {
+        keepAndPlan(state, _ny(day, 19, 45), [
+          for (var i = 0; i < _day(_ny(day, 19, 45)).classes.length; i++) i,
+        ]);
+      }
+      keepAndPlan(state, _ny(9, 11, 45), [0]);
+      final week = keepAndPlan(state, _ny(9, 18, 56), [1]);
+      expect(week.tier, ClassCelebrationTier.weekDone);
+      final kept = [
+        for (final d in [5, 6, 7, 8, 9])
+          ...state.classesKeptOn(_day(_ny(d, 12, 0)).dayKey),
+      ];
+      final mind = kept
+          .where((k) => k.stat == Stat.intl)
+          .fold(0, (sum, k) => sum + k.statGain);
+      expect(week.gains[Stat.intl], mind);
+      expect(week.gains.keys.first, Stat.intl, reason: 'the mark leads');
+    });
+
+    test('the quick tier drops the time and room line', () {
+      final state = GameState();
+      keepAndPlan(state, _ny(8, 15, 22), [1]);
+      final quick = keepAndPlan(state, _ny(8, 15, 22, 10), [
+        0,
+      ], previous: _ny(8, 15, 22));
+      expect(quick.tier, ClassCelebrationTier.quick);
+      expect(quick.detail, isNull);
+      expect(quick.title, 'Electronics Devices');
+    });
+
+    group('the streak line, once ClassDayRules lights it', () {
+      tearDown(() => ClassDayRules.debugOverride = null);
+
+      test('on the first class of a day, never on the second', () {
+        ClassDayRules.debugOverride = const ClassDayRules(
+          classDayLightsStreak: true,
+        );
+        final state = GameState();
+        final first = keepAndPlan(state, _ny(6, 11, 53), [0]);
+        expect(first.streakLine, '1 DAY RUNNING · TODAY COUNTS');
+        final second = keepAndPlan(state, _ny(6, 15, 35), [1]);
+        expect(second.streakLine, isNull, reason: 'the day was already lit');
+        final wednesday = keepAndPlan(state, _ny(7, 11, 40), [0]);
+        expect(wednesday.streakLine, '2 DAYS RUNNING · TODAY COUNTS');
+      });
+
+      test('off by default', () {
+        final plan = keepAndPlan(GameState(), _ny(6, 11, 53), [0]);
+        expect(plan.streakLine, isNull);
+      });
+    });
+  });
+
+  group('past the week and past midnight', () {
+    test('a break longer than a week names the date, not a weekday', () {
+      final tuesday = _day(_ny(6, 19, 30));
+      final after = _dayOf(CivilDate(2026, 10, 19));
+      expect(after!.classes, isNotEmpty);
+      final broken = ClassDay(
+        date: tuesday.date,
+        classes: tuesday.classes,
+        lastClassEnd: tuesday.lastClassEnd,
+        nextClassAfter: NextClass(
+          entry: after.classes.first,
+          daysAhead: 13,
+          dayWord: 'Oct 19',
+        ),
+        runsWeekdayOf: null,
+      );
+      expect(nextClassDayLine(broken, _dayOf), 'Free until Oct 19 at 8:30.');
+    });
+
+    test('at 11 PM the next boundary is the night ending at 4 AM', () {
+      final day = _day(_ny(6, 23, 0));
+      expect(day.date, CivilDate(2026, 10, 6));
+      final end = nextClassBoundary(day, _ny(6, 23, 0));
+      expect(end, _ny(7, 4, 0).toUtc());
+      expect(end, classNightEndFor(day.date, 'America/New_York'));
+    });
+
+    test('an office hour alone never makes the week say zero', () {
+      final schedule = AcademicScheduleIcsImporter.parse(
+        _fridayWithOfficeHourIcs(),
+      ).applyTo(AcademicSchedule.empty(), updatedAt: DateTime.utc(2026, 8, 27));
+      ClassDay? dayOf(CivilDate date) =>
+          projectClassDay(schedule, _ny(9, 12, 0), day: date);
+      final at = _ny(9, 15, 30);
+      Clock.freeze(at);
+      final day = projectClassDay(schedule, at);
+      expect(day.classes, hasLength(2));
+      final office = day.classes.last;
+      expect(office.kind, MeetingKind.officeHours);
+      final state = GameState();
+      final credit = state.keepClass(
+        office.facts,
+        dayClassKeys: day.dayClassKeys,
+      );
+      expect(credit, isNotNull);
+      final plan = planClassCelebration(
+        day: day,
+        state: state,
+        marked: [office],
+        credits: [credit!],
+        keptBefore: const [],
+        now: at,
+        dayOf: dayOf,
+      );
+      expect(plan.tier, ClassCelebrationTier.weekDone);
+      expect(plan.closing.first, 'One class this week.');
+      expect(plan.closing.join(' '), isNot(contains('Zero')));
     });
   });
 

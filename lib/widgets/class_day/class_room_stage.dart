@@ -184,7 +184,8 @@ class ClassRoomStage extends StatelessWidget {
     this.warmth = 0,
     this.fadeStart,
     this.fadeEnd,
-    this.statusScrim = true,
+    this.scrim = 1,
+    this.scrimHeight = classStatusScrimHeight,
   });
 
   final RoomHour hour;
@@ -202,7 +203,13 @@ class ClassRoomStage extends StatelessWidget {
   final double? fadeStart;
   final double? fadeEnd;
 
-  final bool statusScrim;
+  /// 0..1: the soft dark at the top of the stage, under the status bar and
+  /// the HUD (the celebration lets it go as the camera leaves the window).
+  final double scrim;
+
+  /// How far down the scrim reaches from the stage's top. The stage starts
+  /// at the top of the screen, so this covers the status bar and the HUD.
+  final double scrimHeight;
 
   static const assets = QuestDepthRoom.assets;
 
@@ -220,7 +227,7 @@ class ClassRoomStage extends StatelessWidget {
       lively: true,
       // The hearth is outside every shot; keep its loop parked.
       animateFire: false,
-      farOverlay: hour.skyLit ? _WindowSky(hour: hour) : null,
+      farOverlay: hour.skyLit ? ClassWindowSky(hour: hour) : null,
     );
     return ClipRect(
       child: Stack(
@@ -249,26 +256,16 @@ class ClassRoomStage extends StatelessWidget {
               ),
             ),
           ),
-          if (statusScrim)
-            const Positioned(
+          if (scrim > 0)
+            Positioned(
               left: 0,
               right: 0,
               top: 0,
-              height: 150,
+              height: scrimHeight,
               child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xE6120C09),
-                        Color(0xB3120C09),
-                        Color(0x00120C09),
-                      ],
-                      stops: [0, 0.62, 1],
-                    ),
-                  ),
+                child: Opacity(
+                  opacity: scrim.clamp(0.0, 1.0),
+                  child: const ClassStatusScrim(),
                 ),
               ),
             ),
@@ -373,24 +370,50 @@ class ClassRoomStage extends StatelessWidget {
   }
 }
 
-/// The sky in the window for the hour, registered to the far plane.
+/// How far the status scrim reaches from the top of the screen: the status
+/// bar (59 pt on his phone) and the HUD's two lines under it.
+const classStatusScrimHeight = 150.0;
+
+/// The soft dark the HUD reads on: deepest under the status bar, gone by the
+/// lamp. The same at the top of the room and of the celebration.
+class ClassStatusScrim extends StatelessWidget {
+  const ClassStatusScrim({super.key});
+
+  @override
+  Widget build(BuildContext context) => const DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xE6120C09), Color(0xB3120C09), Color(0x00120C09)],
+        stops: [0, 0.62, 1],
+      ),
+    ),
+  );
+}
+
+/// The sky in the window for the hour, registered to the far plane of the
+/// writer room (the class-day stage, and the board's room strip on a class
+/// day).
 ///
 /// The base painting's night glass is keyed out at runtime (its blue-black
 /// sky and stars become transparent; the frame, mullions and nearer ridge
 /// stay), and a painted sky sits behind it. No pixel of the plates is cut:
 /// the same base raster is drawn again through a colour key, inside the
 /// glass only, so it moves with the far plane exactly.
-class _WindowSky extends StatelessWidget {
-  const _WindowSky({required this.hour});
+class ClassWindowSky extends StatelessWidget {
+  const ClassWindowSky({super.key, required this.hour});
 
   final RoomHour hour;
 
   /// alpha' = A + 10R - 5G - 10B: blue-dark glass goes clear, warm-dark
-  /// wood and the ridge stay.
+  /// wood and the ridge stay. The colour passes through unchanged, so where
+  /// the key keeps the wood the copy matches the painting under it and the
+  /// edge of the glass leaves no seam.
   static const _key = ColorFilter.matrix([
-    0.92, 0, 0, 0, 0, //
-    0, 0.92, 0, 0, 0, //
-    0, 0, 0.92, 0, 0, //
+    1, 0, 0, 0, 0, //
+    0, 1, 0, 0, 0, //
+    0, 0, 1, 0, 0, //
     10, -5, -10, 1, 0,
   ]);
 
@@ -402,15 +425,19 @@ class _WindowSky extends StatelessWidget {
         child: SizedBox(
           width: 1635,
           height: 962,
-          child: Stack(
-            children: [
-              Positioned.fromRect(
-                rect: RoomMarks.glass,
-                child: CustomPaint(painter: _SkyPainter(hour)),
-              ),
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: const _GlassClip(),
+          // Everything stays inside the glass as painted: its top runs down
+          // to the right with the window's perspective, so the wall above it
+          // is never keyed and the edge falls on the frame, where the copy
+          // matches the painting under it.
+          child: ClipPath(
+            clipper: const _GlassClip(),
+            child: Stack(
+              children: [
+                Positioned.fromRect(
+                  rect: RoomMarks.glass,
+                  child: CustomPaint(painter: _SkyPainter(hour)),
+                ),
+                Positioned.fill(
                   // A one-pixel softening in image space keeps the keyed
                   // mullions' edges from stair-stepping when the camera is
                   // close.
@@ -427,14 +454,16 @@ class _WindowSky extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-              // The painted crescent's warm rim survives the key; by day the
-              // pane it sits in is simply sky.
-              Positioned.fromRect(
-                rect: RoomMarks.glass,
-                child: CustomPaint(painter: _SkyPainter(hour, moonPatch: true)),
-              ),
-            ],
+                // The painted crescent's warm rim survives the key; by day
+                // the pane it sits in is simply sky.
+                Positioned.fromRect(
+                  rect: RoomMarks.glass,
+                  child: CustomPaint(
+                    painter: _SkyPainter(hour, moonPatch: true),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -442,11 +471,18 @@ class _WindowSky extends StatelessWidget {
   }
 }
 
-class _GlassClip extends CustomClipper<Rect> {
+/// The window's glass in image pixels: its top edge falls from the left
+/// jamb to the right one (measured where the painting's night sky starts).
+class _GlassClip extends CustomClipper<Path> {
   const _GlassClip();
 
   @override
-  Rect getClip(Size size) => RoomMarks.glass;
+  Path getClip(Size size) => Path()
+    ..moveTo(RoomMarks.glass.left, 54)
+    ..lineTo(402, 166)
+    ..lineTo(402, RoomMarks.glass.bottom)
+    ..lineTo(RoomMarks.glass.left, RoomMarks.glass.bottom)
+    ..close();
 
   @override
   bool shouldReclip(_GlassClip oldClipper) => false;
@@ -791,11 +827,13 @@ class ClassRoomPlate extends StatelessWidget {
     this.fadeStart,
     this.fadeEnd,
     this.dim = 0,
+    this.scrimHeight = classStatusScrimHeight,
   });
 
   final GameState state;
   final double? fadeStart;
   final double? fadeEnd;
+  final double scrimHeight;
 
   /// 0..1: the celebration's walnut dim over the plate.
   final double dim;
@@ -824,27 +862,12 @@ class ClassRoomPlate extends StatelessWidget {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: 0,
             right: 0,
             top: 0,
-            height: 150,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xE6120C09),
-                      Color(0xB3120C09),
-                      Color(0x00120C09),
-                    ],
-                    stops: [0, 0.62, 1],
-                  ),
-                ),
-              ),
-            ),
+            height: scrimHeight,
+            child: const IgnorePointer(child: ClassStatusScrim()),
           ),
           if (dim > 0)
             Positioned.fill(

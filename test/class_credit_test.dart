@@ -1044,5 +1044,32 @@ void main() {
       );
       expect(foreign.canRestore(state), isFalse, reason: 'a swapped state');
     });
+
+    test('one slot spans a gesture that keeps several classes', () {
+      Clock.freeze(DateTime(2026, 10, 6, 15, 35));
+      final state = GameState(rng: _NoLuck());
+      final before = RewardUndoSlot.beforeClass(
+        state,
+        _architecture(),
+        snapshot: snapshot(state),
+      );
+      state.keepClass(_architecture());
+      state.keepClass(_discrete());
+      expect(before.canRestore(state), isFalse, reason: 'one reward per slot');
+      final slot = before.spanning(2, last: _discrete());
+      expect(slot.canRestore(state), isTrue);
+      expect(slot.rewards, 2);
+      expect(slot.classIdentity, _discrete().identity);
+      expect(slot.label, _discrete().label);
+      final back = restore(slot.snapshot);
+      expect(back.classesKeptOn(_tue), isEmpty, reason: 'both come back');
+      expect(back.totalXp, 0);
+
+      state.commit(
+        state.roll(Quest(title: 'Drink water', stat: Stat.vit, difficulty: 2)),
+      );
+      expect(slot.canRestore(state), isFalse, reason: 'a later reward');
+      expect(before.spanning(0).canRestore(state), isFalse);
+    });
   });
 }

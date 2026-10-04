@@ -500,6 +500,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _state.setLowFlameQuests(chosen);
       _showFullLowFlame = false;
     });
+    _settleUndoBeforeLaterEdit();
     widget.onPersist();
   }
 
@@ -524,6 +525,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
     if (chosen == null || !mounted) return;
     applyDailyField(widget.quests, now, chosen);
+    // The choice persists; a later restore would quietly put the old ranks
+    // back, so an armed undo settles here (engine map 5.3.4).
+    _settleUndoBeforeLaterEdit();
     setState(() => _showOptionalField = false);
     widget.onPersist();
   }
@@ -569,6 +573,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // the relevant standing stars. A hand-written loop used to lose the order
     // a keeper chose for tomorrow.
     applyDailyField(widget.quests, tomorrow, chosen);
+    _settleUndoBeforeLaterEdit();
     widget.onPersist();
     dismissEmber();
     if (!mounted) return;
@@ -714,9 +719,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (widget.focusRequestId == _handledFocusRequestId) return;
     _handledFocusRequestId = widget.focusRequestId;
     _manualQuestSelection = false;
-    if (widget.focusRequestId > 0) _boardRequested = true;
     _selectedQuest = _requestedQuest();
     if (widget.focusRequestId > 0 && _selectedQuest != null) {
+      // A real hand-off (Goals opening a Quest) asks for the board itself.
+      // The shell's plain clear-focus bump names no Quest and leaves the
+      // class-day room where it is.
+      _boardRequested = true;
       _showFocusedQuest();
     }
   }
@@ -2104,9 +2112,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // the takeover's dim, and the overflow pour plays on dismissal where it
     // can actually be seen (DESIGN.md §6).
     late final OverlayEntry takeover;
-    setState(() => _levelTakeover = true);
+    // Only the class-day room steps its words back behind the takeover. The
+    // board keeps the no-setState path above.
+    final roomQuiet = _roomInView;
+    if (roomQuiet) setState(() => _levelTakeover = true);
     void stepForward() {
-      if (mounted) setState(() => _levelTakeover = false);
+      if (roomQuiet && mounted) setState(() => _levelTakeover = false);
     }
 
     takeover = OverlayEntry(
@@ -3207,6 +3218,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final classDay = _todayClasses();
     if (classDay == null) {
       _roomInView = false;
+      // A hand-off on a day without classes is the board already; it never
+      // carries over to the next class day.
+      _boardRequested = false;
       _classBoundaryTimer?.cancel();
       _classBoundaryTimer = null;
       _classBoundaryAt = null;
@@ -3289,6 +3303,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   void _hideAddClasses() {
     _state.hideAddClasses();
+    // It persists, so an armed undo settles first: a restore would bring the
+    // row back (engine map 5.3.4).
+    _settleUndoBeforeLaterEdit();
     widget.onPersist();
     Haptics.tap();
     setState(() {});
@@ -3362,15 +3379,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final now = Clock.now();
     final keptBefore = [...s.classesKeptOn(day.dayKey)];
     final single = rows.length == 1;
-    final snapshot = single ? widget.onSnapshot() : null;
     final entries = [for (final row in rows) row.entry];
-    final slot = snapshot == null
-        ? null
-        : RewardUndoSlot.beforeClass(
-            s,
-            entries.single.facts,
-            snapshot: snapshot,
-          );
+    // One whole-save slot for the gesture, a single mark or the shortcut's
+    // several: swiping the newest kept row undoes all of it, exactly as a
+    // Quest's undo does.
+    final before = RewardUndoSlot.beforeClass(
+      s,
+      entries.last.facts,
+      snapshot: widget.onSnapshot(),
+    );
     final credits = <ClassCredit>[];
     final marked = <ProjectedClass>[];
     for (final entry in entries) {
@@ -3406,8 +3423,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       previousMarkAt: previous,
       dayOf: (date) => widget.classDays?.call(now, day: date),
     );
+    final slot = before.spanning(credits.length, last: marked.last.facts);
     setState(() {
-      _undoSlot = credits.length == 1 ? slot : null;
+      _undoSlot = slot;
       _heldClass = single ? marked.single.facts.identity : null;
       _preferredClass = null;
     });
@@ -3434,6 +3452,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ),
         fromShot: classRoomIsLayered(s) ? _classCamera.shot : null,
         stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
+        stageHeight: _classCamera.stage?.height,
+        fadeStart: _classCamera.fadeStart,
+        fadeEnd: _classCamera.fadeEnd,
+        scrimHeight: _classCamera.scrimHeight ?? classStatusScrimHeight,
         reduceMotion: reduceMotion,
         onDismiss: () {
           entry.remove();
@@ -3624,6 +3646,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         : (firstVisibleActionable >= 0
               ? visible[firstVisibleActionable]
               : null);
+    // "Add your classes" rides under the Quest hero; with no hero showing
+    // (the hero was just kept and is still selected) it stays under the first
+    // Quest, so it never blinks away mid-day.
+    final addClassesAnchor =
+        featuredQuest ?? (visible.isEmpty ? null : visible.first);
     final boardItemCount = visible.isEmpty
         ? 1
         : visible.length + (remaining == 0 ? 1 : 0);
@@ -3762,6 +3789,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   scrollPosition: _scrollLight,
                   igniting: widget.roomIgniting,
                   hearthLit: widget.roomHearthLit,
+                  // On a class day the board's room shows the same hour in
+                  // its window as the class-day room it slides over.
+                  windowHour: classDay == null
+                      ? null
+                      : RoomHour.atInstant(
+                          now,
+                          classDay.classes.isEmpty
+                              ? null
+                              : classDay.classes.first.timeZoneId,
+                        ),
                 ),
                 _QuestBackdropBlur(
                   state: _state,
@@ -4309,47 +4346,67 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 : card;
                             // the latest finished quest can be swiped left to undo (a calmer
                             // affordance than chasing the snackbar)
+                            // No timetable yet: one calm row under the Quest
+                            // hero, whatever the hero is showing (a just-kept
+                            // Quest with its undo included).
+                            Widget withAddClasses(Widget card) =>
+                                showAddClasses && identical(q, addClassesAnchor)
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      card,
+                                      const SizedBox(height: 8),
+                                      AddClassesRow(
+                                        onTap: widget.onAddClasses!,
+                                        onHide: _hideAddClasses,
+                                      ),
+                                    ],
+                                  )
+                                : card;
                             if (isDone &&
                                 _undoArmed &&
                                 _undoSlot!.kind == RewardUndoKind.quest &&
                                 q.title == _undoSlot!.label) {
-                              return Dismissible(
-                                key: ValueKey('undo-${q.title}'),
-                                direction: DismissDirection.endToStart,
-                                dismissThresholds: const {
-                                  DismissDirection.endToStart: 0.42,
-                                },
-                                confirmDismiss: (_) async {
-                                  _undoLast();
-                                  return false; // restore handles the state change
-                                },
-                                secondaryBackground: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: 26),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.undo,
-                                        size: 16,
-                                        color: Palette.xpLight,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'UNDO',
-                                        style: Type.label.copyWith(
-                                          fontSize: 11,
+                              return withAddClasses(
+                                Dismissible(
+                                  key: ValueKey('undo-${q.title}'),
+                                  direction: DismissDirection.endToStart,
+                                  dismissThresholds: const {
+                                    DismissDirection.endToStart: 0.42,
+                                  },
+                                  confirmDismiss: (_) async {
+                                    _undoLast();
+                                    return false; // restore handles the state change
+                                  },
+                                  secondaryBackground: Container(
+                                    alignment: Alignment.centerRight,
+                                    padding: const EdgeInsets.only(right: 26),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.undo,
+                                          size: 16,
                                           color: Palette.xpLight,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'UNDO',
+                                          style: Type.label.copyWith(
+                                            fontSize: 11,
+                                            color: Palette.xpLight,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  background: const SizedBox.shrink(),
+                                  // The receipt teaches "swipe card to undo".
+                                  // Keeping a second hint on the card collided with
+                                  // XP on long titles and cheapened the settled win.
+                                  child: deliveredCard,
                                 ),
-                                background: const SizedBox.shrink(),
-                                // The receipt teaches "swipe card to undo".
-                                // Keeping a second hint on the card collided with
-                                // XP on long titles and cheapened the settled win.
-                                child: deliveredCard,
                               );
                             }
                             // On a short phone with large text the instrument
@@ -4357,62 +4414,52 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             // six stats and the day strip follow the featured
                             // Quest as the same panel, continued.
                             if (isFeatured && shortFeatured) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  deliveredCard,
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      4,
-                                      8,
-                                      4,
-                                      0,
-                                    ),
-                                    child: _QuestHudPanel(
+                              return withAddClasses(
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    deliveredCard,
+                                    Padding(
                                       padding: const EdgeInsets.fromLTRB(
+                                        4,
                                         8,
-                                        3,
-                                        8,
-                                        2,
+                                        4,
+                                        0,
                                       ),
-                                      child: Column(
-                                        children: [
-                                          StatChips(
-                                            values: _state.stats,
-                                            reduceMotion: _state.reduceMotion,
-                                            onSelect: _exploreStat,
-                                            compact: true,
-                                          ),
-                                          Divider(
-                                            height: 1,
-                                            color: Palette.brass.withValues(
-                                              alpha: 0.24,
+                                      child: _QuestHudPanel(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          8,
+                                          3,
+                                          8,
+                                          2,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            StatChips(
+                                              values: _state.stats,
+                                              reduceMotion: _state.reduceMotion,
+                                              onSelect: _exploreStat,
+                                              compact: true,
                                             ),
-                                            indent: 7,
-                                            endIndent: 7,
-                                          ),
-                                          dayStrip,
-                                        ],
+                                            Divider(
+                                              height: 1,
+                                              color: Palette.brass.withValues(
+                                                alpha: 0.24,
+                                              ),
+                                              indent: 7,
+                                              endIndent: 7,
+                                            ),
+                                            dayStrip,
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               );
                             }
-                            if (isFeatured && showAddClasses) {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  deliveredCard,
-                                  const SizedBox(height: 8),
-                                  AddClassesRow(
-                                    onTap: widget.onAddClasses!,
-                                    onHide: _hideAddClasses,
-                                  ),
-                                ],
-                              );
-                            }
-                            return deliveredCard;
+                            return withAddClasses(deliveredCard);
                           },
                         ),
                 ),
@@ -4569,6 +4616,7 @@ class _QuestRoomBackdrop extends StatelessWidget {
     required this.scrollPosition,
     required this.igniting,
     required this.hearthLit,
+    this.windowHour,
   });
 
   final GameState state;
@@ -4577,6 +4625,9 @@ class _QuestRoomBackdrop extends StatelessWidget {
   final ValueListenable<double> scrollPosition;
   final bool igniting;
   final bool hearthLit;
+
+  /// The class day's hour, lit in the window (null: the painting's night).
+  final RoomHour? windowHour;
 
   @override
   Widget build(BuildContext context) {
@@ -4617,6 +4668,12 @@ class _QuestRoomBackdrop extends StatelessWidget {
                           hearthLit: hearthLit,
                           level: state.level,
                           roomPhoto: RoomPhotoStore.instance.photo,
+                          windowLayer: switch (windowHour) {
+                            final hour? when hour.skyLit => ClassWindowSky(
+                              hour: hour,
+                            ),
+                            _ => null,
+                          },
                         ),
                       ),
                     ),
@@ -6872,8 +6929,9 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
 }
 
 /// The room and the full board on a class day. BOARD slides the board up
-/// over the room and ROOM lets it back down: one calm move, no blur. Reduced
-/// Motion crossfades. Only the side that shows is built once it settles.
+/// while the room (its painting and its HUD) fades back, so two rooms and two
+/// HUDs never share the frame; ROOM lets it back down. One calm move, no
+/// blur. Reduced Motion crossfades.
 class _ClassDaySwitch extends StatefulWidget {
   const _ClassDaySwitch({
     required this.showBoard,
@@ -6899,20 +6957,6 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
     value: widget.showBoard ? 1 : 0,
   );
 
-  /// For a moment after mounting, the side out of view keeps its tickers,
-  /// so its own entrance (the board's stats counting up) finishes offstage
-  /// and never replays from zero when it first slides into view.
-  bool _warming = true;
-  late final Timer _warmTimer = Timer(const Duration(milliseconds: 1600), () {
-    if (mounted) setState(() => _warming = false);
-  });
-
-  @override
-  void initState() {
-    super.initState();
-    _warmTimer;
-  }
-
   @override
   void didUpdateWidget(_ClassDaySwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -6929,16 +6973,19 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
 
   @override
   void dispose() {
-    _warmTimer.cancel();
     _c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Both sides stay built, so the board keeps its scroll, its selection and
-    // its settled numbers while the room shows (nothing recounts from zero
-    // on BOARD). The side out of view is offstage with its tickers paused.
+    // Both sides stay built, so the board keeps its scroll and its selection
+    // while the room shows. The side out of view is offstage with its tickers
+    // paused and its animations off: a number that changes there (a mark's
+    // XP and MIND on the board's HUD) lands at once, so nothing rolls up from
+    // an old value when it slides into view. This holds however the switch
+    // was mounted, the Quests tab on screen or not.
+    final media = MediaQuery.of(context);
     return AnimatedBuilder(
       animation: _c,
       builder: (context, _) {
@@ -6950,12 +6997,17 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
             Offstage(
               offstage: !shown,
               child: TickerMode(
-                enabled: shown || _warming,
-                child: Opacity(
-                  opacity: opacity,
-                  child: FractionalTranslation(
-                    translation: Offset(0, drop),
-                    child: child,
+                enabled: shown,
+                child: MediaQuery(
+                  data: media.copyWith(
+                    disableAnimations: !shown || media.disableAnimations,
+                  ),
+                  child: Opacity(
+                    opacity: opacity.clamp(0.0, 1.0),
+                    child: FractionalTranslation(
+                      translation: Offset(0, drop),
+                      child: child,
+                    ),
                   ),
                 ),
               ),
@@ -6963,12 +7015,9 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
         return Stack(
           fit: StackFit.expand,
           children: [
-            side(
-              v < 1,
-              widget.reduceMotion ? 1 - v : 1,
-              0,
-              widget.room(context),
-            ),
+            // The room steps back as the board rises over it, ahead of the
+            // board, so the two never read as one collage.
+            side(v < 1, (1 - t) * (1 - t), 0, widget.room(context)),
             side(
               v > 0,
               widget.reduceMotion ? v : 1,

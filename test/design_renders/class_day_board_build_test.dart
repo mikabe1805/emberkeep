@@ -13,6 +13,7 @@
 // on Monday Oct 5: every number is what the build pays (no seeded counts).
 // Inferred, stated per frame: which classes he marks and when; the level
 // crossing frame lifts his XP to 850 / 870 and sets 11 quests since level 18.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:emberkeep/a11y.dart';
@@ -70,6 +71,22 @@ void _keepWeekBefore(GameState state, int day) {
   for (var d = 5; d < day; d++) {
     _keepAt(state, _at(d, 21, 0));
   }
+}
+
+/// The same account with [counts] earlier keeps per course (as later weeks
+/// of the term would have them). Inferred, stated per frame.
+MikaAccount _withCourseCounts(MikaAccount account, Map<String, int> counts) {
+  final json =
+      jsonDecode(jsonEncode(account.state.toJson())) as Map<String, dynamic>;
+  json['keptClassCounts'] = {
+    ...(json['keptClassCounts'] as Map? ?? const {}),
+    ...counts,
+  };
+  return MikaAccount(
+    GameState.fromJson(json),
+    account.quests,
+    lastActive: account.lastActive,
+  );
 }
 
 final Finder _there = find.byKey(const Key('class-there-button'));
@@ -157,7 +174,17 @@ void main() {
         surface: 'Class celebration',
         note: 'settled at 1.9 s, returns on its own at 2.4 s',
       );
-      await settle(tester, total: const Duration(milliseconds: 1400));
+      await settle(tester, total: const Duration(milliseconds: 400));
+      await sheet.shot(
+        tester,
+        'B2e_tue1152_going_back_2300ms',
+        at: at,
+        surface: 'Class celebration',
+        note:
+            'going back on its own: the takeover fading, the camera easing '
+            'back to the desk framing',
+      );
+      await settle(tester, total: const Duration(milliseconds: 1000));
       _note('celebration gone on its own: ${_celebration.evaluate().isEmpty}');
       await sheet.shot(
         tester,
@@ -267,7 +294,9 @@ void main() {
         note: 'held for a tap',
       );
       await settle(tester, total: const Duration(milliseconds: 3000));
-      _note('day tier still up after 5.7 s: ${_celebration.evaluate().isNotEmpty}');
+      _note(
+        'day tier still up after 5.7 s: ${_celebration.evaluate().isNotEmpty}',
+      );
       await _dismissCelebration(tester);
       final home = _at(6, 15, 36);
       await sheet.shot(
@@ -466,7 +495,9 @@ void main() {
       );
       await settle(tester, total: const Duration(milliseconds: 800));
       await settle(tester, total: const Duration(milliseconds: 1600));
-      _note('level-up up: ${find.byType(LevelUpOverlay).evaluate().isNotEmpty}');
+      _note(
+        'level-up up: ${find.byType(LevelUpOverlay).evaluate().isNotEmpty}',
+      );
       await sheet.shot(
         tester,
         'L2_tue1153_you_did_it',
@@ -494,56 +525,172 @@ void main() {
     },
   );
 
+  roomRenderTest('R: Reduce Motion', skip: !_renders || !_wants('reduce'), (
+    tester,
+  ) async {
+    final at = _at(6, 11, 52);
+    final account = mikaAccount(renderAt: _at(5, 21, 0), reduceMotion: true);
+    _keepWeekBefore(account.state, 6);
+    Clock.freeze(at);
+    await bootRoom(tester, account, schedule: _schedule);
+    await _press(tester, _there);
+    await tester.pump(const Duration(milliseconds: 300));
+    await sheet.shot(
+      tester,
+      'R1_tue1152_reduce_motion_300ms',
+      at: at,
+      surface: 'Class celebration',
+      note: 'everything already landed: no travel, no slam',
+    );
+  });
+
+  roomRenderTest('T: text at 130%', skip: !_renders || !_wants('text'), (
+    tester,
+  ) async {
+    final at = _at(6, 11, 52);
+    final account = mikaAccount(renderAt: _at(5, 21, 0));
+    _keepWeekBefore(account.state, 6);
+    account.state.textScale = 1.3;
+    // The app applies the saved size at launch (main.dart); the harness
+    // mounts LifeRpgApp directly, so set the same notifier here.
+    appTextScale.value = 1.3;
+    addTearDown(() => appTextScale.value = 1.0);
+    Clock.freeze(at);
+    await bootRoom(tester, account, schedule: _schedule);
+    await sheet.shot(
+      tester,
+      'T1_tue1152_text_130',
+      at: at,
+      surface: 'Quests, class day',
+      note: 'in-app text size 130%',
+    );
+    await _press(tester, _there);
+    await settle(tester, total: const Duration(milliseconds: 1900));
+    await sheet.shot(
+      tester,
+      'T2_tue1152_text_130_celebration',
+      at: at,
+      surface: 'Class celebration',
+      note: '',
+    );
+  });
+
   roomRenderTest(
-    'R: Reduce Motion',
-    skip: !_renders || !_wants('reduce'),
+    'K: a two-digit count in the diamond',
+    skip: !_renders || !_wants('count'),
     (tester) async {
       final at = _at(6, 11, 52);
-      final account = mikaAccount(renderAt: _at(5, 21, 0), reduceMotion: true);
+      var account = mikaAccount(renderAt: _at(5, 21, 0));
       _keepWeekBefore(account.state, 6);
+      account = _withCourseCounts(account, {'14:332:331': 23});
+      _note('inferred: 23 earlier Computer Architecture lectures (late term)');
       Clock.freeze(at);
       await bootRoom(tester, account, schedule: _schedule);
       await _press(tester, _there);
-      await tester.pump(const Duration(milliseconds: 300));
+      await settle(tester, total: const Duration(milliseconds: 1900));
       await sheet.shot(
         tester,
-        'R1_tue1152_reduce_motion_300ms',
+        'K1_tue1152_your_24th_lecture',
         at: at,
         surface: 'Class celebration',
-        note: 'everything already landed: no travel, no slam',
+        note: 'YOUR 24TH LECTURE: the numeral inside the diamond',
       );
     },
   );
 
   roomRenderTest(
-    'T: text at 130%',
-    skip: !_renders || !_wants('text'),
+    'K2: a two-digit count on the day tier',
+    skip: !_renders || !_wants('count'),
+    (tester) async {
+      var account = mikaAccount(renderAt: _at(5, 21, 0));
+      _keepWeekBefore(account.state, 6);
+      _keepAt(account.state, _at(6, 11, 53), only: {'14:332:331'});
+      account = _withCourseCounts(account, {'01:198:206': 23});
+      _note('inferred: 23 earlier Discrete Structures II lectures');
+      final at = _at(6, 15, 35);
+      Clock.freeze(at);
+      await bootRoom(tester, account, schedule: _schedule);
+      await _press(tester, _there);
+      await settle(tester, total: const Duration(milliseconds: 2400));
+      await sheet.shot(
+        tester,
+        'K2_tue1535_day_tier_24th',
+        at: at,
+        surface: 'Class celebration, day tier',
+        note: 'TUESDAY, DONE. with a two-digit count',
+      );
+    },
+  );
+
+  roomRenderTest(
+    'K3: a two-digit count at 130% text',
+    skip: !_renders || !_wants('count'),
     (tester) async {
       final at = _at(6, 11, 52);
-      final account = mikaAccount(renderAt: _at(5, 21, 0));
+      var account = mikaAccount(renderAt: _at(5, 21, 0));
       _keepWeekBefore(account.state, 6);
+      account = _withCourseCounts(account, {'14:332:331': 23});
       account.state.textScale = 1.3;
-      // The app applies the saved size at launch (main.dart); the harness
-      // mounts LifeRpgApp directly, so set the same notifier here.
       appTextScale.value = 1.3;
       addTearDown(() => appTextScale.value = 1.0);
       Clock.freeze(at);
       await bootRoom(tester, account, schedule: _schedule);
-      await sheet.shot(
-        tester,
-        'T1_tue1152_text_130',
-        at: at,
-        surface: 'Quests, class day',
-        note: 'in-app text size 130%',
-      );
       await _press(tester, _there);
       await settle(tester, total: const Duration(milliseconds: 1900));
       await sheet.shot(
         tester,
-        'T2_tue1152_text_130_celebration',
+        'K3_tue1152_text_130_24th',
+        at: at,
+        surface: 'Class celebration',
+        note: 'the numeral keeps its size inside the diamond at 130%',
+      );
+    },
+  );
+
+  roomRenderTest(
+    'P: another room style (the archive plate)',
+    skip: !_renders || !_wants('plate'),
+    (tester) async {
+      final at = _at(6, 11, 52);
+      final account = mikaAccount(renderAt: _at(5, 21, 0));
+      _keepWeekBefore(account.state, 6);
+      account.state
+        ..wallStyle = 'wall_archive'
+        ..ownedStyles.add('wall_archive');
+      _note('inferred: the archive room style, owned');
+      Clock.freeze(at);
+      await bootRoom(tester, account, schedule: _schedule);
+      await sheet.shot(
+        tester,
+        'P1_tue1152_archive_between',
+        at: at,
+        surface: 'Quests, class day',
+        note: 'a painted plate held still behind the same layout',
+      );
+      await _press(tester, _there);
+      await tester.pump(const Duration(milliseconds: 300));
+      await sheet.shot(
+        tester,
+        'P2_tue1152_archive_300ms',
+        at: at,
+        surface: 'Class celebration',
+        note: 'the plate at the same scale and place as in the room',
+      );
+      await settle(tester, total: const Duration(milliseconds: 1600));
+      await sheet.shot(
+        tester,
+        'P3_tue1152_archive_settled',
         at: at,
         surface: 'Class celebration',
         note: '',
+      );
+      await settle(tester, total: const Duration(milliseconds: 1400));
+      await sheet.shot(
+        tester,
+        'P4_tue1153_archive_after',
+        at: at,
+        surface: 'Quests, class day',
+        note: 'back in the room',
       );
     },
   );

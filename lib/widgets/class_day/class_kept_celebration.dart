@@ -38,6 +38,10 @@ class ClassKeptCelebration extends StatefulWidget {
     required this.onDismiss,
     this.fromShot,
     this.stageTop = 0,
+    this.stageHeight,
+    this.fadeStart,
+    this.fadeEnd,
+    this.scrimHeight = classStatusScrimHeight,
     this.reduceMotion = false,
   });
 
@@ -54,6 +58,16 @@ class ClassKeptCelebration extends StatefulWidget {
   /// Where the room's stage sat on screen, so the first frame registers
   /// with the room behind it.
   final double stageTop;
+
+  /// The room's stage height and where its floor settled (a painted plate
+  /// is drawn in exactly that box, so it holds still under the fade).
+  final double? stageHeight;
+  final double? fadeStart;
+  final double? fadeEnd;
+
+  /// The room's status scrim, which the celebration keeps over the window
+  /// until the camera has moved it out of frame.
+  final double scrimHeight;
   final bool reduceMotion;
 
   @override
@@ -61,9 +75,20 @@ class ClassKeptCelebration extends StatefulWidget {
 }
 
 class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   ClassCelebrationPlan get plan => widget.plan;
   bool get _held => plan.held;
+  bool get _quick => plan.tier == ClassCelebrationTier.quick;
+
+  /// Going back on its own: the takeover fades while the camera eases back
+  /// to the room's framing, and the room is there when it has gone.
+  static const _exitDuration = Duration(milliseconds: 240);
+  late final AnimationController _exit = AnimationController(
+    vsync: this,
+    duration: widget.reduceMotion
+        ? const Duration(milliseconds: 200)
+        : _exitDuration,
+  );
 
   /// Timeline length in class-tier milliseconds.
   int get _length => _held ? 2400 : 1500;
@@ -94,15 +119,25 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
     }
     final auto = plan.autoReturn;
     if (auto != null) {
-      _autoReturn = Timer(auto, () {
+      // The fade back ends at [auto]: the room is home at 2.4 s (1.4 s).
+      _autoReturn = Timer(auto - _exit.duration!, () {
         if (!mounted) return;
         if (_fingerDown) {
           _returnOnRelease = true;
         } else {
-          _dismiss();
+          _goBack();
         }
       });
     }
+  }
+
+  /// Back on its own (or when the finger lifts): a short fade, then gone.
+  void _goBack() {
+    if (_dismissed || _exit.isAnimating) return;
+    _autoReturn?.cancel();
+    _exit.forward().whenComplete(() {
+      if (mounted) _dismiss();
+    });
   }
 
   void _dismiss() {
@@ -119,7 +154,11 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   void _beats() {
     final stat = plan.gains.keys.firstOrNull;
     if (stat != null) {
-      _once('stat', 640, () => Sfx.instance.play('stat_${stat.index}'));
+      _once(
+        'stat',
+        _quick ? 420 : 640,
+        () => Sfx.instance.play('stat_${stat.index}'),
+      );
     }
     if (plan.streakLine != null) {
       _once('streak', 780, () => Sfx.instance.play('streak'));
@@ -130,6 +169,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   @override
   void dispose() {
     _autoReturn?.cancel();
+    _exit.dispose();
     _c.dispose();
     super.dispose();
   }
@@ -142,12 +182,13 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
     return curve.transform((ms - from) / (to - from));
   }
 
-  /// 0 -> 0.9 by 380 ms, settling to 0.58 by 1.1 s.
+  /// 0 -> 0.9 by 380 ms, settling to 0.58 by 1.1 s (by 700 ms for the quick
+  /// tier, so its last moment is still).
   double get _bloom {
     if (widget.reduceMotion) return 0.58;
     final open = Curves.easeOutCubic.transform((_ms / 380).clamp(0.0, 1.0));
     final settle = Curves.easeInOut.transform(
-      ((_ms - 380) / 720).clamp(0.0, 1.0),
+      ((_ms - 380) / (_quick ? 320 : 720)).clamp(0.0, 1.0),
     );
     return open * (0.9 - 0.32 * settle);
   }
@@ -170,11 +211,11 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
           onPointerDown: (_) => _fingerDown = true,
           onPointerUp: (_) {
             _fingerDown = false;
-            if (_returnOnRelease) _dismiss();
+            if (_returnOnRelease) _goBack();
           },
           onPointerCancel: (_) {
             _fingerDown = false;
-            if (_returnOnRelease) _dismiss();
+            if (_returnOnRelease) _goBack();
           },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -183,23 +224,45 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
               _dismiss();
             },
             child: AnimatedBuilder(
-              animation: _c,
+              animation: Listenable.merge([_c, _exit]),
               builder: (context, _) {
                 final target = RoomShot.kept(width: width);
-                final from = widget.fromShot ?? target;
+                final room = widget.fromShot ?? target;
+                // The quick tier holds the kept framing: the camera already
+                // made that move a moment ago, and a second swing at 1.5x is
+                // a rush.
+                final from = _quick ? target : room;
+                // Going back on its own, the takeover fades while the camera
+                // eases from where it is to the room's own framing.
+                final away = Curves.easeInOut.transform(_exit.value);
                 // The takeover fades in over the room on the room's own
                 // framing (so nothing doubles), then the camera eases back.
-                final takeover = widget.reduceMotion
+                final arrive = widget.reduceMotion
                     ? Curves.easeOut.transform(_c.value)
                     : _iv(110, 300, Curves.easeOut);
+                final takeover = arrive * (1 - away);
+                // The words leave first, so the room's glass never reads
+                // through them on the way back.
+                final words =
+                    arrive * (1 - (_exit.value / 0.55).clamp(0.0, 1.0));
                 final travel = _iv(220, 640, Curves.easeInOutCubic);
-                final shot = RoomShot.lerp(from, target, travel);
+                final shot = RoomShot.lerp(
+                  RoomShot.lerp(from, target, travel),
+                  room,
+                  widget.reduceMotion ? 0 : away,
+                );
+                // The room's soft dark stays over the window (its keyed
+                // glass) until the camera has moved the window out of frame.
+                final scrim = widget.reduceMotion || _quick
+                    ? 0.0
+                    : 1 - travel * (1 - away);
                 final dim = _iv(160, 560, Curves.easeOut);
                 final stageTop = widget.stageTop;
                 final lamp = layered
                     ? shot.toStage(RoomMarks.bulb).translate(0, stageTop)
                     : Offset(width * 0.32, stageTop + 140);
                 final imageBottom = (962 - shot.top) * shot.scale;
+                final plateHeight = widget.stageHeight ?? 420;
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -213,21 +276,26 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                             left: 0,
                             right: 0,
                             top: stageTop,
-                            height: layered ? imageBottom : 420,
+                            height: layered ? imageBottom : plateHeight,
                             child: layered
                                 ? ClassRoomStage(
                                     hour: widget.hour,
                                     shot: shot,
                                     bloom: _bloom,
                                     warmth: 1,
-                                    statusScrim: false,
+                                    scrim: scrim,
+                                    scrimHeight: widget.scrimHeight,
                                     fadeStart: imageBottom - 150,
                                     fadeEnd: imageBottom - 2,
                                   )
+                                // A painted plate holds still: the same box,
+                                // scale and fades as the room's.
                                 : ClassRoomPlate(
                                     state: widget.state,
-                                    fadeStart: 280,
-                                    fadeEnd: 418,
+                                    fadeStart:
+                                        widget.fadeStart ?? plateHeight - 140,
+                                    fadeEnd: widget.fadeEnd ?? plateHeight - 2,
+                                    scrimHeight: widget.scrimHeight,
                                   ),
                           ),
                           CustomPaint(
@@ -240,7 +308,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                         ],
                       ),
                     ),
-                    if (_held && !widget.reduceMotion)
+                    if (_held && !widget.reduceMotion && away == 0)
                       Positioned.fill(
                         child: IgnorePointer(
                           child: CustomPaint(
@@ -255,7 +323,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                         ),
                       ),
                     Opacity(
-                      opacity: takeover,
+                      opacity: words,
                       child: Padding(
                         padding: EdgeInsets.only(
                           top: mq.padding.top,
@@ -285,7 +353,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   }
 
   Widget _body(double width) {
-    final quick = plan.tier == ClassCelebrationTier.quick;
+    final quick = _quick;
     final children = <Widget>[
       _headline(),
       const SizedBox(height: 6),
@@ -343,21 +411,38 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
       ],
       if (plan.rows.isNotEmpty) ...[const SizedBox(height: 12), _rows()],
       SizedBox(height: plan.rows.isEmpty ? 16 : 12),
-      _XpToRail(
-        plan: plan,
-        width: width,
-        appear: _iv(520, 640),
-        count: _iv(520, 1170, Curves.easeInQuad),
-        thread: _iv(520, 900),
-        chip: _iv(640, 860, Curves.easeOutBack),
-      ),
+      // The quick tier lands its count by about 500 ms, so its last 0.9 s
+      // is still and the new count can be read.
+      if (quick)
+        _XpToRail(
+          plan: plan,
+          width: width,
+          appear: _iv(300, 420),
+          count: _iv(300, 750, Curves.easeInQuad),
+          thread: _iv(300, 700),
+          chip: _iv(420, 700, Curves.easeOutBack),
+        )
+      else
+        _XpToRail(
+          plan: plan,
+          width: width,
+          appear: _iv(520, 640),
+          count: _iv(520, 1170, Curves.easeInQuad),
+          thread: _iv(520, 900),
+          chip: _iv(640, 860, Curves.easeOutBack),
+        ),
       if (plan.streakLine case final line?) ...[
         const SizedBox(height: 10),
         _rise(_iv(760, 1000), _streak(line)),
       ],
       const SizedBox(height: 14),
       _rise(
-        _held ? _iv(1500, 1850) : _iv(900, 1250),
+        // The quick tier's closing line arrives with its headline.
+        _held
+            ? _iv(1500, 1850)
+            : quick
+            ? _iv(140, 500)
+            : _iv(900, 1250),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Text(
@@ -375,7 +460,13 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
       ),
       const SizedBox(height: 22),
       Opacity(
-        opacity: (_held ? _iv(1800, 2200) : _iv(1300, 1500)) * 0.6,
+        opacity:
+            (_held
+                ? _iv(1800, 2200)
+                : quick
+                ? _iv(500, 700)
+                : _iv(1300, 1500)) *
+            0.6,
         child: Text('onward →', style: Type.label.copyWith(fontSize: 11)),
       ),
       const SizedBox(height: 18),
@@ -430,6 +521,11 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
 
   /// The numeral in the level-up's diamond, lit by the lamp from the upper
   /// left (one light field: the diamond has no glow of its own).
+  ///
+  /// The box is the rotated square's own height, so its points never reach
+  /// into the headline or the label. The numeral is a drawn mark: it keeps
+  /// its size at any text size and is fitted inside the diamond, so a count
+  /// of 24 (or 124) sits within its edges like a count of 1.
   Widget _diamond() {
     final slam = _iv(260, 900, Motion.slam);
     final side = switch (plan.tier) {
@@ -437,19 +533,18 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
       ClassCelebrationTier.classKept => 100.0,
       _ => 84.0,
     };
-    final digits = '${plan.numeral}'.length;
-    final numeralSize =
-        side * (digits == 1 ? 0.86 : (digits == 2 ? 0.74 : 0.6));
+    final extent = side * math.sqrt2;
+    final numeral = '${plan.numeral}';
+    final size = classNumeralSize(numeral, side);
     return SizedBox(
-      height: side * 1.32,
+      height: extent + 12,
       child: Center(
         child: Transform.scale(
           scale: 0.4 + 0.6 * slam,
           child: Opacity(
             opacity: slam.clamp(0.0, 1.0),
-            child: SizedBox(
-              width: side * 1.45,
-              height: side * 1.45,
+            child: SizedBox.square(
+              dimension: extent,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -476,12 +571,12 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                     ),
                   ),
                   Text(
-                    '${plan.numeral}',
+                    numeral,
                     key: const Key('class-celebration-numeral'),
-                    style: Type.numerals.copyWith(
-                      fontSize: numeralSize,
-                      height: 1,
-                      color: Palette.xpLight,
+                    textScaler: TextScaler.noScaling,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: _numeralStyle(size).copyWith(
                       shadows: [
                         Shadow(
                           color: Palette.xpLight.withValues(alpha: 0.5),
@@ -1095,4 +1190,29 @@ class _MotePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MotePainter old) => old.t != t || old.origin != origin;
+}
+
+TextStyle _numeralStyle(double size) =>
+    Type.numerals.copyWith(fontSize: size, height: 1, color: Palette.xpLight);
+
+/// The numeral's size inside a diamond of [side] (a square turned 45
+/// degrees): as large as its digit count allows, and never so large that its
+/// corners cross the diamond's edges. A text box of width w and figure height
+/// about 0.72 of its size fits when w / 2 + 0.36 size stays inside the
+/// half-diagonal, less a margin for the border.
+@visibleForTesting
+double classNumeralSize(String numeral, double side) {
+  final digits = numeral.length;
+  final preferred = side * (digits <= 1 ? 0.86 : (digits == 2 ? 0.74 : 0.6));
+  final probe = TextPainter(
+    text: TextSpan(text: numeral, style: _numeralStyle(100)),
+    textDirection: TextDirection.ltr,
+    textScaler: TextScaler.noScaling,
+    maxLines: 1,
+  )..layout();
+  final ratio = probe.width / 100;
+  probe.dispose();
+  final reach = side * math.sqrt1_2 - side * 0.09;
+  final fit = reach / (ratio / 2 + 0.36);
+  return math.min(preferred, fit);
 }

@@ -53,3 +53,19 @@ level-up up: true
 2026-10-05 kept 14:332:361: +25 XP
 2026-10-05 kept 14:332:345: +25 XP
 2026-10-05 kept 14:332:345: +35 XP
+2026-10-05 kept 14:332:361: +25 XP
+2026-10-05 kept 14:332:345: +25 XP
+2026-10-05 kept 14:332:345: +35 XP
+inferred: 23 earlier Computer Architecture lectures (late term)
+2026-10-05 kept 14:332:361: +25 XP
+2026-10-05 kept 14:332:345: +25 XP
+2026-10-05 kept 14:332:345: +35 XP
+2026-10-06 kept 14:332:331: +25 XP
+inferred: 23 earlier Discrete Structures II lectures
+2026-10-05 kept 14:332:361: +25 XP
+2026-10-05 kept 14:332:345: +25 XP
+2026-10-05 kept 14:332:345: +35 XP
+2026-10-05 kept 14:332:361: +25 XP
+2026-10-05 kept 14:332:345: +25 XP
+2026-10-05 kept 14:332:345: +35 XP
+inferred: the archive room style, owned
