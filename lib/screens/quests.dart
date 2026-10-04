@@ -6899,6 +6899,20 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
     value: widget.showBoard ? 1 : 0,
   );
 
+  /// For a moment after mounting, the side out of view keeps its tickers,
+  /// so its own entrance (the board's stats counting up) finishes offstage
+  /// and never replays from zero when it first slides into view.
+  bool _warming = true;
+  late final Timer _warmTimer = Timer(const Duration(milliseconds: 1600), () {
+    if (mounted) setState(() => _warming = false);
+  });
+
+  @override
+  void initState() {
+    super.initState();
+    _warmTimer;
+  }
+
   @override
   void didUpdateWidget(_ClassDaySwitch oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -6915,6 +6929,7 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
 
   @override
   void dispose() {
+    _warmTimer.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -6935,7 +6950,7 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
             Offstage(
               offstage: !shown,
               child: TickerMode(
-                enabled: shown,
+                enabled: shown || _warming,
                 child: Opacity(
                   opacity: opacity,
                   child: FractionalTranslation(
