@@ -299,6 +299,10 @@ void main() {
         180,
         scrollable: find.byType(Scrollable).first,
       );
+      // The prompt tiles stack two rows deep at this size, so the card can
+      // land half below the fold; bring all of it into view before tapping.
+      await tester.ensureVisible(card);
+      await tester.pump();
       await tester.tap(card);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
