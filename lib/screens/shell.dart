@@ -10,6 +10,7 @@ import '../academic_calendar/data/academic_schedule_repository.dart';
 import '../academic_calendar/domain/academic_schedule.dart';
 import '../academic_calendar/import/academic_schedule_file_inbox.dart';
 import '../academic_calendar/services/academic_reminder_projection.dart';
+import '../academic_calendar/services/class_day_projection.dart';
 import '../background_music.dart';
 import '../clock.dart';
 import '../cloud.dart';
@@ -266,6 +267,23 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _load();
     unawaited(_loadAcademicScheduleForShell());
     _onIncomingAcademicScheduleFile();
+    // The streak's rest-day pause reads the timetable. The engine consults
+    // this only while ClassDayRules.restDaysPause is on (off as shipped).
+    GameState.restDayResolver = _restDayFromSchedule;
+  }
+
+  bool _restDayFromSchedule(String dayKey) =>
+      _academicScheduleLoaded && restDayFor(_academicSchedule, dayKey);
+
+  /// Today's (or [day]'s) classes, projected from the loaded timetable. Null
+  /// until a timetable with at least one class is loaded, so pages without
+  /// one keep exactly their old behavior.
+  ClassDayLookup? get _classDays {
+    if (!_academicScheduleLoaded || _academicSchedule.occurrences.isEmpty) {
+      return null;
+    }
+    final schedule = _academicSchedule;
+    return (now, {day}) => projectClassDay(schedule, now, day: day);
   }
 
   @override
@@ -276,6 +294,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _onIncomingAcademicScheduleFile,
     );
     CloudSync.instance.removeListener(_onCloudAccountChanged);
+    if (GameState.restDayResolver == _restDayFromSchedule) {
+      GameState.restDayResolver = null;
+    }
     _midnight?.cancel();
     _ignitionClearTimer?.cancel();
     _luxeMotion.dispose();
@@ -305,8 +326,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _loadAcademicScheduleForShell() async {
     final schedule = await _academicScheduleRepository.load();
     if (!mounted) return;
-    _academicSchedule = schedule;
-    _academicScheduleLoaded = true;
+    // A rebuild hands the pages below the new class-day projection.
+    setState(() {
+      _academicSchedule = schedule;
+      _academicScheduleLoaded = true;
+    });
     unawaited(_rescheduleNotifications());
     unawaited(_publishWidgetSnapshot());
   }
@@ -319,8 +343,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   void _onAcademicScheduleChanged(AcademicSchedule schedule) {
-    _academicSchedule = schedule;
-    _academicScheduleLoaded = true;
+    if (!mounted) return;
+    setState(() {
+      _academicSchedule = schedule;
+      _academicScheduleLoaded = true;
+    });
     unawaited(_rescheduleNotifications());
     unawaited(_publishWidgetSnapshot());
   }
@@ -1120,6 +1147,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _maybeStartSessionIgnition();
   }
 
+  ClassDay? _classDayToday() {
+    final day = _classDays?.call(Clock.now());
+    return day != null && day.isClassDay ? day : null;
+  }
+
   /// Auto-greet: last night was closed out, today hasn't been briefed.
   void _maybeMorning() {
     if (!_startupSettled ||
@@ -1156,6 +1188,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         builder: (_) => MorningFlow(
           state: s,
           quests: q,
+          classDay: _classDayToday(),
           onDismiss: () {
             e.remove();
             _morningOverlay = null;
@@ -2012,6 +2045,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           focusRequestId: _questFocusRequest,
                                           workoutRequestId: _workoutRequest,
                                           musicController: _music,
+                                          classDays: _classDays,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)

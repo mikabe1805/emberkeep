@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../academic_calendar/services/class_day_projection.dart';
 import '../audio.dart';
 import '../clock.dart';
+import '../content/class_lines.dart';
 import '../content/creature_skins.dart';
 import '../content/day_planning.dart';
 import '../content/messages.dart';
@@ -15,11 +17,13 @@ import '../storage.dart';
 import '../tokens.dart';
 import 'ember_flame_icon.dart';
 import 'ember_sheet.dart';
+import 'extra_credit_sheet.dart';
 import 'facets.dart';
 import 'glass.dart';
 import 'gold_surface.dart';
 import 'honey_button.dart';
 import 'night_reflection_sheet.dart';
+import 'pressable.dart';
 import 'routine_ledger.dart';
 
 /// The night routine (round-5): goodnight → animated recap of today's haul
@@ -34,6 +38,7 @@ class NightFlow extends StatefulWidget {
     required this.onAdd,
     required this.onPersist,
     required this.onClose,
+    this.tomorrowClasses,
   });
 
   final GameState state;
@@ -41,6 +46,10 @@ class NightFlow extends StatefulWidget {
   final bool Function(Quest) onAdd;
   final VoidCallback onPersist;
   final VoidCallback onClose;
+
+  /// Tomorrow's real classes from the timetable, when there is one. They head
+  /// the MARK TOMORROW tray as fixed lines and never take one of its slots.
+  final ClassDay? tomorrowClasses;
 
   @override
   State<NightFlow> createState() => _NightFlowState();
@@ -50,6 +59,7 @@ class _NightFlowState extends State<NightFlow> {
   int _step = 0;
   bool _closing = false;
   bool _showAllFinished = false;
+  bool _editingExtraCredit = false;
   late final String _line = RewardMessages.night(Random());
 
   /// Lines logged as "not today" this session — shown warm, never red
@@ -61,6 +71,60 @@ class _NightFlowState extends State<NightFlow> {
       (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
 
   bool get _hasNightPage => widget.state.nightDraftNote?.night != null;
+
+  /// Tomorrow's classes as tray lines: at most three, by start.
+  List<ProjectedClass> get _tomorrowClassLines =>
+      widget.tomorrowClasses?.classes.take(3).toList() ?? const [];
+
+  /// The folio's extra paper: room for the Extra Credit line on every night,
+  /// plus one printed line for each of tomorrow's classes (and its "more").
+  double get _extraPageHeight {
+    final shown = _tomorrowClassLines.length;
+    final total = widget.tomorrowClasses?.classes.length ?? 0;
+    final lines = shown + (total > shown ? 1 : 0);
+    return 96 +
+        (lines == 0 ? 0 : lines * _LedgerTomorrowClasses.lineHeight + 8);
+  }
+
+  Future<void> _keepExtraCredit() async {
+    if (_editingExtraCredit || _closing) return;
+    _editingExtraCredit = true;
+    final s = widget.state;
+    final day = s.activeNightDayKey;
+    final initial = s.extraCreditForDay(day);
+    try {
+      await showExtraCreditSheet(
+        context,
+        initial: initial?.title,
+        reduceMotion: _reduceMotion,
+        onKeep: (title) {
+          if (!mounted || !identical(s, widget.state)) {
+            return 'The day changed while you were writing. Your words are still here to copy.';
+          }
+          if (day != s.activeNightDayKey) {
+            return 'A new day has started. Copy these words, then reopen extra credit for the new day.';
+          }
+          final kept = initial == null
+              ? s.addExtraCredit(title, dayKey: day) != null
+              : s.updateExtraCredit(day, title);
+          if (!kept) {
+            return 'Today’s extra credit is already kept. Reopen it to edit the wording.';
+          }
+          // Refresh an existing reflection, but never create a Journal page
+          // just because the person accepted a small XP acknowledgment.
+          final draft = s.nightDraftNote?.night;
+          if (draft != null) {
+            s.saveNightJournal(draft, s.nightJournalTrace(widget.quests));
+          }
+          widget.onPersist();
+          setState(() {});
+          return null;
+        },
+      );
+    } finally {
+      _editingExtraCredit = false;
+    }
+  }
 
   Future<void> _keepNightReflection() async {
     final s = widget.state;
@@ -142,6 +206,7 @@ class _NightFlowState extends State<NightFlow> {
       },
       reduceMotion: _reduceMotion,
       scrollKey: const ValueKey('recap'),
+      pageExtraHeight: _extraPageHeight,
       builder: (context, parallax, light, scroll, entrance) {
         return RoutineLedgerPage(
           time: RoutineTime.night,
@@ -150,6 +215,7 @@ class _NightFlowState extends State<NightFlow> {
           scroll: scroll,
           entrance: entrance,
           closing: _closing,
+          extraPageHeight: _extraPageHeight,
           primaryLabel: _step == 0 ? 'CLOSE THE DAY' : 'KEEP THESE THREE',
           onPrimary: _step == 0
               ? _finish
@@ -203,6 +269,8 @@ class _NightFlowState extends State<NightFlow> {
   Widget _ledgerRecap(BuildContext context) {
     final s = widget.state;
     final done = s.nightCompletionCount;
+    final kept = s.classesKeptOn(s.activeNightDayKey);
+    final tomorrowClasses = _tomorrowClassLines;
     final statGains = s.nightStatGains.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final shownGains = statGains.take(3).toList();
@@ -226,6 +294,15 @@ class _NightFlowState extends State<NightFlow> {
             setState(() => _step = 1);
           },
         );
+        final classLines = tomorrowClasses.isEmpty
+            ? null
+            : _LedgerTomorrowClasses(
+                classes: tomorrowClasses,
+                more:
+                    (widget.tomorrowClasses?.classes.length ?? 0) -
+                    tomorrowClasses.length,
+                compact: compact,
+              );
 
         return SizedBox.expand(
           key: const ValueKey('ledger-recap'),
@@ -304,18 +381,24 @@ class _NightFlowState extends State<NightFlow> {
                       ),
                     SizedBox(height: compact ? 7 : 14),
                     LedgerSectionTitle(
-                      label:
-                          '${_ledgerCountWord(done)} THREAD${done == 1 ? '' : 'S'} FINISHED',
+                      label: _finishedSectionLabel(
+                        classes: kept.length,
+                        threads: done,
+                      ),
                       morning: false,
                     ),
                     SizedBox(height: compact ? 3 : 6),
                     _FinishedThreadsLedger(
+                      classes: kept,
                       titles: s.nightQuestTitles,
+                      extraCredit: s.extraCreditForDay(s.activeNightDayKey),
+                      onExtraCredit: _keepExtraCredit,
                       expanded: _showAllFinished,
                       onExpand: () => setState(() => _showAllFinished = true),
                       onCollapse: () =>
                           setState(() => _showAllFinished = false),
                       compact: compact,
+                      reduceMotion: _reduceMotion,
                     ),
                     if (risers.isNotEmpty)
                       Align(
@@ -352,6 +435,7 @@ class _NightFlowState extends State<NightFlow> {
                     ],
                     if (compact) ...[
                       const Spacer(),
+                      ?classLines,
                       SizedBox(
                         height: veryLargeText
                             ? 180
@@ -367,8 +451,14 @@ class _NightFlowState extends State<NightFlow> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  height: 126,
-                  child: tomorrowTray,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?classLines,
+                      SizedBox(height: 126, child: tomorrowTray),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -500,6 +590,7 @@ class _NightFlowState extends State<NightFlow> {
   Future<void> _showRisers(BuildContext context, List<Quest> risers) {
     return showDialog<void>(
       context: context,
+      useRootNavigator: false,
       barrierColor: Palette.dialogBarrier,
       builder: (dialogContext) => Dialog(
         backgroundColor: Palette.dialogSurface,
@@ -1416,12 +1507,17 @@ class MorningFlow extends StatefulWidget {
     required this.quests,
     required this.onClose,
     this.onDismiss,
+    this.classDay,
   });
 
   final GameState state;
   final List<Quest> quests;
   final VoidCallback onClose;
   final VoidCallback? onDismiss;
+
+  /// Today's classes from the shell's timetable, when there is one. Carried
+  /// for the class-day morning; the page does not show them yet.
+  final ClassDay? classDay;
 
   @override
   State<MorningFlow> createState() => _MorningFlowState();
@@ -2207,6 +2303,18 @@ String _routineDateLabel(DateTime date) {
   return '${weekdays[date.weekday - 1]} · ${months[date.month - 1]} ${date.day}';
 }
 
+/// The heading over the day's finished lines. Quests stay threads; a class
+/// day names its classes, so it never reads as an empty day.
+String _finishedSectionLabel({required int classes, required int threads}) {
+  if (classes == 0) {
+    return '${_ledgerCountWord(threads)} THREAD${threads == 1 ? '' : 'S'} FINISHED';
+  }
+  final classPart =
+      '${_ledgerCountWord(classes)} CLASS${classes == 1 ? '' : 'ES'}';
+  if (threads == 0) return '$classPart KEPT';
+  return '$classPart · ${_ledgerCountWord(threads)} THREAD${threads == 1 ? '' : 'S'}';
+}
+
 String _ledgerCountWord(int count) => switch (count) {
   0 => 'NO',
   1 => 'ONE',
@@ -2285,11 +2393,15 @@ class _LedgerThreadLine extends StatelessWidget {
     required this.title,
     required this.morning,
     required this.compact,
+    this.time,
   });
 
   final String title;
   final bool morning;
   final bool compact;
+
+  /// A kept class's start time, printed at the line's end.
+  final String? time;
 
   @override
   Widget build(BuildContext context) {
@@ -2331,6 +2443,19 @@ class _LedgerThreadLine extends StatelessWidget {
               ),
             ),
           ),
+          if (time case final time?) ...[
+            SizedBox(width: compact ? 6 : 10),
+            Text(
+              time,
+              maxLines: 1,
+              style: LedgerType.smallCaps.copyWith(
+                fontSize: compact ? 11 : 12.5,
+                letterSpacing: 0.9,
+                height: 1.08,
+                color: Palette.brassLit.withValues(alpha: 0.82),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2339,49 +2464,57 @@ class _LedgerThreadLine extends StatelessWidget {
 
 class _FinishedThreadsLedger extends StatelessWidget {
   const _FinishedThreadsLedger({
+    required this.classes,
     required this.titles,
+    required this.extraCredit,
+    required this.onExtraCredit,
     required this.expanded,
     required this.onExpand,
     required this.onCollapse,
     required this.compact,
+    required this.reduceMotion,
   });
 
+  /// The classes kept tonight, by start. Named first, each with its time.
+  final List<KeptClass> classes;
+
+  /// The Quests finished tonight. They stay threads.
   final List<String> titles;
+  final ExtraCreditEntry? extraCredit;
+  final VoidCallback onExtraCredit;
   final bool expanded;
   final VoidCallback onExpand;
   final VoidCallback onCollapse;
   final bool compact;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
-    final collapsedCount = 3;
-    final visible = titles.take(collapsedCount).toList();
-    final remaining = titles.length - visible.length;
+    const collapsedCount = 3;
+    final lines = <Widget Function()>[
+      for (final kept in classes)
+        () => _LedgerThreadLine(
+          title: shortClassLabel(kept.label),
+          time: classTimeLabel(kept.startMinute),
+          morning: false,
+          compact: compact,
+        ),
+      for (final title in titles)
+        () => _LedgerThreadLine(title: title, morning: false, compact: compact),
+    ];
+    final visible = lines.take(collapsedCount).toList();
+    final remaining = lines.length - visible.length;
     final textScale = MediaQuery.textScalerOf(context).scale(1);
     final largeText = textScale > 1.15;
-    final height = compact
-        ? (textScale >= 1.75 ? 132.0 : (largeText ? 94.0 : 82.0))
-        : 112.0;
-
-    if (titles.isEmpty) {
-      return SizedBox(
-        height: height,
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'Nothing had to be proven today.',
-              style: LedgerType.body.copyWith(
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    // Three lines and the "more" link always fit: their own line boxes
+    // (font size x line height x text scale, plus each line's padding).
+    final lineBox =
+        (compact ? 12.5 : 15.5) * 1.08 * textScale + (compact ? 4 : 11);
+    final moreBox = max(25.0, (compact ? 11.5 : 13) * 1.16 * textScale + 2);
+    final listHeight = max(
+      compact ? (textScale >= 1.75 ? 132.0 : (largeText ? 94.0 : 82.0)) : 112.0,
+      collapsedCount * lineBox + (lines.length > collapsedCount ? moreBox : 0),
+    );
 
     Widget moreButton(String label, VoidCallback onPressed) => Align(
       alignment: Alignment.centerRight,
@@ -2405,40 +2538,261 @@ class _FinishedThreadsLedger extends StatelessWidget {
       ),
     );
 
-    return SizedBox(
-      height: height,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 260),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        child: expanded
-            ? ListView(
-                key: const ValueKey('all-finished-threads'),
-                padding: EdgeInsets.zero,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  for (final title in titles)
-                    _LedgerThreadLine(
-                      title: title,
-                      morning: false,
-                      compact: compact,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: listHeight,
+          child: AnimatedSwitcher(
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: lines.isEmpty
+                ? Align(
+                    key: const ValueKey('quiet-day'),
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Nothing had to be proven today.',
+                        style: LedgerType.body.copyWith(
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                          color: Palette.textLo,
+                        ),
+                      ),
                     ),
-                  moreButton('show fewer', onCollapse),
-                ],
-              )
-            : Column(
-                key: const ValueKey('finished-thread-summary'),
-                children: [
-                  for (final title in visible)
-                    _LedgerThreadLine(
-                      title: title,
-                      morning: false,
-                      compact: compact,
-                    ),
-                  if (remaining > 0)
-                    moreButton('and $remaining more!', onExpand),
-                ],
+                  )
+                : expanded
+                ? ListView(
+                    key: const ValueKey('all-finished-threads'),
+                    padding: EdgeInsets.zero,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      for (final line in lines) line(),
+                      moreButton('show fewer', onCollapse),
+                    ],
+                  )
+                : Column(
+                    key: const ValueKey('finished-thread-summary'),
+                    children: [
+                      for (final line in visible) line(),
+                      if (remaining > 0)
+                        moreButton('and $remaining more!', onExpand),
+                    ],
+                  ),
+          ),
+        ),
+        _LedgerExtraCreditLine(
+          entry: extraCredit,
+          onTap: onExtraCredit,
+          compact: compact,
+        ),
+      ],
+    );
+  }
+}
+
+/// Mika's Extra Credit: one optional line a night for something real that was
+/// not on the board. Tapping opens the writing above the folio.
+class _LedgerExtraCreditLine extends StatelessWidget {
+  const _LedgerExtraCreditLine({
+    required this.entry,
+    required this.onTap,
+    required this.compact,
+  });
+
+  final ExtraCreditEntry? entry;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => Pressable(
+    key: const Key('extra-credit-entry'),
+    material: MaterialSound.parchment,
+    edgeColor: Colors.transparent,
+    pressDepth: 1.5,
+    guardRapidReentry: true,
+    semanticLabel: entry == null
+        ? 'Extra credit. Add something else that counted today for ${GameState.extraCreditXp} XP.'
+        : 'Extra credit. ${entry!.title}. ${entry!.xp} XP already added. Edit wording.',
+    onTapUp: (_) => onTap(),
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 44),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 6),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Palette.brass.withValues(alpha: 0.32)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'EXTRA CREDIT',
+                  style: LedgerType.smallCaps.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 1.1,
+                    height: 1.15,
+                    color: Palette.textMid,
+                  ),
+                ),
               ),
+              const SizedBox(width: 6),
+              Text(
+                '+${entry?.xp ?? GameState.extraCreditXp} XP',
+                style: Type.numerals.copyWith(
+                  fontSize: 12,
+                  height: 1.1,
+                  color: Palette.xpLight,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  entry?.title ?? 'Something else counted?',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: LedgerType.body.copyWith(
+                    fontSize: compact ? 13.5 : 15,
+                    height: 1.16,
+                    fontStyle: entry == null
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                    color: entry == null ? Palette.textMid : Palette.textHi,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                entry == null ? Icons.add_rounded : Icons.edit_outlined,
+                size: 15,
+                color: Palette.textMid,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Tomorrow's classes, printed above the MARK TOMORROW tray. They are fixed
+/// facts of the day, so they never take one of the three slots.
+class _LedgerTomorrowClasses extends StatelessWidget {
+  const _LedgerTomorrowClasses({
+    required this.classes,
+    required this.more,
+    required this.compact,
+  });
+
+  final List<ProjectedClass> classes;
+  final int more;
+  final bool compact;
+
+  /// Each printed line's height. [_NightFlowState._extraPageHeight] reserves
+  /// the same paper for them.
+  static const lineHeight = 17.0;
+
+  TextStyle get _tagStyle => LedgerType.smallCaps.copyWith(
+    fontSize: Type.minLabel,
+    letterSpacing: 1.05,
+    height: 1.1,
+    color: Palette.brassLit.withValues(alpha: 0.86),
+  );
+
+  TextStyle get _nameStyle => LedgerType.body.copyWith(
+    fontSize: compact ? 11.5 : 12.5,
+    height: 1.1,
+    fontStyle: FontStyle.italic,
+    color: Palette.textLo,
+  );
+
+  /// The tag always prints in full; the course name joins it only when the
+  /// whole name fits, so the line never ends in a clipped word.
+  InlineSpan _line(BuildContext context, ProjectedClass entry, double width) {
+    final tag = TextSpan(text: tomorrowClassTag(entry), style: _tagStyle);
+    final withName = TextSpan(
+      children: [
+        tag,
+        TextSpan(text: '   ${shortClassLabel(entry.title)}', style: _nameStyle),
+      ],
+    );
+    final painter = TextPainter(
+      text: withName,
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout(maxWidth: width);
+    final fits = !painter.didExceedMaxLines && painter.width <= width;
+    painter.dispose();
+    return fits ? withName : tag;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // The folio reserves these lines' paper scaled the same way.
+    final height =
+        lineHeight * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+    return Semantics(
+      container: true,
+      label: [
+        for (final entry in classes)
+          'Tomorrow, ${classTimeLabel(entry.localStartMinute)}, '
+              '${entry.title}, ${classPlaceTag(entry)}',
+        if (more > 0) 'and $more more ${more == 1 ? 'class' : 'classes'}',
+      ].join('. '),
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(4, 0, 4, compact ? 4 : 8),
+          child: LayoutBuilder(
+            builder: (context, bounds) => Column(
+              key: const Key('ledger-tomorrow-classes'),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final entry in classes)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: height),
+                    child: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(vertical: 1.5),
+                      // At large text the tag may take a second line rather
+                      // than lose its time or room.
+                      child: Text.rich(
+                        _line(context, entry, bounds.maxWidth),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                if (more > 0)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: height),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'and $more more ${more == 1 ? 'class' : 'classes'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _nameStyle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -2788,7 +3142,9 @@ class _LedgerTomorrowTray extends StatelessWidget {
                       left:
                           bounds.maxWidth * ((index + 0.5) / 3) -
                           (compact ? 11 : 13.5),
-                      top: trayHeight * 0.75,
+                      // Tucked under the tray's lower rail and hanging below
+                      // it, so a two-line title is never covered.
+                      top: trayHeight * 0.9,
                       width: compact ? 22 : 27,
                       height: compact ? 29 : 36,
                       child: _PriorityRibbon(index: index),
@@ -3194,6 +3550,11 @@ class _MorningLeadQuest extends StatelessWidget {
   }
 }
 
+/// How a morning row fits its height: the roomy stack, the same stack set
+/// tighter, or the title alone (the stat glyph at its left still names the
+/// domain). The title is never shortened to make room for the XP line.
+enum _MorningLineFit { roomy, tight, titleOnly }
+
 class _MorningQuestLine extends StatelessWidget {
   const _MorningQuestLine({
     required this.quest,
@@ -3205,70 +3566,115 @@ class _MorningQuestLine extends StatelessWidget {
   final int? xp;
   final bool compact;
 
+  TextStyle get _titleStyle => LedgerType.body.copyWith(
+    fontSize: compact ? 15 : 19,
+    height: 1.05,
+    fontStyle: quest == null ? FontStyle.italic : FontStyle.normal,
+    color: quest == null ? LedgerInk.quiet : LedgerInk.dark,
+  );
+
+  TextStyle get _detailStyle => Type.label.copyWith(
+    fontSize: Type.minLabel,
+    color: quest?.stat.color ?? LedgerInk.quiet,
+  );
+
+  static double _padding(_MorningLineFit fit) =>
+      fit == _MorningLineFit.roomy ? 5 : 2;
+
+  static double _gap(_MorningLineFit fit) =>
+      fit == _MorningLineFit.roomy ? 4 : 1;
+
+  /// On a phone-height page the rows can be shorter than the roomy stack.
+  /// Measure the real lines and pick the first fit that is not clipped.
+  _MorningLineFit _fit(BuildContext context, double maxHeight) {
+    if (quest == null || !maxHeight.isFinite) return _MorningLineFit.roomy;
+    final scaler = MediaQuery.textScalerOf(context);
+    double lineHeight(TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(text: 'Ag', style: style),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final height = painter.height;
+      painter.dispose();
+      return height;
+    }
+
+    final lines = lineHeight(_titleStyle) + lineHeight(_detailStyle);
+    for (final fit in const [_MorningLineFit.roomy, _MorningLineFit.tight]) {
+      // Two paddings, the gap, and the hairline rule.
+      final needed = _padding(fit) * 2 + _gap(fit) + lines + 1;
+      if (needed <= maxHeight) return fit;
+    }
+    return _MorningLineFit.titleOnly;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(compact ? 6 : 11, 5, compact ? 5 : 9, 5),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: LedgerInk.rule.withValues(alpha: 0.65)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            quest?.stat.icon ?? Icons.bookmark_border_rounded,
-            size: compact ? 23 : 31,
-            color: quest?.stat.color ?? LedgerInk.quiet,
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final fit = _fit(context, bounds.maxHeight);
+        final padding = _padding(fit);
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 6 : 11,
+            padding,
+            compact ? 5 : 9,
+            padding,
           ),
-          SizedBox(width: compact ? 8 : 13),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  quest?.displayTitle ?? 'Leave room for what arrives',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: LedgerType.body.copyWith(
-                    fontSize: compact ? 15 : 19,
-                    height: 1.05,
-                    fontStyle: quest == null
-                        ? FontStyle.italic
-                        : FontStyle.normal,
-                    color: quest == null ? LedgerInk.quiet : LedgerInk.dark,
-                  ),
-                ),
-                if (quest != null) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        quest!.stat.icon,
-                        size: 11,
-                        color: quest!.stat.color,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          '${quest!.stat.abbr} · +$xp XP',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: quest!.stat.color,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: LedgerInk.rule.withValues(alpha: 0.65)),
             ),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Icon(
+                quest?.stat.icon ?? Icons.bookmark_border_rounded,
+                size: compact ? 23 : 31,
+                color: quest?.stat.color ?? LedgerInk.quiet,
+              ),
+              SizedBox(width: compact ? 8 : 13),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      quest?.displayTitle ?? 'Leave room for what arrives',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _titleStyle,
+                    ),
+                    if (quest != null && fit != _MorningLineFit.titleOnly) ...[
+                      SizedBox(height: _gap(fit)),
+                      Row(
+                        children: [
+                          Icon(
+                            quest!.stat.icon,
+                            size: 11,
+                            color: quest!.stat.color,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              '${quest!.stat.abbr} · +$xp XP',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _detailStyle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

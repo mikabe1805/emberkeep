@@ -13,6 +13,85 @@ import 'pressable.dart';
 
 enum RoutineTime { night, morning }
 
+/// The live page and its scroll stage must agree on this geometry. The night
+/// receipt grows with Extra Credit and with tomorrow's classes (more at
+/// accessibility text sizes), so a fixed stage would strand the reflection
+/// action below the scroll extent.
+class _RoutineLedgerPageGeometry {
+  const _RoutineLedgerPageGeometry({
+    required this.width,
+    required this.folioHeight,
+    required this.claspHeight,
+    required this.claspTop,
+    required this.secondaryTop,
+    required this.totalHeight,
+  });
+
+  final double width;
+  final double folioHeight;
+  final double claspHeight;
+  final double claspTop;
+  final double secondaryTop;
+  final double totalHeight;
+}
+
+_RoutineLedgerPageGeometry _routineLedgerPageGeometry({
+  required double viewportWidth,
+  required double textScale,
+  required RoutineTime time,
+  required double extraPageHeight,
+  required bool hasSecondaryAction,
+}) {
+  final narrow = viewportWidth < 360;
+  final accessibilityPhone = narrow && textScale >= 1.75;
+  final width = (viewportWidth * 1.22).clamp(410.0, 560.0);
+  // The two bookends are visits to the same desk, so their occupied frame is
+  // deliberately shared even though the morning source plate contains a
+  // taller transparent/page-stack crop. Drawing that crop at its raw aspect
+  // made dawn feel like a different, lower camera and pushed its clasp well
+  // below the night composition.
+  //
+  // The places that give way are accessibility text sizes (and a narrow
+  // phone), where the page genuinely cannot hold the day at a legible size.
+  // There the book stretches rather than the type shrinking: the trade the
+  // routine_ledger_visual_test guards, and the right one, since a slightly
+  // long book beats a day you cannot read. A full-width phone lengthens its
+  // book the same way as the text grows past 115% (the narrow phone's long
+  // book by 175%); at a fixed 1.034 its receipt ran past the folio. A page
+  // with more live content asks for [extraPageHeight] of paper the same
+  // way, scaled with the text.
+  final aspect = narrow
+      ? (accessibilityPhone ? 2.45 : 1.84)
+      : 1.034 + (1.84 - 1.034) * ((textScale - 1.15) / 0.6).clamp(0.0, 1.0);
+  final folioHeight =
+      width * aspect + extraPageHeight * textScale.clamp(1.0, 2.0);
+  // The clasp plate is its own photograph too (1983x498, h/w 0.251), so its
+  // height follows its width rather than a hand-set clamp. It sits ON the
+  // cover: before this it began at 0.915 of the folio and ran past the
+  // book's own bottom edge (0.93), so a solid brass plate was half mounted on
+  // leather and half floating in the room.
+  const claspAspect = 498 / 1983;
+  final claspWidth = width * (1 - _claspInset * 2);
+  final claspHeight = claspWidth * claspAspect;
+  // Where the plate's lower edge lands, as a fraction of the folio: just
+  // inside the leather in both books (night's cover ends at ~0.93, the
+  // morning folio's page block at ~0.955).
+  final morning = time == RoutineTime.morning;
+  final claspTop = folioHeight * (morning ? 0.945 : 0.905) - claspHeight;
+  final objectBottom = max(folioHeight, claspTop + claspHeight);
+  final secondaryTop = objectBottom + 14;
+  return _RoutineLedgerPageGeometry(
+    width: width,
+    folioHeight: folioHeight,
+    claspHeight: claspHeight,
+    claspTop: claspTop,
+    secondaryTop: secondaryTop,
+    totalHeight: hasSecondaryAction ? secondaryTop + 42 : objectBottom,
+  );
+}
+
+const _claspInset = 0.24;
+
 /// The ledger has its own printed voice. EB Garamond keeps live quest text
 /// feeling letterpressed into the folio instead of laid over it by a modern
 /// interface, while the app's compact mono remains available for dates and
@@ -71,6 +150,7 @@ class RoutineLedgerScaffold extends StatefulWidget {
     required this.reduceMotion,
     required this.builder,
     required this.scrollKey,
+    this.pageExtraHeight = 0,
   });
 
   final RoutineTime time;
@@ -81,6 +161,10 @@ class RoutineLedgerScaffold extends StatefulWidget {
   final bool reduceMotion;
   final RoutineLedgerBuilder builder;
   final Key scrollKey;
+
+  /// The [RoutineLedgerPage.extraPageHeight] the builder's page asks for, so
+  /// the scroll stage always reaches the page's real end.
+  final double pageExtraHeight;
 
   @override
   State<RoutineLedgerScaffold> createState() => _RoutineLedgerScaffoldState();
@@ -217,12 +301,28 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
             builder: (context, bounds) {
               final textScale = MediaQuery.textScalerOf(context).scale(1);
               final narrowPhone = bounds.maxWidth < 360;
-              final accessibilityPhone = narrowPhone && textScale >= 1.75;
-              final stageHeight = narrowPhone
-                  ? (bounds.maxHeight < (accessibilityPhone ? 1450 : 1080)
-                        ? (accessibilityPhone ? 1450.0 : 1080.0)
-                        : bounds.maxHeight)
-                  : (bounds.maxHeight < 900 ? 900.0 : bounds.maxHeight);
+              // Accessibility text gets the two-line title and the lower
+              // folio on any phone; only the narrow one also needs the
+              // taller stage.
+              final largeText = textScale >= 1.75;
+              final accessibilityPhone = narrowPhone && largeText;
+              // Reserve the page's real extent (its extra paper and the
+              // optional action below it), so the stage always reaches the
+              // same endpoint as the page builder.
+              final pageGeometry = _routineLedgerPageGeometry(
+                viewportWidth: bounds.maxWidth,
+                textScale: textScale,
+                time: widget.time,
+                extraPageHeight: widget.pageExtraHeight,
+                hasSecondaryAction: true,
+              );
+              final contentTop = largeText ? 245.0 : 154.0;
+              final ledgerExtent = contentTop + pageGeometry.totalHeight + 16;
+              final minimumStage = max(
+                narrowPhone ? (accessibilityPhone ? 1450.0 : 1080.0) : 900.0,
+                ledgerExtent,
+              );
+              final stageHeight = max(minimumStage, bounds.maxHeight);
               return MouseRegion(
                 onHover: (event) =>
                     _motion.handlePointer(event, bounds.biggest),
@@ -302,9 +402,9 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                 ),
                               ),
                               Positioned(
-                                top: accessibilityPhone ? 52 : 62,
-                                left: accessibilityPhone ? 20 : 24,
-                                right: accessibilityPhone ? 20 : 24,
+                                top: largeText ? 52 : 62,
+                                left: largeText ? 20 : 24,
+                                right: largeText ? 20 : 24,
                                 child: FadeTransition(
                                   opacity: _entranceCurve,
                                   child: SlideTransition(
@@ -318,16 +418,12 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                       children: [
                                         Text(
                                           widget.title,
-                                          maxLines: accessibilityPhone ? 2 : 1,
+                                          maxLines: largeText ? 2 : 1,
                                           overflow: TextOverflow.ellipsis,
                                           textAlign: TextAlign.center,
                                           style: LedgerType.display.copyWith(
-                                            fontSize: accessibilityPhone
-                                                ? 32
-                                                : 39,
-                                            height: accessibilityPhone
-                                                ? 0.92
-                                                : 1,
+                                            fontSize: largeText ? 32 : 39,
+                                            height: largeText ? 0.92 : 1,
                                             color: Palette.textHi,
                                             shadows: const [
                                               Shadow(
@@ -341,7 +437,7 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                         const SizedBox(height: 7),
                                         Text(
                                           widget.dateLabel,
-                                          maxLines: accessibilityPhone ? 2 : 1,
+                                          maxLines: largeText ? 2 : 1,
                                           overflow: TextOverflow.ellipsis,
                                           textAlign: TextAlign.center,
                                           style: Type.label.copyWith(
@@ -365,7 +461,7 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                 ),
                               ),
                               Positioned(
-                                top: accessibilityPhone ? 245 : 154,
+                                top: largeText ? 245 : 154,
                                 left: 0,
                                 right: 0,
                                 child: widget.builder(
@@ -594,6 +690,7 @@ class RoutineLedgerPage extends StatelessWidget {
     this.secondaryLabel,
     this.onSecondary,
     this.closing = false,
+    this.extraPageHeight = 0,
   });
 
   final RoutineTime time;
@@ -608,6 +705,11 @@ class RoutineLedgerPage extends StatelessWidget {
   final VoidCallback? onSecondary;
   final bool closing;
 
+  /// Additional writing space for a bookend with more live content. The folio
+  /// extends instead of shrinking type or stealing another control's room.
+  /// Morning keeps its original frame; the night receipt uses this allowance.
+  final double extraPageHeight;
+
   @override
   Widget build(BuildContext context) {
     final morning = time == RoutineTime.morning;
@@ -620,49 +722,27 @@ class RoutineLedgerPage extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, bounds) {
-        final narrow = bounds.maxWidth < 360;
         final textScale = MediaQuery.textScalerOf(context).scale(1);
-        final accessibilityPhone = narrow && textScale >= 1.75;
-        final width = (bounds.maxWidth * 1.22).clamp(410.0, 560.0);
-        // The two bookends are visits to the same desk, so their occupied
-        // frame is deliberately shared even though the morning source plate
-        // contains a taller transparent/page-stack crop. Drawing that crop at
-        // its raw aspect made dawn feel like a different, lower camera and
-        // pushed its clasp well below the night composition.
-        //
-        // The one place that gives way is a narrow phone at accessibility text
-        // size, where the page genuinely cannot hold the day at a legible size.
-        // There the book stretches rather than the type shrinking — the trade
-        // the routine_ledger_visual_test guards, and the right one: a slightly
-        // long book beats a day you cannot read.
-        final folioHeight =
-            width * (narrow ? (accessibilityPhone ? 2.45 : 1.84) : 1.034);
-
-        // The clasp plate is its own photograph too (1983x498, h/w 0.251), so
-        // its height follows its width rather than a hand-set clamp. It sits ON
-        // the cover: before this it began at 0.915 of the folio and ran past
-        // the book's own bottom edge (0.93), so a solid brass plate was half
-        // mounted on leather and half floating in the room.
-        const claspAspect = 498 / 1983;
-        const claspInset = 0.24;
-        final claspWidth = width * (1 - claspInset * 2);
-        final claspHeight = claspWidth * claspAspect;
+        final geometry = _routineLedgerPageGeometry(
+          viewportWidth: bounds.maxWidth,
+          textScale: textScale,
+          time: time,
+          extraPageHeight: extraPageHeight,
+          hasSecondaryAction: secondaryLabel != null,
+        );
+        final width = geometry.width;
+        final folioHeight = geometry.folioHeight;
+        final claspHeight = geometry.claspHeight;
         // Register the dawn plate back to the same quiet camera as the night
         // cover while preserving its measured internal page homography.
         final plateAngle = morning ? -3.5 * pi / 180 : 0.0;
         final plateOffsetX = morning ? width * 0.026 : 0.0;
-        // where the plate's lower edge lands, as a fraction of the folio — just
-        // inside the leather in both books (night's cover ends at ~0.93, the
-        // morning folio's page block at ~0.955)
-        final claspTop = folioHeight * (morning ? 0.945 : 0.905) - claspHeight;
+        final claspTop = geometry.claspTop;
         // Align the action with the corrected parchment rather than the
         // asymmetric transparent bounds of the dawn asset.
         final claspOffsetX = morning ? width * 0.017 : 0.0;
-        final objectBottom = max(folioHeight, claspTop + claspHeight);
-        final secondaryTop = objectBottom + 14;
-        final totalHeight = secondaryLabel == null
-            ? objectBottom
-            : secondaryTop + 42;
+        final secondaryTop = geometry.secondaryTop;
+        final totalHeight = geometry.totalHeight;
         return SizedBox(
           width: bounds.maxWidth,
           height: totalHeight,
@@ -744,8 +824,8 @@ class RoutineLedgerPage extends StatelessWidget {
                                 ),
                               ),
                               Positioned(
-                                left: width * claspInset,
-                                right: width * claspInset,
+                                left: width * _claspInset,
+                                right: width * _claspInset,
                                 top: claspTop,
                                 height: claspHeight,
                                 child: Transform.translate(

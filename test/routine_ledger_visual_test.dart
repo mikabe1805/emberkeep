@@ -372,6 +372,35 @@ void main() {
       2,
       reason: 'The 200% evidence must not cap its compact priority tray.',
     );
+    final reflect = find.text('reflect · optional');
+    await tester.scrollUntilVisible(
+      reflect,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(
+      reflect.hitTestable(),
+      findsOneWidget,
+      reason:
+          'The optional reflection must remain reachable after the receipt '
+          'grew for Extra Credit.',
+    );
+    await tester.tap(reflect);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.byKey(const Key('night-reflection-field')),
+      findsOneWidget,
+      reason: 'The reachable reflection action must open the real prompt.',
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.scrollUntilVisible(
+      closeDay,
+      -420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),

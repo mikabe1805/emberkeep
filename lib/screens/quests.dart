@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../background_music.dart';
+import '../academic_calendar/services/class_day_projection.dart';
 import '../clock.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
@@ -20,6 +21,7 @@ import '../content/routines.dart';
 import '../content/space_themes.dart';
 import '../content/sparks.dart';
 import '../content/stat_ranks.dart';
+import '../daybook/domain/civil_date.dart';
 import '../engine.dart';
 import '../room_photo.dart';
 import '../haptics.dart';
@@ -90,6 +92,7 @@ class QuestsPage extends StatefulWidget {
     this.focusRequestId = 0,
     this.workoutRequestId = 0,
     this.musicController,
+    this.classDays,
   });
 
   final GameState state;
@@ -168,6 +171,10 @@ class QuestsPage extends StatefulWidget {
   /// The shell's one optional long-lived music voice. Kept optional for
   /// direct previews; production passes it into timer-verified Focus rooms.
   final BackgroundMusicController? musicController;
+
+  /// The shell's class-day projection over the imported timetable, or null
+  /// without one. Optional, so direct previews and tests need no schedule.
+  final ClassDayLookup? classDays;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -256,16 +263,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// small route guard closes the few-millisecond gap before Navigator paints.
   bool _journalRouteOpen = false;
 
-  /// One closing ledger at a time. The flow's own guard prevents a double
-  /// submit inside one overlay; this prevents two overlays from being opened
-  /// by rapid taps on separate entry points.
-  OverlayEntry? _nightOverlay;
+  /// One owned closing-ledger route at a time. Its local Navigator keeps the
+  /// ledger's writing sheets above the folio and closes them with it; rapid
+  /// taps on separate entry points still open only one ledger.
+  Route<void>? _nightRoute;
 
   /// The most recent completion's undo target. Drives the swipe-left-to-undo on
-  /// the just-completed card — a calm, in-place undo (the transient snackbar
-  /// was removed).
-  String? _undoTitle;
-  String? _undoSnapshot;
+  /// the just-completed card, a calm in-place undo (the transient snackbar was
+  /// removed). The slot only restores while that completion is still the
+  /// newest reward, so a later class keep or Extra Credit can never be erased.
+  RewardUndoSlot? _undoSlot;
+
+  bool get _undoArmed => _undoSlot?.canRestore(_state) ?? false;
 
   /// The quest the keeper deliberately brought forward. Keeping this local to
   /// the board makes selection immediate without turning a glance into saved
@@ -521,18 +530,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _undoLast() {
-    final snap = _undoSnapshot;
-    if (snap == null) return;
+    final slot = _undoSlot;
+    if (slot == null) return;
+    if (!slot.canRestore(_state)) {
+      // Something newer landed since this completion. Restoring would erase
+      // it, so the affordance simply settles.
+      setState(() => _undoSlot = null);
+      return;
+    }
     Sfx.instance.play('boing');
     HapticFeedback.selectionClick();
-    if (_undoTitle != null) Storage.logEvent('undo', [_undoTitle]);
+    Storage.logEvent('undo', [slot.label]);
     setState(() {
-      _undoTitle = null;
-      _undoSnapshot = null;
+      _undoSlot = null;
       _pendingAchievementToasts.clear();
     });
     ScaffoldMessenger.of(context).clearSnackBars();
-    widget.onRestore(snap);
+    widget.onRestore(slot.snapshot);
   }
 
   void _selectQuest(Quest quest) {
@@ -669,6 +683,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void didUpdateWidget(QuestsPage old) {
     super.didUpdateWidget(old);
     if (!identical(old.state, widget.state)) {
+      _removeNightRoute();
+      _undoSlot = null;
       _pendingAchievementToasts.clear();
       for (final timer in _achievementToastTimers) {
         timer.cancel();
@@ -705,11 +721,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _settleUndoBeforeLaterEdit() {
-    if (_undoSnapshot == null) return;
-    setState(() {
-      _undoTitle = null;
-      _undoSnapshot = null;
-    });
+    if (_undoSlot == null) return;
+    setState(() => _undoSlot = null);
     ScaffoldMessenger.of(context).clearSnackBars();
   }
 
@@ -753,11 +766,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _pendingTitle = null;
     if (ps == null || pb == null) return;
     if (!identical(ps, _state)) return; // state swapped (undo/reset) → drop
+    final slot = snap != null && title != null
+        ? RewardUndoSlot.before(
+            ps,
+            kind: RewardUndoKind.quest,
+            label: title,
+            snapshot: snap,
+          )
+        : null;
     setState(() => ps.commit(pb));
     if (_remainingToday() == 0 && !_anySnoozedToday()) ps.recordPerfectDay();
     _pendingAchievementToasts.addAll(ps.checkAchievements());
     widget.onPersist();
-    if (snap != null && title != null) _offerUndo(title, snap);
+    if (slot != null) _offerUndo(slot);
     // The list has just re-sorted and promoted the next quest. Measure the new
     // featured card against the reward rail once that layout exists.
     if (_activeReceipts > 0) {
@@ -770,8 +791,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _nightOverlay?.remove();
-    _nightOverlay = null;
+    _removeNightRoute();
     _localMotion?.dispose();
     _boardScroll.removeListener(_handleScrollLight);
     _boardScroll.dispose();
@@ -1055,10 +1075,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // A full-save undo would also erase the line just written. Once the keeper
     // adds later context, settle that completion and remove its undo affordance
     // rather than pretending the two histories can be separated safely.
-    setState(() {
-      _undoTitle = null;
-      _undoSnapshot = null;
-    });
+    setState(() => _undoSlot = null);
     ScaffoldMessenger.of(context).clearSnackBars();
     widget.onPersist();
     Storage.logEvent('quick_reflection', [quest.stat.index]);
@@ -1212,12 +1229,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// restoring reverts every reward the completion granted. The old transient
   /// undo snackbar was removed — the card swipe is now the single undo
   /// affordance (no redundant popup).
-  void _offerUndo(String title, String snapshot) {
+  void _offerUndo(RewardUndoSlot slot) {
     if (!mounted) return;
-    setState(() {
-      _undoTitle = title;
-      _undoSnapshot = snapshot;
-    });
+    setState(() => _undoSlot = slot);
   }
 
   /// The honest boundary of a shaped day: dated commitments plus the field.
@@ -1684,37 +1698,105 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _openNight({bool alreadyAcknowledged = false}) {
-    if (_nightOverlay != null) return;
+    if (_nightRoute != null) return;
+    // Land a reward still settling from the last 520 ms, so the ledger's
+    // receipt (and any undo it settles) includes it.
+    _flushCommit();
     if (!alreadyAcknowledged) {
       Sfx.instance.playMaterial(MaterialSound.glass);
     }
     final s = _state;
-    late final OverlayEntry e;
-    e = OverlayEntry(
-      builder: (_) => NightFlow(
-        state: s,
-        quests: widget.quests,
-        onAdd: widget.onAdd,
-        onPersist: widget.onPersist,
-        onClose: () {
-          e.remove();
-          if (identical(_nightOverlay, e)) _nightOverlay = null;
-          if (mounted && identical(s, _state)) {
-            // a night-confirmed all-day line can be the day's last clear
-            if (_remainingToday() == 0 && !_anySnoozedToday()) {
-              s.recordPerfectDay();
-            }
-            setState(() {});
-            _toastAchievements(s, s.checkAchievements());
-          }
-          if (s.nightDoneDay == Days.nightKey(Clock.now())) {
-            widget.onNightClosed?.call();
-          }
-        },
-      ),
+    final localNavigator = GlobalKey<NavigatorState>();
+    late final RawDialogRoute<void> route;
+    route = RawDialogRoute<void>(
+      settings: const RouteSettings(name: 'night-ledger'),
+      barrierColor: Colors.transparent,
+      transitionDuration: Duration.zero,
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          NavigatorPopHandler<void>(
+            onPopWithResult: (_) => localNavigator.currentState?.maybePop(),
+            child: Navigator(
+              key: localNavigator,
+              onGenerateRoute: (_) => PageRouteBuilder<void>(
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    NightFlow(
+                      state: s,
+                      quests: widget.quests,
+                      tomorrowClasses: _tomorrowClasses(),
+                      onAdd: (quest) =>
+                          mounted &&
+                          identical(s, _state) &&
+                          widget.onAdd(quest),
+                      onPersist: () {
+                        if (!mounted || !identical(s, _state)) return;
+                        // A completion's whole-save undo predates anything
+                        // written here (tonight's page, tomorrow's three,
+                        // Extra Credit, the close itself). It must never
+                        // erase this newer work, so any ledger write settles it.
+                        _settleUndoBeforeLaterEdit();
+                        widget.onPersist();
+                      },
+                      onClose: () {
+                        if (route.isCurrent) route.navigator?.pop();
+                      },
+                    ),
+              ),
+            ),
+          ),
     );
-    _nightOverlay = e;
-    Overlay.of(context).insert(e);
+    _nightRoute = route;
+    unawaited(
+      Navigator.of(context, rootNavigator: true).push(route).then((_) {
+        if (identical(_nightRoute, route)) _nightRoute = null;
+        if (!mounted || !identical(s, _state)) return;
+        // A night-confirmed all-day line can be the day's last clear. Extra
+        // Credit and kept classes never supply the Quest history it needs.
+        if (_remainingToday() == 0 && !_anySnoozedToday()) {
+          s.recordPerfectDay();
+        }
+        setState(() {});
+        // The receipt is seen first; a level crossed by Extra Credit (or a
+        // Quest that landed while the ledger was open) resolves now, then the
+        // usual streak, rank and achievement beats follow.
+        _resolveLevelUps(s);
+        if (s.nightDoneDay == Days.nightKey(Clock.now())) {
+          widget.onNightClosed?.call();
+        }
+      }),
+    );
+  }
+
+  /// Today's (night-owned) classes, when the shell holds a timetable.
+  ClassDay? _todayClasses() {
+    final day = widget.classDays?.call(Clock.now());
+    return day != null && day.isClassDay ? day : null;
+  }
+
+  /// Tomorrow's classes for the ledger's MARK TOMORROW tray, when the shell
+  /// holds a timetable. Tomorrow is the day after the night-owned day.
+  ClassDay? _tomorrowClasses() {
+    final lookup = widget.classDays;
+    if (lookup == null) return null;
+    final now = Clock.now();
+    final tomorrow = CivilDate.fromDateTime(Days.afterNight(now));
+    final day = lookup(now, day: tomorrow);
+    return day.isClassDay ? day : null;
+  }
+
+  void _removeNightRoute() {
+    final route = _nightRoute;
+    _nightRoute = null;
+    if (route == null) return;
+    // State replacement and parent teardown can happen inside Navigator's
+    // build. Remove only this owned flow after that frame, never other routes.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigator = route.navigator;
+      if (navigator != null && navigator.mounted && route.isActive) {
+        navigator.removeRoute(route);
+      }
+    });
   }
 
   void _openMorning() {
@@ -1725,6 +1807,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       builder: (_) => MorningFlow(
         state: s,
         quests: widget.quests,
+        classDay: _todayClasses(),
         onDismiss: () {
           e.remove();
           if (mounted && identical(s, _state)) setState(() {});
@@ -1846,6 +1929,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   void _resolveLevelUps(GameState s) {
     if (!mounted || !identical(s, _state)) return;
+    if (_nightRoute != null) return; // the ledger resolves these on exit
     final result = s.applyLevelUps();
     widget.onPersist();
     if (result.leveledTo == null) {
@@ -3795,8 +3879,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             // the latest finished quest can be swiped left to undo (a calmer
                             // affordance than chasing the snackbar)
                             if (isDone &&
-                                _undoSnapshot != null &&
-                                q.title == _undoTitle) {
+                                _undoArmed &&
+                                q.title == _undoSlot!.label) {
                               return Dismissible(
                                 key: ValueKey('undo-${q.title}'),
                                 direction: DismissDirection.endToStart,

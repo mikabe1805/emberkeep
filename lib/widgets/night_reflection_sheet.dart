@@ -20,13 +20,14 @@ Future<NightJournalData?> showNightReflectionSheet(
 }) {
   Sfx.instance.playMaterial(MaterialSound.glass);
   Haptics.tap();
-  // The night flow itself lives in an OverlayEntry. A modal bottom sheet
-  // launched from that entry inherits its transformed coordinate space and
-  // can render as a partial-height drawer. Put the reflection on the root
-  // navigator instead: it is one of the day's bookends, not a utility sheet.
+  // The board's night ledger is an owned route with its own Navigator, so
+  // the reflection opens on the nearest navigator: above the folio, closed by
+  // back before the ledger, and removed with it. Elsewhere (Journal, Plans)
+  // the nearest navigator is the app's root one. A full-screen dialog rather
+  // than a bottom sheet: it is one of the day's bookends, not a utility sheet.
   return showGeneralDialog<NightJournalData>(
     context: context,
-    useRootNavigator: true,
+    useRootNavigator: false,
     barrierDismissible: true,
     barrierLabel: 'Not now',
     barrierColor: const Color(0xD10B0705),

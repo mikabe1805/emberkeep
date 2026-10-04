@@ -153,6 +153,11 @@ final class ClassDay {
   }
 }
 
+/// A class day for a moment, from whoever holds the timetable (the shell
+/// passes one down so screens never load the schedule themselves). [day]
+/// asks for that civil day instead of the night-owned day [now] belongs to.
+typedef ClassDayLookup = ClassDay Function(DateTime now, {CivilDate? day});
+
 /// Where a class sits relative to [now], by instants only.
 ClassMoment classMomentFor(DateTime startsAt, DateTime endsAt, DateTime now) {
   final instant = now.toUtc();
