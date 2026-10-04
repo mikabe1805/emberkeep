@@ -19,9 +19,14 @@ const _pendingCeilings = <String, int>{
   'lib/screens/calendar.dart': 1,
   'lib/academic_calendar/import/academic_schedule_ics_import.dart': 1,
   'lib/academic_calendar/widgets/academic_schedule_import_dialog.dart': 2,
-  // The ladder lookup key matches the seed quest title in shell.dart; both
-  // change together.
-  'lib/content/ladders.dart': 1,
+  // The workout rungs are saved, not only shown: Quest.ladder keeps them, and
+  // a goal plan step keeps its template's displayTitle as actionTitle and
+  // questTemplate. GoalAdjustment matches the live quest against that text,
+  // so renaming them needs a decode migration in models.dart first (all four
+  // rungs together in Quest.ladder, GoalPlanStep.actionTitle and
+  // questTemplate.ladder). The lookup key matches the seed quest title in
+  // shell.dart and changes with them.
+  'lib/content/ladders.dart': 5,
 };
 
 void main() {
