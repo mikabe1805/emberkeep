@@ -32,11 +32,11 @@ class WeeklyChronicleData {
   }
 
   String get rangeLabel =>
-      '${_month(start.month)} ${start.day} — ${_month(end.month)} ${end.day}';
+      '${_month(start.month)} ${start.day} – ${_month(end.month)} ${end.day}';
 
   String get deltaLine {
     if (delta > 0) return '$delta more quests than the week before';
-    if (delta < 0) return 'a quieter week — still part of the story';
+    if (delta < 0) return 'a quieter week, and still part of the story';
     return 'steady with the week before';
   }
 

@@ -43,7 +43,7 @@ final furniture = <FurnitureItem>[
   FurnitureItem(
     id: 'rug',
     name: 'a warm rug',
-    blurb: 'Underfoot warmth — the first thing that makes a room yours.',
+    blurb: 'Underfoot warmth, the first thing that makes a room yours.',
     price: 40,
     zone: 'Floor',
   ),

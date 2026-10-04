@@ -142,14 +142,14 @@ const cosmetics = <String, Cosmetic>{
   'Eternal Flame': Cosmetic(
     name: 'Eternal Flame',
     rarity: Rarity.legendary,
-    blurb: 'a month of fire — the brightest burn',
+    blurb: 'a month of fire at its brightest',
     aura: Color(0xFFFFB347),
     particles: [Color(0xFFFFB347), Color(0xFFFFF4D9), Color(0xFFE8743B)],
   ),
   'Spotless Glow': Cosmetic(
     name: 'Spotless Glow',
     rarity: Rarity.legendary,
-    blurb: 'five perfect days — the board cleared clean',
+    blurb: 'five perfect days, five boards cleared clean',
     aura: Color(0xFFFFF4D9),
     particles: [Color(0xFFFFF4D9), Color(0xFFF2CD93), Color(0xFFE0A865)],
   ),

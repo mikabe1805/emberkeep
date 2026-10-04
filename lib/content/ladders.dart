@@ -74,10 +74,10 @@ abstract final class Ladders {
     'Walk an hour',
   ];
   static const workoutSession = [
-    'Workout — 20 minutes',
-    'Workout — 30 minutes',
-    'Workout — 45 minutes',
-    'Workout — full hour',
+    'Workout · 20 minutes',
+    'Workout · 30 minutes',
+    'Workout · 45 minutes',
+    'Workout · full hour',
   ];
 
   /// Ready-made ladders keyed by a quest's rung-0 prescription. Rungs follow

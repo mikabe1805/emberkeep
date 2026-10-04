@@ -24,14 +24,14 @@ const evidenceCards = <EvidenceCard>[
     text:
         'You don’t need 10,000 steps. About 7,000 a day is linked to a 47% '
         'lower risk of early death, 38% lower dementia risk, and 22% fewer '
-        'depressive symptoms — and the gains level off after that.',
+        'depressive symptoms. The gains level off after that.',
     source: 'Lancet Public Health 2025 · 57 studies, device-measured',
   ),
   EvidenceCard(
     stat: Stat.str,
     title: 'Exercise snacks count',
     text:
-        '1–2 minute bursts of movement measurably improve cardio fitness — '
+        '1–2 minute bursts of movement measurably improve cardio fitness, '
         'and short bouts beat long workouts on the habit that matters most: '
         'actually showing up again tomorrow.',
     source: 'Meta-analysis of 12 randomized trials',
@@ -48,8 +48,8 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.vit,
     title: 'Caffeine has a 6-hour shadow',
     text:
-        'That afternoon coffee can still be in your system at bedtime — '
-        'caffeine six hours before bed measurably steals sleep. Cut it off '
+        'That afternoon coffee can still be in your system at bedtime. '
+        'Caffeine six hours before bed measurably steals sleep. Cut it off '
         'early and you’re protecting tonight’s recovery.',
     source: 'Journal of Clinical Sleep Medicine',
   ),
@@ -57,8 +57,8 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.intl,
     title: 'Start absurdly small',
     text:
-        'Behaviors stick when they’re too small to refuse — read one '
-        'page, do two push-ups. The emotion you feel on finishing is what '
+        'Behaviors stick when they’re too small to refuse, like reading one '
+        'page or doing two push-ups. The emotion you feel on finishing is what '
         'wires the habit, not the size of the session.',
     source: 'BJ Fogg, Stanford Behavior Design Lab',
   ),
@@ -67,7 +67,7 @@ const evidenceCards = <EvidenceCard>[
     title: 'Enjoyment literally builds habits faster',
     text:
         'Pleasure during a behavior increases the automaticity gained from '
-        'each repetition — fun isn’t decoration, it’s mechanism. '
+        'each repetition, so the fun is part of how a habit forms. '
         'That’s why this app celebrates you.',
     source: 'Psychology of habit formation, PMC6302524',
   ),
@@ -75,8 +75,8 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.dis,
     title: 'Anchor habits to moments, not clocks',
     text:
-        'Behaviors repeated in a stable context — after coffee, before the '
-        'shower — form habits faster than ones tied to arbitrary times.',
+        'Behaviors repeated in a stable context, like after coffee or before '
+        'the shower, form habits faster than ones tied to arbitrary times.',
     source: 'Habit formation research, PMC6302524',
   ),
   EvidenceCard(
@@ -84,7 +84,7 @@ const evidenceCards = <EvidenceCard>[
     title: 'Connection is a health behavior',
     text:
         'One message counts. Reaching out to people you care about protects '
-        'your mood and your long-term health — social ties rank right '
+        'your mood and your long-term health. Social ties rank right '
         'alongside exercise in the longevity studies.',
     source: 'Holt-Lunstad meta-analyses',
   ),
@@ -92,7 +92,7 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.foc,
     title: 'Evening workouts are fine',
     text:
-        'Late workouts don’t wreck your sleep — that’s a myth. Train when '
+        'The idea that late workouts wreck your sleep is a myth. Train when '
         'life actually allows; showing up beats perfect timing every time.',
     source: 'Sleep hygiene evidence review',
   ),
@@ -101,7 +101,7 @@ const evidenceCards = <EvidenceCard>[
     title: 'Soreness means you’re adapting',
     text:
         'A little next-day ache is your muscles rebuilding stronger, not '
-        'damage. It fades fast — and the “repeated-bout effect” means the '
+        'damage. It fades fast, and the “repeated-bout effect” means the '
         'same session hurts far less next time. Sharp or joint pain is '
         'different: that one’s a stop sign.',
     source: 'DOMS & repeated-bout effect, exercise physiology',
@@ -110,8 +110,8 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.vit,
     title: 'Rest is when you build',
     text:
-        'Muscles don’t grow during the workout — they grow in the recovery '
-        'after it. A gentler day is the other half of getting stronger.',
+        'Muscles do their growing in the recovery after a workout. A '
+        'gentler day is the other half of getting stronger.',
     source: 'Recovery & adaptation, ACSM',
   ),
   // Why the app is built the way it is — mechanisms that especially help
@@ -121,8 +121,8 @@ const evidenceCards = <EvidenceCard>[
     title: 'Get it out of your head',
     text:
         'Working memory only holds a few things at once, and every undone task '
-        'you’re trying to remember quietly taxes it. Writing them down — onto a '
-        'board like this — frees that capacity for actually doing them. People '
+        'you’re trying to remember quietly taxes it. Writing them down on a '
+        'board like this frees that capacity for actually doing them. People '
         'who offload reminders perform better and feel less loaded.',
     source: 'Risko & Gilbert 2016, Trends in Cognitive Sciences',
   ),
@@ -130,10 +130,10 @@ const evidenceCards = <EvidenceCard>[
     stat: Stat.foc,
     title: 'One thing at a time isn’t slower',
     text:
-        'Every time you switch tasks you pay a hidden cost in time and mistakes '
-        '— juggling two things is measurably slower than finishing one, then '
-        'the next. Doing a single quest at a time isn’t old-fashioned; it’s the '
-        'efficient way. (That’s what Focus mode is for.)',
+        'Every time you switch tasks you pay a hidden cost in time and mistakes. '
+        'Juggling two things is measurably slower than finishing one, then '
+        'the next, so a single quest at a time is the efficient way. '
+        '(That’s what Focus mode is for.)',
     source: 'Rubinstein, Meyer & Evans 2001, J. Experimental Psychology',
   ),
   EvidenceCard(
@@ -151,7 +151,7 @@ const evidenceCards = <EvidenceCard>[
     title: 'Decide the when, not just the what',
     text:
         '“I’ll exercise more” rarely sticks. “After I pour my coffee, I’ll do '
-        'two push-ups” roughly doubles follow-through — naming the exact cue '
+        'two push-ups” roughly doubles follow-through. Naming the exact cue '
         'and action in advance does the remembering for you.',
     source: 'Gollwitzer & Sheeran 2006 meta-analysis, 94 studies',
   ),

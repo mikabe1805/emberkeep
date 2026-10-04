@@ -7,17 +7,17 @@ import '../tokens.dart';
 abstract final class RewardMessages {
   static final _byStat = <Stat, List<String>>{
     Stat.str: [
-      'That’s how strength gets built — one rep at a time.',
-      'Most people skipped their workout today. Not you.',
+      'That’s how strength gets built, one rep at a time.',
+      'Workout done. Tomorrow’s stairs just got a little easier.',
       'Your muscles got the memo: we’re leveling up.',
       'Future-you, mid-hike, says thanks.',
-      'Strong isn’t a look. It’s a stack of days like this.',
+      'Strength is a stack of days like this one.',
       'The body keeps the receipts. This one’s a deposit.',
     ],
     Stat.vit: [
       'Your future self is already breathing easier :)',
       'That’s a deposit in the long-game health bank.',
-      'Small healthy choices compound — this one counts.',
+      'Small healthy choices compound, and this one counts.',
       'Boring, repeatable, powerful. That’s the good stuff.',
       'Energy tomorrow is built quietly today. Nice.',
       'The unglamorous wins are the ones that last.',
@@ -33,7 +33,7 @@ abstract final class RewardMessages {
     Stat.foc: [
       'Real focus is rare. You just did it.',
       'That session puts you ahead of everyone still scrolling.',
-      'Deep work logged — that’s where the good stuff happens.',
+      'Deep work logged. That’s where the good stuff happens.',
       'You out-sat the urge to check your phone. Respect.',
       'Attention is the rarest currency. You just spent it well.',
       'That’s the muscle the modern world tries to steal. Trained.',
@@ -44,12 +44,12 @@ abstract final class RewardMessages {
       'People remember this stuff. Nicely done.',
       'Reaching out is brave more often than it looks.',
       'Someone out there is glad you exist today.',
-      'Relationships are a stat too — and you just trained it.',
+      'Relationships are a stat too, and you just trained it.',
     ],
     Stat.dis: [
       'Your space just got a little more yours.',
       'A tended home is a quieter mind. You earned some quiet.',
-      'Nobody sees this one but you — which is exactly why it counts.',
+      'Nobody sees this one but you, which is exactly why it counts.',
       'Home doesn’t keep itself. Today, you kept it.',
       'Small upkeep now, no avalanche later. Smart.',
       'Order, one small act at a time. The room thanks you.',
@@ -60,19 +60,19 @@ abstract final class RewardMessages {
   // (scout pick #4). Surfaced ~60% of the time when they apply, so they stay
   // a surprise and the warm per-stat lines remain the default.
   static const _dawnLines = [
-    'Before 8am. Most of the world’s still asleep — you’re already moving.',
+    'Before 8am. Most of the world’s still asleep and you’re already moving.',
     'A dawn quest. The day owes you nothing now; everything else is a bonus.',
   ];
   static const _duskLines = [
-    'Late, and you still showed up. The day didn’t get away from you.',
-    'Burning the late candle — quietly, on purpose. Respect.',
+    'Late, and you still showed up. The evening counts too.',
+    'Burning the late candle, quietly and on purpose. Respect.',
   ];
   static const _dreadLines = [
     'The dreaded one. Done. That’s the whole game, right there.',
     'You did the thing you were avoiding. Everything’s easier now.',
   ];
   static const _comebackLines = [
-    'Back at it after a gap — no guilt, just go. This is the move that counts.',
+    'Back after a gap, and no guilt needed. This is the move that counts.',
     'You returned. That’s rarer and braver than never stopping.',
   ];
 
@@ -100,19 +100,19 @@ abstract final class RewardMessages {
   }
 
   static const nightLines = [
-    'Whatever today was — you showed up. That’s the part that compounds.',
+    'Whatever today was, you showed up. That’s the part that compounds.',
     'Rest is part of the build. Tanks need repairs; so do heroes.',
     'Tomorrow’s you is already grateful for what you did today.',
     'The day is logged. Nothing left to carry to bed.',
-    'You don’t have to have won today. You only had to not quit.',
+    'Showing up today was plenty. Let that be enough tonight.',
     'Set it down. The fire will be here in the morning.',
-    'Progress isn’t loud. It’s a hundred quiet nights like this.',
+    'Progress is quiet. It’s a hundred nights like this one.',
     'Be proud of the small ones. They were the hard ones.',
   ];
 
   static const morningLines = [
     'New day, fresh XP on the table. Small first quest, then momentum.',
-    'You don’t need to feel ready. You need one small win before noon.',
+    'Feeling ready is optional. One small win is plenty.',
     'Yesterday is banked. Today is uncharted map.',
     'Head clear, list short, first quest tiny. Let’s go.',
     'Start absurdly small. Momentum does the rest.',

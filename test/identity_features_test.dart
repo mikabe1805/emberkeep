@@ -41,7 +41,7 @@ void main() {
 
     final chronicle = weeklyChronicleFor(state, now: DateTime(2026, 7, 28));
 
-    expect(chronicle.rangeLabel, 'JUL 20 — JUL 26');
+    expect(chronicle.rangeLabel, 'JUL 20 – JUL 26');
     expect(chronicle.counts, [2, 0, 1, 0, 0, 0, 3]);
     expect(chronicle.litDays, 3);
     expect(chronicle.total, 6);
