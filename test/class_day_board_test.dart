@@ -62,6 +62,15 @@ GameState _mika() => GameState()
   ..totalXp = 4280
   ..soundEnabled = false;
 
+class _NoLuck implements math.Random {
+  @override
+  bool nextBool() => false;
+  @override
+  double nextDouble() => 0.999;
+  @override
+  int nextInt(int max) => 0;
+}
+
 class _Board {
   _Board(this.state, this.quests);
   final GameState state;
@@ -210,6 +219,9 @@ Future<void> _dismiss(WidgetTester tester) async {
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
   setUp(() {
+    // No luck in any reward: a Quest completion never rolls a crit or a loot
+    // drop whose overlay would cover the board on one run and not the next.
+    GameState.debugRandomFactory = _NoLuck.new;
     Sfx.instance.soundEnabled = false;
     for (final channel in const [
       MethodChannel('xyz.luan/audioplayers'),
@@ -221,6 +233,7 @@ void main() {
   });
   tearDown(() {
     Clock.reset();
+    GameState.debugRandomFactory = null;
     Sfx.instance.soundEnabled = true;
   });
 
@@ -364,8 +377,8 @@ void main() {
       expect(_celebration, findsOneWidget);
       await finger.up();
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 300));
-      expect(_celebration, findsNothing);
+      await _pumpFor(tester, const Duration(milliseconds: 500));
+      expect(_celebration, findsNothing, reason: 'the fade back, then gone');
     });
 
     testWidgets('the last class: TUESDAY, DONE., two for two, +10, held', (
@@ -1027,7 +1040,7 @@ void main() {
         '2.4 s', (tester) async {
       await _mount(tester, at: _ny(6, 11, 52));
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2100));
+      await _pumpFor(tester, const Duration(milliseconds: 2000));
       double headlineOpacity() => tester
           .widgetList<Opacity>(
             find.ancestor(of: _headline, matching: find.byType(Opacity)),
@@ -1035,9 +1048,9 @@ void main() {
           .map((o) => o.opacity)
           .reduce((a, b) => a * b);
       expect(headlineOpacity(), 1);
-      await _pumpFor(tester, const Duration(milliseconds: 200));
+      await _pumpFor(tester, const Duration(milliseconds: 300));
       expect(_celebration, findsOneWidget);
-      expect(headlineOpacity(), lessThan(1), reason: 'fading back');
+      expect(headlineOpacity(), lessThan(1), reason: 'the words leave first');
       await _pumpFor(tester, const Duration(milliseconds: 200));
       expect(_celebration, findsNothing);
     });

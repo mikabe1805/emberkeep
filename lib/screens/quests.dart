@@ -3456,6 +3456,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         fadeStart: _classCamera.fadeStart,
         fadeEnd: _classCamera.fadeEnd,
         scrimHeight: _classCamera.scrimHeight ?? classStatusScrimHeight,
+        camera: _classCamera,
+        // Going back: the just-kept row settles into the card under the
+        // takeover, so the fade lands on the room as it will stay.
+        onLeaving: () {
+          if (mounted) setState(() => _heldClass = null);
+        },
         reduceMotion: reduceMotion,
         onDismiss: () {
           entry.remove();

@@ -27,6 +27,7 @@ import '../glass.dart' show OverlaySurface;
 import '../quest_card.dart' show QuestCheckRing;
 import '../routine_ledger.dart' show LedgerType;
 import 'class_day_model.dart';
+import 'class_day_room.dart' show ClassRoomCamera;
 import 'class_room_stage.dart';
 
 class ClassKeptCelebration extends StatefulWidget {
@@ -42,6 +43,8 @@ class ClassKeptCelebration extends StatefulWidget {
     this.fadeStart,
     this.fadeEnd,
     this.scrimHeight = classStatusScrimHeight,
+    this.camera,
+    this.onLeaving,
     this.reduceMotion = false,
   });
 
@@ -68,6 +71,16 @@ class ClassKeptCelebration extends StatefulWidget {
   /// The room's status scrim, which the celebration keeps over the window
   /// until the camera has moved it out of frame.
   final double scrimHeight;
+
+  /// The room's live camera. When given, the celebration starts from and
+  /// goes home to wherever the room is framed now (the card under it may
+  /// change while it is up), over the fixed values above.
+  final ClassRoomCamera? camera;
+
+  /// Going back on its own has begun: the room may settle its card now,
+  /// under the still-opaque takeover, so the fade lands on the room as it
+  /// will stay.
+  final VoidCallback? onLeaving;
   final bool reduceMotion;
 
   @override
@@ -80,9 +93,10 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   bool get _held => plan.held;
   bool get _quick => plan.tier == ClassCelebrationTier.quick;
 
-  /// Going back on its own: the takeover fades while the camera eases back
-  /// to the room's framing, and the room is there when it has gone.
-  static const _exitDuration = Duration(milliseconds: 240);
+  /// Going back on its own: the words leave, the camera eases home to the
+  /// room's framing as the dim lifts, and only then does the takeover fade
+  /// onto the room it now matches, so nothing doubles on the way.
+  static const _exitDuration = Duration(milliseconds: 360);
   late final AnimationController _exit = AnimationController(
     vsync: this,
     duration: widget.reduceMotion
@@ -135,6 +149,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   void _goBack() {
     if (_dismissed || _exit.isAnimating) return;
     _autoReturn?.cancel();
+    widget.onLeaving?.call();
     _exit.forward().whenComplete(() {
       if (mounted) _dismiss();
     });
@@ -227,42 +242,59 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
               animation: Listenable.merge([_c, _exit]),
               builder: (context, _) {
                 final target = RoomShot.kept(width: width);
-                final room = widget.fromShot ?? target;
+                final camera = widget.camera;
+                final room =
+                    (layered ? camera?.shot : null) ??
+                    widget.fromShot ??
+                    target;
                 // The quick tier holds the kept framing: the camera already
                 // made that move a moment ago, and a second swing at 1.5x is
                 // a rush.
                 final from = _quick ? target : room;
-                // Going back on its own, the takeover fades while the camera
-                // eases from where it is to the room's own framing.
-                final away = Curves.easeInOut.transform(_exit.value);
                 // The takeover fades in over the room on the room's own
                 // framing (so nothing doubles), then the camera eases back.
                 final arrive = widget.reduceMotion
                     ? Curves.easeOut.transform(_c.value)
                     : _iv(110, 300, Curves.easeOut);
-                final takeover = arrive * (1 - away);
-                // The words leave first, so the room's glass never reads
-                // through them on the way back.
-                final words =
-                    arrive * (1 - (_exit.value / 0.55).clamp(0.0, 1.0));
+                // Going back on its own: the words leave first, the camera
+                // eases home as the dim lifts, then the takeover fades onto
+                // the room it now matches.
+                final exit = _exit.value;
+                final words = arrive * (1 - (exit / 0.4).clamp(0.0, 1.0));
+                final home = widget.reduceMotion
+                    ? 0.0
+                    : Curves.easeInOut.transform((exit / 0.65).clamp(0.0, 1.0));
+                final fadeOut = widget.reduceMotion
+                    ? exit
+                    : Curves.easeIn.transform(
+                        ((exit - 0.5) / 0.5).clamp(0.0, 1.0),
+                      );
+                final takeover = arrive * (1 - fadeOut);
                 final travel = _iv(220, 640, Curves.easeInOutCubic);
                 final shot = RoomShot.lerp(
                   RoomShot.lerp(from, target, travel),
                   room,
-                  widget.reduceMotion ? 0 : away,
+                  home,
                 );
                 // The room's soft dark stays over the window (its keyed
-                // glass) until the camera has moved the window out of frame.
+                // glass) until the camera has moved the window out of frame,
+                // and is back when the camera is.
                 final scrim = widget.reduceMotion || _quick
                     ? 0.0
-                    : 1 - travel * (1 - away);
-                final dim = _iv(160, 560, Curves.easeOut);
-                final stageTop = widget.stageTop;
+                    : 1 - travel * (1 - home);
+                final dim =
+                    _iv(160, 560, Curves.easeOut) *
+                    (1 - (widget.reduceMotion ? exit : home));
+                final stageTop = camera?.stage?.top ?? widget.stageTop;
+                final scrimHeight = camera?.scrimHeight ?? widget.scrimHeight;
                 final lamp = layered
                     ? shot.toStage(RoomMarks.bulb).translate(0, stageTop)
                     : Offset(width * 0.32, stageTop + 140);
                 final imageBottom = (962 - shot.top) * shot.scale;
-                final plateHeight = widget.stageHeight ?? 420;
+                final plateHeight =
+                    camera?.stage?.height ?? widget.stageHeight ?? 420;
+                final plateFadeStart = camera?.fadeStart ?? widget.fadeStart;
+                final plateFadeEnd = camera?.fadeEnd ?? widget.fadeEnd;
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -281,10 +313,10 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                                 ? ClassRoomStage(
                                     hour: widget.hour,
                                     shot: shot,
-                                    bloom: _bloom,
+                                    bloom: _bloom * (1 - home),
                                     warmth: 1,
                                     scrim: scrim,
-                                    scrimHeight: widget.scrimHeight,
+                                    scrimHeight: scrimHeight,
                                     fadeStart: imageBottom - 150,
                                     fadeEnd: imageBottom - 2,
                                   )
@@ -293,9 +325,9 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                                 : ClassRoomPlate(
                                     state: widget.state,
                                     fadeStart:
-                                        widget.fadeStart ?? plateHeight - 140,
-                                    fadeEnd: widget.fadeEnd ?? plateHeight - 2,
-                                    scrimHeight: widget.scrimHeight,
+                                        plateFadeStart ?? plateHeight - 140,
+                                    fadeEnd: plateFadeEnd ?? plateHeight - 2,
+                                    scrimHeight: scrimHeight,
                                   ),
                           ),
                           CustomPaint(
@@ -308,7 +340,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                         ],
                       ),
                     ),
-                    if (_held && !widget.reduceMotion && away == 0)
+                    if (_held && !widget.reduceMotion && exit == 0)
                       Positioned.fill(
                         child: IgnorePointer(
                           child: CustomPaint(
