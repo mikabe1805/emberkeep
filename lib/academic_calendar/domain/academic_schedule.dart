@@ -1667,6 +1667,56 @@ final class AcademicSchedule {
     );
   }
 
+  /// Replaces the class reminders on the named meeting series and on every
+  /// meeting they placed, moved meetings included, so one switch means the
+  /// same thing for the whole class. Times, places, states and every other
+  /// record stay exactly as they are. Unknown series IDs are ignored.
+  AcademicSchedule withMeetingReminders(
+    Map<String, List<AcademicReminder>> remindersBySeries, {
+    required DateTime updatedAt,
+  }) {
+    if (remindersBySeries.isEmpty) return this;
+    final stamp = updatedAt.toUtc();
+    final nextSeries = [
+      for (final series in meetingSeries)
+        if (remindersBySeries[series.meetingSeriesId] case final reminders?)
+          MeetingSeries(
+            meetingSeriesId: series.meetingSeriesId,
+            courseId: series.courseId,
+            kind: series.kind,
+            weekdays: series.weekdays,
+            localStartMinute: series.localStartMinute,
+            localEndMinute: series.localEndMinute,
+            transitionBufferMinutes: series.transitionBufferMinutes,
+            intervalWeeks: series.intervalWeeks,
+            firstDate: series.firstDate,
+            lastDate: series.lastDate,
+            timeZoneId: series.timeZoneId,
+            place: series.place,
+            reminders: List.unmodifiable(reminders),
+            revision: series.revision,
+            updatedAt: stamp,
+            tombstonedAt: series.tombstonedAt,
+          )
+        else
+          series,
+    ];
+    final nextOccurrences = [
+      for (final occurrence in occurrences)
+        if (occurrence.tombstonedAt == null &&
+            remindersBySeries[occurrence.meetingSeriesId] != null)
+          occurrence.copyWith(
+            reminders: List.unmodifiable(
+              remindersBySeries[occurrence.meetingSeriesId]!,
+            ),
+            updatedAt: stamp,
+          )
+        else
+          occurrence,
+    ];
+    return _rebuild(meetingSeries: nextSeries, occurrences: nextOccurrences);
+  }
+
   /// Moves one materialized class while keeping its recurring series intact.
   /// Any unfinished study blocks are then recalculated around the new shape of
   /// the schedule; completed study history is never moved.
