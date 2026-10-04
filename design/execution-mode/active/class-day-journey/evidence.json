@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "brief_id": "class-day-journey-board-2026-10-04",
-  "brief_sha256": "08f27dff1f7d2c0671bd1ada9347acaaaad738486f372ea1cca1e5ad4c32dcfc",
+  "brief_sha256": "b2b6d6830b96662a2660a7a8433e925aee9080c2f059e13f497376062a603db0",
   "phase": "slice",
-  "implementation_revision": "commit:68ee33722362fe8f7a306477195d4b1005361901",
-  "revision_captured_at": "2026-10-04T09:19:53-04:00",
+  "implementation_revision": "commit:22e698b358f1526e47f34b09ea4ebabb46f8ad3b",
+  "revision_captured_at": "2026-10-04T10:21:26-04:00",
   "checks": [
     {
       "id": "slice-product",
@@ -22,8 +22,8 @@
           "kind": "test_report",
           "state": "Widget, model, shell and full-suite results after the review fixes",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T09:24:17-04:00",
-          "content_sha256": "5e0f18601eacbdfd85482b8d79c89ff3c33d079531e29b5bf31209ad3b9b111e",
+          "generated_at": "2026-10-04T10:25:37-04:00",
+          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
           "data_source": "test_output"
         }
       ]
@@ -44,15 +44,15 @@
           "kind": "test_report",
           "state": "Widget, model, shell and full-suite results after the review fixes",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T09:24:17-04:00",
-          "content_sha256": "5e0f18601eacbdfd85482b8d79c89ff3c33d079531e29b5bf31209ad3b9b111e",
+          "generated_at": "2026-10-04T10:25:37-04:00",
+          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
           "data_source": "test_output"
         },
         {
           "kind": "render",
           "state": "Finger down on I WAS THERE",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2a_tue1152_press.png",
-          "generated_at": "2026-10-04T09:20:18-04:00",
+          "generated_at": "2026-10-04T10:22:02-04:00",
           "content_sha256": "631e8a80ead2384ef68bac61e5cfca832e68cfe82914a55e368b2cac3cd2bdeb",
           "data_source": "deterministic_fixture"
         },
@@ -60,7 +60,7 @@
           "kind": "render",
           "state": "Released: the card ring closed, no total beside the kept count",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2b_tue1152_contact_100ms.png",
-          "generated_at": "2026-10-04T09:20:19-04:00",
+          "generated_at": "2026-10-04T10:22:04-04:00",
           "content_sha256": "7a2efbb4796f5d8eb49527ed1b57194893b40e0736af5bddf014a3c83b35e1a8",
           "data_source": "deterministic_fixture"
         },
@@ -68,7 +68,7 @@
           "kind": "render",
           "state": "Going back on its own at 2.3 s",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2e_tue1152_going_back_2300ms.png",
-          "generated_at": "2026-10-04T09:20:23-04:00",
+          "generated_at": "2026-10-04T10:22:09-04:00",
           "content_sha256": "07c6fd5a432e7f7cd48ddadcfdc93071ec162cc2c99b7a0195c2ecebd6e14aec",
           "data_source": "deterministic_fixture"
         }
@@ -90,32 +90,32 @@
           "kind": "comparison",
           "state": "Concept B beside the build: Tuesday first frame, press, celebration, day tier, back home",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-1.png",
-          "generated_at": "2026-10-04T09:21:08-04:00",
-          "content_sha256": "7b38b03e7a7a925cb06bbdcccefc698504e902c6fb8fe3b4406c5924b244dbad",
+          "generated_at": "2026-10-04T10:24:25-04:00",
+          "content_sha256": "ad170d22b8f72108a6726c9296d08a5940a3870d3da13aee1c049c2208ce559f",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "comparison",
           "state": "Concept B beside the build: Monday shortcut, Thursday quick, week, level-up, no timetable, Reduce Motion, 130% text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-2.png",
-          "generated_at": "2026-10-04T09:21:09-04:00",
-          "content_sha256": "29c0fdf9621a8b52175935927904fd8ec2ab7264ada6063ed7e7ad7e8a0ef613",
+          "generated_at": "2026-10-04T10:24:27-04:00",
+          "content_sha256": "e37ae6cc9d561bcbb4cf8262744600f560cd67d3cd695de2852c39642e09a8ce",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "comparison",
           "state": "Before and after: the top of the room, the lamp under the HUD, the window at 300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/review/after_fixes_1.png",
-          "generated_at": "2026-10-04T09:21:12-04:00",
-          "content_sha256": "6850981569bf2e8fddfb02137dc2eee717889d5496b3d8ab50b30f6a6c5a33f9",
+          "generated_at": "2026-10-04T10:24:30-04:00",
+          "content_sha256": "96fea135147736f67be18304e0eeb875db23d123196f2da71ccf6378721cf420",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "comparison",
           "state": "Before and after: the diamond, BOARD rising, the quick tier at 700 ms, the header after a mark",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/review/after_fixes_2.png",
-          "generated_at": "2026-10-04T09:21:12-04:00",
-          "content_sha256": "63da58ad621733c95f1b3605944dd76d37165843387269765de48b0dfa0613a4",
+          "generated_at": "2026-10-04T10:24:31-04:00",
+          "content_sha256": "306232585994b314cb0a5c88ab8fdf28fb6dedfb77fb005984d56988fba50862",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -136,7 +136,7 @@
           "kind": "render",
           "state": "Tuesday between classes",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B1_tue1152_between_classes.png",
-          "generated_at": "2026-10-04T09:20:17-04:00",
+          "generated_at": "2026-10-04T10:22:01-04:00",
           "content_sha256": "df068952d5b537eb806fcf48a5150745261e01cc19961657cfab0592fba5bdcc",
           "data_source": "deterministic_fixture"
         }
@@ -158,7 +158,7 @@
           "kind": "render",
           "state": "300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2c_tue1152_celebration_300ms.png",
-          "generated_at": "2026-10-04T09:20:21-04:00",
+          "generated_at": "2026-10-04T10:22:05-04:00",
           "content_sha256": "cd7c4bebd21edb4ee9bda0eedaa5d15d4296f5f773dbf0a417ae56c668a551e5",
           "data_source": "deterministic_fixture"
         },
@@ -166,7 +166,7 @@
           "kind": "render",
           "state": "settled",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2d_tue1152_celebration_settled.png",
-          "generated_at": "2026-10-04T09:20:22-04:00",
+          "generated_at": "2026-10-04T10:22:07-04:00",
           "content_sha256": "1b0201a5ee9024b8260997faba09b1efd41426f1b09c2fa22707924d456d2d23",
           "data_source": "deterministic_fixture"
         },
@@ -174,7 +174,7 @@
           "kind": "render",
           "state": "back in the room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B3_tue1153_after_first_mark.png",
-          "generated_at": "2026-10-04T09:20:24-04:00",
+          "generated_at": "2026-10-04T10:22:11-04:00",
           "content_sha256": "8ccbfb81ad31308a489418f82e0d53dfb3a3b4a3b355fbd9e897a674086b4fe5",
           "data_source": "deterministic_fixture"
         }
@@ -196,7 +196,7 @@
           "kind": "render",
           "state": "day tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D2b_tue1535_day_settled.png",
-          "generated_at": "2026-10-04T09:20:32-04:00",
+          "generated_at": "2026-10-04T10:22:22-04:00",
           "content_sha256": "85988cff8e1b265b3fb95226a5884dbfdd1e976336770534213c98d6cd82f89e",
           "data_source": "deterministic_fixture"
         },
@@ -204,8 +204,8 @@
           "kind": "render",
           "state": "record",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D3_tue1536_back_home.png",
-          "generated_at": "2026-10-04T09:20:33-04:00",
-          "content_sha256": "339f703c729b3ee7375fcfd09a3f1b11807f43e92a318f1b3874990f089ff216",
+          "generated_at": "2026-10-04T10:22:23-04:00",
+          "content_sha256": "ddafd37b97b482e6f3c23abe6896d2e1188df8bb9128b34c2113eb08990f65fe",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -226,16 +226,16 @@
           "kind": "render",
           "state": "three waiting",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X1_mon1915_three_waiting.png",
-          "generated_at": "2026-10-04T09:20:37-04:00",
-          "content_sha256": "90175f81ed813c98e2bf826429ad880d12589b8ba92f6149ad74fa84bb2525b3",
+          "generated_at": "2026-10-04T10:22:28-04:00",
+          "content_sha256": "db4858a4e40f404c29a78cd8e319c6c8c688f4cbc475944fcb94b116780d07c5",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "one celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X2b_mon1915_monday_done.png",
-          "generated_at": "2026-10-04T09:20:39-04:00",
-          "content_sha256": "c89f393797dff021757ceae38302ae312aac2a9c4b8342aad9f3dd3cc5048baa",
+          "generated_at": "2026-10-04T10:22:31-04:00",
+          "content_sha256": "28a0d93c4c568442cae832a7c509f1fb604d1a533886f9616b6bbe1dbfd8000d",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -256,7 +256,7 @@
           "kind": "render",
           "state": "130% room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T1_tue1152_text_130.png",
-          "generated_at": "2026-10-04T09:20:54-04:00",
+          "generated_at": "2026-10-04T10:23:05-04:00",
           "content_sha256": "6857ee3091a7de1718f76a94c0b79fc6dce652aa6890a6aa5d07269c064110ac",
           "data_source": "deterministic_fixture"
         },
@@ -264,7 +264,7 @@
           "kind": "render",
           "state": "130% celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T2_tue1152_text_130_celebration.png",
-          "generated_at": "2026-10-04T09:20:56-04:00",
+          "generated_at": "2026-10-04T10:23:06-04:00",
           "content_sha256": "49b144061ebd77c616872b6929db0c2bd6ec84fa48c0d40eac57cf946fdd49a8",
           "data_source": "deterministic_fixture"
         },
@@ -272,7 +272,7 @@
           "kind": "render",
           "state": "Reduce Motion at 300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/R1_tue1152_reduce_motion_300ms.png",
-          "generated_at": "2026-10-04T09:20:53-04:00",
+          "generated_at": "2026-10-04T10:23:01-04:00",
           "content_sha256": "1b0201a5ee9024b8260997faba09b1efd41426f1b09c2fa22707924d456d2d23",
           "data_source": "deterministic_fixture"
         }
@@ -294,15 +294,15 @@
           "kind": "render",
           "state": "BOARD rising",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D4a_tue1536_board_rising.png",
-          "generated_at": "2026-10-04T09:20:35-04:00",
-          "content_sha256": "27727527c39370840b11b6b2497433fa34618a588568b24fd0842b531a62dcd1",
+          "generated_at": "2026-10-04T10:22:25-04:00",
+          "content_sha256": "e7b1db32efe9cca1ae040c219b9916e569ddd1f1d13295b4c1d3c10dbc77b920",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "board settled",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D4b_tue1536_board.png",
-          "generated_at": "2026-10-04T09:20:36-04:00",
+          "generated_at": "2026-10-04T10:22:26-04:00",
           "content_sha256": "b30206ded5d432a5d2b0236aaa3dcc1e82be91b051fe0a91b1d2f3d33fdcdb83",
           "data_source": "deterministic_fixture"
         }
@@ -324,7 +324,7 @@
           "kind": "render",
           "state": "class tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K1_tue1152_your_24th_lecture.png",
-          "generated_at": "2026-10-04T09:20:57-04:00",
+          "generated_at": "2026-10-04T10:23:08-04:00",
           "content_sha256": "c63135698a78459eb5f5803cb181a2a191fa5a05e41d5e940f572f8c317c6cbe",
           "data_source": "deterministic_fixture"
         },
@@ -332,7 +332,7 @@
           "kind": "render",
           "state": "day tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K2_tue1535_day_tier_24th.png",
-          "generated_at": "2026-10-04T09:20:59-04:00",
+          "generated_at": "2026-10-04T10:23:10-04:00",
           "content_sha256": "cc361c2059cade5558b279a1f9157213dfca0c590118a6c9ba2fd387c9ba0bb9",
           "data_source": "deterministic_fixture"
         },
@@ -340,7 +340,7 @@
           "kind": "render",
           "state": "130% text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K3_tue1152_text_130_24th.png",
-          "generated_at": "2026-10-04T09:21:00-04:00",
+          "generated_at": "2026-10-04T10:23:12-04:00",
           "content_sha256": "eacddae494c54896f6c8b8e38bbbd609689870dc5969b8629da67c7fe3bd55f6",
           "data_source": "deterministic_fixture"
         }
@@ -362,7 +362,7 @@
           "kind": "render",
           "state": "between classes",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P1_tue1152_archive_between.png",
-          "generated_at": "2026-10-04T09:21:02-04:00",
+          "generated_at": "2026-10-04T10:23:13-04:00",
           "content_sha256": "f7417d5d80be1f3cf3272f2a2d8fe9856cc10b932f5f6dbe45dd114162fe6f4b",
           "data_source": "deterministic_fixture"
         },
@@ -370,7 +370,7 @@
           "kind": "render",
           "state": "300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P2_tue1152_archive_300ms.png",
-          "generated_at": "2026-10-04T09:21:02-04:00",
+          "generated_at": "2026-10-04T10:23:14-04:00",
           "content_sha256": "f9c12e57c59262179ecd9a5f6eda853381710320b9a48428dba3d81ef14cae97",
           "data_source": "deterministic_fixture"
         },
@@ -378,8 +378,192 @@
           "kind": "render",
           "state": "back in the room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P4_tue1153_archive_after.png",
-          "generated_at": "2026-10-04T09:21:04-04:00",
+          "generated_at": "2026-10-04T10:23:17-04:00",
           "content_sha256": "ecda3e0e480301bf205cd5aee0f49d3e967d0e341f54fc809d45fdecc0b08bd3",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "state-evening-walk",
+      "requirement_id": "state:evening",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Render the Tuesday 15:35 day tier, the tap, the walk at 0.8, 1.4 and 1.9 s and the settled evening; widget test the shot every 100 ms of the walk.",
+      "input_state": "Tue Oct 6 15:35 with Computer Architecture kept at 11:53; then Tue 20:30.",
+      "inspected_by": "slice author",
+      "observation": "The room holds the desk under TUESDAY, DONE.; the tap fades the moment onto the kept framing and the camera walks past the desk to the window and the armchair in 2.4 s, near planes swinging wider mid-pan, no blur; the glass arrives as it settles with Tuesday's classes, both attended +60 XP, the music and Write a line. At 20:30 the painting's own night and moon. No plate on the painting.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Concept B beside the build: turning, 15:36, 20:30 music on, Mon 19:15, Reduce Motion, large text",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/compare-sheet.png",
+          "generated_at": "2026-10-04T10:24:33-04:00",
+          "content_sha256": "2507bd4a4efef659e005e4b2683f70eb422a8bef5e461f3a74f7f308d3abb4d8",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "every evening frame",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/sheet.png",
+          "generated_at": "2026-10-04T10:24:35-04:00",
+          "content_sha256": "48661b59b3a41f6c12d21351a5f36c42629eff8bae3a438e55205f219836dbe5",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Board and evening test results, full suite on 86f9989",
+          "path": "design/execution-mode/active/class-day-journey/test-report.md",
+          "generated_at": "2026-10-04T10:25:37-04:00",
+          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-wind-down",
+      "requirement_id": "state:wind-down",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Model tests on his timetable; widget tests scrolling the board to its end; renders at Mon 17:45, Mon 19:15 and Thu 18:55.",
+      "input_state": "Mon Oct 5 17:45 and 19:15, Thu Oct 8 18:45 and 18:55, Tue Oct 6 15:35 and 17:00, Wed 01:30.",
+      "inspected_by": "slice author",
+      "observation": "No evening and no CLOSE THE DAY rail during the 5:40 lecture; both from 7:00 and from the lab's 6:50 end; Tuesday's at 5 PM; the 9 PM night reminder falls after every class day's last class.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Mon 17:45 in the late class",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E5a_mon1745_in_the_late_class.png",
+          "generated_at": "2026-10-04T10:23:55-04:00",
+          "content_sha256": "35a0487b94b6e7eb8da9104364bc28a60b58e34fbc8c50c5e44964409273bff7",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Mon 17:45 board end, no rail",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E5b_mon1745_board_no_rail.png",
+          "generated_at": "2026-10-04T10:23:56-04:00",
+          "content_sha256": "4bd8a65309d5f2f399a5484f98a1014ee84a767a5d5dce463ce822e9a2dbadf7",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Mon 19:16 board with the rail",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E4d_mon1916_board_rail.png",
+          "generated_at": "2026-10-04T10:23:53-04:00",
+          "content_sha256": "4fdd1bcfee0e6fb767d5e7b656b08a4a03199ccbd7ae87885dff3c94688df023",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Board and evening test results, full suite on 86f9989",
+          "path": "design/execution-mode/active/class-day-journey/test-report.md",
+          "generated_at": "2026-10-04T10:25:37-04:00",
+          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-evening-music-and-doors",
+      "requirement_id": "state:evening-doors",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Widget tests with a recorded main voice; renders of music off and on, Close the day and Write a line.",
+      "input_state": "Tue Oct 6 19:30 and 20:30 with both classes kept; saved music setting off and on.",
+      "inspected_by": "slice author",
+      "observation": "Nothing plays on its own; a press plays Lamp left on then the rotation for tonight with the saved setting untouched; with music on in Me a press quiets it for tonight; Close the day opens the real ledger; Write a line opens a fresh page and settles an armed undo on its first save.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "music off",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2a_tue2030_evening_music_off.png",
+          "generated_at": "2026-10-04T10:23:43-04:00",
+          "content_sha256": "31dea9a116ad1ea8d5eb3e476895a144c38795cee42d2d46c55a13b03d8ff500",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "music on",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2b_tue2030_evening_music_on.png",
+          "generated_at": "2026-10-04T10:23:44-04:00",
+          "content_sha256": "a6f3bd0c47856986798de1871060bb7bbd61c90137b878ee08bde58717f6ac8d",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Close the day",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2c_tue2030_close_the_day.png",
+          "generated_at": "2026-10-04T10:23:46-04:00",
+          "content_sha256": "6588b0df5ca8f28d48206a0f49706147a177b49a10e26513c6025287f5fdcbb9",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Write a line",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E3_tue2031_write_a_line.png",
+          "generated_at": "2026-10-04T10:23:47-04:00",
+          "content_sha256": "21366947bda5fde3cfa291b54209fffbb6d021f0866c8d86514c92c824170c42",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Board and evening test results, full suite on 86f9989",
+          "path": "design/execution-mode/active/class-day-journey/test-report.md",
+          "generated_at": "2026-10-04T10:25:37-04:00",
+          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "state-evening-unmarked-reduce-text-plate",
+      "requirement_id": "state:evening-edges",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Render the evening with classes unmarked, under Reduce Motion, at 130% text and on the archive room.",
+      "input_state": "Mon 19:15 with nothing marked; Thu 18:55 with the lab unmarked; Tue 15:35 Reduce Motion; Tue 20:30 at 130% and on the archive style.",
+      "inspected_by": "slice author",
+      "observation": "Unmarked classes keep the card and its I WAS THERE (quiet dots, no counts) with Write a line and Close the day under it; the music joins once the day is one line. Reduce Motion fades one still into the other; at 130% the day line wraps instead of shrinking and nothing clips; the archive plate holds still behind the same glass.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Mon 19:15 three unmarked",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E4a_mon1915_evening_three_waiting.png",
+          "generated_at": "2026-10-04T10:23:49-04:00",
+          "content_sha256": "db4858a4e40f404c29a78cd8e319c6c8c688f4cbc475944fcb94b116780d07c5",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Reduce Motion",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E8b_tue1536_reduce_motion_evening.png",
+          "generated_at": "2026-10-04T10:24:09-04:00",
+          "content_sha256": "d61ac6a3d2ccef5282c99903e3413bec49d72bbfeebc781b32c771fdfa5539f5",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "130% text",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E9a_tue2030_text_130.png",
+          "generated_at": "2026-10-04T10:24:10-04:00",
+          "content_sha256": "86de9f7066cac992b0e17f358bdade1a2ffb8849bfa9f82340df7637dc4b97cf",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "archive room",
+          "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E7_tue2030_archive_evening.png",
+          "generated_at": "2026-10-04T10:24:04-04:00",
+          "content_sha256": "bc234e08854c24a7e11db8d3bbca06383deb41144a64dc73b18fce819ff02b58",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -522,9 +706,9 @@
     {
       "id": "independent-critique",
       "gate": "A reviewer who did not author the slice re-reviews the fixed renders and tests",
-      "why": "The first review failed the slice with 25 findings; all are fixed in ee857f5 and 68ee337 but no independent reviewer has looked again.",
+      "why": "The first review failed the board slice with 25 findings; all are fixed in ee857f5 and 68ee337. The evening slice (86f9989, 22e698b) has had no review at all.",
       "owner_or_system": "workflow reviewer",
-      "next_action": "Re-review compare-sheet-1.png, compare-sheet-2.png, review/after_fixes_1.png, review/after_fixes_2.png and test-report.md against source.md.",
+      "next_action": "Re-review the board sheets (compare-sheet-1.png, compare-sheet-2.png, review/after_fixes_1.png, review/after_fixes_2.png) and the evening (build/journey/evening/compare-sheet.png, sheet.png, NOTES.md) with test-report.md against source.md.",
       "blocking": true
     },
     {
@@ -544,12 +728,12 @@
       "blocking": true
     },
     {
-      "id": "evening-slice",
-      "gate": "Rubric item 6, the evening in the room",
-      "why": "Built by the next slice of the class-day journey.",
-      "owner_or_system": "next workflow piece",
-      "next_action": "Build the evening on this board's seams (ClassDayRoom, the class-day mode in QuestsPage).",
-      "blocking": false
+      "id": "evening-feel",
+      "gate": "The evening walk's pace, the music's start and the glass on his iPhone",
+      "why": "flutter_tester is silent and runs on Windows; the 2.4 s walk and Lamp left on starting need the device.",
+      "owner_or_system": "Mika on his phone",
+      "next_action": "Mark the last class of a day and watch the room turn; press Lamp left on at night with sound on.",
+      "blocking": true
     }
   ],
   "deviations": [
@@ -574,6 +758,30 @@
       "implementation_decision": "Once anything is kept the header is the day name and N ATTENDED; the total shows only before the first keep.",
       "reason": "Rubric: no N of M, no counts of unmarked classes.",
       "user_visible_consequence": "After a mark the header reads TUESDAY with 1 ATTENDED.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Rubric 6: once the wind-down begins the room owns the frame and the day's record folds to one line.",
+      "implementation_decision": "While a class can still be marked (until its night ends at 4 AM) the evening glass keeps the card with I WAS THERE and the shortcut, with Write a line and Close the day under it; the music row joins once nothing waits and the day is one line.",
+      "reason": "His Monday and Thursday wind-downs begin the minute his last class ends: folding the day then would hide the one-press mark exactly when he opens the app after class.",
+      "user_visible_consequence": "At Mon 19:15 with nothing marked the room is a band above a tall glass; after the mark it opens up.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Concept B's evening record carried tomorrow's first class and a week strip.",
+      "implementation_decision": "The evening glass has the one line, the music and the doors only.",
+      "reason": "Rubric 6 folds the record to one line; the closing line of the day's celebration and the night ledger already name what is next.",
+      "user_visible_consequence": "No tomorrow line in the evening glass.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Concept B put the music on a brass plate fixed to the lamp.",
+      "implementation_decision": "The music is a row in the glass (MUSIC, Lamp left on, a fine brass ring with play or pause).",
+      "reason": "Rubric 4: controls live in the glass, never on the painting.",
+      "user_visible_consequence": "Nothing is drawn on the painting.",
       "status": "resolved",
       "owner_approval_required": false
     }

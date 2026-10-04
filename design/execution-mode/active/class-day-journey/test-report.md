@@ -70,3 +70,64 @@ a later reward lands.
 archive room). The render test file is formatted (finding 21). Frames, notes and sheets:
 `design/comparisons/2026-10-03/class-day/build/journey/board/`; before and after crops for the
 visual findings: `review/after_fixes_1.png`, `review/after_fixes_2.png`.
+
+## The evening slice (rubric 6, with 7 and 8), 86f9989
+
+Run on Windows, Flutter 3.44.2, 2026-10-04, on the tree of 86f9989.
+
+`flutter test --no-pub`: **1,551 passed, 54 skipped (capture-gated renders), 0 failed**. One run
+before the final fix failed `interaction_sound_quality_test.dart` (Close the day declared the
+unshipped glass/open lane); it now uses glass/select, a shipped lane. `flutter analyze --no-pub
+lib test`: no issues. Every changed Dart file passes `dart format --set-exit-if-changed`.
+
+`test/class_day_evening_test.dart` (17, the real `QuestsPage` on his Fall 2026 timetable at
+393 x 852, New York instants, no reward luck):
+
+- Tue 15:35, the last class kept: under TUESDAY, DONE. the room holds the desk; after the tap the
+  camera walks from the celebration's framing to the window, the shot moving every frame in one
+  direction, still on its way at 1.5 s, the near planes swinging wider mid-pan (tilt below -0.5)
+  and settling at zero; the only blur on the room is the glass's own. Then the day on one line
+  (Tuesday’s classes, both attended, +60 XP), Write a line, Today's three with BOARD, no Close the
+  day before 5 PM and no Steward door.
+- Opened in the evening, the room is already there (no walk). Reduce Motion: no walk, the shot
+  never travels. The archive room: the same evening glass on a still plate. 130% text: no
+  overflow.
+- Mon 17:45 in the late lecture: no evening, I'M HERE, and the board scrolled to its end has no
+  CLOSE THE DAY rail (its all-day CLOSE DAY door is there). Mon 19:15: the board has the rail; the
+  room is the evening with the 5:40 lecture still leading (I WAS THERE, the shortcut, two quiet
+  dots, no music row yet, Close the day); the shortcut's MONDAY, DONE., then all three attended
+  +85 XP and the music row.
+- A mark made in the evening (Thu 18:55, the lab) plays its celebration on the room's own
+  framing. Close the day from the glass opens the ledger; once tonight is closed it leaves the
+  glass.
+- Write a line opens a fresh journal page and writes nothing until he does; a line written under
+  an armed undo settles it first (this test fails without the fix).
+- Music: nothing starts on its own; a press asks the rotation for Lamp left on then starts it,
+  the saved setting stays off; a later take reads Room music; a second press pauses. With music on
+  in Me the evening shows it playing and a press quiets it for tonight without touching Me.
+  Tonight's choice gives way to the saved setting on Wednesday morning.
+- Undo: the day line swiped left past 42% restores the save from before the mark.
+
+`test/class_day_model_test.dart` (+6): the wind-down window with a last class end; never during his
+Monday lecture (17:45, 18:59) or Thursday lab (18:45), from 19:00 and 18:55; Tuesday's at 17:00,
+and past midnight still Tuesday's night; the wind-down start instants (17:00, 19:00, 18:50) and the
+boundary at Tue 15:35 being 17:00; the evening rule; the record words, which never carry a digit
+or "of"; and the 9 PM night reminder after every class day's last class (his latest ends at 7:00).
+
+`test/background_music_test.dart` (+5) and `test/main_room_music_test.dart` (+2): tonight's choice
+plays Lamp left on first and never writes the saved setting; quiet for tonight over a saved
+setting that is on; a playing rotation is never restarted; Me's switch gives the choice up; Focus
+keeps its own session; the rotation's preferred take plays once and its composition never twice in
+a row; `nowPlaying` names the take and clears on stop.
+
+`test/class_day_board_test.dart`: the day tier and Monday shortcut tests now expect the evening
+line after the tap (the board slice expected the record card there).
+
+### Renders
+
+`flutter test --dart-define=CLASS_DAY_RENDERS=true test/design_renders/class_day_evening_build_test.dart`:
+10 passed, 24 frames, no layout issue logged, rendered after 22e698b (which lets the board renders'
+back-home frames wait out the walk; the board renders were re-run then too, 15 passed, and their
+sheets and review crops regenerated). Frames, notes and sheets:
+`design/comparisons/2026-10-03/class-day/build/journey/evening/` (`sheet.png`; concept B beside the
+build in `compare-sheet.png`).

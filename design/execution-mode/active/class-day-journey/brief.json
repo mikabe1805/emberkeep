@@ -6,7 +6,7 @@
   "status": "slice_ready_for_owner",
   "locked_at": "2026-10-04T12:00:00-04:00",
   "surface": "Quests tab on a class day (the room, the glass card, Today's three line, BOARD), the class celebration overlay, the chained LevelUpOverlay, and the no-timetable Add your classes row",
-  "scope": "Board and celebration piece of the class-day journey: rubric items 1 to 5, 7 and 8 in source.md. On a day with classes the Quests tab opens on the room with today's classes on one glass card; I WAS THERE (or I'M HERE) keeps the class through GameState.keepClass and plays the class celebration (class, quick, day and week tiers), then the real level-up chain. Undo through RewardUndoSlot. The evening (rubric 6) is the next slice and is not built here.",
+  "scope": "Board, celebration and evening pieces of the class-day journey: rubric items 1 to 8 in source.md. On a day with classes the Quests tab opens on the room with today's classes on one glass card; I WAS THERE (or I'M HERE) keeps the class through GameState.keepClass and plays the class celebration (class, quick, day and week tiers), then the real level-up chain. Undo through RewardUndoSlot. After the last class, once every class is kept or the schedule-aware wind-down has begun, the camera walks the depth room's planes to the window and the armchair and the glass holds the day on one line, the music (Lamp left on and the rotation through the shell's BackgroundMusicController), Write a line and Close the day.",
   "user_job": "Open the app at any point in a class day, mark the class he just went to in one press, and get a rewarding full-screen answer in the level-up's own language that says what he did and what is next, without the board getting busier.",
   "active_sources": [
     {
@@ -195,6 +195,24 @@
       "verification_plan": "Widget test: Not in school with an armed Quest undo; render N1.",
       "disposition": "update",
       "reason": ""
+    },
+    {
+      "id": "wind-down-rail-on-class-days",
+      "surface_or_primitive": "The board's CLOSE THE DAY rail (isWindDownTime) on a class day",
+      "state": "Monday 17:45 in the 5:40 lecture, Monday 19:15, Thursday 18:55, Tuesday 15:35",
+      "expected_effect": "The rail and the evening wait for the last class end on the timetable clock; non-class days keep 17:00 to 04:00 exactly.",
+      "verification_plan": "Model tests for the window and its start; widget tests scrolling the board to its end at 17:45 and 19:15; the existing night routine tests unchanged.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "music-controller-roles",
+      "surface_or_primitive": "BackgroundMusicController main and Focus roles, MainRoomMusic rotation",
+      "state": "Saved setting on and off, Focus sessions, the evening choice",
+      "expected_effect": "Tonight's choice is ephemeral over the saved setting and gives way to Me's switch; Focus keeps its own session; Lamp left on can start first without changing the rotation.",
+      "verification_plan": "background_music_test, main_room_music_test, timer_overlay_music_test, music_asset_roles_test; evening widget tests with a recorded main voice.",
+      "disposition": "update",
+      "reason": ""
     }
   ],
   "unverified_property": "Whether the press, the camera's ease back and the celebration's timing feel rewarding rather than slow on his iPhone, with sound and haptics, on an ordinary Tuesday and on the seventh mark of a week.",
@@ -218,7 +236,15 @@
       "lib/widgets/count_up.dart",
       "lib/widgets/home_room.dart",
       "test/class_credit_test.dart",
-      "test/class_day_plumbing_test.dart"
+      "test/class_day_plumbing_test.dart",
+      "lib/background_music.dart",
+      "lib/main_room_music.dart",
+      "lib/content/routines.dart",
+      "test/class_day_evening_test.dart",
+      "test/background_music_test.dart",
+      "test/main_room_music_test.dart",
+      "test/timer_overlay_music_test.dart",
+      "test/design_renders/class_day_evening_build_test.dart"
     ],
     "exclude": []
   }
