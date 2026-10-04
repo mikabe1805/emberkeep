@@ -56,12 +56,14 @@ void _keep(GameState state, AcademicSchedule schedule, String code) {
 }
 
 /// What the widget reads at [at] when the app last published at
-/// [publishedAt] after [keeps] (each a code kept at its time).
+/// [publishedAt] after [keeps] (each a code kept at its time). [marks] is
+/// whether the board keeps from links (`ClassDayBoardSeam`).
 DayLedgerEntry _entry({
   required DateTime publishedAt,
   required DateTime at,
   List<(DateTime, String)> keeps = const [],
   bool timetable = true,
+  bool marks = true,
 }) {
   final schedule = timetable ? mikaSchedule() : AcademicSchedule.empty();
   final state = GameState();
@@ -75,6 +77,7 @@ DayLedgerEntry _entry({
     schedule: schedule,
     now: publishedAt,
     state: state,
+    classDayMarks: marks,
   );
   Clock.freeze(at);
   return DayLedgerEntry(at, LedgerSnapshot.load(snapshot.encode()));
@@ -102,6 +105,7 @@ void main() {
     required String tag,
     required String caption,
     required String surface,
+    double typeScale = 1,
   }) async {
     await pumpPhoneStudy(
       tester,
@@ -110,16 +114,21 @@ void main() {
         clock: _hm(entry.date.toLocal()),
         tag: tag,
         caption: caption,
+        typeScale: typeScale,
       ),
     );
     final small = entry.smallUrl ?? 'opens the app';
-    final medium = entry.mediumUrl ?? 'opens the app';
+    final medium = entry.mediumLinks.isEmpty
+        ? 'opens the app'
+        : entry.mediumLinks.join(' | ');
     await sheet.shot(
       tester,
       name,
       at: entry.date.toLocal(),
       surface: surface,
-      note: 'mode ${entry.mode.name}; small tap: $small; medium tap: $medium',
+      note:
+          'mode ${entry.mode.name}; type scale $typeScale; small tap: $small; '
+          'medium links: $medium',
     );
   }
 
@@ -145,8 +154,8 @@ void main() {
       surface: 'Widget, in session',
       caption:
           "Tue 10:45 AM, app last opened at 8:05. The class in session can be "
-          "marked: I'M HERE opens Room of Days and keeps it there, with the "
-          'same celebration as the board.',
+          "marked: I'M HERE sits under it, on its open ring, and keeps it "
+          'with the same celebration as the board.',
     );
     await frame(
       tester,
@@ -155,8 +164,9 @@ void main() {
       tag: 'MOCK · DAY LEDGER · BETWEEN CLASSES',
       surface: 'Widget, between classes',
       caption:
-          'Tue 11:52 AM. The class that just ended, its one I WAS THERE, and '
-          'the next one. The small widget is one tap: it opens the mark link.',
+          'Tue 11:52 AM. The class that just ended on its open ring, its one '
+          'brass I WAS THERE directly under it, and the next one as a quiet '
+          'last line. The small widget is one tap: it opens the mark link.',
     );
     await frame(
       tester,
@@ -169,8 +179,8 @@ void main() {
       tag: 'MOCK · DAY LEDGER · AFTER THE MARK',
       surface: 'Widget, kept',
       caption:
-          'Tue 11:53 AM, right after the keep. The app republished: the class '
-          'reads attended with its XP, and the next one is up.',
+          'Tue 11:53 AM, right after the keep. The app republished: the ring '
+          'closed, the class reads attended with its XP, the next one is up.',
     );
     await frame(
       tester,
@@ -184,8 +194,9 @@ void main() {
       surface: 'Widget, classes done',
       caption:
           'Tue 3:35 PM, app not opened since 11:53. The widget moved on by '
-          'itself at 3:20: Classes done, the kept one with its XP, the '
-          'waiting one with I WAS THERE, and tomorrow with its day.',
+          'itself at 3:20: Classes done, the kept one with its closed ring '
+          'and XP, the waiting one with I WAS THERE, and tomorrow with its '
+          'day.',
     );
     final secondMark = ny(10, 6, 15, 36);
     await frame(
@@ -213,8 +224,9 @@ void main() {
       tag: 'MOCK · DAY LEDGER · EVENING',
       surface: 'Widget, evening',
       caption:
-          'Tue 8:30 PM. The evening is the everyday look again, and the next '
-          'class carries its day: WED 8:30 AM.',
+          "Tue 8:30 PM. The evening is the everyday look again, with the "
+          "day's record as one quiet line until 4:00 AM, and the next class "
+          'carries its day: WED 8:30 AM.',
     );
     final evening = ny(10, 6, 20, 30);
     await frame(
@@ -235,9 +247,10 @@ void main() {
       tag: 'MOCK · DAY LEDGER · MONDAY, CLASSES DONE',
       surface: 'Widget, classes done',
       caption:
-          'Mon 7:05 PM, after his 5:40 to 7:00 class. Three rows; the newest '
-          'carries the one bright I WAS THERE, the others are quiet links. '
-          'It holds until 8:00 PM, then the evening look.',
+          'Mon 7:05 PM, after his 5:40 to 7:00 class. Three waiting: quiet '
+          'dots and one I WENT TO ALL for the lot, one trip and one '
+          'celebration. The rows only open the class day. It holds until '
+          '8:00 PM, then the evening look.',
     );
     final thuMorning = ny(10, 8, 9, 55);
     final thuAfternoon = ny(10, 8, 15, 25);
@@ -265,6 +278,76 @@ void main() {
           'Wed 11:35 AM. The three-hour lab ended at 11:30; the longest title '
           'he has, on both sizes.',
     );
+    await frame(
+      tester,
+      'W14_tue2030_evening_one_waiting',
+      entry: _entry(
+        publishedAt: firstMark,
+        at: ny(10, 6, 20, 30),
+        keeps: [(firstMark, '14:332:331')],
+      ),
+      tag: 'MOCK · DAY LEDGER · EVENING, ONE TO MARK',
+      surface: 'Widget, evening',
+      caption:
+          'Tue 8:30 PM, Discrete Structures II never marked. The evening '
+          'keeps its everyday look; one quiet line still offers it, with an '
+          'outlined I WAS THERE, until 4:00 AM. Tapping elsewhere opens the '
+          'class day.',
+    );
+    await frame(
+      tester,
+      'W15_mon2030_evening_three_waiting',
+      entry: _entry(publishedAt: ny(10, 5, 8, 0), at: ny(10, 5, 20, 30)),
+      tag: 'MOCK · DAY LEDGER · MONDAY EVENING',
+      surface: 'Widget, evening',
+      caption:
+          'Mon 8:30 PM, nothing marked. The quiet line offers I WENT TO ALL '
+          'for the day, outlined, never lit.',
+    );
+    await frame(
+      tester,
+      'W16_tue1152_board_not_wired',
+      entry: _entry(publishedAt: morning, at: ny(10, 6, 11, 52), marks: false),
+      tag: 'MOCK · DAY LEDGER · BOARD NOT WIRED YET',
+      surface: 'Widget, between classes',
+      caption:
+          'Tue 11:52 AM in a build whose board does not keep from links yet: '
+          'no control at all, so nothing on the home screen promises a keep '
+          'it cannot make. A tap opens the class day.',
+    );
+    for (final (name, entry, tag) in [
+      (
+        'W05L_tue1535_classes_done_large_text',
+        _entry(
+          publishedAt: firstMark,
+          at: ny(10, 6, 15, 35),
+          keeps: [(firstMark, '14:332:331')],
+        ),
+        'MOCK · LARGE TEXT · AFTER THE LAST CLASS',
+      ),
+      (
+        'W09L_mon1905_three_waiting_large_text',
+        _entry(publishedAt: ny(10, 5, 8, 0), at: ny(10, 5, 19, 5)),
+        'MOCK · LARGE TEXT · MONDAY, CLASSES DONE',
+      ),
+      (
+        'W13L_wed1135_lab_ended_large_text',
+        _entry(publishedAt: ny(10, 7, 8, 0), at: ny(10, 7, 11, 35)),
+        'MOCK · LARGE TEXT · WEDNESDAY AFTER THE LAB',
+      ),
+    ]) {
+      await frame(
+        tester,
+        name,
+        entry: entry,
+        tag: tag,
+        surface: 'Widget, accessibility text size',
+        typeScale: 1.24,
+        caption:
+            'At an accessibility text size the small text grows by its cap, '
+            'a quarter; titles keep their size so the ledger still fits.',
+      );
+    }
     await frame(
       tester,
       'W11_sat1100_no_classes',

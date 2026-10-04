@@ -7,10 +7,16 @@
 ///
 /// Version 3 adds the class day: the night-owned day's real classes (and the
 /// next few class days) with occurrence key, title, time, place and state,
-/// the mark link for each, the instants the widget changes at (each class
-/// start and end, the evening, the 04:00 night end, local midnight), and the
-/// next day's quests for after midnight. Every version 2 field keeps its name
-/// and shape; the new ones are additions a version 2 reader ignores.
+/// the mark links (only while the board keeps from links, see
+/// class_day_links.dart), the day's record line, the instants the widget
+/// changes at (each class start and end, the evening, the 04:00 night end,
+/// local midnight), and the next day's quests for after midnight.
+///
+/// Every version 2 key keeps its name and shape, so the version 3 widget
+/// still reads a version 2 snapshot. The other way round does not hold: the
+/// shipped version 2 widget (Build 49 and earlier) accepts only version 2 and
+/// shows its empty look for a version 3 snapshot until a version 2 app
+/// publishes again, which after a TestFlight downgrade means the next open.
 library;
 
 import 'dart:convert';
@@ -197,7 +203,9 @@ final class WidgetClassDay {
     required this.classXp,
     required this.allKept,
     required this.classes,
+    this.markAllUrl,
     this.attendedShort,
+    this.recordLine,
   });
 
   final String dayKey;
@@ -219,13 +227,24 @@ final class WidgetClassDay {
   /// Class XP kept that day, full-day bonus included.
   final int classXp;
 
-  /// Every class the day is judged by is kept (and there is at least one).
+  /// Every class the day is judged by (`countsTowardDay`) is kept, and there
+  /// is at least one. The widget still shows a started class of another
+  /// kind (office hours) that is not kept as the class to mark.
   final bool allKept;
 
   final List<WidgetDayClass> classes;
 
   /// Only when [allKept]: `Both attended`.
   final String? attendedShort;
+
+  /// `roomofdays://class-day/mark-all?day=...`: the widget's "I WENT TO
+  /// BOTH" when two or more of the day's classes have ended unmarked. Null
+  /// while no board keeps from links.
+  final String? markAllUrl;
+
+  /// The day's record in one line once a class is kept, for the evening:
+  /// `Tuesday’s classes, both attended`. Null while nothing is kept.
+  final String? recordLine;
 
   Map<String, dynamic> toJson() => {
     'dayKey': dayKey,
@@ -237,6 +256,8 @@ final class WidgetClassDay {
     'classXp': classXp,
     'allKept': allKept,
     if (attendedShort != null) 'attendedShort': attendedShort,
+    if (markAllUrl != null) 'markAllUrl': markAllUrl,
+    if (recordLine != null) 'recordLine': recordLine,
     'classes': [for (final entry in classes) entry.toJson()],
   };
 }
@@ -258,7 +279,7 @@ final class WidgetDayClass {
     required this.kept,
     required this.keptXp,
     required this.state,
-    required this.markUrl,
+    this.markUrl,
   });
 
   final String occurrenceKey;
@@ -288,7 +309,9 @@ final class WidgetDayClass {
   final WidgetClassState state;
 
   /// `roomofdays://class-day/mark?occurrence=...&day=...` (class_day_links).
-  final String markUrl;
+  /// Null while no board keeps from links: the widget then only opens the
+  /// class day.
+  final String? markUrl;
 
   Map<String, dynamic> toJson() => {
     'occurrenceKey': occurrenceKey,
@@ -305,7 +328,7 @@ final class WidgetDayClass {
     'kept': kept,
     'keptXp': keptXp,
     'state': state.name,
-    'markUrl': markUrl,
+    if (markUrl != null) 'markUrl': markUrl,
   };
 }
 
@@ -322,18 +345,21 @@ final class WidgetQuestGlance {
 
 abstract final class WidgetSnapshotBuilder {
   /// [state] supplies which classes are kept and the day's class XP. Without
-  /// it every class reads as not kept.
+  /// it every class reads as not kept. [classDayMarks] publishes the mark
+  /// links; the shell passes `ClassDayBoardSeam.boardMarksClasses`, so a
+  /// build whose board does not keep from links never shows a mark control.
   static WidgetSnapshot build({
     required Iterable<Quest> quests,
     required AcademicSchedule schedule,
     required DateTime now,
     GameState? state,
+    bool classDayMarks = false,
   }) {
     final instant = now.toUtc();
     final local = now.toLocal();
     final questsDayEnds = DateTime(local.year, local.month, local.day + 1);
     final nextDayEnds = DateTime(local.year, local.month, local.day + 2);
-    final classDays = _classDays(schedule, now, state);
+    final classDays = _classDays(schedule, now, state, classDayMarks);
     final upcomingClasses = _upcomingClasses(schedule, instant);
     final boundaries = <DateTime>{
       for (final day in classDays) ...[
@@ -434,12 +460,13 @@ abstract final class WidgetSnapshotBuilder {
     AcademicSchedule schedule,
     DateTime now,
     GameState? state,
+    bool marks,
   ) {
     if (schedule.occurrences.isEmpty) return const [];
     final first = projectClassDay(schedule, now);
     final days = <WidgetClassDay>[];
     void add(ClassDay day) {
-      final built = _classDay(day, now, state);
+      final built = _classDay(day, now, state, marks);
       if (built != null) days.add(built);
     }
 
@@ -454,6 +481,7 @@ abstract final class WidgetSnapshotBuilder {
     ClassDay day,
     DateTime now,
     GameState? state,
+    bool marks,
   ) {
     if (!day.isClassDay) return null;
     final zone = day.classes.first.timeZoneId;
@@ -500,7 +528,9 @@ abstract final class WidgetSnapshotBuilder {
                   ClassMoment.inSession => WidgetClassState.inSession,
                   ClassMoment.ended => WidgetClassState.waiting,
                 },
-          markUrl: classDayMarkUrl(entry.occurrenceKey, day.dayKey),
+          markUrl: marks
+              ? classDayMarkUrl(entry.occurrenceKey, day.dayKey)
+              : null,
         ),
       );
     }
@@ -521,7 +551,16 @@ abstract final class WidgetSnapshotBuilder {
       classXp: state?.classXpForDay(day.dayKey) ?? 0,
       allKept: allKept,
       attendedShort: allKept ? attendedShort(keptCount) : null,
+      recordLine: keptCount == 0
+          ? null
+          : recordLine(
+              weekday,
+              classCount: classes.length,
+              kept: keptCount,
+              allKept: allKept,
+            ),
       classes: List.unmodifiable(classes),
+      markAllUrl: marks ? classDayMarkAllUrl(day.dayKey) : null,
     );
   }
 
@@ -532,6 +571,33 @@ abstract final class WidgetSnapshotBuilder {
     2 => 'Both attended',
     3 => 'All three attended',
     _ => 'All attended',
+  };
+
+  /// The day's record folded to one line for the evening, the way the
+  /// board's evening reads it: `Tuesday’s classes, both attended`, or
+  /// `Tuesday’s classes, one attended` while another is still unmarked.
+  /// It counts only what was kept, never what was not.
+  static String recordLine(
+    String weekday, {
+    required int classCount,
+    required int kept,
+    required bool allKept,
+  }) {
+    final noun = classCount == 1 ? 'class' : 'classes';
+    final what = allKept
+        ? attendedShort(kept).toLowerCase()
+        : '${_countWord(kept)} attended';
+    return '$weekday’s $noun, $what';
+  }
+
+  static String _countWord(int n) => switch (n) {
+    1 => 'one',
+    2 => 'two',
+    3 => 'three',
+    4 => 'four',
+    5 => 'five',
+    6 => 'six',
+    _ => '$n',
   };
 
   static DateTime _localInstant(CivilDate date, int minute, String zone) {

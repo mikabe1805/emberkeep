@@ -85,6 +85,11 @@ bool musicShouldRunForLifecycle(AppLifecycleState? lifecycle) =>
 
 /// The welcome ignition is a visible-room event, never a launch side effect.
 /// Keeping this pure makes overlay ordering explicit and regression-testable.
+///
+/// A session a Day Ledger widget link opened ([classDayLinkFirst]) belongs to
+/// the class day: the mark's celebration and its completion sound are the
+/// first moment, so the flare and its sound never begin there. The hearth is
+/// simply lit instead ([sessionHearthMayLightQuietly]).
 bool sessionIgnitionMayBegin({
   required bool startupSettled,
   required bool onboarded,
@@ -94,15 +99,27 @@ bool sessionIgnitionMayBegin({
   required bool whatsNewCheckScheduled,
   required bool morningVisible,
   required bool morningCheckScheduled,
+  bool classDayLinkFirst = false,
 }) =>
     startupSettled &&
     onboarded &&
     questRoomVisible &&
+    !classDayLinkFirst &&
     !whatsNewPending &&
     !whatsNewVisible &&
     !whatsNewCheckScheduled &&
     !morningVisible &&
     !morningCheckScheduled;
+
+/// A link-opened session lights the hearth without the flare or its sound,
+/// once the Quest room is on screen. The morning briefing and What's New are
+/// held for that session, so they do not wait on it.
+bool sessionHearthMayLightQuietly({
+  required bool startupSettled,
+  required bool onboarded,
+  required bool questRoomVisible,
+  required bool classDayLinkFirst,
+}) => classDayLinkFirst && startupSettled && onboarded && questRoomVisible;
 
 class FreshSocialInbox {
   const FreshSocialInbox({required this.sparkKinds, required this.circleAdds});
@@ -161,6 +178,7 @@ class AppShell extends StatefulWidget {
     this.initialRoomCode,
     this.roomLinks,
     this.classDayLinks,
+    this.classDayBoardSeam,
     this.academicScheduleFiles,
     this.scheduleRepository,
     this.widgetSnapshotWriter,
@@ -173,6 +191,11 @@ class AppShell extends StatefulWidget {
 
   /// Class-day links from the Day Ledger widget (class_day_links.dart).
   final ClassDayLinkInbox? classDayLinks;
+
+  /// Where widget-link requests go and whose board capability the widget
+  /// snapshot follows. Production uses [ClassDayBoardSeam.instance], which
+  /// the Quests page attaches to; tests hand the shell their own.
+  final ClassDayBoardSeam? classDayBoardSeam;
   final AcademicScheduleFileInbox? academicScheduleFiles;
   final AcademicScheduleRepository? scheduleRepository;
   final WidgetSnapshotWriter? widgetSnapshotWriter;
@@ -219,6 +242,21 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// the next open instead of covering it.
   bool _openedByClassDayLink = false;
   bool _drainingClassDayLinks = false;
+
+  /// Board requests from widget links, held until the Quest room is really
+  /// on screen (Quests tab, no route pushed over the shell, no morning
+  /// briefing or What's New), so a keep and its celebration are never
+  /// played behind something else.
+  final List<ClassDayBoardRequest> _heldClassDayRequests = [];
+  bool _classDayReleaseScheduled = false;
+
+  /// The shell route's secondary animation while a pushed route covers it;
+  /// its reverse to dismissed releases the held requests.
+  Animation<double>? _coveringRouteAnimation;
+
+  /// A dialog over the shell may not move that animation, so a covered
+  /// shell also looks again each second while requests are held.
+  Timer? _classDayRecheck;
   bool _musicForeground = false;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
@@ -279,6 +317,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
     widget.classDayLinks?.addListener(_onIncomingClassDayLink);
+    _boardSeam.boardMarksClasses.addListener(_onBoardMarksChanged);
     widget.academicScheduleFiles?.addListener(_onIncomingAcademicScheduleFile);
     CloudSync.instance.addListener(_onCloudAccountChanged);
     _load();
@@ -308,6 +347,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
     widget.classDayLinks?.removeListener(_onIncomingClassDayLink);
+    _boardSeam.boardMarksClasses.removeListener(_onBoardMarksChanged);
+    _coveringRouteAnimation?.removeStatusListener(_onCoveringRouteStatus);
+    _coveringRouteAnimation = null;
+    _classDayRecheck?.cancel();
     widget.academicScheduleFiles?.removeListener(
       _onIncomingAcademicScheduleFile,
     );
@@ -330,6 +373,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       oldWidget.roomLinks?.removeListener(_onIncomingRoomLink);
       widget.roomLinks?.addListener(_onIncomingRoomLink);
       _onIncomingRoomLink();
+    }
+    if (oldWidget.classDayBoardSeam != widget.classDayBoardSeam) {
+      (oldWidget.classDayBoardSeam ?? ClassDayBoardSeam.instance)
+          .boardMarksClasses
+          .removeListener(_onBoardMarksChanged);
+      _boardSeam.boardMarksClasses.addListener(_onBoardMarksChanged);
     }
     if (oldWidget.classDayLinks != widget.classDayLinks) {
       oldWidget.classDayLinks?.removeListener(_onIncomingClassDayLink);
@@ -393,6 +442,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       schedule: _academicSchedule,
       now: now,
       state: state,
+      // Mark controls only while the board keeps from links; until then
+      // every widget tap just opens the class day.
+      classDayMarks: _boardSeam.boardMarksClasses.value,
     );
     _armWidgetBoundary(snapshot.nextBoundaryAfter(now), now);
     _widgetWriteTail = _widgetWriteTail.catchError((_) {}).then<void>((
@@ -422,17 +474,28 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (_startupSettled) unawaited(_drainPendingRoomLinks());
   }
 
+  ClassDayBoardSeam get _boardSeam =>
+      widget.classDayBoardSeam ?? ClassDayBoardSeam.instance;
+
   void _onIncomingClassDayLink() {
     if (!mounted || !(widget.classDayLinks?.isNotEmpty ?? false)) return;
     _openedByClassDayLink = true;
     unawaited(_drainClassDayLinks());
   }
 
+  /// A board that keeps from links attached (or one that does not replaced
+  /// it): the widget's controls follow at once.
+  void _onBoardMarksChanged() {
+    if (mounted) unawaited(_publishWidgetSnapshot());
+  }
+
   /// Routes each queued Day Ledger widget link once the save and the
   /// timetable are loaded: the Quests tab, on the class day. A mark link is
-  /// checked against the engine at that moment (`checkClassKeep`), and only a
-  /// class that can be kept right now is handed to the board, which keeps it
-  /// and plays the same celebration as its own I WAS THERE.
+  /// checked against the engine for the moment of the tap
+  /// (`checkClassKeep(at:)`), and only a class that could be kept then is
+  /// handed to the board, which keeps it and plays the same celebration as
+  /// its own I WAS THERE (or, for a mark-all link, its "I went to all of
+  /// today's classes").
   Future<void> _drainClassDayLinks() async {
     final inbox = widget.classDayLinks;
     if (inbox == null ||
@@ -451,11 +514,67 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         if (state == null) break;
         _openedByClassDayLink = true;
         _selectTab(1);
-        ClassDayBoardSeam.instance.request(_classDayBoardRequest(event, state));
+        while (_heldClassDayRequests.length >= ClassDayBoardSeam.maxPending) {
+          _heldClassDayRequests.removeAt(0);
+        }
+        _heldClassDayRequests.add(_classDayBoardRequest(event, state));
       }
     } finally {
       _drainingClassDayLinks = false;
     }
+    _releaseClassDayRequests();
+  }
+
+  /// The Quest room is what the person sees: the Quests tab, with no route
+  /// pushed over the shell and no launch overlay on top.
+  bool get _questRoomShowing =>
+      _tab == 1 &&
+      _morningOverlay == null &&
+      _whatsNewOverlay == null &&
+      (ModalRoute.of(context)?.isCurrent ?? true);
+
+  /// Hands the held widget-link requests to the board once the Quest room is
+  /// on screen. A route pushed over the shell (Journal, Settings, a room
+  /// visit) is never popped for it: the requests wait for it to close. The
+  /// launch overlays and the Quests tab release them from their own paths.
+  void _releaseClassDayRequests() {
+    if (_heldClassDayRequests.isEmpty || _classDayReleaseScheduled) return;
+    _classDayReleaseScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _classDayReleaseScheduled = false;
+      if (!mounted || _heldClassDayRequests.isEmpty) return;
+      if (!_questRoomShowing) {
+        _waitForCoveringRoute();
+        return;
+      }
+      final held = List.of(_heldClassDayRequests);
+      _heldClassDayRequests.clear();
+      for (final request in held) {
+        _boardSeam.request(request);
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  void _waitForCoveringRoute() {
+    final route = ModalRoute.of(context);
+    final animation = route?.secondaryAnimation;
+    if (route == null || route.isCurrent || animation == null) return;
+    _classDayRecheck ??= Timer(const Duration(seconds: 1), () {
+      _classDayRecheck = null;
+      if (mounted) _releaseClassDayRequests();
+    });
+    if (identical(_coveringRouteAnimation, animation)) return;
+    _coveringRouteAnimation?.removeStatusListener(_onCoveringRouteStatus);
+    _coveringRouteAnimation = animation
+      ..addStatusListener(_onCoveringRouteStatus);
+  }
+
+  void _onCoveringRouteStatus(AnimationStatus status) {
+    if (status != AnimationStatus.dismissed) return;
+    _coveringRouteAnimation?.removeStatusListener(_onCoveringRouteStatus);
+    _coveringRouteAnimation = null;
+    _releaseClassDayRequests();
   }
 
   ClassDayBoardRequest _classDayBoardRequest(
@@ -463,25 +582,69 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     GameState state,
   ) {
     final link = event.link;
-    final now = Clock.now();
-    final open = ClassDayBoardRequest.open(requestedAt: now);
+    // Judged by the tap, never by when the shell got to it: a cold start
+    // that finishes after 04:00 still keeps a class tapped before it.
+    final tappedAt = event.receivedAt;
+    final open = ClassDayBoardRequest.open(requestedAt: tappedAt);
+    final dayKey = link.dayKey;
+    if (dayKey == null) return open;
+    if (link.isMarkAll) {
+      final keys = _classesWaitingAt(dayKey, state, tappedAt);
+      if (keys.isEmpty) return open;
+      if (keys.length == 1) {
+        return ClassDayBoardRequest.mark(
+          occurrenceKey: keys.single,
+          dayKey: dayKey,
+          requestedAt: tappedAt,
+        );
+      }
+      return ClassDayBoardRequest.markAll(
+        occurrenceKeys: keys,
+        dayKey: dayKey,
+        requestedAt: tappedAt,
+      );
+    }
     if (!link.isMark) return open;
     final occurrence = _academicSchedule.occurrenceByKey(link.occurrenceKey!);
-    if (occurrence == null || occurrence.date.toString() != link.dayKey) {
+    if (occurrence == null || occurrence.date.toString() != dayKey) {
       return open;
     }
     final facts = classFactsFor(_academicSchedule, occurrence);
     if (facts == null ||
         occurrence.state == OccurrenceState.cancelled ||
         occurrence.tombstonedAt != null ||
-        state.checkClassKeep(facts) != ClassKeepCheck.open) {
+        state.checkClassKeep(facts, at: tappedAt) != ClassKeepCheck.open) {
       return open;
     }
     return ClassDayBoardRequest.mark(
       occurrenceKey: occurrence.occurrenceKey,
-      dayKey: link.dayKey!,
-      requestedAt: now,
+      dayKey: dayKey,
+      requestedAt: tappedAt,
     );
+  }
+
+  /// The classes of [dayKey] that had ended, unmarked, by [tappedAt] and
+  /// could be kept then, in time order: what the widget's "I WENT TO BOTH"
+  /// showed when it was tapped.
+  List<String> _classesWaitingAt(
+    String dayKey,
+    GameState state,
+    DateTime tappedAt,
+  ) {
+    final date = Days.tryParse(dayKey);
+    if (date == null) return const [];
+    final day = projectClassDay(
+      _academicSchedule,
+      tappedAt,
+      day: CivilDate.fromDateTime(date),
+    );
+    return [
+      for (final entry in day.classes)
+        if (entry.momentAt(tappedAt) == ClassMoment.ended &&
+            state.checkClassKeep(entry.facts, at: tappedAt) ==
+                ClassKeepCheck.open)
+          entry.occurrenceKey,
+    ];
   }
 
   /// Firebase account changes are the privacy boundary for the room photo.
@@ -641,7 +804,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       unawaited(_notifySocialInbox());
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
-      if (lifecycle == AppLifecycleState.paused) _openedByClassDayLink = false;
+      if (lifecycle == AppLifecycleState.paused) {
+        _openedByClassDayLink = false;
+        // A link whose room was never on screen before the app left is
+        // dropped: its class stays as it was, markable from the widget again,
+        // and no celebration plays out of place on a later open.
+        _heldClassDayRequests.clear();
+        _classDayRecheck?.cancel();
+        _classDayRecheck = null;
+      }
       // flush any in-flight quest completion BEFORE saving — otherwise a
       // done-marked quest can persist without its XP (deferred-commit window)
       _flushQuestsCommit?.call();
@@ -1258,6 +1429,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (mounted) setState(() {});
     _maybeMorning();
     _maybeStartSessionIgnition();
+    _releaseClassDayRequests();
   }
 
   /// A class-day link opened (or is opening) this session.
@@ -1313,6 +1485,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             _morningOverlay = null;
             if (mounted) setState(() {});
             _maybeStartSessionIgnition();
+            _releaseClassDayRequests();
           },
           onClose: () {
             s.closeMorning(); // disarms the briefing
@@ -1321,6 +1494,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             _morningOverlay = null;
             if (mounted) setState(() {});
             _maybeStartSessionIgnition();
+            _releaseClassDayRequests();
           },
         ),
       );
@@ -1344,6 +1518,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           _tab == 1 &&
           _visitedTabs.contains(1) &&
           Navigator.of(context).canPop() == false;
+      if (sessionHearthMayLightQuietly(
+        startupSettled: _startupSettled,
+        onboarded: state.onboarded,
+        questRoomVisible: questRoomVisible,
+        classDayLinkFirst: _classDayLinkFirst,
+      )) {
+        if (_sessionIgnition.claim()) setState(() => _roomHearthLit = true);
+        return;
+      }
       if (!sessionIgnitionMayBegin(
             startupSettled: _startupSettled,
             onboarded: state.onboarded,
@@ -1353,6 +1536,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             whatsNewCheckScheduled: _whatsNewCheckScheduled,
             morningVisible: _morningOverlay != null,
             morningCheckScheduled: _morningCheckScheduled,
+            classDayLinkFirst: _classDayLinkFirst,
           ) ||
           !_sessionIgnition.claim()) {
         return;
@@ -1990,6 +2174,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _tab = i;
     });
     if (i == 1) _maybeStartSessionIgnition();
+    if (i == 1) _releaseClassDayRequests();
   }
 
   void _openQuestFromGoals(Quest quest) {

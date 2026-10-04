@@ -45,6 +45,28 @@ ClassCredit? keep(GameState state, AcademicSchedule schedule, String code) {
 Map<String, dynamic> decode(WidgetSnapshot snapshot) =>
     (jsonDecode(snapshot.encode()) as Map).cast<String, dynamic>();
 
+/// What the widget reads at [at] from the snapshot the app published at
+/// [publishedAt]. [marks] is whether the board keeps from links.
+DayLedgerEntry entryAt(
+  AcademicSchedule schedule,
+  GameState state, {
+  required DateTime publishedAt,
+  DateTime? at,
+  bool marks = true,
+}) {
+  final snapshot = WidgetSnapshotBuilder.build(
+    quests: mikaQuests(),
+    schedule: schedule,
+    now: publishedAt,
+    state: state,
+    classDayMarks: marks,
+  );
+  return DayLedgerEntry(
+    at ?? publishedAt,
+    LedgerSnapshot.load(snapshot.encode()),
+  );
+}
+
 void main() {
   setUpAll(time_zone_data.initializeTimeZones);
   tearDown(Clock.reset);
@@ -66,6 +88,7 @@ void main() {
         schedule: schedule,
         now: now,
         state: state,
+        classDayMarks: true,
       );
       final json = decode(snapshot);
 
@@ -126,7 +149,12 @@ void main() {
       );
       expect(tuesday['allKept'], isFalse);
       expect(tuesday.containsKey('attendedShort'), isFalse);
+      expect(tuesday.containsKey('recordLine'), isFalse);
       expect(tuesday['classXp'], 0);
+      expect(
+        tuesday['markAllUrl'],
+        'roomofdays://class-day/mark-all?day=2026-10-06',
+      );
 
       final classes = [
         for (final entry in tuesday['classes'] as List)
@@ -187,8 +215,12 @@ void main() {
       expect(entry.isInSession(entry.focusClass!), isFalse);
       expect(entry.nextAfter?.title, 'Discrete Structures II');
       expect(entry.nextAfter?.time, '2:00 PM');
+      expect(entry.markAllUrl, isNull);
       expect(entry.smallUrl, classes.first['markUrl']);
       expect(entry.mediumUrl, classDayOpenUrl);
+      // The medium widget has one control, and it marks the class that
+      // ended, never the one that has not started.
+      expect(entry.mediumLinks, [classDayOpenUrl, classes.first['markUrl']]);
     });
 
     test('15:35, after the last class: Classes done with the waiting one', () {
@@ -203,6 +235,7 @@ void main() {
         schedule: schedule,
         now: now,
         state: state,
+        classDayMarks: true,
       );
       final tuesday = snapshot.classDays.first;
       expect(tuesday.dayKey, '2026-10-06');
@@ -213,6 +246,7 @@ void main() {
       expect(tuesday.classes.first.keptXp, 25);
       expect(tuesday.classXp, 25);
       expect(tuesday.allKept, isFalse);
+      expect(tuesday.recordLine, 'Tuesday’s classes, one attended');
       // Version 2 readers still see the next class, now tomorrow's lab.
       expect(snapshot.nextClass?.courseTitle, 'Computer Architecture Lab');
       expect(snapshot.nextClass?.dayLabel, 'WED');
@@ -226,6 +260,11 @@ void main() {
         'Discrete Structures II',
       ]);
       expect(entry.focusClass?.shortTitle, 'Discrete Structures II');
+      // One waiting: its own I WAS THERE, no mark-all.
+      expect(entry.waitingClasses, hasLength(1));
+      expect(entry.markAllUrl, isNull);
+      expect(entry.smallUrl, entry.focusClass!.markUrl);
+      expect(entry.showsNextAfterRows, isTrue);
       expect(entry.nextAfter?.title, 'Computer Architecture Lab');
       expect(entry.nextAfter?.time, 'WED 8:30 AM');
 
@@ -237,18 +276,39 @@ void main() {
         schedule: schedule,
         now: now,
         state: state,
+        classDayMarks: true,
       );
       final day = kept.classDays.first;
       expect(day.allKept, isTrue);
       expect(day.classXp, 60);
       expect(day.attendedShort, 'Both attended');
+      expect(day.recordLine, 'Tuesday’s classes, both attended');
       final after = DayLedgerEntry(now, LedgerSnapshot.load(kept.encode()));
       expect(after.mode, LedgerMode.allKept);
       expect(after.focusClass, isNull);
       expect(after.smallUrl, classDayOpenUrl);
+      expect(after.mediumLinks, [classDayOpenUrl]);
     });
 
-    test('20:30, the evening: the everyday look with the day word', () {
+    test('two ended and unmarked: one I WENT TO BOTH for both', () {
+      final entry = entryAt(
+        schedule,
+        state,
+        publishedAt: ny(10, 6, 11, 52),
+        at: ny(10, 6, 15, 35),
+      );
+      expect(entry.classesDone, isTrue);
+      expect(entry.waitingClasses, hasLength(2));
+      expect(
+        entry.markAllUrl,
+        'roomofdays://class-day/mark-all?day=2026-10-06',
+      );
+      expect(entry.markAllLabel, 'I WENT TO BOTH');
+      expect(entry.smallUrl, entry.markAllUrl);
+      expect(entry.mediumLinks, [classDayOpenUrl, entry.markAllUrl]);
+    });
+
+    test('20:30, the evening: the everyday look and one quiet line', () {
       final now = ny(10, 6, 20, 30);
       Clock.freeze(now);
       final snapshot = WidgetSnapshotBuilder.build(
@@ -256,6 +316,7 @@ void main() {
         schedule: schedule,
         now: now,
         state: state,
+        classDayMarks: true,
       );
       final json = decode(snapshot);
       final tuesday = ((json['classDays'] as List).first as Map)
@@ -271,11 +332,30 @@ void main() {
 
       final entry = DayLedgerEntry(now, LedgerSnapshot.load(snapshot.encode()));
       expect(entry.mode, LedgerMode.today);
-      expect(entry.smallUrl, isNull);
-      expect(entry.mediumUrl, isNull);
       expect(entry.nextClass?.courseTitle, 'Computer Architecture Lab');
       expect(entry.classTime(entry.nextClass!), 'WED 8:30 AM');
       expect(entry.quests, hasLength(3));
+      // Both still markable from the home screen: a quiet mark-all line,
+      // and a tap anywhere else lands on the class day.
+      expect(entry.eveningLine, LedgerEveningLine.markAll);
+      expect(entry.eveningMarkAllLabel, 'I WENT TO BOTH');
+      expect(entry.smallUrl, classDayOpenUrl);
+      expect(entry.mediumUrl, classDayOpenUrl);
+      expect(entry.mediumLinks.last, tuesday['markAllUrl']);
+
+      // 3:59 AM is still Tuesday's night; at 4:00 the line is gone.
+      final lastMinute = DayLedgerEntry(
+        ny(10, 7, 3, 59),
+        LedgerSnapshot.load(snapshot.encode()),
+      );
+      expect(lastMinute.eveningLine, LedgerEveningLine.markAll);
+      final over = DayLedgerEntry(
+        ny(10, 7, 4, 1),
+        LedgerSnapshot.load(snapshot.encode()),
+      );
+      expect(over.eveningLine, isNull);
+      expect(over.smallUrl, isNull);
+      expect(over.mediumLinks, isEmpty);
 
       // The midnight entry (the device's own midnight, where the app's
       // quest day turns): tomorrow's list replaces today's.
@@ -323,9 +403,46 @@ void main() {
       expect(wednesday.focusClass?.shortTitle, 'Computer Architecture Lab');
       expect(wednesday.nextAfter?.time, '2:00 PM');
     });
+
+    test('20:30 with one kept: the other is offered on the quiet line', () {
+      Clock.freeze(ny(10, 6, 11, 52));
+      keep(state, schedule, '14:332:331');
+      final entry = entryAt(
+        schedule,
+        state,
+        publishedAt: ny(10, 6, 11, 53),
+        at: ny(10, 6, 20, 30),
+      );
+      expect(entry.mode, LedgerMode.today);
+      expect(entry.eveningLine, LedgerEveningLine.waiting);
+      expect(entry.eveningWaiting.single.shortTitle, 'Discrete Structures II');
+      expect(entry.mediumLinks, [
+        classDayOpenUrl,
+        entry.eveningWaiting.single.markUrl,
+      ]);
+      // The small widget's evening look has no control: its tap only opens.
+      expect(entry.smallUrl, classDayOpenUrl);
+    });
+
+    test("20:30 with both kept: the day's record as one quiet line", () {
+      Clock.freeze(ny(10, 6, 11, 52));
+      keep(state, schedule, '14:332:331');
+      Clock.freeze(ny(10, 6, 15, 36));
+      keep(state, schedule, '01:198:206');
+      final entry = entryAt(
+        schedule,
+        state,
+        publishedAt: ny(10, 6, 15, 36),
+        at: ny(10, 6, 20, 30),
+      );
+      expect(entry.eveningLine, LedgerEveningLine.record);
+      expect(entry.eveningDay?.recordLine, 'Tuesday’s classes, both attended');
+      expect(entry.eveningDay?.classXp, 60);
+      expect(entry.mediumLinks, [classDayOpenUrl], reason: 'no control');
+    });
   });
 
-  test('his Monday holds Classes done for an hour after 7:00 PM', () {
+  test('his Monday: Classes done for an hour after 7:00 PM, one control', () {
     final schedule = mikaSchedule();
     final now = ny(10, 5, 19, 5);
     Clock.freeze(now);
@@ -334,6 +451,7 @@ void main() {
       schedule: schedule,
       now: now,
       state: GameState(),
+      classDayMarks: true,
     );
     final monday = snapshot.classDays.first;
     expect(monday.classes, hasLength(3));
@@ -343,11 +461,19 @@ void main() {
     expect(entry.classesDone, isTrue);
     expect(entry.doneRows, hasLength(3));
     expect(entry.focusClass?.startLabel, '5:40 PM');
+    // Three waiting: one I WENT TO ALL, never a count of them.
+    expect(entry.markAllUrl, monday.markAllUrl);
+    expect(entry.markAllLabel, 'I WENT TO ALL');
+    expect(entry.smallUrl, monday.markAllUrl);
+    expect(entry.mediumLinks, [classDayOpenUrl, monday.markAllUrl]);
+    expect(entry.showsNextAfterRows, isFalse);
     final later = DayLedgerEntry(
       ny(10, 5, 20, 1),
       LedgerSnapshot.load(snapshot.encode()),
     );
     expect(later.mode, LedgerMode.today);
+    expect(later.eveningLine, LedgerEveningLine.markAll);
+    expect(later.eveningMarkAllLabel, 'I WENT TO ALL');
   });
 
   test('a lecture in session offers I AM HERE through its own mark link', () {
@@ -359,6 +485,7 @@ void main() {
       schedule: schedule,
       now: now,
       state: GameState(),
+      classDayMarks: true,
     );
     expect(
       snapshot.classDays.first.classes.first.state,
@@ -374,6 +501,99 @@ void main() {
       LedgerSnapshot.load(snapshot.encode()),
     );
     expect(early.mode, LedgerMode.today);
+    expect(early.eveningLine, isNull);
+    expect(early.smallUrl, isNull);
+  });
+
+  test('until the board keeps from links, no tap can mark', () {
+    final schedule = mikaSchedule();
+    for (final at in [
+      ny(10, 6, 10, 45),
+      ny(10, 6, 11, 52),
+      ny(10, 5, 19, 5),
+      ny(10, 6, 20, 30),
+    ]) {
+      Clock.freeze(at);
+      final snapshot = WidgetSnapshotBuilder.build(
+        quests: mikaQuests(),
+        schedule: schedule,
+        now: at,
+        state: GameState(),
+      );
+      expect(snapshot.encode(), isNot(contains('/mark')), reason: '$at');
+      final entry = DayLedgerEntry(at, LedgerSnapshot.load(snapshot.encode()));
+      expect(entry.smallUrl, classDayOpenUrl, reason: '$at');
+      expect(entry.mediumLinks, [classDayOpenUrl], reason: '$at');
+      expect(entry.markAllUrl, isNull);
+    }
+    // The class itself still shows, quietly, with its ring.
+    Clock.freeze(ny(10, 6, 11, 52));
+    final entry = entryAt(
+      schedule,
+      GameState(),
+      publishedAt: ny(10, 6, 11, 52),
+      marks: false,
+    );
+    expect(entry.mode, LedgerMode.classes);
+    expect(entry.focusClass?.shortTitle, 'Computer Architecture');
+    expect(entry.focusClass?.markUrl, isNull);
+  });
+
+  test('a started office hour stays offered after the counted classes', () {
+    // Lecture kept, office hours (not counted toward the day) started and
+    // not kept: the day is complete for the engine, but the widget still
+    // offers the office hour, and never says "Both attended" for three.
+    final start = ny(10, 6, 9, 0).toUtc().millisecondsSinceEpoch;
+    const hour = 60 * 60 * 1000;
+    Map<String, dynamic> dayClass(String key, int offset, bool kept) => {
+      'occurrenceKey': key,
+      'title': key,
+      'shortTitle': key,
+      'place': '',
+      'startLabel': '',
+      'endLabel': '',
+      'startEpochMillis': start + offset * hour,
+      'endEpochMillis': start + offset * hour + hour,
+      'kept': kept,
+      'keptXp': kept ? 25 : 0,
+      'markUrl': classDayMarkUrl(key, '2026-10-06'),
+    };
+    final json = jsonEncode({
+      'version': 3,
+      'generatedAt': '',
+      'upcomingClasses': <Object>[],
+      'incompleteQuests': <Object>[],
+      'classDays': [
+        {
+          'dayKey': '2026-10-06',
+          'weekday': 'Tuesday',
+          'startsEpochMillis': start - 5 * hour,
+          'eveningStartsEpochMillis': start + 8 * hour,
+          'nightEndsEpochMillis': start + 19 * hour,
+          'lastClassEndEpochMillis': start + 3 * hour,
+          'classXp': 35,
+          'allKept': true,
+          'attendedShort': 'Attended',
+          'markAllUrl': classDayMarkAllUrl('2026-10-06'),
+          'classes': [
+            dayClass('Lecture', 0, true),
+            dayClass('Office hours', 2, false),
+          ],
+        },
+      ],
+    });
+    final before = DayLedgerEntry(
+      DateTime.fromMillisecondsSinceEpoch(start + 90 * 60 * 1000, isUtc: true),
+      LedgerSnapshot.load(json),
+    );
+    expect(before.mode, LedgerMode.allKept);
+    final during = DayLedgerEntry(
+      DateTime.fromMillisecondsSinceEpoch(start + 150 * 60 * 1000, isUtc: true),
+      LedgerSnapshot.load(json),
+    );
+    expect(during.mode, LedgerMode.classes);
+    expect(during.focusClass?.shortTitle, 'Office hours');
+    expect(during.smallUrl, during.focusClass?.markUrl);
   });
 
   test('a Saturday without classes keeps the everyday look', () {
@@ -385,10 +605,13 @@ void main() {
       schedule: schedule,
       now: now,
       state: GameState(),
+      classDayMarks: true,
     );
     expect(snapshot.classDays.first.dayKey, '2026-10-12');
     final entry = DayLedgerEntry(now, LedgerSnapshot.load(snapshot.encode()));
     expect(entry.mode, LedgerMode.today);
+    expect(entry.eveningLine, isNull);
+    expect(entry.smallUrl, isNull);
     expect(entry.classTime(entry.nextClass!), 'MON 8:30 AM');
     expect(entry.quests, hasLength(3));
   });
@@ -400,21 +623,52 @@ void main() {
       quests: mikaQuests(),
       schedule: AcademicSchedule.empty(),
       now: now,
+      classDayMarks: true,
     );
     expect(snapshot.classDays, isEmpty);
     expect(snapshot.upcomingClasses, isEmpty);
     expect(snapshot.incompleteQuests, hasLength(3));
   });
 
-  test('the attended line only ever says true, whole things', () {
+  test('the attended and record lines only ever say true, whole things', () {
     expect(WidgetSnapshotBuilder.attendedShort(1), 'Attended');
     expect(WidgetSnapshotBuilder.attendedShort(2), 'Both attended');
     expect(WidgetSnapshotBuilder.attendedShort(3), 'All three attended');
     expect(WidgetSnapshotBuilder.attendedShort(5), 'All attended');
-    for (var kept = 1; kept <= 5; kept++) {
-      final line = WidgetSnapshotBuilder.attendedShort(kept);
+    expect(
+      WidgetSnapshotBuilder.recordLine(
+        'Wednesday',
+        classCount: 1,
+        kept: 1,
+        allKept: true,
+      ),
+      'Wednesday’s class, attended',
+    );
+    expect(
+      WidgetSnapshotBuilder.recordLine(
+        'Monday',
+        classCount: 3,
+        kept: 2,
+        allKept: false,
+      ),
+      'Monday’s classes, two attended',
+    );
+    final lines = [
+      for (var kept = 1; kept <= 5; kept++) ...[
+        WidgetSnapshotBuilder.attendedShort(kept),
+        for (final allKept in [true, false])
+          WidgetSnapshotBuilder.recordLine(
+            'Tuesday',
+            classCount: 5,
+            kept: kept,
+            allKept: allKept,
+          ),
+      ],
+    ];
+    for (final line in lines) {
       expect(line, isNot(contains('—')));
       expect(line, isNot(matches(RegExp(r'\d+ of \d+'))));
+      expect(line, isNot(matches(RegExp(r'\bof (two|three|four|five)\b'))));
       expect(
         line.toLowerCase(),
         isNot(matches(RegExp(r'missed|failed|lost|broke|skipped'))),
@@ -437,6 +691,7 @@ void main() {
       expect(entry.mode, LedgerMode.today);
       expect(entry.classTime(entry.nextClass!), '10:00 AM');
       expect(entry.quests?.single.title, 'One');
+      expect(entry.eveningLine, isNull);
       expect(
         ledgerTimeline(snapshot, DateTime.utc(2026, 9, 2, 12)).last,
         DateTime.utc(2026, 9, 2, 15, 15, 1),
@@ -449,6 +704,24 @@ void main() {
         '"incompleteQuests":[{"id":"a","title":"One"}]}',
       );
       expect(snapshot.incompleteQuests, isEmpty);
+    });
+
+    test('the shipped version 2 widget shows its empty look for version 3 '
+        '(the downgrade gap the doc comment names)', () {
+      final now = ny(10, 6, 11, 52);
+      Clock.freeze(now);
+      final json = decode(
+        WidgetSnapshotBuilder.build(
+          quests: mikaQuests(),
+          schedule: mikaSchedule(),
+          now: now,
+        ),
+      );
+      // Build 49's loadSnapshot() accepts `decoded.version == 2` only.
+      expect(json['version'] == 2, isFalse);
+      // Its keys are all still there for when a version 2 app republishes.
+      expect(json['incompleteQuests'], hasLength(3));
+      expect(json['upcomingClasses'], isNotEmpty);
     });
   });
 }

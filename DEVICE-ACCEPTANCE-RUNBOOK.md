@@ -259,21 +259,35 @@ APK chooser during the earlier smoke as provisional and repeat after that step.
   Confirm the next class advances, the extension never displays malformed or
   stale private text, and lock-screen/app-switcher privacy treatment is
   acceptable.
-- [ ] Class day (snapshot v3): between classes the widget shows the class
-  that just ended with I WAS THERE (I'M HERE while it is in session), its end
-  time and its building and room, and the next class. After the last class it
-  reads CLASSES DONE with the day's classes: kept ones with their XP, the
-  newest waiting one with I WAS THERE, older waiting ones as quiet dots. Once
-  every class is kept it shows one quiet line and the day's class XP. From the
-  evening, and on days without classes, it keeps the everyday look, with the
-  next class's day (`WED 8:30 AM`) when that class is not today. Past local
-  midnight the previous day's three Quests no longer show.
-- [ ] Tap I WAS THERE on the small widget and on a medium row, once with Room of
-  Days closed and once while it is open in the background. The app opens on
-  Quests and the class is kept with the same celebration as the board's own
-  I WAS THERE; the widget then shows it kept. A link for a class that is
-  already kept or has not started only opens the class day. No morning
-  briefing or What's New covers the celebration on that open.
+- [ ] Class day (snapshot v3), with a build whose Quests board keeps from
+  links (`ClassDayLinkTarget.marksClassesFromLinks`). Between classes the
+  medium widget shows the class that just ended on its open brass ring, its
+  end time and room, one muted brass I WAS THERE directly under it (I'M HERE
+  while in session), and NEXT as a quiet last line with no control. After the
+  last class it reads CLASSES DONE: kept rows with a closed ring and their XP,
+  waiting rows as dim dots with their start time, and one control: I WAS
+  THERE on the one waiting row, or I WENT TO BOTH / I WENT TO ALL under the
+  rows when two or more wait. Once every class is kept it shows one quiet
+  line and the day's class XP. From the evening it keeps the everyday look
+  with one quiet line until 4:00 AM: the day's record (`Tuesday's classes,
+  both attended  +60 XP`) or a class still to mark with an outlined control.
+  On days without classes it keeps the everyday look, with the next class's
+  day (`WED 8:30 AM`) when that class is not today. Past local midnight the
+  previous day's three Quests no longer show. Set an accessibility text size
+  once: the small text grows, nothing is cut off mid-line.
+- [ ] Tap I WAS THERE on the small widget and on the medium widget, once with
+  Room of Days closed and once while it is open in the background, and once
+  I WENT TO ALL on a day with two or more waiting. The app opens on Quests and
+  the class (or every waiting class) is kept with the same celebration as the
+  board's own control; the widget then shows it kept. A tap anywhere else on
+  the widget, and a link for a class that is already kept or has not
+  started, only opens the class day. No morning briefing, What's New or
+  hearth flare plays on that open. Tap a mark while a Journal page is open:
+  the keep waits until the page closes.
+- [ ] With a build whose board does not keep from links yet, the widget shows
+  the class day with no I WAS THERE at all.
+- [ ] After a TestFlight downgrade to Build 49 or earlier, the widget is empty
+  until that app is opened once (the version 2 widget reads only version 2).
 - [ ] Leave global Background music off, then turn it on in Me. The normal room
   must play the lively jazzy umbrella-brush rotation, never the peaceful
   meditation theme. Toggle it quickly and background/resume; it must not get

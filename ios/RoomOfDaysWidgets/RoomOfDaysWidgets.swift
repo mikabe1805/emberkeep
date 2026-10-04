@@ -7,7 +7,8 @@ private let roomOfDaysOpenClassDayURL = URL(string: "roomofdays://class-day")
 
 // The view logic below is mirrored line for line in Dart
 // (test/home_widgets/day_ledger_mirror.dart), where it is tested and
-// rendered. Change both together.
+// rendered (test/design_renders/day_ledger_widget_mock.dart). Change all
+// three together.
 
 private struct RoomWidgetSnapshot: Decodable {
   let version: Int
@@ -49,7 +50,12 @@ private struct RoomWidgetSnapshot: Decodable {
     let classXp: Int
     let allKept: Bool
     var attendedShort: String? = nil
+    // Present only while the app's board keeps classes from links.
+    var markAllUrl: String? = nil
+    var recordLine: String? = nil
     let classes: [DayClass]
+
+    var markAllURL: URL? { markAllUrl.flatMap { URL(string: $0) } }
   }
 
   struct DayClass: Decodable, Identifiable {
@@ -62,10 +68,11 @@ private struct RoomWidgetSnapshot: Decodable {
     let endEpochMillis: Int64
     let kept: Bool
     let keptXp: Int
-    let markUrl: String
+    // Present only while the app's board keeps classes from links.
+    var markUrl: String? = nil
 
     var id: String { occurrenceKey }
-    var markURL: URL? { URL(string: markUrl) }
+    var markURL: URL? { markUrl.flatMap { URL(string: $0) } }
   }
 
   static let empty = RoomWidgetSnapshot(
@@ -84,6 +91,13 @@ private struct RoomWidgetEntry: TimelineEntry {
     case today
     case classes
     case allKept
+  }
+
+  /// The one quiet line the evening adds under the everyday look.
+  enum EveningLine {
+    case markAll
+    case waiting
+    case record
   }
 
   private var nowMillis: Int64 { Int64(date.timeIntervalSince1970 * 1000) }
@@ -131,15 +145,16 @@ private struct RoomWidgetEntry: TimelineEntry {
     return day
   }
 
-  var mode: Mode {
-    guard let day = activeClassDay else { return .today }
-    return day.allKept ? .allKept : .classes
+  /// The newest class of any kind that has started and is not kept. A day
+  /// whose counted classes are all kept still offers a started office hour.
+  var focusClass: RoomWidgetSnapshot.DayClass? {
+    guard let day = activeClassDay else { return nil }
+    return day.classes.last(where: { $0.startEpochMillis <= nowMillis && !$0.kept })
   }
 
-  /// The newest class that has started and is not kept.
-  var focusClass: RoomWidgetSnapshot.DayClass? {
-    guard let day = activeClassDay, !day.allKept else { return nil }
-    return day.classes.last(where: { $0.startEpochMillis <= nowMillis && !$0.kept })
+  var mode: Mode {
+    guard let day = activeClassDay else { return .today }
+    return day.allKept && focusClass == nil ? .allKept : .classes
   }
 
   func isInSession(_ entry: RoomWidgetSnapshot.DayClass) -> Bool {
@@ -149,6 +164,23 @@ private struct RoomWidgetEntry: TimelineEntry {
   var classesDone: Bool {
     guard let day = activeClassDay else { return false }
     return nowMillis >= day.lastClassEndEpochMillis
+  }
+
+  /// Classes of the active day that have ended and are not kept.
+  var waitingClasses: [RoomWidgetSnapshot.DayClass] {
+    guard let day = activeClassDay else { return [] }
+    return day.classes.filter { $0.endEpochMillis <= nowMillis && !$0.kept }
+  }
+
+  /// After the last class, with two or more waiting: one control for all.
+  var markAllURL: URL? {
+    guard classesDone, waitingClasses.count >= 2 else { return nil }
+    return activeClassDay?.markAllURL
+  }
+
+  /// `I WENT TO BOTH`, else `I WENT TO ALL`: never a count of what waits.
+  var markAllLabel: String {
+    return waitingClasses.count == 2 ? "I WENT TO BOTH" : "I WENT TO ALL"
   }
 
   /// After the last class: at most three rows in time order, the newest
@@ -163,6 +195,12 @@ private struct RoomWidgetEntry: TimelineEntry {
     return (fromWaiting + fromKept).sorted { $0.startEpochMillis < $1.startEpochMillis }
   }
 
+  /// The NEXT line gives way when three rows and the mark-all control fill
+  /// the medium widget.
+  var showsNextAfterRows: Bool {
+    return markAllURL == nil || doneRows.count < 3
+  }
+
   var lastKept: RoomWidgetSnapshot.DayClass? {
     return activeClassDay?.classes.last(where: { $0.kept })
   }
@@ -175,6 +213,32 @@ private struct RoomWidgetEntry: TimelineEntry {
     }
     guard let glance = upcomingClass else { return nil }
     return (title: glance.shortTitle ?? glance.courseTitle, time: classTime(glance))
+  }
+
+  /// The class day's evening, until its night ends at 04:00: the everyday
+  /// look, with the day's record or a class still to mark in one quiet line.
+  var eveningDay: RoomWidgetSnapshot.ClassDay? {
+    guard let day = classDay, nowMillis >= day.eveningStartsEpochMillis else { return nil }
+    return day
+  }
+
+  /// The evening's classes that ended and are not kept, oldest first.
+  var eveningWaiting: [RoomWidgetSnapshot.DayClass] {
+    guard let day = eveningDay else { return [] }
+    return day.classes.filter { $0.endEpochMillis <= nowMillis && !$0.kept }
+  }
+
+  var eveningLine: EveningLine? {
+    guard let day = eveningDay else { return nil }
+    let waiting = eveningWaiting
+    if waiting.count >= 2 && day.markAllURL != nil { return .markAll }
+    if !waiting.isEmpty { return .waiting }
+    if day.recordLine != nil { return .record }
+    return nil
+  }
+
+  var eveningMarkAllLabel: String {
+    return eveningWaiting.count == 2 ? "I WENT TO BOTH" : "I WENT TO ALL"
   }
 
   /// `8:30 AM`, or `WED 8:30 AM` when the class is not on this entry's own
@@ -195,15 +259,24 @@ private struct RoomWidgetEntry: TimelineEntry {
     return day.string(from: date) == dayKey ? clock : "\(dayLabel) \(clock)"
   }
 
-  /// The small widget is one tap: the class to mark, else the class day.
+  /// The small widget is one tap: the control it shows (mark all, or the
+  /// class to mark), else the class day while it has something to show.
   var smallURL: URL? {
-    if let focus = focusClass { return focus.markURL }
-    return activeClassDay == nil ? nil : roomOfDaysOpenClassDayURL
+    if let all = markAllURL { return all }
+    if let focus = focusClass, let url = focus.markURL { return url }
+    return openURL
   }
 
-  /// The medium widget's background tap; its rows carry their own links.
+  /// The medium widget's background tap; only its control marks.
   var mediumURL: URL? {
-    return activeClassDay == nil ? nil : roomOfDaysOpenClassDayURL
+    return openURL
+  }
+
+  /// The class day while it owns the widget, and in its evening while there
+  /// is a record or a class still to mark; otherwise the plain app.
+  private var openURL: URL? {
+    if activeClassDay != nil { return roomOfDaysOpenClassDayURL }
+    return eveningLine == nil ? nil : roomOfDaysOpenClassDayURL
   }
 }
 
@@ -285,6 +358,16 @@ private enum RoomWidgetPalette {
   static let honeyLight = Color(red: 0.97, green: 0.80, blue: 0.46)
   static let brass = Color(red: 0.55, green: 0.39, blue: 0.22)
   static let ink = Color(red: 0.16, green: 0.10, blue: 0.06)
+  // The board's brass plate and check ring, muted for the home screen.
+  static let brassLight = Color(red: 0.859, green: 0.741, blue: 0.533)
+  static let brassFace = Color(red: 0.773, green: 0.635, blue: 0.447)
+  static let brassEdge = Color(red: 0.475, green: 0.314, blue: 0.169)
+  static let brassDeep = Color(red: 0.298, green: 0.184, blue: 0.075)
+  static let brassTick = Color(red: 0.863, green: 0.706, blue: 0.467)
+  static let brassWireDark = Color(red: 0.478, green: 0.298, blue: 0.141)
+  static let brassWireMid = Color(red: 0.584, green: 0.376, blue: 0.180)
+  static let brassWireLight = Color(red: 0.890, green: 0.745, blue: 0.486)
+  static let brassWireHot = Color(red: 0.941, green: 0.839, blue: 0.612)
 }
 
 private struct RoomWidgetBackground: ViewModifier {
@@ -314,8 +397,82 @@ private struct RoomWidgetBackground: ViewModifier {
   }
 }
 
+/// The board's check ring at widget size: open with its clasp for a class to
+/// mark, closed with a tick once kept. Brass wire, never a filled disc.
+private struct ClassRing: View {
+  let kept: Bool
+  let size: CGFloat
+
+  private var wire: AngularGradient {
+    AngularGradient(
+      gradient: Gradient(colors: [
+        RoomWidgetPalette.brassWireDark,
+        RoomWidgetPalette.brassWireLight,
+        RoomWidgetPalette.brassWireMid,
+        RoomWidgetPalette.brassWireHot,
+        RoomWidgetPalette.brassWireDark,
+      ]),
+      center: .center
+    )
+  }
+
+  var body: some View {
+    let line = max(1.2, size * 0.075)
+    return ZStack {
+      if kept {
+        Circle()
+          .stroke(RoomWidgetPalette.brassEdge, lineWidth: line * 1.6)
+          .padding(size * 0.11)
+        Circle()
+          .stroke(wire, lineWidth: line)
+          .padding(size * 0.11)
+        ClassRingTick(kept: true)
+          .stroke(
+            RoomWidgetPalette.brassLight,
+            style: StrokeStyle(lineWidth: line, lineCap: .round, lineJoin: .round)
+          )
+      } else {
+        // The break sits at four o'clock, the clasp hooked across it.
+        Circle()
+          .trim(from: 0, to: 0.82)
+          .stroke(wire, style: StrokeStyle(lineWidth: line, lineCap: .round))
+          .rotationEffect(.degrees(82.8))
+          .padding(size * 0.08)
+        ClassRingTick(kept: false)
+          .stroke(
+            RoomWidgetPalette.brassTick,
+            style: StrokeStyle(lineWidth: line * 0.85, lineCap: .round, lineJoin: .round)
+          )
+      }
+    }
+    .frame(width: size, height: size)
+  }
+}
+
+private struct ClassRingTick: Shape {
+  let kept: Bool
+
+  func path(in rect: CGRect) -> Path {
+    func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+      return CGPoint(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
+    }
+    var path = Path()
+    if kept {
+      path.move(to: point(0.29, 0.51))
+      path.addLine(to: point(0.44, 0.65))
+      path.addLine(to: point(0.72, 0.35))
+    } else {
+      path.move(to: point(0.672, 0.706))
+      path.addLine(to: point(0.752, 0.856))
+      path.addLine(to: point(0.942, 0.590))
+    }
+    return path
+  }
+}
+
 private struct DayLedgerWidgetView: View {
   @Environment(\.widgetFamily) private var family
+  @Environment(\.dynamicTypeSize) private var typeSize
   let entry: RoomWidgetEntry
 
   var body: some View {
@@ -330,6 +487,27 @@ private struct DayLedgerWidgetView: View {
     .modifier(RoomWidgetBackground())
     .widgetURL(family == .systemMedium ? entry.mediumURL : entry.smallURL)
     .privacySensitive()
+  }
+
+  /// Small text follows the reader's text size a little, up to a quarter
+  /// larger; titles keep their size so the ledger still fits.
+  private var typeScale: CGFloat {
+    switch typeSize {
+    case .xSmall, .small, .medium, .large:
+      return 1
+    case .xLarge:
+      return 1.06
+    case .xxLarge:
+      return 1.12
+    case .xxxLarge:
+      return 1.18
+    default:
+      return 1.24
+    }
+  }
+
+  private func scaled(_ size: CGFloat) -> CGFloat {
+    return size * typeScale
   }
 
   // MARK: Small
@@ -348,9 +526,9 @@ private struct DayLedgerWidgetView: View {
 
   private var smallToday: some View {
     VStack(alignment: .leading, spacing: 7) {
-      eyebrow("NEXT CLASS")
+      eyebrow("NEXT CLASS", color: RoomWidgetPalette.honey)
       if let next = entry.nextClass {
-        nextClassName(next)
+        nextClassName(next, compact: false)
         Spacer(minLength: 2)
         Text(entry.classTime(next))
           .font(.system(size: 13, weight: .semibold, design: .monospaced))
@@ -373,34 +551,62 @@ private struct DayLedgerWidgetView: View {
   private var smallClasses: some View {
     if let day = entry.activeClassDay {
       VStack(alignment: .leading, spacing: 0) {
-        eyebrow(entry.classesDone ? "\(classNoun(day)) DONE" : day.weekday.uppercased())
-        if let focus = entry.focusClass {
-          Text(focus.shortTitle)
+        eyebrow(
+          entry.classesDone ? "\(classNoun(day)) DONE" : day.weekday.uppercased(),
+          color: RoomWidgetPalette.secondary
+        )
+        if entry.markAllURL != nil {
+          Text("\(day.weekday)\u{2019}s classes")
             .font(.system(size: 16, weight: .semibold, design: .serif))
             .foregroundStyle(RoomWidgetPalette.text)
-            .lineLimit(3)
+            .lineLimit(2)
             .padding(.top, 5)
-          Text(focusLine(focus, withPlace: false))
-            .font(.system(size: 11, weight: .medium))
+          Text("Ended \(day.classes.last?.endLabel ?? "")")
+            .font(.system(size: scaled(11), weight: .medium))
             .foregroundStyle(RoomWidgetPalette.secondary)
             .lineLimit(1)
             .padding(.top, 3)
           Spacer(minLength: 4)
-          markCapsule(markLabel(focus), fullWidth: true)
+          markCapsule(entry.markAllLabel, fullWidth: true)
+        } else if let focus = entry.focusClass {
+          // The small widget gives the title its full width (the word that
+          // tells a lab from its lecture is often the last one); its whole
+          // surface is the control, so it needs no ring to point at it.
+          Text(focus.shortTitle)
+            .font(.system(size: 16, weight: .semibold, design: .serif))
+            .foregroundStyle(RoomWidgetPalette.text)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
+            .padding(.top, 5)
+          Text(focusLine(focus, withPlace: false))
+            .font(.system(size: scaled(11), weight: .medium))
+            .foregroundStyle(RoomWidgetPalette.secondary)
+            .lineLimit(1)
+            .padding(.top, 3)
+          Spacer(minLength: 4)
+          if focus.markURL != nil {
+            markCapsule(markLabel(focus), fullWidth: true)
+          } else if let next = entry.nextAfter {
+            nextTime(next.time)
+          }
         } else if let kept = entry.lastKept {
           Text(kept.shortTitle)
             .font(.system(size: 16, weight: .semibold, design: .serif))
             .foregroundStyle(RoomWidgetPalette.text)
-            .lineLimit(3)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
             .padding(.top, 5)
-          keptMark(xp: kept.keptXp, size: 11, label: nil)
-            .padding(.top, 4)
+          HStack(spacing: 5) {
+            ClassRing(kept: true, size: 14)
+            Text("+\(kept.keptXp) XP")
+              .font(.system(size: scaled(11), weight: .semibold, design: .monospaced))
+              .foregroundStyle(RoomWidgetPalette.honey)
+              .lineLimit(1)
+          }
+          .padding(.top, 4)
           Spacer(minLength: 4)
           if let next = entry.nextAfter {
-            Text("NEXT \(next.time)")
-              .font(.system(size: 10, weight: .semibold, design: .monospaced))
-              .foregroundStyle(RoomWidgetPalette.secondary)
-              .lineLimit(1)
+            nextTime(next.time)
           }
         }
       }
@@ -411,22 +617,23 @@ private struct DayLedgerWidgetView: View {
   private var smallAllKept: some View {
     if let day = entry.activeClassDay {
       VStack(alignment: .leading, spacing: 0) {
-        eyebrow(day.weekday.uppercased())
+        eyebrow(day.weekday.uppercased(), color: RoomWidgetPalette.secondary)
         Text(day.attendedShort ?? "Attended")
           .font(.system(size: 18, weight: .semibold, design: .serif))
           .foregroundStyle(RoomWidgetPalette.text)
           .lineLimit(2)
           .padding(.top, 5)
-        Text("+\(day.classXp) XP")
-          .font(.system(size: 14, weight: .semibold, design: .monospaced))
-          .foregroundStyle(RoomWidgetPalette.honey)
-          .padding(.top, 4)
+        HStack(spacing: 5) {
+          ClassRing(kept: true, size: 15)
+          Text("+\(day.classXp) XP")
+            .font(.system(size: scaled(14), weight: .semibold, design: .monospaced))
+            .foregroundStyle(RoomWidgetPalette.honey)
+            .lineLimit(1)
+        }
+        .padding(.top, 4)
         Spacer(minLength: 4)
         if let next = entry.nextAfter {
-          Text("NEXT \(next.time)")
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .foregroundStyle(RoomWidgetPalette.secondary)
-            .lineLimit(1)
+          nextTime(next.time)
         }
       }
     }
@@ -451,126 +658,146 @@ private struct DayLedgerWidgetView: View {
   }
 
   private var mediumToday: some View {
-    HStack(spacing: 14) {
-      VStack(alignment: .leading, spacing: 7) {
-        eyebrow("NEXT CLASS")
-        if let next = entry.nextClass {
-          nextClassName(next)
-          Spacer(minLength: 2)
-          Text(entry.classTime(next))
-            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-            .foregroundStyle(RoomWidgetPalette.honey)
-            .lineLimit(1)
-        } else {
-          Text("Your day is open")
-            .font(.system(size: 18, weight: .semibold, design: .serif))
-            .foregroundStyle(RoomWidgetPalette.text)
-          Spacer()
-        }
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-
-      if let quests = entry.quests {
-        Rectangle()
-          .fill(RoomWidgetPalette.brass.opacity(0.5))
-          .frame(width: 1)
-
+    VStack(alignment: .leading, spacing: 0) {
+      HStack(spacing: 14) {
         VStack(alignment: .leading, spacing: 7) {
-          eyebrow("UP NEXT")
-          if quests.isEmpty {
-            Text("Nothing waiting")
-              .font(.system(size: 14, weight: .semibold, design: .serif))
-              .foregroundStyle(RoomWidgetPalette.text)
-            Text("The room is yours.")
-              .font(.system(size: 11))
-              .foregroundStyle(RoomWidgetPalette.secondary)
+          eyebrow("NEXT CLASS", color: RoomWidgetPalette.honey)
+          if let next = entry.nextClass {
+            nextClassName(next, compact: entry.eveningLine != nil)
+            Spacer(minLength: 2)
+            Text(entry.classTime(next))
+              .font(.system(size: 12, weight: .semibold, design: .monospaced))
+              .foregroundStyle(RoomWidgetPalette.honey)
+              .lineLimit(1)
           } else {
-            ForEach(Array(quests.prefix(3).enumerated()), id: \.element.id) { index, quest in
-              HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(index + 1)")
-                  .font(.system(size: 10, weight: .bold, design: .monospaced))
-                  .foregroundStyle(RoomWidgetPalette.honey)
-                Text(quest.title)
-                  .font(.system(size: 11, weight: .medium))
-                  .foregroundStyle(RoomWidgetPalette.text)
-                  .lineLimit(1)
-              }
-            }
+            Text("Your day is open")
+              .font(.system(size: 18, weight: .semibold, design: .serif))
+              .foregroundStyle(RoomWidgetPalette.text)
+            Spacer()
           }
-          Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+
+        if let quests = entry.quests {
+          Rectangle()
+            .fill(RoomWidgetPalette.brass.opacity(0.5))
+            .frame(width: 1)
+
+          VStack(alignment: .leading, spacing: 7) {
+            eyebrow("UP NEXT", color: RoomWidgetPalette.honey)
+            if quests.isEmpty {
+              Text("Nothing waiting")
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .foregroundStyle(RoomWidgetPalette.text)
+              Text("The room is yours.")
+                .font(.system(size: 11))
+                .foregroundStyle(RoomWidgetPalette.secondary)
+            } else {
+              ForEach(Array(quests.prefix(3).enumerated()), id: \.element.id) { index, quest in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                  Text("\(index + 1)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(RoomWidgetPalette.honey)
+                  Text(quest.title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(RoomWidgetPalette.text)
+                    .lineLimit(1)
+                }
+              }
+            }
+            Spacer(minLength: 0)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      if let line = entry.eveningLine, let day = entry.eveningDay {
+        eveningFooter(line, day: day)
       }
     }
   }
 
-  /// Between classes, or in one: the class to mark, and what comes next.
+  /// Between classes, or in one: the class to mark with its ring and its
+  /// control directly under it, then what comes next as one quiet line.
   @ViewBuilder
   private var mediumBetween: some View {
     if let day = entry.activeClassDay {
       VStack(alignment: .leading, spacing: 0) {
-        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day))")
+        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day))", color: RoomWidgetPalette.secondary)
         Spacer(minLength: 6)
         if let focus = entry.focusClass {
-          Text(focus.shortTitle)
-            .font(.system(size: 20, weight: .semibold, design: .serif))
-            .foregroundStyle(RoomWidgetPalette.text)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-          Text(focusLine(focus, withPlace: true))
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(RoomWidgetPalette.secondary)
-            .lineLimit(1)
-            .padding(.top, 3)
-        } else if let kept = entry.lastKept {
-          Text(kept.shortTitle)
-            .font(.system(size: 20, weight: .semibold, design: .serif))
-            .foregroundStyle(RoomWidgetPalette.text)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-          keptMark(xp: kept.keptXp, size: 11, label: "Attended")
-            .padding(.top, 3)
-        }
-        Spacer(minLength: 6)
-        HStack(alignment: .bottom, spacing: 10) {
-          nextBlock
-          Spacer(minLength: 0)
-          if let focus = entry.focusClass, let url = focus.markURL {
+          HStack(alignment: .center, spacing: 10) {
+            ClassRing(kept: false, size: 26)
+            VStack(alignment: .leading, spacing: 3) {
+              Text(focus.shortTitle)
+                .font(.system(size: 20, weight: .semibold, design: .serif))
+                .foregroundStyle(RoomWidgetPalette.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+              Text(focusLine(focus, withPlace: true))
+                .font(.system(size: scaled(11), weight: .medium))
+                .foregroundStyle(RoomWidgetPalette.secondary)
+                .lineLimit(1)
+            }
+          }
+          if let url = focus.markURL {
             Link(destination: url) {
               markCapsule(markLabel(focus), fullWidth: false)
             }
+            .padding(.leading, 36)
+            .padding(.top, 8)
+          }
+        } else if let kept = entry.lastKept {
+          HStack(alignment: .center, spacing: 10) {
+            ClassRing(kept: true, size: 26)
+            VStack(alignment: .leading, spacing: 3) {
+              Text(kept.shortTitle)
+                .font(.system(size: 20, weight: .semibold, design: .serif))
+                .foregroundStyle(RoomWidgetPalette.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+              HStack(spacing: 6) {
+                Text("Attended")
+                  .font(.system(size: scaled(11), weight: .medium))
+                  .foregroundStyle(RoomWidgetPalette.secondary)
+                Text("+\(kept.keptXp) XP")
+                  .font(.system(size: scaled(11), weight: .semibold, design: .monospaced))
+                  .foregroundStyle(RoomWidgetPalette.honey)
+              }
+              .lineLimit(1)
+            }
           }
         }
+        Spacer(minLength: 6)
+        nextLine
       }
     }
   }
 
-  /// After the last class: the day's classes as ledger rows. Every waiting
-  /// row is its own mark link; the newest carries the one bright control.
+  /// After the last class: the day's classes as ledger rows. Only the one
+  /// brass control marks; every other tap just opens the class day.
   @ViewBuilder
   private var mediumDone: some View {
     if let day = entry.activeClassDay {
       VStack(alignment: .leading, spacing: 0) {
-        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day)) DONE")
-        Spacer(minLength: 6)
+        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day)) DONE", color: RoomWidgetPalette.secondary)
+        Spacer(minLength: tightRows ? 3 : 6)
         VStack(alignment: .leading, spacing: rowSpacing) {
           ForEach(entry.doneRows) { row in
             doneRow(row)
           }
         }
-        Spacer(minLength: 6)
-        if let next = entry.nextAfter {
-          HStack(spacing: 8) {
-            Text("NEXT \(next.time)")
-              .font(.system(size: 10, weight: .semibold, design: .monospaced))
-              .foregroundStyle(RoomWidgetPalette.secondary)
-              .lineLimit(1)
-              .layoutPriority(1)
-            Text(next.title)
-              .font(.system(size: 11, weight: .medium))
-              .foregroundStyle(RoomWidgetPalette.text)
-              .lineLimit(1)
+        if let url = entry.markAllURL {
+          HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            Link(destination: url) {
+              markCapsule(entry.markAllLabel, fullWidth: false, compact: true)
+            }
           }
+          .padding(.top, tightRows ? 4 : 6)
+        }
+        Spacer(minLength: tightRows ? 3 : 6)
+        if entry.showsNextAfterRows {
+          nextLine
         }
       }
     }
@@ -580,121 +807,210 @@ private struct DayLedgerWidgetView: View {
   private var mediumAllKept: some View {
     if let day = entry.activeClassDay {
       VStack(alignment: .leading, spacing: 0) {
-        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day))")
+        eyebrow("\(day.weekday.uppercased()) · \(classNoun(day))", color: RoomWidgetPalette.secondary)
         Spacer(minLength: 6)
-        Text(day.attendedShort ?? "Attended")
-          .font(.system(size: 20, weight: .semibold, design: .serif))
-          .foregroundStyle(RoomWidgetPalette.text)
-          .lineLimit(1)
-        Text("+\(day.classXp) XP")
-          .font(.system(size: 13, weight: .semibold, design: .monospaced))
-          .foregroundStyle(RoomWidgetPalette.honey)
-          .padding(.top, 3)
+        HStack(alignment: .center, spacing: 10) {
+          ClassRing(kept: true, size: 26)
+          VStack(alignment: .leading, spacing: 3) {
+            Text(day.attendedShort ?? "Attended")
+              .font(.system(size: 20, weight: .semibold, design: .serif))
+              .foregroundStyle(RoomWidgetPalette.text)
+              .lineLimit(1)
+            Text("+\(day.classXp) XP")
+              .font(.system(size: scaled(13), weight: .semibold, design: .monospaced))
+              .foregroundStyle(RoomWidgetPalette.honey)
+          }
+        }
         Spacer(minLength: 6)
-        nextBlock
+        nextLine
       }
     }
   }
 
   // MARK: Pieces
 
-  /// The everyday look leads with the class's name, its code beneath.
-  private func nextClassName(_ next: RoomWidgetSnapshot.ClassGlance) -> some View {
+  /// The everyday look leads with the class's name, its code beneath (the
+  /// code gives way when the evening line needs the room).
+  private func nextClassName(_ next: RoomWidgetSnapshot.ClassGlance, compact: Bool) -> some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(next.shortTitle ?? next.courseTitle)
         .font(.system(size: 16, weight: .semibold, design: .serif))
         .foregroundStyle(RoomWidgetPalette.text)
-        .lineLimit(3)
-      Text(next.courseCode)
-        .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(RoomWidgetPalette.secondary)
-        .lineLimit(1)
-    }
-  }
-
-  @ViewBuilder
-  private var nextBlock: some View {
-    if let next = entry.nextAfter {
-      VStack(alignment: .leading, spacing: 2) {
-        Text("NEXT \(next.time)")
-          .font(.system(size: 10, weight: .semibold, design: .monospaced))
+        .lineLimit(compact ? 2 : 3)
+      if !compact {
+        Text(next.courseCode)
+          .font(.system(size: 11, weight: .medium))
           .foregroundStyle(RoomWidgetPalette.secondary)
           .lineLimit(1)
+      }
+    }
+  }
+
+  /// One quiet line: `NEXT 2:00 PM  Discrete Structures II`.
+  @ViewBuilder
+  private var nextLine: some View {
+    if let next = entry.nextAfter {
+      HStack(spacing: 8) {
+        Text("NEXT \(next.time)")
+          .font(.system(size: scaled(10.5), weight: .semibold, design: .monospaced))
+          .foregroundStyle(RoomWidgetPalette.secondary)
+          .lineLimit(1)
+          .layoutPriority(1)
         Text(next.title)
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(RoomWidgetPalette.text)
+          .font(.system(size: scaled(11.5), weight: .medium))
+          .foregroundStyle(RoomWidgetPalette.secondary)
           .lineLimit(1)
       }
     }
   }
 
-  @ViewBuilder
-  private func doneRow(_ row: RoomWidgetSnapshot.DayClass) -> some View {
-    if !row.kept, let url = row.markURL {
-      Link(destination: url) {
-        doneRowContent(row)
-      }
-    } else {
-      doneRowContent(row)
-    }
+  private func nextTime(_ time: String) -> some View {
+    Text("NEXT \(time)")
+      .font(.system(size: scaled(10.5), weight: .semibold, design: .monospaced))
+      .foregroundStyle(RoomWidgetPalette.secondary)
+      .lineLimit(1)
   }
 
-  private func doneRowContent(_ row: RoomWidgetSnapshot.DayClass) -> some View {
+  /// One ledger row the way the board draws its quiet rows: the mark at
+  /// the leading edge (closed ring when kept, the open ring on the one row
+  /// the control marks, a quiet dim dot otherwise), the title, then its XP,
+  /// its control or its start time.
+  private func doneRow(_ row: RoomWidgetSnapshot.DayClass) -> some View {
     HStack(spacing: 0) {
-      Text(row.startLabel)
-        .font(.system(size: 10, weight: .medium, design: .monospaced))
-        .foregroundStyle(RoomWidgetPalette.secondary)
-        .lineLimit(1)
-        .frame(width: 50, alignment: .leading)
+      rowMark(row)
+        .frame(width: 16, height: 16)
         .padding(.trailing, 8)
       Text(row.shortTitle)
         .font(.system(size: 14, weight: .semibold, design: .serif))
-        .foregroundStyle(RoomWidgetPalette.text)
+        .foregroundStyle(
+          row.kept || isControlRow(row)
+            ? RoomWidgetPalette.text
+            : RoomWidgetPalette.text.opacity(0.82)
+        )
         .lineLimit(1)
         .minimumScaleFactor(0.9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.trailing, 6)
       rowTrailing(row)
     }
-    .frame(height: 24)
+    .frame(height: rowHeight)
+  }
+
+  /// The row whose class the single I WAS THERE marks.
+  private func isControlRow(_ row: RoomWidgetSnapshot.DayClass) -> Bool {
+    return entry.markAllURL == nil
+      && row.markURL != nil
+      && row.occurrenceKey == entry.focusClass?.occurrenceKey
   }
 
   @ViewBuilder
-  private func rowTrailing(_ row: RoomWidgetSnapshot.DayClass) -> some View {
+  private func rowMark(_ row: RoomWidgetSnapshot.DayClass) -> some View {
     if row.kept {
-      keptMark(xp: row.keptXp, size: 10, label: nil)
-    } else if row.occurrenceKey == entry.focusClass?.occurrenceKey {
-      markCapsule("I WAS THERE", fullWidth: false, compact: true)
+      ClassRing(kept: true, size: 15)
+    } else if isControlRow(row) {
+      ClassRing(kept: false, size: 15)
     } else {
       // A quiet dim dot: waiting, never a hollow socket.
       Circle()
         .fill(RoomWidgetPalette.secondary.opacity(0.45))
         .frame(width: 6, height: 6)
-        .padding(.trailing, 4)
     }
   }
 
-  private func keptMark(xp: Int, size: CGFloat, label: String?) -> some View {
-    HStack(spacing: 4) {
-      Image(systemName: "checkmark.circle.fill")
-        .font(.system(size: size + 1))
-        .foregroundStyle(RoomWidgetPalette.honey)
-      if let label = label {
-        Text(label)
-          .font(.system(size: size, weight: .medium))
-          .foregroundStyle(RoomWidgetPalette.secondary)
-          .padding(.trailing, 2)
+  @ViewBuilder
+  private func rowTrailing(_ row: RoomWidgetSnapshot.DayClass) -> some View {
+    if row.kept {
+      Text("+\(row.keptXp) XP")
+        .font(.system(size: scaled(10.5), weight: .semibold, design: .monospaced))
+        .foregroundStyle(RoomWidgetPalette.secondary)
+        .lineLimit(1)
+    } else if isControlRow(row), let url = row.markURL {
+      Link(destination: url) {
+        markCapsule("I WAS THERE", fullWidth: false, compact: true)
       }
-      Text("+\(xp) XP")
-        .font(.system(size: size, weight: .semibold, design: .monospaced))
-        .foregroundStyle(RoomWidgetPalette.honey)
+    } else {
+      Text(row.startLabel)
+        .font(.system(size: scaled(10.5), weight: .medium, design: .monospaced))
+        .foregroundStyle(RoomWidgetPalette.secondary)
+        .lineLimit(1)
     }
   }
 
+  /// The evening's one quiet line under the everyday look: the day's
+  /// record, or a class still to mark with a quiet outlined control.
+  private func eveningFooter(
+    _ line: RoomWidgetEntry.EveningLine,
+    day: RoomWidgetSnapshot.ClassDay
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Rectangle()
+        .fill(RoomWidgetPalette.brass.opacity(0.35))
+        .frame(height: 0.5)
+      HStack(spacing: 7) {
+        switch line {
+        case .record:
+          ClassRing(kept: true, size: 13)
+          Text(day.recordLine ?? "")
+            .font(.system(size: scaled(11), weight: .medium))
+            .foregroundStyle(RoomWidgetPalette.secondary)
+            .lineLimit(1)
+          Spacer(minLength: 4)
+          Text("+\(day.classXp) XP")
+            .font(.system(size: scaled(10.5), weight: .semibold, design: .monospaced))
+            .foregroundStyle(RoomWidgetPalette.secondary)
+            .lineLimit(1)
+        case .markAll:
+          ClassRing(kept: false, size: 13)
+          Text("\(day.weekday)\u{2019}s classes")
+            .font(.system(size: scaled(11), weight: .medium))
+            .foregroundStyle(RoomWidgetPalette.text)
+            .lineLimit(1)
+          Spacer(minLength: 4)
+          if let url = day.markAllURL {
+            Link(destination: url) {
+              quietControl(entry.eveningMarkAllLabel)
+            }
+          }
+        case .waiting:
+          if let waiting = entry.eveningWaiting.last {
+            ClassRing(kept: false, size: 13)
+            Text(waiting.shortTitle)
+              .font(.system(size: scaled(11), weight: .medium))
+              .foregroundStyle(RoomWidgetPalette.text)
+              .lineLimit(1)
+            Spacer(minLength: 4)
+            if let url = waiting.markURL {
+              Link(destination: url) {
+                quietControl("I WAS THERE")
+              }
+            }
+          }
+        }
+      }
+    }
+    .padding(.top, 8)
+  }
+
+  /// A control that marks without owning the evening: outlined, not lit.
+  private func quietControl(_ label: String) -> some View {
+    Text(label)
+      .font(.system(size: scaled(10), weight: .bold, design: .monospaced))
+      .tracking(0.6)
+      .foregroundStyle(RoomWidgetPalette.brassLight)
+      .lineLimit(1)
+      .fixedSize()
+      .padding(.horizontal, 9)
+      .padding(.vertical, 4)
+      .overlay(Capsule().strokeBorder(RoomWidgetPalette.brass, lineWidth: 1))
+  }
+
+  /// The one luminous control: the board's brushed brass, muted, with a
+  /// darker rim and an under-lip. No glow.
   private func markCapsule(_ label: String, fullWidth: Bool, compact: Bool = false) -> some View {
-    let size: CGFloat = compact ? 9.5 : 10.5
-    let tracking: CGFloat = compact ? 0.6 : 1
-    let horizontal: CGFloat = compact ? 9 : 12
+    let size: CGFloat = scaled(compact ? 11 : 11.5)
+    let tracking: CGFloat = compact ? 0.4 : 0.9
+    // A full-width plate centres its label; it needs no side room of its own.
+    let horizontal: CGFloat = compact ? 9 : (fullWidth ? 8 : 13)
     let vertical: CGFloat = compact ? 5 : 7
     let maxWidth: CGFloat? = fullWidth ? CGFloat.infinity : nil
     return Text(label)
@@ -702,23 +1018,52 @@ private struct DayLedgerWidgetView: View {
       .tracking(tracking)
       .foregroundStyle(RoomWidgetPalette.ink)
       .lineLimit(1)
+      .minimumScaleFactor(0.85)
       .padding(.horizontal, horizontal)
       .padding(.vertical, vertical)
       .frame(maxWidth: maxWidth)
       .background(
-        Capsule().fill(
-          LinearGradient(
-            colors: [RoomWidgetPalette.honeyLight, RoomWidgetPalette.honey],
-            startPoint: .top,
-            endPoint: .bottom
-          )
-        )
+        ZStack {
+          Capsule()
+            .fill(RoomWidgetPalette.brassDeep)
+            .offset(y: 1)
+          Capsule()
+            .fill(
+              LinearGradient(
+                colors: [RoomWidgetPalette.brassLight, RoomWidgetPalette.brassFace],
+                startPoint: .top,
+                endPoint: .bottom
+              )
+            )
+          Capsule()
+            .fill(
+              LinearGradient(
+                gradient: Gradient(stops: [
+                  .init(color: Color.white.opacity(0), location: 0.1),
+                  .init(color: Color.white.opacity(0.14), location: 0.3),
+                  .init(color: Color.white.opacity(0), location: 0.52),
+                ]),
+                startPoint: .leading,
+                endPoint: .trailing
+              )
+            )
+          Capsule()
+            .strokeBorder(RoomWidgetPalette.brassEdge, lineWidth: 0.75)
+        }
       )
-      .overlay(Capsule().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
-      .shadow(color: RoomWidgetPalette.honey.opacity(0.35), radius: 6)
+  }
+
+  /// Three rows and the mark-all control share the medium widget's height.
+  private var tightRows: Bool {
+    return entry.markAllURL != nil && entry.doneRows.count > 2
+  }
+
+  private var rowHeight: CGFloat {
+    return tightRows ? 21 : 24
   }
 
   private var rowSpacing: CGFloat {
+    if tightRows { return 2 }
     return entry.doneRows.count > 2 ? 4 : 8
   }
 
@@ -735,11 +1080,11 @@ private struct DayLedgerWidgetView: View {
     return withPlace && !focus.place.isEmpty ? "\(when) · \(focus.place)" : when
   }
 
-  private func eyebrow(_ text: String) -> some View {
+  private func eyebrow(_ text: String, color: Color) -> some View {
     Text(text)
-      .font(.system(size: 9, weight: .bold))
+      .font(.system(size: scaled(10), weight: .bold))
       .tracking(1.2)
-      .foregroundStyle(RoomWidgetPalette.honey)
+      .foregroundStyle(color)
       .lineLimit(1)
   }
 

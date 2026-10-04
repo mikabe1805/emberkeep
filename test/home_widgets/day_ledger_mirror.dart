@@ -2,7 +2,8 @@
 // ios/RoomOfDaysWidgets/RoomOfDaysWidgets.swift (`RoomWidgetSnapshot`,
 // `RoomWidgetEntry`, `RoomWidgetProvider.getTimeline`). The Swift compiles
 // only on Codemagic's Mac, so its decisions are written here once more, line
-// for line, where they can be tested and rendered. Change both together.
+// for line, where they can be tested and rendered. Change both together
+// (and test/design_renders/day_ledger_widget_mock.dart for the views).
 //
 // Test-support library, not a test.
 library;
@@ -133,6 +134,8 @@ class LedgerClassDay {
       classXp = json['classXp'] as int,
       allKept = json['allKept'] as bool,
       attendedShort = json['attendedShort'] as String?,
+      markAllUrl = json['markAllUrl'] as String?,
+      recordLine = json['recordLine'] as String?,
       classes = [
         for (final item in json['classes'] as List)
           LedgerDayClass._fromJson((item as Map).cast()),
@@ -147,6 +150,10 @@ class LedgerClassDay {
   final int classXp;
   final bool allKept;
   final String? attendedShort;
+
+  /// Present only while the app's board keeps classes from links.
+  final String? markAllUrl;
+  final String? recordLine;
   final List<LedgerDayClass> classes;
 }
 
@@ -162,7 +169,7 @@ class LedgerDayClass {
       endEpochMillis = json['endEpochMillis'] as int,
       kept = json['kept'] as bool,
       keptXp = json['keptXp'] as int,
-      markUrl = json['markUrl'] as String;
+      markUrl = json['markUrl'] as String?;
 
   final String occurrenceKey;
   final String title;
@@ -174,10 +181,16 @@ class LedgerDayClass {
   final int endEpochMillis;
   final bool kept;
   final int keptXp;
-  final String markUrl;
+
+  /// Present only while the app's board keeps classes from links.
+  final String? markUrl;
 }
 
 enum LedgerMode { today, classes, allKept }
+
+/// `RoomWidgetEntry.EveningLine`: the one quiet line under the evening's
+/// everyday look.
+enum LedgerEveningLine { markAll, waiting, record }
 
 /// `RoomWidgetEntry`: one timeline entry and everything the views ask it.
 class DayLedgerEntry {
@@ -247,20 +260,23 @@ class DayLedgerEntry {
     return day;
   }
 
-  LedgerMode get mode {
-    final day = activeClassDay;
-    if (day == null) return LedgerMode.today;
-    return day.allKept ? LedgerMode.allKept : LedgerMode.classes;
-  }
-
-  /// The newest class that has started and is not kept.
+  /// The newest class of any kind that has started and is not kept. A day
+  /// whose counted classes are all kept still offers a started office hour.
   LedgerDayClass? get focusClass {
     final day = activeClassDay;
-    if (day == null || day.allKept) return null;
+    if (day == null) return null;
     for (final entry in day.classes.reversed) {
       if (entry.startEpochMillis <= nowMillis && !entry.kept) return entry;
     }
     return null;
+  }
+
+  LedgerMode get mode {
+    final day = activeClassDay;
+    if (day == null) return LedgerMode.today;
+    return day.allKept && focusClass == null
+        ? LedgerMode.allKept
+        : LedgerMode.classes;
   }
 
   bool isInSession(LedgerDayClass entry) =>
@@ -270,6 +286,26 @@ class DayLedgerEntry {
     final day = activeClassDay;
     return day != null && nowMillis >= day.lastClassEndEpochMillis;
   }
+
+  /// Classes of the active day that have ended and are not kept.
+  List<LedgerDayClass> get waitingClasses {
+    final day = activeClassDay;
+    if (day == null) return const [];
+    return [
+      for (final entry in day.classes)
+        if (entry.endEpochMillis <= nowMillis && !entry.kept) entry,
+    ];
+  }
+
+  /// After the last class, with two or more waiting: one control for all.
+  String? get markAllUrl {
+    if (!classesDone || waitingClasses.length < 2) return null;
+    return activeClassDay?.markAllUrl;
+  }
+
+  /// `I WENT TO BOTH`, else `I WENT TO ALL`: never a count of what waits.
+  String get markAllLabel =>
+      waitingClasses.length == 2 ? 'I WENT TO BOTH' : 'I WENT TO ALL';
 
   /// After the last class: at most three rows, in time order, the newest
   /// waiting classes first in line for a place, then the newest kept.
@@ -289,6 +325,10 @@ class DayLedgerEntry {
     return [...fromWaiting, ...fromKept]
       ..sort((a, b) => a.startEpochMillis.compareTo(b.startEpochMillis));
   }
+
+  /// The NEXT line gives way when three rows and the mark-all control fill
+  /// the medium widget.
+  bool get showsNextAfterRows => markAllUrl == null || doneRows.length < 3;
 
   LedgerDayClass? get lastKept {
     final day = activeClassDay;
@@ -316,6 +356,38 @@ class DayLedgerEntry {
       time: classTime(glance),
     );
   }
+
+  /// The class day's evening, until its night ends at 04:00.
+  LedgerClassDay? get eveningDay {
+    final day = classDay;
+    if (day == null || nowMillis < day.eveningStartsEpochMillis) return null;
+    return day;
+  }
+
+  /// The evening's classes that ended and are not kept, oldest first.
+  List<LedgerDayClass> get eveningWaiting {
+    final day = eveningDay;
+    if (day == null) return const [];
+    return [
+      for (final entry in day.classes)
+        if (entry.endEpochMillis <= nowMillis && !entry.kept) entry,
+    ];
+  }
+
+  LedgerEveningLine? get eveningLine {
+    final day = eveningDay;
+    if (day == null) return null;
+    final waiting = eveningWaiting;
+    if (waiting.length >= 2 && day.markAllUrl != null) {
+      return LedgerEveningLine.markAll;
+    }
+    if (waiting.isNotEmpty) return LedgerEveningLine.waiting;
+    if (day.recordLine != null) return LedgerEveningLine.record;
+    return null;
+  }
+
+  String get eveningMarkAllLabel =>
+      eveningWaiting.length == 2 ? 'I WENT TO BOTH' : 'I WENT TO ALL';
 
   /// `classTime(_:)`: `8:30 AM`, or `WED 8:30 AM` when the class is not on
   /// the entry's own date in the class's zone. [localDateOf] stands in for
@@ -354,13 +426,53 @@ class DayLedgerEntry {
         '${there.day.toString().padLeft(2, '0')}';
   }
 
+  /// The small widget is one tap: the control it shows (mark all, or the
+  /// class to mark), else the class day while it has something to show.
   String? get smallUrl {
-    final focus = focusClass;
-    if (focus != null) return focus.markUrl;
-    return activeClassDay == null ? null : openClassDayUrl;
+    final all = markAllUrl;
+    if (all != null) return all;
+    final url = focusClass?.markUrl;
+    if (url != null) return url;
+    return _openUrl;
   }
 
-  String? get mediumUrl => activeClassDay == null ? null : openClassDayUrl;
+  /// The medium widget's background tap; only its control marks.
+  String? get mediumUrl => _openUrl;
+
+  String? get _openUrl {
+    if (activeClassDay != null) return openClassDayUrl;
+    return eveningLine == null ? null : openClassDayUrl;
+  }
+
+  /// Every link a tap on the medium widget can open, background first: the
+  /// `Link`s the views draw. Only the one control marks.
+  List<String> get mediumLinks {
+    final links = <String>[?mediumUrl];
+    switch (mode) {
+      case LedgerMode.today:
+        final day = eveningDay;
+        switch (eveningLine) {
+          case LedgerEveningLine.markAll:
+            links.add(day!.markAllUrl!);
+          case LedgerEveningLine.waiting:
+            final url = eveningWaiting.last.markUrl;
+            if (url != null) links.add(url);
+          case LedgerEveningLine.record || null:
+            break;
+        }
+      case LedgerMode.classes:
+        final all = markAllUrl;
+        if (all != null) {
+          links.add(all);
+        } else {
+          final url = focusClass?.markUrl;
+          if (url != null) links.add(url);
+        }
+      case LedgerMode.allKept:
+        break;
+    }
+    return links;
+  }
 }
 
 /// `getTimeline`: now, then one entry a second past each future boundary.
