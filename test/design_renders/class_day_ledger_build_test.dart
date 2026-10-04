@@ -13,6 +13,7 @@ import 'package:emberkeep/academic_calendar/services/class_day_projection.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/reward_receipt.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,6 +63,18 @@ Future<bool> _tap(WidgetTester tester, Finder finder, String what) async {
   await tester.tap(target.first);
   await tester.pump();
   await settle(tester, total: const Duration(milliseconds: 1200));
+  return true;
+}
+
+/// Taps [finder] without settling afterwards, for timing-sensitive beats.
+Future<bool> _tapNow(WidgetTester tester, Finder finder, String what) async {
+  final target = finder.hitTestable();
+  if (target.evaluate().isEmpty) {
+    _note('NOT REACHED: $what');
+    return false;
+  }
+  await tester.tap(target.first);
+  await tester.pump();
   return true;
 }
 
@@ -255,6 +268,102 @@ void main() {
         at: at,
         surface: 'Close the ledger',
         note: 'two classes and one Quest; Wednesday\'s lab heads the tray',
+      );
+    },
+  );
+
+  roomRenderTest(
+    'R: Tuesday 22:10, the last Quest, then the ledger a beat later',
+    skip: !_renders,
+    failOnOverflow: true,
+    (tester) async {
+      final at = _on(_tuesday, 22, 10);
+      final account = mikaAccount(renderAt: at);
+      await bootRoom(tester, account, schedule: mikaSchedule());
+      final state = liveState(tester);
+      _keepToday(state);
+      await settle(tester);
+
+      // The featured card's action: the Quest he would finish last thing.
+      final action = find.byKey(const ValueKey('quest-primary-action'));
+      await revealIn(tester, action, questBoard);
+      final card = find.ancestor(
+        of: action.first,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('card-'),
+        ),
+      );
+      final title = card.evaluate().isEmpty
+          ? 'the featured Quest'
+          : (tester.widget(card.first).key! as ValueKey<String>).value
+                .substring('card-'.length);
+      _note('finishing: $title');
+      if (!await _tapNow(tester, action.first, title)) return;
+      // The receipt is up about 240 ms after the tap and stays ~3.5 s.
+      await settle(tester, total: const Duration(milliseconds: 900));
+      final receipt = find.byType(RewardReceipt);
+      _note(
+        'receipt after the tap: mounted=${receipt.evaluate().length} '
+        'hit-testable=${receipt.hitTestable().evaluate().length}',
+      );
+      await sheet.shot(
+        tester,
+        'R1_tue2210_receipt_on_the_board',
+        at: at,
+        surface: 'Quests, a beat after the last Quest',
+        note: 'the receipt is still up when the close-day door is tapped',
+      );
+
+      // Straight to the close-day rail, in well under the receipt's life.
+      final rail = find.byKey(const Key('close-day-rail'));
+      for (var drag = 0; drag < 12 && rail.evaluate().isEmpty; drag++) {
+        await tester.drag(
+          questBoard.first,
+          const Offset(0, -320),
+          warnIfMissed: false,
+        );
+        await tester.pump(const Duration(milliseconds: 60));
+      }
+      await Scrollable.ensureVisible(tester.element(rail), alignment: 0.2);
+      await tester.pump();
+      _note(
+        'before the tap: receipt mounted=${receipt.evaluate().length}, '
+        'rail hit-testable=${rail.hitTestable().evaluate().isNotEmpty} '
+        'rail=${tester.getRect(rail)} receipt=${tester.getRect(receipt)}',
+      );
+      // On his board the rail's lower part sits under the receipt; the
+      // strip above it still takes a thumb.
+      final railRect = tester.getRect(rail);
+      await tester.tapAt(Offset(railRect.center.dx, railRect.top + 4));
+      await tester.pump();
+      if (find.byType(NightFlow).evaluate().isEmpty) {
+        _note('NOT REACHED: close-day rail');
+        return;
+      }
+      await settle(tester, total: const Duration(milliseconds: 400));
+      expect(find.byType(NightFlow), findsOneWidget);
+      final night = find.byType(NightFlow);
+      _note(
+        'ledger opened mid-receipt: receipts mounted='
+        '${receipt.evaluate().length}, MARK TOMORROW hit-testable='
+        '${find.descendant(of: night, matching: find.text('MARK TOMORROW')).hitTestable().evaluate().isNotEmpty}',
+      );
+      await sheet.shot(
+        tester,
+        'R2_tue2210_ledger_over_a_live_receipt',
+        at: at,
+        surface: 'Close the ledger, opened while the receipt was up',
+        note: 'the receipt retires; nothing paints over the folio',
+      );
+      await settle(tester, total: const Duration(milliseconds: 3600));
+      _note('3.6 s later: receipts mounted=${receipt.evaluate().length}');
+      await sheet.shot(
+        tester,
+        'R3_tue2210_ledger_after_the_receipt_life',
+        at: at,
+        surface: 'Close the ledger, 3.6 s later',
       );
     },
   );

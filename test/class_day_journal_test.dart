@@ -2,6 +2,8 @@
 // ("2 classes · Computer Architecture, Discrete Structures II"), threaded
 // through every place the trace is rebuilt, and readable without the
 // timetable (the labels are copied into the page).
+import 'dart:math';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/class_lines.dart';
@@ -178,6 +180,10 @@ void main() {
   testWidgets('a Quest page rebuilt on the board keeps the day\'s classes', (
     tester,
   ) async {
+    // A fixed roll: the Quest's reward (message, crit, loot) is the same on
+    // every run, so anything its receipt does here reproduces.
+    GameState.debugRandomFactory = () => Random(1);
+    addTearDown(() => GameState.debugRandomFactory = null);
     final state = _tuesdayKept();
     final quest = Quest(
       title: 'Name three good things',
@@ -238,8 +244,11 @@ void main() {
     ]);
     expect(find.text(_tuesdayLine), findsOneWidget);
 
-    // The page's trace is what this test is about; leave without running
-    // the Quest's reward chain (journal_quest_entry_test covers that).
+    // The page's trace is what this test is about; leave before the Quest's
+    // reward chain plays (journal_quest_entry_test covers it). Under the Ahem
+    // test font some rolls (about 1 in 4 unseeded) grow that receipt's
+    // column past its 0.34 x screen cap at 430 x 932; with the bundled
+    // fonts no roll does, so it is a test-font artifact, not a phone one.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 8));
   });

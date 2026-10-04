@@ -455,9 +455,9 @@ void main() {
         final detail = find.text(
           '${quest.stat.abbr} · +${state.xpPreview(quest)} XP',
         );
-        if (withNote && detail.evaluate().isEmpty) continue;
-        // Without the note there is room for the XP line, whole, inside
-        // its row (Build 49 cut it at the row's bottom).
+        // With or without the note there is room for the XP line, whole,
+        // inside its row (Build 49 cut it at the row's bottom). The rows only
+        // fall back to the title alone on a smaller frame than this phone.
         expect(detail, findsOneWidget);
         expect(
           tester.renderObject<RenderParagraph>(detail).didExceedMaxLines,
