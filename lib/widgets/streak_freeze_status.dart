@@ -82,7 +82,7 @@ Future<void> showStreakFreezeDetails(BuildContext context, GameState state) {
             'when the whole gap can be covered, so none are wasted.'
       : gap.covered
       ? '${gap.days} quiet ${gap.days == 1 ? "day is" : "days are"} ready to '
-            'be held when you finish a quest today.'
+            'be held when you finish a quest or keep a class today.'
       : 'Your best run stays kept. Today starts a fresh rhythm, and your '
             '${state.streakFreezes} ${state.streakFreezes == 1 ? "freeze is" : "freezes are"} still ready.';
 

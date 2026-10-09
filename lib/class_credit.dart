@@ -5,8 +5,8 @@ import 'content/stat_ranks.dart';
 import 'models.dart';
 import 'tokens.dart';
 
-/// The two open questions about classes and the streak, answered in this one
-/// place. Both stay off until Mika decides:
+/// The two questions about classes and the streak, answered in this one
+/// place. Mika answered yes to both on 2026-10-08:
 ///
 /// * [classDayLightsStreak]: a day with at least one kept class is a streak
 ///   day, exactly like a day with a Quest.
@@ -15,8 +15,8 @@ import 'tokens.dart';
 ///   they neither count nor spend freezes.
 final class ClassDayRules {
   const ClassDayRules({
-    this.classDayLightsStreak = false,
-    this.restDaysPause = false,
+    this.classDayLightsStreak = true,
+    this.restDaysPause = true,
   });
 
   final bool classDayLightsStreak;

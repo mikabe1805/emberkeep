@@ -133,7 +133,11 @@ void main() {
       expect(state.ledger.first.amount, 3);
       expect(credit.kept.kind, 'lecture');
       expect(credit.kept.keptAt.isUtc, isTrue);
-      expect(credit.streak.lit, isFalse, reason: 'rules default off');
+      expect(
+        credit.streak.lit,
+        isTrue,
+        reason: 'a class day lights the streak',
+      );
     });
 
     test('a lab or studio pays 30 XP and 5 CRAFT; others pay as lectures', () {
@@ -171,6 +175,13 @@ void main() {
     });
 
     test('never touches Quest counters, history or the Quest-only buckets', () {
+      // The streak keys are covered by class_day_streak_test now that a class
+      // day lights the streak; here the rules are off so they stay pinned.
+      ClassDayRules.debugOverride = const ClassDayRules(
+        classDayLightsStreak: false,
+        restDaysPause: false,
+      );
+      addTearDown(() => ClassDayRules.debugOverride = null);
       Clock.freeze(DateTime(2026, 10, 6, 15, 35));
       final state = GameState()
         ..lastActiveDay = _tue

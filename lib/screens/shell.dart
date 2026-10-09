@@ -341,7 +341,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     unawaited(_loadAcademicScheduleForShell());
     _onIncomingAcademicScheduleFile();
     // The streak's rest-day pause reads the timetable. The engine consults
-    // this only while ClassDayRules.restDaysPause is on (off as shipped).
+    // this only while ClassDayRules.restDaysPause is on (on as shipped).
     GameState.restDayResolver = _restDayFromSchedule;
   }
 

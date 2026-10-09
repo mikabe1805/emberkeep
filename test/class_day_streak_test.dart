@@ -83,12 +83,35 @@ void main() {
     GameState.restDayResolver = null;
   });
 
-  group('shipped rules (both off)', () {
-    test('both rules ship off until Mika answers', () {
-      expect(ClassDayRules.shipped.classDayLightsStreak, isFalse);
-      expect(ClassDayRules.shipped.restDaysPause, isFalse);
+  group('shipped rules (both on)', () {
+    test('both rules ship on, as Mika answered on 2026-10-08', () {
+      expect(ClassDayRules.shipped.classDayLightsStreak, isTrue);
+      expect(ClassDayRules.shipped.restDaysPause, isTrue);
       expect(ClassDayRules.current, same(ClassDayRules.shipped));
     });
+
+    test('a class-only day lights the streak with no override', () {
+      final state = GameState(rng: _NoLuck());
+      _at(10, 5);
+      _quest(state);
+      _at(10, 6);
+      expect(state.keepClass(_classOn(10, 6))!.streak.lit, isTrue);
+      expect(state.streakDays, 2);
+    });
+
+    test('a rest day passes over with no override', () {
+      GameState.restDayResolver = _weekend;
+      final state = GameState(rng: _NoLuck());
+      _at(10, 9);
+      _quest(state);
+      _at(10, 12);
+      expect(_quest(state).freezesUsed, 0);
+      expect(state.streakDays, 2);
+    });
+  });
+
+  group('rules off (the old answer, still covered)', () {
+    setUp(() => _rules());
 
     test('a class-only day leaves the streak to Quests', () {
       final state = GameState(rng: _NoLuck());

@@ -223,7 +223,7 @@ void main() {
       expect(plan.autoReturn, const Duration(milliseconds: 2400));
       expect(plan.closing.first, 'First one down.');
       expect(plan.rows, isEmpty);
-      expect(plan.streakLine, isNull);
+      expect(plan.streakLine, '1 DAY RUNNING · TODAY COUNTS');
     });
 
     test('the count only grows and names the kind', () {
@@ -386,7 +386,7 @@ void main() {
       expect(quick.title, 'Electronics Devices');
     });
 
-    group('the streak line, once ClassDayRules lights it', () {
+    group('the streak line, with ClassDayRules lighting it', () {
       tearDown(() => ClassDayRules.debugOverride = null);
 
       test('on the first class of a day, never on the second', () {
@@ -402,7 +402,10 @@ void main() {
         expect(wednesday.streakLine, '2 DAYS RUNNING · TODAY COUNTS');
       });
 
-      test('off by default', () {
+      test('absent when the rule is off', () {
+        ClassDayRules.debugOverride = const ClassDayRules(
+          classDayLightsStreak: false,
+        );
         final plan = keepAndPlan(GameState(), _ny(6, 11, 53), [0]);
         expect(plan.streakLine, isNull);
       });
