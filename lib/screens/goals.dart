@@ -2654,28 +2654,14 @@ class _LivingGoalFocus extends StatelessWidget {
       return;
     }
     if (playSound) Sfx.instance.playMaterial(MaterialSound.parchment);
-    final linked = _questsForGoal(goal, quests);
-    final decision = GoalPlanner.decide(goal, quests, Clock.now());
-    final next = decision?.quest ?? _nextQuestToday(goal, quests);
-    final fallback = _kept(goal.fallbackAction);
-    final fallbackCue = _kept(goal.fallbackCue);
-    final actionTitle =
-        decision?.actionTitle ??
-        next?.displayTitle ??
-        fallback ??
-        (linked.isEmpty
-            ? 'Choose one action small enough to begin'
-            : 'Nothing is due. Make the next step smaller');
     Navigator.of(context).push(
-      goalRoomRoute<void>(
+      // The goal's own room is the kitchen beyond the arch, reached on foot.
+      // The walk carries no text: the next step is read on the folio before
+      // you go and on the goal's page once you have arrived.
+      goalKitchenWalkRoute<void>(
         context: context,
         reduceMotion: state.reduceMotion,
         settings: const RouteSettings(name: '/goals/detail'),
-        invitation: GoalRoomInvitation(
-          cue: decision?.whyThisOne ?? _cueFor(next, fallbackCue),
-          actionTitle: actionTitle,
-          fallbackAction: fallback,
-        ),
         builder: (_) => GoalDetailScreen(
           goal: goal,
           state: state,
@@ -3359,7 +3345,7 @@ class _YourGoals extends StatelessWidget {
   void _openDetail(BuildContext context, Goal goal) {
     Sfx.instance.playMaterial(MaterialSound.parchment);
     Navigator.of(context).push(
-      goalRoomRoute<void>(
+      goalKitchenWalkRoute<void>(
         context: context,
         reduceMotion: state.reduceMotion,
         builder: (_) => GoalDetailScreen(
