@@ -53,6 +53,46 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.5+51',
+    versionLabel: 'VERSION 1.0.5 · BUILD 51',
+    dateLabel: 'OCTOBER 2026',
+    title: 'Going to class counts now.',
+    introduction:
+        'Mark a class when you get there or any time after it ends. Once your '
+        'last class is done, the room settles in for the evening.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.courseWork,
+        title: 'I WAS THERE',
+        body:
+            "On a class day the Quests tab opens on your room and today's "
+            'classes. Tap I WAS THERE when you arrive, or later, for XP and a '
+            'count that only goes up.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'ADD YOUR CLASSES',
+        body:
+            'Bring them in from a calendar file or link, or type them in '
+            "yourself. You'll find it in Plans.",
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'CLASS DAYS COUNT',
+        body:
+            'A day you go to class keeps your streak going. Days with no '
+            'classes pause it, so a quiet weekend costs nothing.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'FROM YOUR HOME SCREEN',
+        body:
+            'Tap a waiting class on the Day Ledger widget and the app opens '
+            'straight to its celebration.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.5+50',
     versionLabel: 'VERSION 1.0.5 · BUILD 50',
     dateLabel: 'OCTOBER 2026',

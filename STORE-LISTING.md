@@ -108,32 +108,30 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 50 (version 1.0.5) carries the Build 49 code under a new version so
-external testers can install it. The main Quest now
-keeps its title, XP, and one useful supporting thought together. In Goals,
-planning today's three, reviewing a goal, and finding an easier step each have
-their own named door and say what they open.
+Build 51 is an internal candidate built around class days. Marking a class
+earns XP and keeps your streak, and the evening room takes over after your
+last one. The main buttons are now lit like the room's lamp, page changes no
+longer blur, and opening a goal's review walks you through the kitchen doorway.
 
 ## What to Test
 
-- In Goals, open **Your goals / Review & reshape**, return, then open **New
-  goal / Begin a fresh path**. Confirm each leads to the named job and that
-  leaving a new plan does not create a Quest without acceptance.
-- With an active Goal, compare the main Quest to **Plan today’s three**,
-  **Review this goal**, and **Find an easier step**. Confirm the current Quest
-  remains easy to identify and each secondary door leads to its named job.
-- From an active Quest, open **Help, plans & writing**. Try Help for Today,
-  Plans, and Journal from the first three Room Guide doors.
-- Select a day in Plans. Compare **PLAN QUEST** with **CLASS · EXAM · MORE**;
-  the latter should offer a class, assignment, exam, event, or task.
-- Save a new Journal page, then use **Keep this** while reading it. Confirm it
-  appears in Keepsakes and an older page offers the same action.
-- Repeat the Goals and Quest routes at Larger Text and with Reduce Motion.
-  Check the main Quest's title, XP, supporting line, touch response, sound,
-  and legibility on the phone.
+- On a class day, open Quests. Tap **I WAS THERE** on a class that has ended
+  and watch the celebration through to the end. Mark a second class and check
+  the shorter version plays.
+- After your last class, return to the app. The room should turn to the
+  window and armchair for the evening. Try the music and **Write a line**.
+- Mark a class from the Day Ledger widget on your home screen.
+- Swipe a marked class to undo it, then mark it again.
+- In Plans, open **Add your classes** and try a calendar file or link, or type
+  a class in.
+- Switch between tabs and open and close a few pages. Report anything that
+  feels rushed, blurry, or slow to respond.
+- In Goals, open a goal's review and watch the walk through the doorway.
+  Back out halfway once.
+- Look at the lamp-lit buttons (I WAS THERE, MARK COMPLETE, CLOSE THE DAY) at
+  normal and Larger Text, and with Reduce Motion.
 
-Report anything visually cold, unclear, cramped, slow, or harder to return to
-after a break.
+Report anything that feels flat, fake, cramped, slow, or unclear.
 
 ## Reviewer notes
 
