@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
+import 'facets.dart';
 import 'lamplight.dart';
 import 'pressable.dart';
 
@@ -23,6 +24,7 @@ class HoneyButton extends StatelessWidget {
     this.fontSize = 12,
     this.light,
     this.soundEnabled = true,
+    this.quiet = false,
   });
 
   final String label;
@@ -48,8 +50,62 @@ class HoneyButton extends StatelessWidget {
   /// voicing a second, generic cue.
   final bool soundEnabled;
 
+  /// A secondary action: the same printed capitals on a plain glass pane,
+  /// with no light of its own. A view keeps one lamp (the primary); every
+  /// other tappable that used to wear the gold becomes quiet.
+  final bool quiet;
+
+  Widget _quietButton(BuildContext context) {
+    const cut = 9.0;
+    final ink = enabled ? const Color(0xFFEAD7BA) : LampTone.offInk;
+    Widget face(bool pressed) => Container(
+      constraints: const BoxConstraints(minHeight: 50),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5 ? 12 : 20,
+        vertical: 12,
+      ),
+      alignment: Alignment.center,
+      decoration: facetedDecoration(
+        cut: cut,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: pressed
+              ? const [Color(0xF2433326), Color(0xF62A1F17)]
+              : const [Color(0xF02A211B), Color(0xF61A130F)],
+        ),
+        borderColor: pressed
+            ? const Color(0x70E9B27A)
+            : enabled
+            ? const Color(0x3DF3DEC0)
+            : const Color(0x1FF3DEC0),
+        borderWidth: 1,
+      ),
+      child: LampLabel(
+        text: label,
+        icon: icon,
+        fontSize: fontSize + 3.5,
+        ink: ink,
+      ),
+    );
+    return Pressable(
+      enabled: enabled,
+      material: MaterialSound.glass,
+      soundEnabled: soundEnabled,
+      semanticLabel: label,
+      onTapUp: enabled ? (_) => onTap() : null,
+      shape: const FacetedBorder(cut: cut),
+      pressDepth: 1,
+      edgeColor: Colors.transparent,
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          face(pressed),
+      child: face(false),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (quiet) return _quietButton(context);
     const cut = 11.0;
     const shape = LampShadeBorder(cut: cut);
     final level = enabled ? LampLevel.lit : LampLevel.off;

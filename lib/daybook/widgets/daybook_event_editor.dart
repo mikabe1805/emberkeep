@@ -695,25 +695,18 @@ class _SaveButton extends StatelessWidget {
     child: InkWell(
       onTap: saving ? null : onTap,
       borderRadius: BorderRadius.circular(9),
-      child: Opacity(
-        opacity: saving ? 0.55 : 1,
-        child: GoldSurface(
-          cut: 9,
-          glow: false,
-          textured: false,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            child: Text(
-              saving ? 'SAVING…' : label,
-              textAlign: TextAlign.center,
-              style: Type.label.copyWith(
-                fontSize: 12,
-                letterSpacing: 1.2,
-                color: Palette.onHoney,
-              ),
-            ),
+      child: GoldSurface(
+        cut: 9,
+        glow: false,
+        textured: false,
+        level: saving ? LampLevel.off : LampLevel.lit,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: GoldLabel(
+            text: saving ? 'SAVING…' : label,
+            level: saving ? LampLevel.off : LampLevel.lit,
           ),
         ),
       ),

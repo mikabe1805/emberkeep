@@ -20,7 +20,6 @@ import 'ember_sheet.dart';
 import 'extra_credit_sheet.dart';
 import 'facets.dart';
 import 'glass.dart';
-import 'gold_surface.dart';
 import 'honey_button.dart';
 import 'night_reflection_sheet.dart';
 import 'pressable.dart';
@@ -3750,13 +3749,22 @@ class _CapacityLedgerTab extends StatelessWidget {
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               child: selected
-                  ? GoldSurface(
+                  // A choice, not the page's action: the selected weather is
+                  // inked into the ledger like a stamp. The lamp stays the
+                  // morning's one luminous control.
+                  ? DecoratedBox(
                       key: ValueKey('selected-${weather.name}'),
-                      cut: 5,
-                      light: light,
-                      scroll: scroll,
-                      glow: false,
-                      textured: true,
+                      decoration: ShapeDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFF4B372A), Color(0xFF3A2A1F)],
+                        ),
+                        shape: FacetedBorder(
+                          cut: 5,
+                          side: BorderSide(color: LedgerInk.pageGold),
+                        ),
+                      ),
                       child: _CapacityLedgerLabel(
                         label: _label,
                         selected: true,
@@ -3802,12 +3810,7 @@ class _CapacityLedgerLabel extends StatelessWidget {
             style: LedgerType.smallCaps.copyWith(
               fontSize: 10.5,
               letterSpacing: 1.1,
-              color: selected ? Palette.onHoney : LedgerInk.mid,
-              shadows: selected
-                  ? const [
-                      Shadow(color: Color(0x73FFE2AE), offset: Offset(0, 1)),
-                    ]
-                  : null,
+              color: selected ? const Color(0xFFF3DEC0) : LedgerInk.mid,
             ),
           ),
         ),

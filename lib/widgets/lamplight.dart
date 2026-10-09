@@ -52,8 +52,15 @@ class LampGeometry {
 
   factory LampGeometry.of(Size size, double cut) {
     final c = cut.clamp(0.0, 24.0).toDouble();
-    final taper = math.min(c * 0.85, size.height * 0.2);
-    final sag = math.min(c * 0.28, size.height * 0.07);
+    // A long, low control needs more lean and sag than a squarer one to read
+    // as a shade rather than a flat strip: the form scales with the width
+    // (from 3.4 : 1 up, to at most 1.8 times), and only for lamps with a full
+    // cut, so the near-square inset lamp stays near-square.
+    final wide = size.width / math.max(size.height, 1) / 3.4;
+    final fullCut = ((c - 4) / 6).clamp(0.0, 1.0);
+    final k = 1 + (wide.clamp(1.0, 1.8) - 1) * fullCut;
+    final taper = math.min(c * 0.85 * k, size.height * 0.2 * k);
+    final sag = math.min(c * 0.28 * k, size.height * 0.07 * k);
     final radius = math.min(c * 0.55, size.height / 4);
     return LampGeometry._(size, taper, sag, radius);
   }
@@ -801,6 +808,7 @@ class LampLabel extends StatelessWidget {
     this.level = LampLevel.lit,
     this.fontSize,
     this.maxLines = 2,
+    this.ink,
   });
 
   final String text;
@@ -808,6 +816,11 @@ class LampLabel extends StatelessWidget {
   final LampLevel level;
   final double? fontSize;
   final int maxLines;
+
+  /// Set the same printed capitals in a plain colour with no halo or glow:
+  /// the label of a quiet (unlit) control, so a secondary action shares the
+  /// primary's type without sharing its light.
+  final Color? ink;
 
   static TextStyle styleFor(
     String text, {
@@ -846,6 +859,7 @@ class LampLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var style = styleFor(text, level: level, fontSize: fontSize);
+    if (ink != null) style = style.copyWith(color: ink, shadows: const []);
     // Large text keeps its words whole: the printed capitals give up a little
     // of their tracking and size so a wide label still wraps at its spaces
     // inside the shade instead of breaking mid-word.

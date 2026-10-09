@@ -91,15 +91,7 @@ class PlaceSearchConsentDialog extends StatelessWidget {
                         horizontal: 12,
                         vertical: 12,
                       ),
-                      child: Text(
-                        'USE PLACE SEARCH',
-                        textAlign: TextAlign.center,
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          letterSpacing: 1.1,
-                          color: Palette.onHoney,
-                        ),
-                      ),
+                      child: const GoldLabel(text: 'USE PLACE SEARCH'),
                     ),
                   ),
                 ),

@@ -276,32 +276,25 @@ class _DaybookTaskEditorState extends State<DaybookTaskEditor> {
                   key: const ValueKey('daybook-task-save'),
                   onTap: _saving ? null : _save,
                   borderRadius: BorderRadius.circular(9),
-                  child: Opacity(
-                    opacity: _saving ? 0.55 : 1,
-                    child: GoldSurface(
-                      cut: 9,
-                      glow: false,
-                      textured: false,
-                      child: Container(
-                        constraints: const BoxConstraints(minHeight: 48),
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        child: Text(
-                          _saving
-                              ? 'SAVING…'
-                              : widget.initialTask == null
-                              ? 'KEEP THIS TASK'
-                              : 'KEEP CHANGES',
-                          textAlign: TextAlign.center,
-                          style: Type.label.copyWith(
-                            fontSize: 12,
-                            letterSpacing: 1.2,
-                            color: Palette.onHoney,
-                          ),
-                        ),
+                  child: GoldSurface(
+                    cut: 9,
+                    glow: false,
+                    textured: false,
+                    level: _saving ? LampLevel.off : LampLevel.lit,
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      child: GoldLabel(
+                        text: _saving
+                            ? 'SAVING…'
+                            : widget.initialTask == null
+                            ? 'KEEP THIS TASK'
+                            : 'KEEP CHANGES',
+                        level: _saving ? LampLevel.off : LampLevel.lit,
                       ),
                     ),
                   ),

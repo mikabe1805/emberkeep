@@ -438,6 +438,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                         icon: Icons.shuffle_rounded,
                         enabled: !_loading && _openingCode == null,
                         expand: true,
+                        quiet: true,
                         onTap: _load,
                       ),
                     ],
