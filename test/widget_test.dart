@@ -949,11 +949,17 @@ void main() {
     final create = find.byKey(const Key('goals-create-first'));
     await revealGoalsAction(tester, create);
     await tester.tap(create.hitTestable());
-    await settle(tester);
-    await tester.ensureVisible(find.byKey(const Key('quick-goal-advanced')));
+    // The Steward's room opens on his first question (a 1.6 s walk in).
+    for (var i = 0; i < 3; i++) {
+      await settle(tester);
+    }
+    await tester.ensureVisible(find.byKey(const Key('steward-ask-manual')));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.byKey(const Key('quick-goal-advanced')));
-    await settle(tester);
+    await tester.tap(find.byKey(const Key('steward-ask-manual')));
+    // The Steward's room closes first, then the wizard opens.
+    for (var i = 0; i < 3; i++) {
+      await settle(tester);
+    }
     expect(find.text('A NEW GOAL'), findsOneWidget);
 
     // Name the goal (the only TextField until the sheet opens).

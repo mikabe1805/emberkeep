@@ -17,6 +17,7 @@ import 'package:emberkeep/widgets/goal_primary_button.dart';
 import 'package:emberkeep/widgets/workout_flow.dart';
 import 'package:emberkeep/widgets/goal_steward.dart';
 import 'package:emberkeep/widgets/goal_world.dart';
+import 'package:emberkeep/widgets/honey_button.dart';
 import 'package:emberkeep/widgets/pressable.dart';
 import 'package:emberkeep/widgets/working_surface.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +39,7 @@ Finder _goalAction(String label) => switch (label) {
   'Open Quest' ||
   'Add a Quest' ||
   'Bring inside' => find.byKey(const Key('goals-return-primary-action')),
-  'Your goals' => find.byKey(const Key('goals-open-workshop')),
+  'Workshop' => find.byKey(const Key('goals-open-workshop')),
   'Review goal' => find.byKey(const Key('goals-review-goal')),
   'Make this smaller' => find.byKey(const Key('goals-recover-today')),
   _ => find.widgetWithText(WorkingAction, label),
@@ -125,7 +126,7 @@ Future<void> _pumpGoals(
 Future<void> _openStartingPoints(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('goals-new-goal')));
   await tester.pumpAndSettle();
-  final browse = find.byKey(const Key('quick-goal-browse'));
+  final browse = find.byKey(const Key('steward-ask-browse'));
   await tester.ensureVisible(browse);
   await tester.tap(browse);
   await tester.pumpAndSettle();
@@ -162,6 +163,34 @@ Future<void> _openKeepAJournal(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _continueAsk(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('steward-ask-continue')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _answerAsk(WidgetTester tester, String key, String text) async {
+  await tester.enterText(find.byKey(Key(key)), text);
+  await tester.pump();
+  await _continueAsk(tester);
+}
+
+/// The Steward's reality questions (start, proof, time, snag, deadline). The
+/// last answer drafts the plan and lands on the arrival.
+Future<void> _finishRealityQuestions(
+  WidgetTester tester, {
+  required String startingPoint,
+  required String proof,
+  required String obstacle,
+}) async {
+  await _answerAsk(tester, 'steward-ask-starting-point', startingPoint);
+  await _answerAsk(tester, 'steward-ask-proof', proof);
+  await _continueAsk(tester); // the time a normal try has
+  await _answerAsk(tester, 'steward-ask-snag', obstacle);
+  await _continueAsk(tester); // the optional deadline, left empty
+}
+
+/// Answers the Steward's questions for a new goal, one at a time. It ends at
+/// the arrival, where the first Quest is offered.
 Future<void> _finishQuickRoute(
   WidgetTester tester, {
   required String name,
@@ -172,30 +201,44 @@ Future<void> _finishQuickRoute(
   String? stat,
   String? type,
 }) async {
-  await tester.enterText(find.byKey(const Key('quick-goal-name')), name);
-  await tester.enterText(find.byKey(const Key('quick-goal-outcome')), outcome);
+  await _answerAsk(tester, 'steward-ask-name', name);
+  await _answerAsk(tester, 'steward-ask-outcome', outcome);
   if (type != null) {
-    final choice = find.byKey(ValueKey('quick-goal-type-$type'));
-    await tester.ensureVisible(choice);
-    await tester.tap(choice);
+    await tester.tap(find.byKey(ValueKey('steward-ask-type-$type')));
+    await tester.pump();
   }
+  await _continueAsk(tester);
   if (stat != null) {
-    final choice = find.byKey(ValueKey('quick-goal-stat-$stat'));
-    await tester.ensureVisible(choice);
-    await tester.tap(choice);
+    await tester.tap(find.byKey(ValueKey('steward-ask-stat-$stat')));
+    await tester.pump();
   }
-  await tester.tap(find.byKey(const Key('quick-goal-create')));
+  await _continueAsk(tester);
+  await _finishRealityQuestions(
+    tester,
+    startingPoint: startingPoint,
+    proof: proof,
+    obstacle: obstacle,
+  );
+}
+
+/// From the arrival a new goal lands on, back out through the workshop and
+/// Goals, then review the goal: this is the way into the camera-travel
+/// opening (desk, wide room, threshold, arrival).
+Future<void> _reviewIntoOpening(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('goal-opening-back')));
   await tester.pumpAndSettle();
-  await tester.enterText(
-    find.byKey(const Key('quick-goal-starting-point')),
-    startingPoint,
-  );
-  await tester.enterText(find.byKey(const Key('quick-goal-proof')), proof);
-  await tester.enterText(
-    find.byKey(const Key('quick-goal-obstacle')),
-    obstacle,
-  );
-  await tester.tap(find.byKey(const Key('quick-goal-create')));
+  await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
+  await tester.pumpAndSettle();
+  await _tapGoalAction(tester, 'Review goal');
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
+}
+
+/// Opens "See the whole plan" on the arrival.
+Future<void> _openPlanDetails(WidgetTester tester) async {
+  final toggle = find.byKey(const Key('goal-workshop-see-plan'));
+  await tester.ensureVisible(toggle);
+  await tester.tap(toggle);
   await tester.pumpAndSettle();
 }
 
@@ -280,11 +323,12 @@ void main() {
     await tester.tap(find.byKey(const Key('goals-create-first')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('quick-goal-name')), findsOneWidget);
-    expect(find.byKey(const Key('quick-goal-outcome')), findsOneWidget);
-    expect(find.byKey(const Key('quick-goal-create')), findsOneWidget);
-    expect(find.byKey(const Key('quick-goal-browse')), findsOneWidget);
-    expect(find.byKey(const Key('quick-goal-advanced')), findsOneWidget);
+    // The Steward asks one question at a time: the name first.
+    expect(find.byKey(const Key('steward-ask-name')), findsOneWidget);
+    expect(find.byKey(const Key('steward-ask-outcome')), findsNothing);
+    expect(find.byKey(const Key('steward-ask-continue')), findsOneWidget);
+    expect(find.byKey(const Key('steward-ask-browse')), findsOneWidget);
+    expect(find.byKey(const Key('steward-ask-manual')), findsOneWidget);
   });
 
   testWidgets('quick creation offers then starts its exact first Quest', (
@@ -323,41 +367,42 @@ void main() {
     final offeredAction = state.goals.single.plan!.currentStep!.actionTitle;
     expect(quests, isEmpty);
     expect(state.goals.single.openingSeen, isFalse);
-    expect(find.byType(GoalOpeningScreen), findsOneWidget);
-    expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
-    expect(find.text('Your focus'), findsOneWidget);
     expect(persisted, 1);
 
-    await _reachOpeningThreshold(tester);
-    expect(find.byKey(const Key('goal-room-arch-step-in')), findsOneWidget);
-    expect(find.byKey(const ValueKey('goal-room-arch-plan')), findsOneWidget);
-    final thresholdPlan = tester.getRect(
-      find.byKey(const ValueKey('goal-room-arch-plan')),
-    );
+    // The Steward's questions end at the arrival: one step, its XP and one
+    // action, with no camera travel to sit through after nine questions.
+    expect(find.byType(GoalOpeningScreen), findsOneWidget);
     expect(
-      thresholdPlan.center.dx,
-      inInclusiveRange(250, 310),
-      reason: 'the live plan should stay registered to the painted arch',
+      tester
+          .widget<Opacity>(
+            find.byKey(const ValueKey('goal-opening-desk-opacity')),
+          )
+          .opacity,
+      0,
+      reason: 'the desk stage is already behind us',
     );
-    expect(
-      thresholdPlan.center.dy,
-      inInclusiveRange(470, 550),
-      reason: 'the live plan should stay vertically inside the lit doorway',
-    );
-    expect(find.text(offeredAction), findsWidgets);
-
-    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-marker')), findsOneWidget);
+    expect(find.text('STEP 1 OF 4'), findsWidgets);
     expect(
       find.byKey(const Key('goal-workshop-current-quest')),
       findsOneWidget,
     );
+    expect(find.text(offeredAction), findsWidgets);
+    expect(find.byKey(const Key('goal-workshop-xp')), findsOneWidget);
+    expect(find.text('Take this Quest'), findsOneWidget);
+    expect(
+      find.byKey(const Key('goal-workshop-smaller-action')),
+      findsOneWidget,
+    );
+    // Why, proof and the whole plan wait behind one disclosure.
+    expect(find.byKey(const Key('goal-workshop-why')), findsNothing);
+    expect(find.byKey(const Key('goal-workshop-proof')), findsNothing);
+    expect(find.byKey(const Key('goal-workshop-route')), findsNothing);
+    await _openPlanDetails(tester);
     expect(find.byKey(const Key('goal-workshop-why')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-proof')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-route')), findsOneWidget);
-    expect(find.byKey(const Key('goal-workshop-accept')), findsOneWidget);
     expect(quests, isEmpty);
 
     await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
@@ -383,6 +428,52 @@ void main() {
     expect(find.byType(GoalDetailScreen), findsOneWidget);
   });
 
+  testWidgets('the opening threshold stays registered to the painted arch', (
+    tester,
+  ) async {
+    final state = GameState()..reduceMotion = true;
+    await _pumpGoals(tester, state: state, quests: <Quest>[]);
+
+    await tester.tap(find.byKey(const Key('goals-create-first')));
+    await tester.pumpAndSettle();
+    await _finishQuickRoute(
+      tester,
+      name: 'Finish demo',
+      outcome: 'A reviewer can understand the working demo',
+      startingPoint: 'The demo works but I have no walkthrough yet',
+      proof: 'A clear walkthrough video exists',
+      obstacle: 'I polish details instead of recording',
+      stat: 'foc',
+      type: 'finish',
+    );
+    final offeredAction = state.goals.single.plan!.currentStep!.actionTitle;
+    await _reviewIntoOpening(tester);
+    expect(find.text('Your focus'), findsOneWidget);
+
+    await _reachOpeningThreshold(tester);
+    expect(find.byKey(const Key('goal-room-arch-step-in')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goal-room-arch-plan')), findsOneWidget);
+    final thresholdPlan = tester.getRect(
+      find.byKey(const ValueKey('goal-room-arch-plan')),
+    );
+    expect(
+      thresholdPlan.center.dx,
+      inInclusiveRange(250, 310),
+      reason: 'the live plan should stay registered to the painted arch',
+    );
+    expect(
+      thresholdPlan.center.dy,
+      inInclusiveRange(470, 550),
+      reason: 'the live plan should stay vertically inside the lit doorway',
+    );
+    expect(find.text(offeredAction), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-accept')), findsOneWidget);
+  });
+
   testWidgets(
     'returning from the workshop keeps the Goal and creates no Quest',
     (tester) async {
@@ -402,25 +493,45 @@ void main() {
         stat: 'intl',
         type: 'routine',
       );
-      await _enterWorkshop(tester);
 
+      // Back from the arrival lands in the workshop, where the new goal now
+      // leads with its step; nothing was added to the board.
       final goal = state.goals.single;
       expect(goal.openingSeen, isFalse);
       expect(quests, isEmpty);
-      await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
-      await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+      await tester.tap(find.byKey(const Key('goal-opening-back')));
       await tester.pumpAndSettle();
 
       expect(find.byType(GoalOpeningScreen), findsNothing);
+      expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('goal-workshop-lead')),
+          matching: find.text('Read before bed'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('NEXT STEP READY'), findsOneWidget);
       expect(state.goals.single, same(goal));
       expect(goal.plan, isNotNull);
       expect(goal.openingSeen, isFalse);
       expect(quests, isEmpty);
 
+      await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
+      await tester.pumpAndSettle();
       await _tapGoalAction(tester, 'Review goal');
       await tester.pumpAndSettle();
       expect(find.byType(GoalOpeningScreen), findsOneWidget);
       expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
+
+      // The travel opening keeps its own way out of the room.
+      await _enterWorkshop(tester);
+      await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+      await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+      await tester.pumpAndSettle();
+      expect(find.byType(GoalOpeningScreen), findsNothing);
+      expect(goal.openingSeen, isFalse);
+      expect(quests, isEmpty);
     },
   );
 
@@ -449,9 +560,8 @@ void main() {
       stat: 'foc',
       type: 'finish',
     );
-    await _enterWorkshop(tester);
 
-    final accept = tester.widget<GoalPrimaryButton>(
+    final accept = tester.widget<HoneyButton>(
       find.byKey(const Key('goal-workshop-accept')),
     );
     accept.onTap();
@@ -463,55 +573,56 @@ void main() {
     expect(state.goals.single.openingSeen, isTrue);
   });
 
-  testWidgets('changing the workshop cut revises the offer before acceptance', (
-    tester,
-  ) async {
-    final state = GameState()..reduceMotion = true;
-    final quests = <Quest>[];
-    await _pumpGoals(tester, state: state, quests: quests);
+  testWidgets(
+    'changing the workshop step revises the offer before acceptance',
+    (tester) async {
+      final state = GameState()..reduceMotion = true;
+      final quests = <Quest>[];
+      await _pumpGoals(tester, state: state, quests: quests);
 
-    await tester.tap(find.byKey(const Key('goals-create-first')));
-    await tester.pumpAndSettle();
-    await _finishQuickRoute(
-      tester,
-      name: 'Make the apartment feel calm',
-      outcome: 'I can use the kitchen without feeling overwhelmed',
-      startingPoint: 'The counter is crowded',
-      proof: 'The counter stays usable for a normal week',
-      obstacle: 'The whole room feels too big after class',
-      stat: 'dis',
-      type: 'reset',
-    );
-    await _enterWorkshop(tester);
+      await tester.tap(find.byKey(const Key('goals-create-first')));
+      await tester.pumpAndSettle();
+      await _finishQuickRoute(
+        tester,
+        name: 'Make the apartment feel calm',
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint: 'The counter is crowded',
+        proof: 'The counter stays usable for a normal week',
+        obstacle: 'The whole room feels too big after class',
+        stat: 'dis',
+        type: 'reset',
+      );
+      await _openPlanDetails(tester);
 
-    final goal = state.goals.single;
-    final oldRevision = goal.plan!.revision;
-    const revisedAction = 'Put the three loose cups in the cabinet';
-    await tester.ensureVisible(
-      find.byKey(const Key('goal-workshop-edit-action')),
-    );
-    await tester.tap(find.byKey(const Key('goal-workshop-edit-action')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('goal-workshop-edit-field')),
-      revisedAction,
-    );
-    await tester.tap(find.byKey(const Key('goal-workshop-edit-save')));
-    await tester.pumpAndSettle();
+      final goal = state.goals.single;
+      final oldRevision = goal.plan!.revision;
+      const revisedAction = 'Put the three loose cups in the cabinet';
+      await tester.ensureVisible(
+        find.byKey(const Key('goal-workshop-edit-action')),
+      );
+      await tester.tap(find.byKey(const Key('goal-workshop-edit-action')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('goal-workshop-edit-field')),
+        revisedAction,
+      );
+      await tester.tap(find.byKey(const Key('goal-workshop-edit-save')));
+      await tester.pumpAndSettle();
 
-    expect(goal.plan!.revision, oldRevision + 1);
-    expect(goal.plan!.currentStep!.actionTitle, revisedAction);
-    expect(find.text(revisedAction), findsWidgets);
-    expect(quests, isEmpty);
+      expect(goal.plan!.revision, oldRevision + 1);
+      expect(goal.plan!.currentStep!.actionTitle, revisedAction);
+      expect(find.text(revisedAction), findsWidgets);
+      expect(quests, isEmpty);
 
-    await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
-    await tester.tap(find.byKey(const Key('goal-workshop-accept')));
-    await tester.pumpAndSettle();
-    expect(quests, hasLength(1));
-    expect(quests.single.title, revisedAction);
-    expect(quests.single.goalPlanRevision, oldRevision + 1);
-    expect(quests.single.goalPlanStepId, goal.plan!.currentStep!.id);
-  });
+      await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
+      await tester.tap(find.byKey(const Key('goal-workshop-accept')));
+      await tester.pumpAndSettle();
+      expect(quests, hasLength(1));
+      expect(quests.single.title, revisedAction);
+      expect(quests.single.goalPlanRevision, oldRevision + 1);
+      expect(quests.single.goalPlanStepId, goal.plan!.currentStep!.id);
+    },
+  );
 
   testWidgets('making the workshop Quest smaller revises before acceptance', (
     tester,
@@ -532,7 +643,6 @@ void main() {
       stat: 'vit',
       type: 'routine',
     );
-    await _enterWorkshop(tester);
 
     final goal = state.goals.single;
     final oldRevision = goal.plan!.revision;
@@ -993,18 +1103,15 @@ void main() {
     final goal = state.goals.single;
     expect(goal.plan, isNotNull);
     expect(quests, isEmpty);
-    expect(find.text('Your focus'), findsOneWidget);
     expect(
       goal.plan!.currentStep!.actionTitle.toLowerCase(),
       contains('counter'),
     );
     expect(find.text(goal.plan!.currentStep!.actionTitle), findsWidgets);
 
-    await _reachOpeningThreshold(tester);
-    expect(find.textContaining(goal.plan!.fallbackAction), findsWidgets);
-    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
+    await _openPlanDetails(tester);
+    expect(find.textContaining(goal.plan!.fallbackAction), findsWidgets);
     expect(find.byKey(const Key('goal-workshop-why')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-proof')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-route')), findsOneWidget);
@@ -1051,6 +1158,7 @@ void main() {
     final goal = state.goals.single;
     expect(goal.openingSeen, isFalse);
     expect(persisted, 1);
+    await _reviewIntoOpening(tester);
     await _reachOpeningThreshold(tester);
     await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
     await tester.pumpAndSettle();
@@ -1108,6 +1216,7 @@ void main() {
       stat: 'vit',
       type: 'routine',
     );
+    await _reviewIntoOpening(tester);
 
     await tester.tap(find.byKey(const Key('goal-opening-show-plan')));
     await tester.pump(const Duration(milliseconds: 180));
@@ -1564,7 +1673,7 @@ void main() {
       await _revealOnGoalsPage(tester, waitingGoalCard);
       await tester.tap(waitingGoalCard);
       await tester.pumpAndSettle();
-      await _tapGoalAction(tester, 'Your goals');
+      await _tapGoalAction(tester, 'Workshop');
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
       expect(find.byKey(const Key('goal-workshop-steward')), findsOneWidget);
@@ -1587,8 +1696,17 @@ void main() {
         find.byKey(const Key('goal-workshop-steward-counter')),
         findsOneWidget,
       );
-      expect(find.text('QUEST ON BOARD'), findsOneWidget);
+      expect(find.text('ON YOUR BOARD'), findsOneWidget);
       expect(find.text('NEXT STEP READY'), findsOneWidget);
+      // The goal whose next step is ready leads; the one on the board is listed.
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('goal-workshop-lead')),
+          matching: find.text('Make the apartment feel calm'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Take the next step'), findsOneWidget);
 
       await tester.tap(
         find.byKey(
@@ -1598,7 +1716,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('CURRENT QUEST'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('goal-workshop-current-quest')),
+          matching: find.text('ON YOUR BOARD'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Open this Quest'), findsOneWidget);
       expect(
         tester
@@ -1613,7 +1737,7 @@ void main() {
       expect(quests, hasLength(1));
       expect(find.byKey(const Key('goal-workshop-home')), findsNothing);
 
-      await _tapGoalAction(tester, 'Your goals');
+      await _tapGoalAction(tester, 'Workshop');
       await tester.pumpAndSettle();
       final waitingRow = find.byKey(
         const ValueKey<String>(
@@ -1622,7 +1746,13 @@ void main() {
       );
       await tester.tap(waitingRow);
       await tester.pumpAndSettle();
-      expect(find.text('THE CUT'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('goal-workshop-current-quest')),
+          matching: find.text('YOUR FIRST STEP'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Take this Quest'), findsOneWidget);
       expect(
         tester
@@ -1630,8 +1760,7 @@ void main() {
             .destinationExpression,
         GoalStewardExpression.ready,
       );
-      await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
-      await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+      await tester.tap(find.byKey(const Key('goal-opening-back')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
       expect(quests, hasLength(1));
@@ -1647,7 +1776,7 @@ void main() {
     },
   );
 
-  testWidgets('a legacy goal can build a structured route in place', (
+  testWidgets('a legacy goal can build a structured plan in place', (
     tester,
   ) async {
     final state = GameState()..reduceMotion = true;
@@ -1661,7 +1790,7 @@ void main() {
     final quests = <Quest>[];
     await _pumpGoals(tester, state: state, quests: quests);
 
-    await _tapGoalAction(tester, 'Your goals');
+    await _tapGoalAction(tester, 'Workshop');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
     await tester.tap(
@@ -1670,27 +1799,21 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Finish the portfolio'), findsWidgets);
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-outcome')),
+    // The goal's name is already known, so the Steward starts with what will
+    // be different, then asks the same questions as for a new goal.
+    expect(find.byKey(const Key('steward-ask-name')), findsNothing);
+    await _answerAsk(
+      tester,
+      'steward-ask-outcome',
       'A hiring manager can understand my two strongest projects',
     );
-    await tester.tap(find.byKey(const Key('quick-goal-create')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-starting-point')),
-      'I have an outline but no project-page draft',
+    await _continueAsk(tester); // the kind of goal
+    await _finishRealityQuestions(
+      tester,
+      startingPoint: 'I have an outline but no project-page draft',
+      proof: 'Two readable project pages are published',
+      obstacle: 'I polish screenshots before the story exists',
     );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-proof')),
-      'Two readable project pages are published',
-    );
-    await tester.enterText(
-      find.byKey(const Key('quick-goal-obstacle')),
-      'I polish screenshots before the story exists',
-    );
-    await tester.tap(find.byKey(const Key('quick-goal-create')));
-    await tester.pumpAndSettle();
 
     expect(goal.plan, isNotNull);
     expect(
@@ -1703,8 +1826,8 @@ void main() {
     expect(goal.openingSeen, isFalse);
     expect(quests, isEmpty);
     expect(find.byType(GoalOpeningScreen), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
 
-    await _enterWorkshop(tester);
     await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
     await tester.tap(find.byKey(const Key('goal-workshop-accept')));
     await tester.pumpAndSettle();
@@ -2268,7 +2391,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('goals-create-first')));
     await tester.pumpAndSettle();
-    final advanced = find.byKey(const Key('quick-goal-advanced'));
+    final advanced = find.byKey(const Key('steward-ask-manual'));
     await tester.ensureVisible(advanced);
     await tester.tap(advanced);
     await tester.pumpAndSettle();
@@ -2285,8 +2408,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('goals-create-first')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('quick-goal-advanced')));
-    await tester.tap(find.byKey(const Key('quick-goal-advanced')));
+    await tester.ensureVisible(find.byKey(const Key('steward-ask-manual')));
+    await tester.tap(find.byKey(const Key('steward-ask-manual')));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'Learn to sketch');

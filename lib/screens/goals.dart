@@ -21,6 +21,7 @@ import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/goal_primary_button.dart';
+import '../widgets/goal_steward.dart';
 import '../widgets/goal_room_route.dart';
 import '../widgets/goal_world.dart';
 import '../widgets/pressable.dart';
@@ -343,49 +344,69 @@ class _GoalsPageState extends State<GoalsPage> {
     });
   }
 
-  Future<void> _openWorkshop(BuildContext context, [Goal? initialGoal]) async {
+  /// Opens the Steward's workshop. [startNewGoal] and [shapeGoal] open it
+  /// straight into his questions (a new goal, or a plan for [shapeGoal]);
+  /// otherwise it opens on its home, where [initialGoal] sorts first.
+  Future<void> _openWorkshop(
+    BuildContext context, {
+    Goal? initialGoal,
+    bool startNewGoal = false,
+    Goal? shapeGoal,
+  }) async {
     _arrivingGoalTitle = null;
     await Navigator.of(context).push<void>(
       goalRoomRoute<void>(
         context: context,
         reduceMotion: state.reduceMotion,
         settings: const RouteSettings(name: '/goals/workshop'),
-        builder: (workshopContext) => GoalWorkshopScreen(
-          state: state,
-          quests: quests,
-          initialGoalTitle: initialGoal?.title,
-          onOpenGoal: (goal) => _openGoalOpening(
-            this.context,
-            goal,
-            startInWorkshop: true,
-            onBeforeQuestHandoff: () {
-              if (Navigator.of(workshopContext).canPop()) {
-                Navigator.of(workshopContext).pop();
+        builder: (workshopContext) {
+          void leaveWorkshop() {
+            if (Navigator.of(workshopContext).canPop()) {
+              Navigator.of(workshopContext).pop();
+            }
+          }
+
+          return GoalWorkshopScreen(
+            state: state,
+            quests: quests,
+            initialGoalTitle: initialGoal?.title,
+            startNewGoal: startNewGoal,
+            shapeGoal: shapeGoal,
+            onOpenGoal: (goal) => _openGoalOpening(
+              this.context,
+              goal,
+              startInWorkshop: true,
+              onBeforeQuestHandoff: leaveWorkshop,
+            ),
+            onShapePlan: (goal, plan) => _applyShapedPlan(
+              goal,
+              plan,
+              onBeforeQuestHandoff: leaveWorkshop,
+            ),
+            onCreateGoal: (result) async {
+              if (result.exit == QuickGoalComposerExit.create) {
+                await _createGoalFromIntake(
+                  this.context,
+                  result,
+                  onBeforeQuestHandoff: leaveWorkshop,
+                );
+                return;
               }
+              // Ready-made plans and the manual wizard live on Goals itself.
+              leaveWorkshop();
+              await Future<void>.delayed(
+                Duration(milliseconds: state.reduceMotion ? 0 : 180),
+              );
+              if (!mounted) return;
+              await _leaveIntakeFor(this.context, result);
             },
-          ),
-          onBuildRoute: (goal) async {
-            Navigator.of(workshopContext).pop();
-            await Future<void>.delayed(
-              Duration(milliseconds: state.reduceMotion ? 0 : 180),
-            );
-            if (!mounted) return;
-            await _buildGoalPlan(this.context, goal);
-          },
-          onFocusGoal: (goal) {
-            if (!mounted) return;
-            setState(() => _selectedGoalTitle = goal.title);
-          },
-          onNewGoal: () async {
-            Navigator.of(workshopContext).pop();
-            await Future<void>.delayed(
-              Duration(milliseconds: state.reduceMotion ? 0 : 180),
-            );
-            if (!mounted) return;
-            await _openQuickCreate(this.context);
-          },
-          onPersist: widget.onPersist,
-        ),
+            onFocusGoal: (goal) {
+              if (!mounted) return;
+              setState(() => _selectedGoalTitle = goal.title);
+            },
+            onPersist: widget.onPersist,
+          );
+        },
       ),
     );
   }
@@ -523,6 +544,16 @@ class _GoalsPageState extends State<GoalsPage> {
               preparedByApp: preparedByApp,
               questOwned: questOwned,
               reduceMotion: state.reduceMotion,
+              actionXp: () {
+                // The XP of the exact Quest that Take this Quest would add,
+                // read again after a change so it never shows a stale number.
+                final current = GoalPlanner.decide(goal, quests, Clock.now());
+                final shown = current == null
+                    ? openingQuest
+                    : current.quest ??
+                          GoalPlanner.questFor(goal, current, Clock.now());
+                return state.xpPreview(shown);
+              },
               onBegin: () {
                 if (accepting) return;
                 accepting = true;
@@ -699,56 +730,67 @@ class _GoalsPageState extends State<GoalsPage> {
     return revised.currentStep?.actionTitle;
   }
 
-  Future<void> _openQuickCreate(BuildContext context) async {
-    final result = await showQuickGoalComposer(
-      context,
-      existingGoalTitles: state.goals.map((goal) => goal.title),
-      existingQuestTitles: quests.map((quest) => quest.title),
-    );
-    if (!context.mounted || result == null) return;
+  /// A new goal always starts with the Steward's questions.
+  Future<void> _openQuickCreate(BuildContext context) =>
+      _openWorkshop(context, startNewGoal: true);
+
+  Future<void> _leaveIntakeFor(
+    BuildContext context,
+    QuickGoalComposerResult result,
+  ) async {
     switch (result.exit) {
       case QuickGoalComposerExit.advanced:
         await _openWizard(context);
-        return;
       case QuickGoalComposerExit.browse:
         _openStartingPoints(context);
-        return;
       case QuickGoalComposerExit.create:
-        final title = result.title!;
-        final stat = result.stat!;
-        final plan = result.plan!;
-        final goal = Goal(
-          title: title,
-          stat: stat,
-          kind: plan.type == GoalRouteType.routine
-              ? GoalKind.become
-              : GoalKind.achieve,
-          target: plan.type == GoalRouteType.routine
-              ? 25
-              : plan.steps.fold(
-                  0,
-                  (total, step) => total + step.requiredCompletions,
-                ),
-          openingSeen: false,
-          plan: plan,
-          fallbackCue: plan.obstacleCue,
-          fallbackAction: plan.fallbackAction,
-        );
-        if (!state.addGoal(goal)) return;
-        setState(() {
-          _selectedGoalTitle = title;
-          _arrivingGoalTitle = title;
-        });
-        // The route belongs to the Goal immediately. The first Quest does not
-        // belong to the board until the person explicitly takes it in the
-        // workshop at the end of the spatial opening.
-        onPersist();
-        Sfx.instance.playAfterContact('levelup');
-        HapticFeedback.mediumImpact();
-        if (!context.mounted) return;
-        await _openGoalOpening(context, goal);
-        return;
+        await _createGoalFromIntake(context, result);
     }
+  }
+
+  /// Adds the goal the Steward's questions drafted and opens the arrival,
+  /// where its first Quest is offered. The plan belongs to the Goal at once;
+  /// the first Quest does not belong to the board until the person takes it.
+  Future<void> _createGoalFromIntake(
+    BuildContext context,
+    QuickGoalComposerResult result, {
+    VoidCallback? onBeforeQuestHandoff,
+  }) async {
+    final title = result.title!;
+    final stat = result.stat!;
+    final plan = result.plan!;
+    final goal = Goal(
+      title: title,
+      stat: stat,
+      kind: plan.type == GoalRouteType.routine
+          ? GoalKind.become
+          : GoalKind.achieve,
+      target: plan.type == GoalRouteType.routine
+          ? 25
+          : plan.steps.fold(
+              0,
+              (total, step) => total + step.requiredCompletions,
+            ),
+      openingSeen: false,
+      plan: plan,
+      fallbackCue: plan.obstacleCue,
+      fallbackAction: plan.fallbackAction,
+    );
+    if (!state.addGoal(goal)) return;
+    setState(() {
+      _selectedGoalTitle = title;
+      _arrivingGoalTitle = title;
+    });
+    onPersist();
+    Sfx.instance.playAfterContact('levelup');
+    HapticFeedback.mediumImpact();
+    if (!context.mounted) return;
+    await _openGoalOpening(
+      context,
+      goal,
+      startInWorkshop: true,
+      onBeforeQuestHandoff: onBeforeQuestHandoff,
+    );
   }
 
   void _openStartingPoints(BuildContext context) {
@@ -1064,11 +1106,26 @@ class _GoalsPageState extends State<GoalsPage> {
     onOpenQuest(result.replacement!);
   }
 
+  /// Shapes a plan for a goal that has none (or whose plan is finished) with
+  /// the Steward's questions.
   Future<void> _buildGoalPlan(BuildContext context, Goal goal) async {
-    if (goal.plan != null) return;
-    final plan = await showGoalPlanBuilder(context, goal: goal);
-    if (!mounted || plan == null) return;
-    state.updateGoalPlan(goal, plan);
+    final plan = goal.plan;
+    if (plan != null && !plan.complete) return;
+    await _openWorkshop(context, shapeGoal: goal);
+  }
+
+  Future<void> _applyShapedPlan(
+    Goal goal,
+    GoalPlan plan, {
+    VoidCallback? onBeforeQuestHandoff,
+  }) async {
+    final previous = goal.plan;
+    // A next plan is a new revision, so nothing from the finished one can
+    // be mistaken for its Quests.
+    state.updateGoalPlan(
+      goal,
+      previous == null ? plan : plan.copyWith(revision: previous.revision + 1),
+    );
     goal.openingSeen = false;
     onPersist();
     if (!mounted) return;
@@ -1076,7 +1133,12 @@ class _GoalsPageState extends State<GoalsPage> {
       _selectedGoalTitle = goal.title;
       _arrivingGoalTitle = goal.title;
     });
-    await _openGoalOpening(this.context, goal);
+    await _openGoalOpening(
+      context,
+      goal,
+      startInWorkshop: true,
+      onBeforeQuestHandoff: onBeforeQuestHandoff,
+    );
   }
 
   void _adoptGoal(BuildContext context, GoalIdea idea) {
@@ -1269,7 +1331,7 @@ class _GoalsPageState extends State<GoalsPage> {
               focus: null,
               hasGoals: true,
               onNewGoal: () => _openQuickCreate(context),
-              onWorkshop: () => _openWorkshop(context, focus),
+              onWorkshop: () => _openWorkshop(context, initialGoal: focus),
               onChooseToday: () => _chooseToday(context),
               todayFieldCount: todayFieldCount,
             ),
@@ -1473,20 +1535,27 @@ class _GoalsHeading extends StatelessWidget {
         ),
       ],
     );
+    // The Steward's workshop is the way into Goals: it names him and what he
+    // does, and wears his portrait, so it reads as a person to go and see
+    // rather than a storefront.
     final workshop = _GoalsHeaderOpportunity(
       controlKey: const Key('goals-open-workshop'),
       icon: Icons.storefront_outlined,
-      title: hasGoals ? 'Your goals' : 'Goal workshop',
-      detail: hasGoals ? 'Review & reshape' : 'Start a path with help',
+      leading: const GoalStewardPortrait(size: 46),
+      title: 'The Steward’s workshop',
+      detail: hasGoals
+          ? 'Turn a goal into a first step'
+          : 'Start a goal with help',
       semanticHint: hasGoals
-          ? 'Open the workshop to review or change existing goals.'
-          : 'Open the workshop to begin a goal with guidance.',
+          ? 'Open the Steward’s workshop to turn a goal into a plan and a first step.'
+          : 'Open the Steward’s workshop and have him help you start a goal.',
+      prominent: true,
       onTap: onWorkshop,
     );
     return LayoutBuilder(
       builder: (context, constraints) {
         final stacked =
-            constraints.maxWidth < 360 ||
+            constraints.maxWidth < 300 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.2;
         final todayLabel = todayFieldCount == 0
             ? 'Choose today’s three'
@@ -1542,7 +1611,7 @@ class _GoalsHeading extends StatelessWidget {
               workshop,
               if (onNewGoal case final create?) ...[
                 const SizedBox(height: 8),
-                _NewGoalButton(onTap: create),
+                _NewGoalButton(onTap: create, stacked: true),
               ],
               if (onChooseToday != null) ...[
                 const SizedBox(height: 4),
@@ -1556,15 +1625,26 @@ class _GoalsHeading extends StatelessWidget {
           children: [
             title,
             const SizedBox(height: 13),
-            Row(
-              children: [
-                Expanded(child: workshop),
-                if (onNewGoal case final create?) ...[
-                  const SizedBox(width: 10),
-                  Expanded(child: _NewGoalButton(onTap: create)),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: workshop),
+                  if (onNewGoal case final create?) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 86,
+                      child: _NewGoalButton(onTap: create, stacked: false),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
+            // Phones under 396 pt wide have always had today's three here.
+            if (onChooseToday != null && constraints.maxWidth < 360) ...[
+              const SizedBox(height: 4),
+              Align(alignment: Alignment.centerLeft, child: compactToday),
+            ],
           ],
         );
       },
@@ -1572,21 +1652,89 @@ class _GoalsHeading extends StatelessWidget {
   }
 }
 
+/// A new goal also starts with the Steward, so this sits beside his door as
+/// the short way to the same place: his first question.
 class _NewGoalButton extends StatelessWidget {
-  const _NewGoalButton({required this.onTap});
+  const _NewGoalButton({required this.onTap, required this.stacked});
 
   final VoidCallback onTap;
+  final bool stacked;
 
   @override
-  Widget build(BuildContext context) => _GoalsHeaderOpportunity(
-    controlKey: const Key('goals-new-goal'),
-    icon: Icons.add_rounded,
-    title: 'New goal',
-    detail: 'Begin a fresh path',
-    semanticHint: 'Create a goal and shape its first route.',
-    beginning: true,
-    onTap: onTap,
-  );
+  Widget build(BuildContext context) => stacked
+      ? _GoalsHeaderOpportunity(
+          controlKey: const Key('goals-new-goal'),
+          icon: Icons.add_rounded,
+          title: 'New goal',
+          detail: 'The Steward asks a few questions',
+          semanticHint:
+              'Start a goal. The Steward asks a few questions and drafts a plan.',
+          onTap: onTap,
+        )
+      : Pressable(
+          key: const Key('goals-new-goal'),
+          material: MaterialSound.parchment,
+          interactionSound: InteractionSound.navigate,
+          pressDepth: 1.5,
+          borderRadius: BorderRadius.circular(10),
+          edgeColor: Colors.transparent,
+          guardRapidReentry: true,
+          semanticLabel: 'New goal. The Steward asks a few questions',
+          semanticHint:
+              'Start a goal. The Steward asks a few questions and drafts a plan.',
+          onTapUp: (_) => onTap(),
+          stateBuilder: (context, child, pressed, focused, hovered) =>
+              AnimatedContainer(
+                duration: pressed ? Duration.zero : Motion.ack,
+                constraints: const BoxConstraints(minHeight: 76),
+                decoration: BoxDecoration(
+                  color: pressed
+                      ? const Color(0xE3453526)
+                      : focused || hovered
+                      ? const Color(0xE232271E)
+                      : const Color(0xD21A1512),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: focused ? Palette.textHi : const Color(0x79554539),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x42080503),
+                      blurRadius: 11,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: child,
+              ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.add_rounded,
+                    size: 22,
+                    color: Palette.brassLit,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'New goal',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'EBGaramond',
+                      fontSize: 16,
+                      height: 1.05,
+                      fontWeight: FontWeight.w600,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
 }
 
 /// The two header doors have different jobs, so they each have their own
@@ -1600,7 +1748,8 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
     required this.detail,
     required this.semanticHint,
     required this.onTap,
-    this.beginning = false,
+    this.leading,
+    this.prominent = false,
   });
 
   final Key controlKey;
@@ -1609,17 +1758,23 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
   final String detail;
   final String semanticHint;
   final VoidCallback onTap;
-  final bool beginning;
+
+  /// Replaces the icon plate (the Steward's portrait on his own door).
+  final Widget? leading;
+
+  /// The main way in: warmer glass, a brass edge, and its line always shown.
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
     final compact =
         MediaQuery.sizeOf(context).width < 360 ||
         MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    final accent = beginning ? Palette.brassLit : Palette.textMid;
+    final accent = prominent ? Palette.brassLit : Palette.textMid;
+    final showDetail = prominent || !compact;
     return Pressable(
       key: controlKey,
-      material: beginning ? MaterialSound.parchment : MaterialSound.glass,
+      material: prominent ? MaterialSound.parchment : MaterialSound.glass,
       interactionSound: InteractionSound.navigate,
       pressDepth: 1.5,
       borderRadius: BorderRadius.circular(10),
@@ -1631,21 +1786,23 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
       stateBuilder: (context, child, pressed, focused, hovered) =>
           AnimatedContainer(
             duration: pressed ? Duration.zero : Motion.ack,
-            constraints: BoxConstraints(minHeight: compact ? 52 : 76),
+            constraints: BoxConstraints(
+              minHeight: leading != null ? 76 : (compact ? 52 : 76),
+            ),
             decoration: BoxDecoration(
               color: pressed
                   ? const Color(0xE3453526)
                   : focused || hovered
                   ? const Color(0xE232271E)
-                  : beginning
-                  ? const Color(0xD72C2119)
+                  : prominent
+                  ? const Color(0xDB2F231A)
                   : const Color(0xD21A1512),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: focused
                     ? Palette.textHi
-                    : beginning
-                    ? const Color(0x8A8D6A49)
+                    : prominent
+                    ? const Color(0xB0A57A4E)
                     : const Color(0x79554539),
               ),
               boxShadow: const [
@@ -1660,28 +1817,23 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
           ),
       child: Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: compact ? 12 : 11,
-          vertical: compact ? 8 : 10,
+          horizontal: leading != null ? 10 : (compact ? 12 : 11),
+          vertical: leading != null ? 10 : (compact ? 8 : 10),
         ),
         child: Row(
           children: [
-            Container(
-              width: 31,
-              height: 31,
-              decoration: BoxDecoration(
-                color: beginning
-                    ? const Color(0x374B3522)
-                    : const Color(0x33433930),
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(
-                  color: beginning
-                      ? const Color(0x806E5235)
-                      : const Color(0x7053473E),
+            leading ??
+                Container(
+                  width: 31,
+                  height: 31,
+                  decoration: BoxDecoration(
+                    color: const Color(0x33433930),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: const Color(0x7053473E)),
+                  ),
+                  child: Icon(icon, size: 18, color: accent),
                 ),
-              ),
-              child: Icon(icon, size: 18, color: accent),
-            ),
-            const SizedBox(width: 8),
+            SizedBox(width: leading != null ? 12 : 8),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1691,18 +1843,18 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontFamily: 'EBGaramond',
-                      fontSize: compact ? 18 : (beginning ? 19 : 17.5),
+                      fontSize: prominent ? 19.5 : (compact ? 18 : 17.5),
                       height: 1.05,
                       fontWeight: FontWeight.w600,
                       color: Palette.textHi,
                     ),
                   ),
-                  if (!compact) ...[
-                    const SizedBox(height: 2),
+                  if (showDetail) ...[
+                    const SizedBox(height: 3),
                     Text(
                       detail,
                       style: Type.body.copyWith(
-                        fontSize: 11.5,
+                        fontSize: 12,
                         height: 1.2,
                         color: Palette.textMid,
                       ),
@@ -1711,11 +1863,12 @@ class _GoalsHeaderOpportunity extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 17,
-              color: accent.withValues(alpha: 0.82),
-            ),
+            if (leading == null)
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 17,
+                color: accent.withValues(alpha: 0.82),
+              ),
           ],
         ),
       ),

@@ -137,7 +137,7 @@ void main() {
     ], now)!;
 
     expect(decision.quest, same(correct));
-    expect(decision.routePosition, 'MARKER 1 OF 4');
+    expect(decision.routePosition, 'STEP 1 OF 4');
     expect(decision.whyThisOne, current.whyNow);
   });
 

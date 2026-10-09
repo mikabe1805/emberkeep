@@ -12,7 +12,6 @@ Future<void> _pumpWorkshop(
   required GameState state,
   required List<Quest> quests,
   VoidCallback? onPersist,
-  ValueChanged<Goal>? onBuildRoute,
   Size size = const Size(430, 932),
   double textScale = 1,
 }) async {
@@ -32,9 +31,9 @@ Future<void> _pumpWorkshop(
         quests: quests,
         onPersist: onPersist,
         onOpenGoal: (_) async {},
-        onBuildRoute: (goal) async => onBuildRoute?.call(goal),
+        onShapePlan: (_, _) async {},
+        onCreateGoal: (_) async {},
         onFocusGoal: (_) {},
-        onNewGoal: () async {},
       ),
     ),
   );
@@ -60,7 +59,10 @@ void main() {
 
       expect(find.byKey(const Key('steward-hidden-card')), findsOneWidget);
       expect(find.byKey(const Key('goal-workshop-talk')), findsNothing);
-      expect(find.bySemanticsLabel('Talk with the Steward'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('Talk with the Steward')),
+        findsOneWidget,
+      );
       expect(find.textContaining('Unfiled'), findsNothing);
       expect(
         find.textContaining('By file box', findRichText: true),
@@ -106,7 +108,7 @@ void main() {
   });
 
   testWidgets(
-    'a populated workshop preserves routes and opens its exact goal once',
+    'a populated workshop preserves its goals and asks about a goal with no plan',
     (tester) async {
       final state = GameState()..reduceMotion = true;
       final goal = Goal(title: 'Build the cabinet', stat: Stat.foc, target: 3);
@@ -117,16 +119,7 @@ void main() {
       final before = Map<String, dynamic>.from(state.toJson())
         ..remove('stewardMemory');
       final questsBefore = [for (final quest in quests) quest.toJson()];
-      var opened = 0;
-      await _pumpWorkshop(
-        tester,
-        state: state,
-        quests: quests,
-        onBuildRoute: (openedGoal) {
-          expect(openedGoal, same(goal));
-          opened++;
-        },
-      );
+      await _pumpWorkshop(tester, state: state, quests: quests);
       await tester.tap(find.byKey(const Key('steward-hidden-card')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('steward-leave')));
@@ -137,13 +130,21 @@ void main() {
       );
       expect([for (final quest in quests) quest.toJson()], questsBefore);
 
+      // The goal has no plan, so its one action opens the Steward's questions
+      // for it (its name is already known) and changes nothing yet.
       await tester.tap(
         find.byKey(
           const ValueKey<String>('goal-workshop-home-goal-Build the cabinet'),
         ),
       );
       await tester.pumpAndSettle();
-      expect(opened, 1);
+      expect(find.byKey(const Key('steward-intake')), findsOneWidget);
+      expect(find.byKey(const Key('steward-ask-name')), findsNothing);
+      expect(find.byKey(const Key('steward-ask-outcome')), findsOneWidget);
+      expect(
+        Map<String, dynamic>.from(state.toJson())..remove('stewardMemory'),
+        before,
+      );
     },
   );
 
@@ -160,6 +161,12 @@ void main() {
           textScale: scale,
         );
         final card = find.byKey(const Key('steward-hidden-card'));
+        await tester.scrollUntilVisible(
+          card,
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
         expect(card.hitTestable(), findsOneWidget);
         expect(tester.getSize(card).height, greaterThanOrEqualTo(48));
         await tester.tap(card);
@@ -167,8 +174,14 @@ void main() {
         await tester.tap(find.byKey(const Key('steward-leave')));
         await tester.pumpAndSettle();
         final talk = find.byKey(const Key('goal-workshop-talk'));
+        await tester.scrollUntilVisible(
+          talk,
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
         expect(talk.hitTestable(), findsOneWidget);
-        expect(tester.getSize(talk).height, greaterThanOrEqualTo(44));
+        expect(tester.getSize(talk).height, greaterThanOrEqualTo(48));
         expect(tester.takeException(), isNull);
       },
     );

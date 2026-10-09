@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import 'facets.dart';
+
 const goalsWorkshopTavernBackAsset =
     'assets/pages/goals-workshop-tavern-back-v2.webp';
 const goalsWorkshopTavernCounterAsset =
@@ -290,6 +292,53 @@ class _StewardDepthPlane extends StatelessWidget {
     child: Transform.translate(
       offset: Offset(value.dx * travel.dx, value.dy * travel.dy),
       child: Transform.scale(scale: 1.018, child: child),
+    ),
+  );
+}
+
+/// A small head-and-shoulders crop of the workshop steward, cut from the same
+/// planes as the full scene (room, then the transparent figure), so the door
+/// that opens his workshop shows who is inside. It is decoration: the control
+/// that wears it carries its own label.
+class GoalStewardPortrait extends StatelessWidget {
+  const GoalStewardPortrait({
+    super.key,
+    this.size = 52,
+    this.expression = GoalStewardExpression.welcome,
+  });
+
+  final double size;
+  final GoalStewardExpression expression;
+
+  Widget _plane(String asset) => Transform.scale(
+    scale: 2.15,
+    alignment: const Alignment(0, -1),
+    child: Image.asset(
+      asset,
+      fit: BoxFit.cover,
+      alignment: Alignment.topCenter,
+      filterQuality: FilterQuality.medium,
+      excludeFromSemantics: true,
+      errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF241810)),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: SizedBox(
+      width: size,
+      height: size,
+      child: ClipPath(
+        clipper: FacetedClipper(cut: size * 0.2),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const ColoredBox(color: Color(0xFF241810)),
+            _plane(goalsWorkshopTavernBackAsset),
+            _plane(goalStewardAsset(expression)),
+          ],
+        ),
+      ),
     ),
   );
 }

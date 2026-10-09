@@ -195,7 +195,7 @@ abstract final class GoalPlanner {
       whyThisOne: step.whyNow,
       ctaLabel: step.ctaLabel,
       routePosition:
-          'MARKER ${plan.currentStepIndex + 1} OF ${plan.steps.length}',
+          'STEP ${plan.currentStepIndex + 1} OF ${plan.steps.length}',
       quest: candidates.isEmpty ? null : candidates.first,
     );
   }

@@ -61,9 +61,9 @@ Future<void> _mount(
         quests: quests,
         initialGoalTitle: initialGoalTitle,
         onOpenGoal: (_) async {},
-        onBuildRoute: (_) async {},
+        onShapePlan: (_, _) async {},
+        onCreateGoal: (_) async {},
         onFocusGoal: (_) {},
-        onNewGoal: () async {},
       ),
     ),
   );
@@ -142,13 +142,23 @@ void main() {
       size: const Size(430, 932),
       initialGoalTitle: selected.title,
     );
+    // The goal that most needs the Steward (no plan yet) leads, with the one
+    // thing to do about it; the other two are listed below it.
     expect(
-      find.byKey(const Key('goal-workshop-originating-goal')),
+      find.descendant(
+        of: find.byKey(const Key('goal-workshop-lead')),
+        matching: find.text('Build a walking habit'),
+      ),
       findsOneWidget,
     );
-    expect(find.text('REVIEW NEXT STEP'), findsOneWidget);
-    expect(find.text('REVIEW QUEST'), findsOneWidget);
-    expect(find.text('SHAPE A ROUTE'), findsOneWidget);
+    expect(find.text('NEEDS A PLAN'), findsOneWidget);
+    expect(find.text('Shape a plan'), findsOneWidget);
+    expect(find.text('NEXT STEP READY'), findsOneWidget);
+    expect(find.text('ON YOUR BOARD'), findsOneWidget);
+    expect(find.text('STEP 1 OF 1'), findsNWidgets(2));
+    expect(find.textContaining('route'), findsNothing);
+    expect(find.textContaining('marker'), findsNothing);
+    expect(find.textContaining('bench'), findsNothing);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
@@ -164,8 +174,14 @@ void main() {
       textScale: 1.5,
       initialGoalTitle: selected.title,
     );
+    // Nothing is capped: the whole screen scrolls, so the last goal and the
+    // footer are both reachable even at large text on a small phone.
     await tester.scrollUntilVisible(
-      find.byKey(const Key('goal-workshop-originating-goal')),
+      find.byKey(
+        const ValueKey<String>(
+          'goal-workshop-home-goal-Make the apartment feel calm',
+        ),
+      ),
       150,
       scrollable: find.byType(Scrollable).first,
     );
@@ -177,6 +193,20 @@ void main() {
         matchesGoldenFile('goldens/goal_workshop_mixed_320x568_1_5x.png'),
       );
     }
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('steward-hidden-card')),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('steward-hidden-card')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('goal-workshop-home-new-goal')).hitTestable(),
+      findsOneWidget,
+    );
 
     await _mount(
       tester,
@@ -192,11 +222,13 @@ void main() {
       );
     }
     await tester.scrollUntilVisible(
-      find.text('The bench is clear.'),
+      find.text('Start your first goal'),
       180,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('The bench is clear.'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Start your first goal'), findsOneWidget);
+    expect(find.text('Start a goal'), findsOneWidget);
     expect(
       find.byKey(const Key('steward-hidden-card')).hitTestable(),
       findsOneWidget,
