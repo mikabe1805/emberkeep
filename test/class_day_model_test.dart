@@ -275,6 +275,45 @@ void main() {
       expect(full.caption, "TUESDAY'S CLASSES · +35 THIS MARK");
     });
 
+    test('the day tier counts the day: classes attended today, no course '
+        'title, no denominator', () {
+      final state = GameState();
+      keepAndPlan(state, _ny(6, 11, 53), [0]);
+      final day = keepAndPlan(state, _ny(6, 15, 35), [1]);
+      expect(day.tier, ClassCelebrationTier.dayDone);
+      expect(day.numeral, 2, reason: 'both classes, not the course count');
+      expect(day.numeralLabel, 'ATTENDED TODAY');
+      expect(day.title, isNull);
+      expect(day.detail, isNull);
+      expect(day.rows, hasLength(2));
+      expect(day.closing.first, 'Two for two.');
+      expect(day.semanticsLabel, contains('2 attended today'));
+
+      // A partial day counts what he went to, and a lone class says 1.
+      final partial = keepAndPlan(GameState(), _ny(6, 15, 35), [1]);
+      expect(partial.tier, ClassCelebrationTier.dayDone);
+      expect(partial.numeral, 1);
+      expect(partial.numeralLabel, 'ATTENDED TODAY');
+      expect(partial.title, isNull);
+      for (final plan in [day, partial]) {
+        expect(plan.numeralLabel, isNot(contains(' OF ')));
+        expect(plan.numeralLabel, isNot(contains('RECORD')));
+      }
+    });
+
+    test(
+      'the single-class and quick tiers keep the course count and title',
+      () {
+        final state = GameState();
+        keepAndPlan(state, _ny(5, 19, 0), [0]);
+        final lecture = keepAndPlan(state, _ny(8, 10, 0), [0]);
+        expect(lecture.tier, ClassCelebrationTier.classKept);
+        expect(lecture.title, isNotNull);
+        expect(lecture.detail, isNotNull);
+        expect(lecture.numeralLabel, endsWith('ON RECORD'));
+      },
+    );
+
     test('the day tier plays once a day: a later mark that completes the '
         'day says so without a second DONE.', () {
       final state = GameState();
@@ -326,13 +365,18 @@ void main() {
         'Eleven classes this week.',
         'Free until Monday at 8:30.',
       ]);
+      expect(week.numeral, 11, reason: 'the diamond matches the closing line');
+      expect(week.numeralLabel, 'ATTENDED THIS WEEK');
+      expect(week.title, isNull);
+      expect(week.detail, isNull);
+      expect(week.numeralLabel, isNot(contains(' OF ')));
     });
 
     test('the shortcut keeps several in one plan', () {
       final plan = keepAndPlan(GameState(), _ny(5, 19, 15), [0, 1, 2]);
       expect(plan.tier, ClassCelebrationTier.dayDone);
       expect(plan.numeral, 3);
-      expect(plan.numeralLabel, 'CLASSES TODAY');
+      expect(plan.numeralLabel, 'ATTENDED TODAY');
       expect(plan.rows, hasLength(3));
       expect(plan.title, isNull);
       expect(plan.xpGained, 85);
@@ -412,6 +456,48 @@ void main() {
     });
   });
 
+  group('the board may close the day', () {
+    GameState keptAll(DateTime at) {
+      Clock.freeze(at);
+      final day = _day(at);
+      final state = GameState();
+      for (final entry in day.classes) {
+        state.keepClass(entry.facts, dayClassKeys: day.dayClassKeys);
+      }
+      return state;
+    }
+
+    bool lets(GameState state, DateTime at) {
+      Clock.freeze(at);
+      return classDayLetsBoardCloseDay(_day(at), state, at);
+    }
+
+    test('not while a class is coming, in session or ready to be marked', () {
+      expect(lets(GameState(), _ny(6, 9, 0)), isFalse, reason: 'coming');
+      expect(lets(GameState(), _ny(6, 11, 52)), isFalse, reason: 'markable');
+      expect(lets(GameState(), _ny(6, 14, 40)), isFalse, reason: 'in session');
+      expect(lets(GameState(), _ny(6, 15, 35)), isFalse, reason: 'waiting');
+    });
+
+    test('once the last class is over and every class is kept', () {
+      expect(lets(keptAll(_ny(6, 15, 45)), _ny(6, 15, 50)), isTrue);
+    });
+
+    test('in the wind-down a class left unmarked is neutral', () {
+      expect(lets(GameState(), _ny(6, 18, 0)), isTrue);
+      expect(lets(GameState(), _ny(5, 17, 45)), isFalse, reason: 'in lecture');
+    });
+
+    test('a day without classes always may', () {
+      final saturday = _ny(10, 12, 0);
+      Clock.freeze(saturday);
+      expect(
+        classDayLetsBoardCloseDay(_day(saturday), GameState(), saturday),
+        isTrue,
+      );
+    });
+  });
+
   group('past the week and past midnight', () {
     test('a break longer than a week names the date, not a weekday', () {
       final tuesday = _day(_ny(6, 19, 30));
@@ -467,6 +553,7 @@ void main() {
         dayOf: dayOf,
       );
       expect(plan.tier, ClassCelebrationTier.weekDone);
+      expect(plan.numeral, 1);
       expect(plan.closing.first, 'One class this week.');
       expect(plan.closing.join(' '), isNot(contains('Zero')));
     });

@@ -3867,6 +3867,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // Closing the day actually closes it: once tonight's ledger is written the
     // board rests until morning (or an explicit "I'm not done yet").
     final dayResting = _state.dayRestingNow;
+    // The board's one lamp is the featured Quest's primary action (a Journal
+    // doorway is a bookplate, not a lamp). On a class day the evening room and
+    // the night ledger own closing the day until the classes are over.
+    final boardHasLamp =
+        featuredQuest != null && featuredQuest.journalPrompt == null;
+    final boardMayCloseDay =
+        classDay == null || classDayLetsBoardCloseDay(classDay, _state, now);
 
     return LayoutBuilder(
       builder: (context, bounds) {
@@ -4445,11 +4452,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                           color: Palette.textLo,
                                         ),
                                       ),
-                                      if (_state.nightDoneDay != nightDay) ...[
+                                      if (_state.nightDoneDay != nightDay &&
+                                          boardMayCloseDay) ...[
                                         const SizedBox(height: 14),
                                         HoneyButton(
                                           label: 'CLOSE THE DAY',
                                           icon: Icons.nightlight_outlined,
+                                          // One lamp per view: a lit
+                                          // MARK COMPLETE below keeps it.
+                                          quiet: boardHasLamp,
                                           onTap: () => _openNight(
                                             alreadyAcknowledged: true,
                                           ),

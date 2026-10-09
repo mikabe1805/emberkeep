@@ -19,6 +19,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_kept_celebration.dart';
+import 'package:emberkeep/widgets/honey_button.dart';
 import 'package:emberkeep/widgets/levelup_overlay.dart';
 import 'package:emberkeep/widgets/stat_chips.dart';
 import 'package:flutter/material.dart';
@@ -117,6 +118,7 @@ Future<_Board> _mount(
   bool offerAddClasses = false,
   bool tabShown = true,
   bool secondQuest = false,
+  bool dayCleared = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   await tester.binding.setSurfaceSize(const Size(393, 852));
@@ -143,6 +145,12 @@ Future<_Board> _mount(
         schedule: QuestSchedule.daily,
       ),
   ];
+  if (dayCleared) {
+    // Today's one chosen Quest is kept: the board's "day cleared" panel.
+    quests.first
+      ..priorityDay = Days.key(at)
+      ..lastDoneDay = Days.key(at);
+  }
   final board = _Board(s, quests)..props.value = _Props(tabShown: tabShown);
   await tester.pumpWidget(
     MaterialApp(
@@ -187,6 +195,18 @@ final _room = find.byKey(const Key('class-day-room'));
 final _there = find.byKey(const Key('class-there-button'));
 final _celebration = find.byType(ClassKeptCelebration);
 final _headline = find.byKey(const Key('class-celebration-headline'));
+final _closeTheDay = find.byWidgetPredicate(
+  (widget) => widget is HoneyButton && widget.label == 'CLOSE THE DAY',
+);
+
+bool _closeIsQuiet(WidgetTester tester) =>
+    tester.widget<HoneyButton>(_closeTheDay).quiet;
+
+Future<void> _toBoard(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('class-day-toggle-board')));
+  await tester.pump();
+  await _pumpFor(tester, const Duration(milliseconds: 600));
+}
 
 String _closing(WidgetTester tester) => tester
     .widget<Text>(find.byKey(const Key('class-celebration-closing')))
@@ -396,6 +416,23 @@ void main() {
       expect(find.byKey(const Key('class-celebration-bonus')), findsOneWidget);
       expect(find.text("All of Tuesday's classes"), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-xp')), '+60 XP');
+      // The diamond counts the day, not the last class's own count (which
+      // would read "1" and "FIRST ONE ON RECORD" under TUESDAY, DONE.).
+      expect(_textOf(tester, const Key('class-celebration-numeral')), '2');
+      expect(
+        _textOf(tester, const Key('class-celebration-numeral-label')),
+        'ATTENDED TODAY',
+      );
+      expect(find.text('FIRST ONE ON RECORD'), findsNothing);
+      expect(
+        find.descendant(
+          of: _celebration,
+          matching: find.text('Discrete Structures II'),
+        ),
+        findsOneWidget,
+        reason: 'only the list names the class, once',
+      );
+      expect(find.textContaining(' OF '), findsNothing);
       expect(
         _closing(tester),
         "Two for two.\nNothing else until Wednesday's 8:30 lab.",
@@ -444,7 +481,7 @@ void main() {
       expect(_celebration, findsOneWidget);
       expect(find.text('MONDAY, DONE.'), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-numeral')), '3');
-      expect(find.text('CLASSES TODAY'), findsOneWidget);
+      expect(find.text('ATTENDED TODAY'), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-xp')), '+85 XP');
       expect(
         _closing(tester),
@@ -493,6 +530,12 @@ void main() {
       await _tapThere(tester);
       await _pumpFor(tester, const Duration(milliseconds: 2600));
       expect(find.text("THAT'S THE WEEK."), findsOneWidget);
+      expect(_textOf(tester, const Key('class-celebration-numeral')), '12');
+      expect(
+        _textOf(tester, const Key('class-celebration-numeral-label')),
+        'ATTENDED THIS WEEK',
+      );
+      expect(find.textContaining('ON RECORD'), findsNothing);
       expect(
         _closing(tester),
         'Twelve for twelve.\nFree until Monday at 8:30.',
@@ -518,6 +561,11 @@ void main() {
       expect(
         _closing(tester),
         'Eleven classes this week.\nFree until Monday at 8:30.',
+      );
+      expect(_textOf(tester, const Key('class-celebration-numeral')), '11');
+      expect(
+        _textOf(tester, const Key('class-celebration-numeral-label')),
+        'ATTENDED THIS WEEK',
       );
       expect(find.textContaining('for twelve'), findsNothing);
       expect(find.textContaining(' OF '), findsNothing);
@@ -635,6 +683,47 @@ void main() {
       expect(find.text('YOU WERE THERE.'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    for (final week in [false, true]) {
+      testWidgets(
+        'text at 130% keeps the ${week ? 'week' : 'day'} tier count and '
+        'label inside',
+        (tester) async {
+          final state = _mika();
+          if (week) {
+            for (final day in [5, 6, 7, 8]) {
+              _keepAt(state, _ny(day, 19, 45));
+            }
+            _keepAt(state, _ny(9, 11, 45), only: {'14:332:331'});
+          } else {
+            _keepAt(state, _ny(6, 11, 53), only: {'14:332:331'});
+          }
+          await _mount(
+            tester,
+            at: week ? _ny(9, 18, 56) : _ny(6, 15, 35),
+            state: state,
+            textScale: 1.3,
+          );
+          await _tapThere(tester);
+          await _pumpFor(tester, const Duration(milliseconds: 2600));
+          expect(tester.takeException(), isNull);
+          final label = find.byKey(
+            const Key('class-celebration-numeral-label'),
+          );
+          final diamond = find.byKey(const Key('class-celebration-numeral'));
+          expect(
+            tester.widget<Text>(label).data,
+            week ? 'ATTENDED THIS WEEK' : 'ATTENDED TODAY',
+          );
+          // One line, inside the glass, under the diamond.
+          final rect = tester.getRect(label);
+          expect(rect.height, lessThan(30));
+          expect(rect.left, greaterThanOrEqualTo(0));
+          expect(rect.right, lessThanOrEqualTo(393));
+          expect(tester.getRect(diamond).bottom, lessThan(rect.top));
+        },
+      );
+    }
   });
 
   group('the board', () {
@@ -721,6 +810,75 @@ void main() {
       );
       expect(find.text('MARK COMPLETE'), findsOneWidget);
       expect(find.byKey(const Key('add-classes-row')), findsNothing);
+    });
+  });
+
+  group("the board's CLOSE THE DAY keeps to one lamp", () {
+    testWidgets('a lit MARK COMPLETE below it makes it quiet; alone it is the '
+        'lamp', (tester) async {
+      // Saturday: no classes. Today's one chosen Quest is kept; a side
+      // Quest is still open behind its divider.
+      await _mount(
+        tester,
+        at: _ny(10, 12, 0),
+        dayCleared: true,
+        secondQuest: true,
+      );
+      expect(_closeTheDay, findsOneWidget);
+      expect(_closeIsQuiet(tester), isFalse, reason: 'no other lamp yet');
+      await tester.tap(find.byKey(const Key('side-quests-divider')));
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 600));
+      expect(find.text('MARK COMPLETE', skipOffstage: false), findsOneWidget);
+      expect(_closeTheDay, findsOneWidget);
+      expect(_closeIsQuiet(tester), isTrue, reason: 'the Quest owns the lamp');
+    });
+
+    testWidgets('with no timetable the cleared day shows it lit', (
+      tester,
+    ) async {
+      await _mount(
+        tester,
+        at: _ny(6, 12, 0),
+        timetable: false,
+        dayCleared: true,
+      );
+      expect(_closeTheDay, findsOneWidget);
+      expect(_closeIsQuiet(tester), isFalse);
+    });
+
+    for (final (name, at, kept) in <(String, DateTime, bool)>[
+      ('between classes', _ny(6, 11, 52), false),
+      ('in session', _ny(6, 14, 40), false),
+      ('the last class over and one waiting', _ny(6, 15, 35), true),
+    ]) {
+      testWidgets('a class day, $name: not offered', (tester) async {
+        final state = _mika();
+        if (kept) _keepAt(state, _ny(6, 11, 53), only: {'14:332:331'});
+        await _mount(tester, at: at, state: state, dayCleared: true);
+        await _toBoard(tester);
+        expect(find.text('Enough for today'), findsOneWidget);
+        expect(_closeTheDay, findsNothing);
+      });
+    }
+
+    testWidgets('a class day with every class kept and the last one over: '
+        'offered, lit when it is the only lamp', (tester) async {
+      final state = _mika();
+      _keepAt(state, _ny(6, 15, 45));
+      await _mount(tester, at: _ny(6, 15, 50), state: state, dayCleared: true);
+      await _toBoard(tester);
+      expect(_closeTheDay, findsOneWidget);
+      expect(_closeIsQuiet(tester), isFalse);
+    });
+
+    testWidgets('a class day in the wind-down: a class left unmarked is '
+        'neutral, so it is offered', (tester) async {
+      final state = _mika();
+      _keepAt(state, _ny(6, 11, 53), only: {'14:332:331'});
+      await _mount(tester, at: _ny(6, 18, 0), state: state, dayCleared: true);
+      await _toBoard(tester);
+      expect(_closeTheDay, findsOneWidget);
     });
   });
 
@@ -1078,24 +1236,36 @@ void main() {
       expect(opacity, 1, reason: 'the closing line came in with the headline');
     });
 
-    for (final (label, at, side) in [
-      ('YOU WERE THERE.', _ny(6, 11, 52), 100.0),
-      ('TUESDAY, DONE.', _ny(6, 15, 35), 84.0),
+    for (final (label, at, side, count, words) in [
+      (
+        'YOU WERE THERE.',
+        _ny(6, 11, 52),
+        100.0,
+        '24',
+        'YOUR 24TH LECTURE ON RECORD',
+      ),
+      ("THAT'S THE WEEK.", _ny(9, 18, 56), 84.0, '12', 'ATTENDED THIS WEEK'),
     ]) {
       for (final scale in [1.0, 1.3]) {
         testWidgets('a two-digit count sits inside the diamond: $label at '
             '${(scale * 100).round()}%', (tester) async {
-          final course = label == 'YOU WERE THERE.'
-              ? '14:332:331'
-              : '01:198:206';
-          final state = _withCourseCount(_mika(), course, 23);
+          final week = label == "THAT'S THE WEEK.";
+          var state = _mika();
+          if (week) {
+            for (final day in [5, 6, 7, 8]) {
+              _keepAt(state, _ny(day, 19, 45));
+            }
+            _keepAt(state, _ny(9, 11, 45), only: {'14:332:331'});
+          } else {
+            state = _withCourseCount(state, '14:332:331', 23);
+          }
           await _mount(tester, at: at, state: state, textScale: scale);
           await _tapThere(tester);
           await _pumpFor(tester, const Duration(milliseconds: 1900));
           expect(find.text(label), findsOneWidget);
           final numeral = find.byKey(const Key('class-celebration-numeral'));
-          expect(tester.widget<Text>(numeral).data, '24');
-          expect(find.text('YOUR 24TH LECTURE ON RECORD'), findsOneWidget);
+          expect(tester.widget<Text>(numeral).data, count);
+          expect(find.text(words), findsOneWidget);
           // At large text the count's label stays inside the screen, whole.
           final labelBox = tester.getRect(
             find.byKey(const Key('class-celebration-numeral-label')),

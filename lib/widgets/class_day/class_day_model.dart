@@ -273,6 +273,23 @@ bool classEveningAt(ClassCard card, DateTime now) {
   return card.allKept || classWindDown(day, now);
 }
 
+/// Whether the board's own "close the day" door may show on [day]. A class
+/// day closes in the evening room and the night ledger, so the board waits:
+/// not while a class is coming, in session or ready to be marked, only once
+/// the last class is over and either every class is kept or the wind-down has
+/// begun (a class still unmarked then is neutral, as in [classEveningAt]).
+/// A day without classes always may.
+bool classDayLetsBoardCloseDay(ClassDay day, GameState state, DateTime now) {
+  if (!day.isClassDay) return true;
+  if (!day.afterLastClass(now)) return false;
+  final keys = day.dayClassKeys;
+  final kept = state.classesKeptOn(day.dayKey);
+  final allKept =
+      keys.isNotEmpty &&
+      keys.every((key) => kept.any((item) => item.answersTo(key)));
+  return allKept || classWindDown(day, now);
+}
+
 /// The day's record folded to one line: "Tuesday’s classes, both
 /// attended". It counts what he went to and never what he did not: no
 /// total beside a partial count.
@@ -551,14 +568,16 @@ final class ClassCelebrationPlan {
   final ClassCelebrationTier tier;
   final String headline;
 
-  /// The diamond: his own count for this course (only grows), or the classes
-  /// kept today when one gesture kept several.
+  /// The diamond: his own count for this course (only grows); the classes
+  /// kept today when one gesture kept several or on the day tier; the classes
+  /// kept this week on the week tier.
   final int numeral;
 
-  /// "YOUR 9TH LECTURE ON RECORD", "FIRST ONE ON RECORD", "CLASSES TODAY".
+  /// "YOUR 9TH LECTURE ON RECORD", "FIRST ONE ON RECORD", "CLASSES TODAY",
+  /// "ATTENDED TODAY" (day tier), "ATTENDED THIS WEEK" (week tier).
   final String numeralLabel;
 
-  /// The course, for a single mark.
+  /// The course, for a single mark (none on the day and week tiers).
   final String? title;
 
   /// "10:20 TO 11:40 · HLL 114", for a single mark.
@@ -680,6 +699,9 @@ ClassCelebrationPlan planClassCelebration({
       : ClassCelebrationTier.classKept;
 
   final several = credits.length > 1;
+  final held =
+      tier == ClassCelebrationTier.dayDone ||
+      tier == ClassCelebrationTier.weekDone;
   final hero = credits.last;
   final heroEntry = marked.last;
   final inSession =
@@ -691,16 +713,6 @@ ClassCelebrationPlan planClassCelebration({
     ClassCelebrationTier.classKept =>
       inSession ? "YOU'RE HERE." : 'YOU WERE THERE.',
   };
-  final numeral = several ? keptAfter.length : hero.courseCount;
-  final numeralLabel = several
-      ? 'CLASSES TODAY'
-      // Only the marks on record are counted, so the words say "on record":
-      // he has been to more lectures than the app has been told about.
-      : hero.courseCount == 1
-      ? 'FIRST ONE ON RECORD'
-      : 'YOUR ${classOrdinal(hero.courseCount)} '
-            '${classKindWord(heroEntry.kind).toUpperCase()} ON RECORD';
-
   final gained = credits.fold(0, (sum, credit) => sum + credit.xp);
   final bonus = credits.fold(0, (sum, credit) => sum + credit.fullDayBonus);
 
@@ -741,6 +753,29 @@ ClassCelebrationPlan planClassCelebration({
       if (state.keptClassFor(entry.facts) != null) weekKept++;
     }
   }
+
+  // The diamond counts its own scope. The day and week tiers speak for the
+  // whole day or week (never the one class just marked, whose count would
+  // contradict "TUESDAY, DONE."), and never against a denominator.
+  final numeral = switch (tier) {
+    ClassCelebrationTier.weekDone => weekKeptAny,
+    ClassCelebrationTier.dayDone => keptAfter.length,
+    _ => several ? keptAfter.length : hero.courseCount,
+  };
+  final numeralLabel = switch (tier) {
+    ClassCelebrationTier.weekDone => 'ATTENDED THIS WEEK',
+    ClassCelebrationTier.dayDone => 'ATTENDED TODAY',
+    _ =>
+      several
+          ? 'CLASSES TODAY'
+          // Only the marks on record are counted, so the words say "on
+          // record": he has been to more lectures than the app has been told
+          // about.
+          : hero.courseCount == 1
+          ? 'FIRST ONE ON RECORD'
+          : 'YOUR ${classOrdinal(hero.courseCount)} '
+                '${classKindWord(heroEntry.kind).toUpperCase()} ON RECORD',
+  };
 
   // The stat chip speaks for the same classes the big number does: this
   // gesture's, the day's, or the week's. The marked class's stat leads.
@@ -856,9 +891,10 @@ ClassCelebrationPlan planClassCelebration({
       : null;
 
   final first = credits.first.level;
-  final title = several ? null : classShortTitle(heroEntry.title);
+  // The day and week tiers name no single course: their list does.
+  final title = several || held ? null : classShortTitle(heroEntry.title);
   // The quick tier says less: the course and what is next, no time and room.
-  final detail = several || tier == ClassCelebrationTier.quick
+  final detail = several || held || tier == ClassCelebrationTier.quick
       ? null
       : '${classClockShort(heroEntry.localStartMinute)} TO '
             '${classClockShort(heroEntry.localEndMinute)} · '
@@ -866,6 +902,7 @@ ClassCelebrationPlan planClassCelebration({
   final semantics = [
     headline,
     ?title,
+    if (held) '$numeral $numeralLabel'.toLowerCase(),
     '$gained XP',
     for (final entry in gains.entries) '${entry.value} ${entry.key.label}',
     ...closing,
