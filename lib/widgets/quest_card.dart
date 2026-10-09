@@ -13,7 +13,7 @@ import '../models.dart';
 import '../tokens.dart';
 import 'day_picker.dart' show weekdayLabel;
 import 'facets.dart';
-import 'gold_surface.dart';
+import 'lamplight.dart';
 import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
 import 'working_surface.dart' show WorkingType;
@@ -207,10 +207,13 @@ class _QuestCardState extends State<QuestCard>
             desk.withValues(alpha: 0.86),
             0.10,
           )!;
-    // The featured frame is a quiet brass rule, not a second bright surface —
-    // the action is the only thing on the board allowed to be luminous.
+    // The featured frame is a pale glass edge, not a brass rule: the lamp is
+    // the only warm object on the board, and the only warmth on this frame is
+    // the lamp's own light reaching the rails beside it (_LampLitRim).
     final edge = featured
-        ? const Color(0xFFA97A41)
+        ? const Color(0xFF4F4339)
+        : resolvedFeature
+        ? const Color(0xFF473B31)
         : done
         ? const Color(0xFF806747)
         : const Color(0xFF41372F);
@@ -353,6 +356,14 @@ class _QuestCardState extends State<QuestCard>
                               lightDirection: widget.lightDirection,
                               scrollPosition: widget.scrollPosition,
                               reduceMotion: widget.reduceMotion,
+                            ),
+                          ),
+                        ),
+                      if (featured && !opensJournal)
+                        const Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: _LampLitRimPainter(cut: 13),
                             ),
                           ),
                         ),
@@ -503,7 +514,37 @@ class _QuestCardState extends State<QuestCard>
                                             material: opensJournal
                                                 ? MaterialSound.parchment
                                                 : MaterialSound.brass,
-                                            pressDepth: 3,
+                                            pressDepth: opensJournal ? 3 : 2,
+                                            shape: opensJournal
+                                                ? null
+                                                : const LampShadeBorder(
+                                                    cut: 10,
+                                                  ),
+                                            edgeColor: opensJournal
+                                                ? null
+                                                : const Color(0xFF1E1109),
+                                            stateBuilder:
+                                                (
+                                                  context,
+                                                  child,
+                                                  pressed,
+                                                  focused,
+                                                  hovered,
+                                                ) => _CompleteQuestButton(
+                                                  key: const ValueKey(
+                                                    'quest-complete-plate',
+                                                  ),
+                                                  opensJournal: opensJournal,
+                                                  actionLabel:
+                                                      primaryActionLabel,
+                                                  lightDirection:
+                                                      widget.lightDirection,
+                                                  scrollPosition:
+                                                      widget.scrollPosition,
+                                                  reduceMotion:
+                                                      widget.reduceMotion,
+                                                  pressed: pressed,
+                                                ),
                                             child: _CompleteQuestButton(
                                               key: const ValueKey(
                                                 'quest-complete-plate',
@@ -1089,13 +1130,65 @@ class _QuestCardGleamPainter extends CustomPainter {
       old.phase != phase || old.light != light;
 }
 
+/// The featured card's frame where the lamp's light reaches it. The lamp sits
+/// a little below the middle of the card, so the side rails beside it and the
+/// bottom rail under it take a soft amber that falls away within a few
+/// centimetres; the top and the corners stay pale glass. Light on the frame,
+/// never a gold border.
+class _LampLitRimPainter extends CustomPainter {
+  const _LampLitRimPainter({required this.cut});
+
+  final double cut;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final lamp = Offset(w / 2, h * 0.66);
+    final radius = h * 0.42;
+    final stretch = (w * 0.62) / radius;
+    canvas.drawPath(
+      facetedRectPath((Offset.zero & size).deflate(0.6), cut: cut),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = RadialGradient(
+          colors: const [
+            Color(0x8CD99A63),
+            Color(0x47B98154),
+            Color(0x00B98154),
+          ],
+          stops: const [0, 0.55, 1],
+          transform: _StretchAbout(lamp, stretch),
+        ).createShader(Rect.fromCircle(center: lamp, radius: radius)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_LampLitRimPainter old) => old.cut != cut;
+}
+
+class _StretchAbout extends GradientTransform {
+  const _StretchAbout(this.center, this.sx);
+
+  final Offset center;
+  final double sx;
+
+  @override
+  Matrix4 transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.identity()
+        ..translateByDouble(center.dx, center.dy, 0, 1)
+        ..scaleByDouble(sx, 1, 1, 1)
+        ..translateByDouble(-center.dx, -center.dy, 0, 1);
+}
+
 /// The featured Quest's primary action.
 ///
-/// Ordinary completion keeps the board's single luminous [GoldSurface]. A
-/// Journal doorway belongs to the book it opens instead: a quieter oxblood
-/// bookplate with aged-brass hardware. That distinction makes the action feel
-/// attached to the Quest card instead of resembling a shop button pasted onto
-/// it, while its depth and clear label keep it unmistakably actionable.
+/// Ordinary completion is the board's one lamp ([LampShade]): the only
+/// luminous object on the board, lit like the room's lamp, its core rolling
+/// with the board's scroll and the phone's tilt. A Journal doorway belongs to
+/// the book it opens instead: a quieter oxblood bookplate with aged-brass
+/// hardware.
 class _CompleteQuestButton extends StatelessWidget {
   const _CompleteQuestButton({
     super.key,
@@ -1104,6 +1197,7 @@ class _CompleteQuestButton extends StatelessWidget {
     required this.lightDirection,
     required this.scrollPosition,
     required this.reduceMotion,
+    this.pressed = false,
   });
 
   final bool opensJournal;
@@ -1111,21 +1205,25 @@ class _CompleteQuestButton extends StatelessWidget {
   final ValueListenable<Offset>? lightDirection;
   final ValueListenable<double>? scrollPosition;
   final bool reduceMotion;
+  final bool pressed;
 
   @override
   Widget build(BuildContext context) {
     if (opensJournal) {
       return const _JournalQuestBookplate();
     }
-    return SizedBox(
-      height: 48,
-      child: GoldSurface(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 50),
+      child: LampShade(
         cut: 10,
         light: lightDirection,
         scroll: scrollPosition,
         reduceMotion: reduceMotion,
-        textured: false,
-        child: GoldLabel(text: actionLabel),
+        pressed: pressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: LampLabel(text: actionLabel),
+        ),
       ),
     );
   }
@@ -1500,70 +1598,30 @@ class _BookplateRule extends StatelessWidget {
   }
 }
 
-/// The honey action cools into quiet resolved metal before the card banks.
-/// Keeping the same plate geometry makes completion feel remembered; lowering
-/// its value keeps the next open quest as the only luminous action.
+/// The lamp turned low. The same shade that was offered dims over about half
+/// a second instead of swapping to a new plate, so completion reads as the
+/// light settling, and the next open Quest keeps the only lit lamp.
 class _ResolvedQuestPlate extends StatelessWidget {
   const _ResolvedQuestPlate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: DecoratedBox(
-        decoration: facetedDecoration(
-          cut: 10,
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF5A4024), Color(0xFF372719), Color(0xFF211710)],
-            stops: [0, 0.48, 1],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minHeight: 50,
+        minWidth: double.infinity,
+      ),
+      child: LampShade(
+        cut: 10,
+        level: LampLevel.low,
+        dimFrom: LampShade.warmthFor(LampLevel.lit),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: LampLabel(
+            text: 'QUEST COMPLETE',
+            icon: Icons.check_rounded,
+            level: LampLevel.low,
           ),
-          borderColor: const Color(0xFF8D6B3E),
-          borderWidth: 1,
-          shadows: const [
-            BoxShadow(
-              color: Color(0xA30A0705),
-              blurRadius: 0,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const Positioned(
-              left: 18,
-              right: 18,
-              top: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0x00F3D59C),
-                      Color(0x7AF3D59C),
-                      Color(0x18F3D59C),
-                      Color(0x00F3D59C),
-                    ],
-                  ),
-                ),
-                child: SizedBox(height: 1),
-              ),
-            ),
-            Center(
-              child: Text(
-                'QUEST COMPLETE',
-                style: Type.label.copyWith(
-                  fontSize: 11.5,
-                  letterSpacing: 1.75,
-                  color: const Color(0xFFE1C58E),
-                  shadows: const [
-                    Shadow(color: Color(0xB30F0A07), offset: Offset(0, -1)),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -1,23 +1,20 @@
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
 import 'facets.dart';
+import 'lamplight.dart';
 
-/// The app's single piece of gold.
+export 'lamplight.dart' show LampLevel;
+
+/// The app's one primary-control material, kept under its old name so every
+/// screen that asked for "the gold" now receives the lamp.
 ///
-/// Before this existed the product shipped six primary-button materials — a
-/// near-white plaque, a bevelled-plastic price chip, a burnt-orange Quest
-/// control, a lava-textured page rail, a flat mustard slab and an extruded
-/// 12 px block. They were the loudest evidence that the screens came from
-/// different generations.
-///
-/// One recipe now: the [Palette.honeyGradient] satin ramp, the authored honey
-/// plate as grain, ONE broad reflection whose position comes from tilt/scroll
-/// (never from a clock), a hot top lip, and a deep under-lip. Nothing here
-/// animates on its own — park the light input and the still frame is finished.
+/// The honey plate (satin gold ramp, a broad reflection, a hot lip) was
+/// retired on 2026-10-04: "the old gold buttons don’t look so good in the
+/// new UI". The control is now a [LampShade]: parchment lit from within, in
+/// the room lamp's own hue. Nothing animates on its own; the core moves only
+/// with tilt and scroll.
 class GoldSurface extends StatelessWidget {
   const GoldSurface({
     super.key,
@@ -28,311 +25,69 @@ class GoldSurface extends StatelessWidget {
     this.reduceMotion = false,
     this.glow = true,
     this.textured = true,
+    this.pressed = false,
+    this.level = LampLevel.lit,
   });
 
   final Widget child;
   final double cut;
 
-  /// The shared tilt/pointer light field. Null parks the reflection at rest.
+  /// The shared tilt/pointer light field. Null parks the core at rest.
   final ValueListenable<Offset>? light;
 
-  /// Scroll offset of the surface's page; advances the same reflection.
+  /// Scroll offset of the surface's page; rolls the same core.
   final ValueListenable<double>? scroll;
   final bool reduceMotion;
 
-  /// A warm halo under the plate. Off for secondary/inline golds.
+  /// The pool of light under the shade. Off for secondary/inline lamps.
   final bool glow;
 
-  /// The authored honey-gold plate as grain. Off for very small chips, where
-  /// the texture would only turn to noise.
+  /// Kept for callers; the paper is always present where it can resolve.
   final bool textured;
+  final bool pressed;
+  final LampLevel level;
 
   @override
   Widget build(BuildContext context) {
-    final still =
-        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    return AnimatedBuilder(
-      animation: Listenable.merge([?light, ?scroll]),
+    return LampShade(
+      cut: cut,
+      light: light,
+      scroll: scroll,
+      reduceMotion: reduceMotion,
+      spill: glow,
+      pressed: pressed,
+      level: level,
       child: child,
-      builder: (context, body) {
-        final tilt = still ? Offset.zero : light?.value ?? Offset.zero;
-        final offset = still ? 0.0 : scroll?.value ?? 0.0;
-        // One broad reflection. Rest is a little left of centre, which is where
-        // the approved target parks it; tilt and scroll slide it across.
-        final sweep =
-            (0.32 + tilt.dx * 0.10 - tilt.dy * 0.035 + offset * 0.00032) % 1.0;
-        return DecoratedBox(
-          decoration: facetedDecoration(
-            cut: cut,
-            gradient: Palette.honeyGradient,
-            borderColor: const Color(0xFF79502B),
-            borderWidth: 0.85,
-            shadows: [
-              const BoxShadow(
-                color: Palette.brassDeep,
-                blurRadius: 0,
-                offset: Offset(0, 1.35),
-              ),
-              if (glow)
-                const BoxShadow(
-                  color: Color(0x24D0A063),
-                  blurRadius: 18,
-                  offset: Offset(0, 5),
-                ),
-            ],
-          ),
-          child: ClipPath(
-            clipper: FacetedClipper(cut: cut),
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                if (textured)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Opacity(
-                        // The source plate contains large crystalline flecks.
-                        // At this strength they resolve as quiet, irregular
-                        // grain instead of glitter competing with the label.
-                        opacity: 0.055,
-                        child: ColorFiltered(
-                          colorFilter: const ColorFilter.mode(
-                            Color(0xFFB79A6B),
-                            BlendMode.modulate,
-                          ),
-                          child: Image.asset(
-                            'assets/quest/luminous-honey-gold-v2.webp',
-                            fit: BoxFit.cover,
-                            alignment: Alignment(
-                              tilt.dx * 0.055,
-                              tilt.dy * 0.028,
-                            ),
-                            filterQuality: FilterQuality.medium,
-                            excludeFromSemantics: true,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _GoldFacePainter(
-                        sweep: sweep,
-                        tilt: tilt,
-                        cut: cut,
-                      ),
-                    ),
-                  ),
-                ),
-                body!,
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
 
-class _GoldFacePainter extends CustomPainter {
-  const _GoldFacePainter({
-    required this.sweep,
-    required this.tilt,
-    required this.cut,
-  });
-
-  final double sweep;
-  final Offset tilt;
-  final double cut;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Shade only the shoulders. This gives the plate a gentle crown without
-    // turning its lower half into a separate orange block.
-    final face = Offset.zero & size;
-    canvas.drawRect(
-      face,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [
-            Color(0x246B4325),
-            Color(0x087B5432),
-            Color(0x00FFF2D2),
-            Color(0x00FFF2D2),
-            Color(0x12684527),
-            Color(0x2A56351F),
-          ],
-          stops: [0, 0.16, 0.34, 0.66, 0.84, 1],
-        ).createShader(face),
-    );
-
-    // A few long, low-contrast fibers give the face a directional satin nap
-    // at phone scale. They stay parallel to the plate instead of becoming
-    // crystalline flecks or a repeating sparkle texture.
-    final grain = math.Random(41);
-    for (var i = 0; i < 44; i++) {
-      final start = Offset(
-        grain.nextDouble() * size.width,
-        (0.08 + grain.nextDouble() * 0.84) * size.height,
-      );
-      final end = Offset(
-        (start.dx + size.width * (0.018 + grain.nextDouble() * 0.075))
-            .clamp(0.0, size.width)
-            .toDouble(),
-        start.dy,
-      );
-      canvas.drawLine(
-        start,
-        end,
-        Paint()
-          ..strokeWidth = 0.26 + grain.nextDouble() * 0.18
-          ..color = i.isEven
-              ? const Color(0x14F3DCB0)
-              : const Color(0x0F5E3D24),
-      );
-    }
-
-    // One broad, soft reflection — the width of a real highlight rolling over
-    // a satin surface, not a travelling glint.
-    canvas.save();
-    canvas.translate(-size.width * 0.26 + sweep * size.width * 1.5, 0);
-    canvas.rotate(-0.17 + tilt.dy * 0.018);
-    final band = Rect.fromLTWH(
-      -size.width * 0.18,
-      -size.height,
-      size.width * 0.36,
-      size.height * 3,
-    );
-    canvas.drawRect(
-      band,
-      Paint()
-        ..blendMode = BlendMode.screen
-        ..shader = const LinearGradient(
-          colors: [
-            Color(0x00F8E8C8),
-            Color(0x10F8E8C8),
-            Color(0x42FFF1D5),
-            Color(0x12F8E8C8),
-            Color(0x00F8E8C8),
-          ],
-          stops: [0, 0.26, 0.5, 0.74, 1],
-        ).createShader(band),
-    );
-    canvas.restore();
-
-    // The lit top lip and the plate's own shaded lower plane. Together these
-    // are what makes it read as a raised piece of metal rather than a fill.
-    final lip = Rect.fromLTWH(
-      size.width * 0.055,
-      0.65,
-      size.width * 0.89,
-      1.15,
-    );
-    canvas.drawRect(
-      lip,
-      Paint()
-        ..shader = const LinearGradient(
-          colors: [
-            Color(0x00F0D19A),
-            Color(0xC0F0D19A),
-            Color(0x68F0D19A),
-            Color(0x00F0D19A),
-          ],
-          stops: [0, 0.3, 0.72, 1],
-        ).createShader(lip),
-    );
-    final under = Rect.fromLTWH(
-      0,
-      size.height - size.height * 0.16,
-      size.width,
-      size.height * 0.16,
-    );
-    canvas.drawRect(
-      under,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x00472D1A), Color(0x2B472D1A)],
-        ).createShader(under),
-    );
-
-    canvas.drawLine(
-      Offset(size.width * 0.07, size.height - 1.1),
-      Offset(size.width * 0.93, size.height - 1.1),
-      Paint()
-        ..strokeWidth = 0.75
-        ..shader = const LinearGradient(
-          colors: [
-            Color(0x00452B18),
-            Color(0x8A452B18),
-            Color(0x5C452B18),
-            Color(0x00452B18),
-          ],
-          stops: [0, 0.22, 0.78, 1],
-        ).createShader(face),
-    );
-
-    // A hairline of warm shadow inside the rim keeps the border from reading
-    // as painted-on line art.
-    canvas.drawPath(
-      facetedRectPath(
-        Rect.fromLTWH(0, 0, size.width, size.height).deflate(1.6),
-        cut: (cut - 1.6).clamp(0.0, cut).toDouble(),
-      ),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.75
-        ..color = const Color(0x326B482A),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_GoldFacePainter old) =>
-      old.sweep != sweep || old.tilt != tilt || old.cut != cut;
-}
-
-/// The engraved label that belongs on [GoldSurface]. Dark espresso ink with a
-/// one-pixel warm relief under it, exactly as the approved target renders
-/// `MARK COMPLETE` — never pale amber text on an amber plate.
+/// The label that belongs on [GoldSurface]: the lamp's printed capitals.
 class GoldLabel extends StatelessWidget {
   const GoldLabel({
     super.key,
     required this.text,
     this.icon,
-    this.fontSize = 12.5,
-    this.letterSpacing = 1.65,
+    this.fontSize,
+    this.letterSpacing,
+    this.level = LampLevel.lit,
   });
 
   final String text;
   final IconData? icon;
-  final double fontSize;
-  final double letterSpacing;
+
+  /// Old mono sizes (12-12.5) map onto the Garamond capitals' 15.5.
+  final double? fontSize;
+  final double? letterSpacing;
+  final LampLevel level;
 
   @override
   Widget build(BuildContext context) {
-    final label = Text(
-      text,
-      maxLines: 2,
-      textAlign: TextAlign.center,
-      style: Type.label.copyWith(
-        fontSize: fontSize,
-        letterSpacing: letterSpacing,
-        color: Palette.onHoney,
-        shadows: const [Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1))],
-      ),
-    );
-    if (icon == null) return Center(child: label);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: fontSize + 5.5, color: Palette.onHoney),
-        SizedBox(width: fontSize * 0.7),
-        Flexible(child: label),
-      ],
+    return LampLabel(
+      text: text,
+      icon: icon,
+      level: level,
+      fontSize: fontSize == null ? null : fontSize! + 3,
     );
   }
 }

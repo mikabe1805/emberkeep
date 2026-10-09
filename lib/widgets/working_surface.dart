@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../tokens.dart';
 import 'gold_surface.dart';
+import 'lamplight.dart';
 import 'pressable.dart';
 
 const workingRoomAsset = 'assets/pages/working-room-v1.webp';
@@ -217,30 +218,21 @@ class WorkingAction extends StatelessWidget {
     stateBuilder: (context, child, pressed, focused, hovered) => DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(primary ? 14 : 10),
+        // The primary is a lamp with its own outline; a rectangle drawn
+        // around it would bring the old plate back.
         border: Border.all(
-          color: focused
-              ? Palette.textHi
-              : primary
-              ? Palette.brassLit.withValues(alpha: .7)
-              : Colors.transparent,
+          color: focused ? Palette.textHi : Colors.transparent,
         ),
-        color: primary && !enabled
-            ? const Color(0xFF392C24)
-            : hovered
-            ? const Color(0x22F2CD93)
-            : null,
-        boxShadow: primary && enabled
-            ? const [
-                BoxShadow(
-                  color: Color(0x60080503),
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
-                ),
-              ]
-            : null,
+        color: hovered && !primary ? const Color(0x22F2CD93) : null,
       ),
-      child: primary && enabled
-          ? GoldSurface(cut: 9, glow: false, child: child)
+      child: primary
+          ? GoldSurface(
+              cut: 9,
+              glow: false,
+              pressed: pressed,
+              level: enabled ? LampLevel.lit : LampLevel.off,
+              child: child,
+            )
           : child,
     ),
     child: ConstrainedBox(
@@ -258,27 +250,42 @@ class WorkingAction extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: primary && enabled ? Palette.onHoney : Palette.xpLight,
+                color: primary
+                    ? (enabled ? LampTone.ink : LampTone.offInk)
+                    : Palette.xpLight,
               ),
               const SizedBox(width: 10),
             ],
             Flexible(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: (primary ? WorkingType.title : Type.body).copyWith(
-                  fontSize: primary ? 22 : 15,
-                  height: 1.15,
-                  color: primary && enabled ? Palette.onHoney : Palette.textMid,
-                ),
-              ),
+              child: primary
+                  ? LampWords(
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: LampLabel.styleFor(
+                          label,
+                          level: enabled ? LampLevel.lit : LampLevel.off,
+                        ),
+                      ),
+                    )
+                  : Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                        fontSize: 15,
+                        height: 1.15,
+                        color: Palette.textMid,
+                      ),
+                    ),
             ),
             if (icon != null && !iconLeading) ...[
               const SizedBox(width: 10),
               Icon(
                 icon,
                 size: 20,
-                color: primary && enabled ? Palette.onHoney : Palette.xpLight,
+                color: primary
+                    ? (enabled ? LampTone.ink : LampTone.offInk)
+                    : Palette.xpLight,
               ),
             ],
           ],

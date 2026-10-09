@@ -2636,11 +2636,7 @@ class _OccurrenceDialogAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = primary
-        ? Palette.onHoney
-        : danger
-        ? Palette.danger
-        : Palette.xpLight;
+    final foreground = danger ? Palette.danger : Palette.xpLight;
     return Semantics(
       button: true,
       enabled: onTap != null,
@@ -2649,7 +2645,7 @@ class _OccurrenceDialogAction extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(9),
         child: Opacity(
-          opacity: onTap == null ? 0.52 : 1,
+          opacity: onTap == null && !primary ? 0.52 : 1,
           child: Container(
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 46),
@@ -2670,25 +2666,14 @@ class _OccurrenceDialogAction extends StatelessWidget {
                     cut: 8,
                     glow: false,
                     textured: false,
+                    level: onTap == null ? LampLevel.off : LampLevel.lit,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(icon, size: 18, color: foreground),
-                          const SizedBox(width: 7),
-                          Flexible(
-                            child: Text(
-                              label,
-                              textAlign: TextAlign.center,
-                              style: Type.label.copyWith(
-                                fontSize: 11.5,
-                                letterSpacing: 0.9,
-                                color: foreground,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: GoldLabel(
+                        text: label,
+                        icon: icon,
+                        fontSize: 11.5,
+                        level: onTap == null ? LampLevel.off : LampLevel.lit,
                       ),
                     ),
                   )
@@ -3260,24 +3245,16 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
                   width: double.infinity,
                   child: GestureDetector(
                     onTap: _saving ? null : _save,
-                    child: Opacity(
-                      opacity: _saving ? 0.55 : 1,
-                      child: GoldSurface(
-                        cut: 9,
-                        glow: false,
-                        textured: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Center(
-                            child: Text(
-                              _saving ? 'SAVING…' : 'KEEP THIS CLASS',
-                              style: Type.label.copyWith(
-                                fontSize: 12,
-                                letterSpacing: 1.2,
-                                color: Palette.onHoney,
-                              ),
-                            ),
-                          ),
+                    child: GoldSurface(
+                      cut: 9,
+                      glow: false,
+                      textured: false,
+                      level: _saving ? LampLevel.off : LampLevel.lit,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: GoldLabel(
+                          text: _saving ? 'SAVING…' : 'KEEP THIS CLASS',
+                          level: _saving ? LampLevel.off : LampLevel.lit,
                         ),
                       ),
                     ),
@@ -3616,24 +3593,16 @@ class _AddAcademicWorkDialogState extends State<AddAcademicWorkDialog> {
                   child: GestureDetector(
                     key: const ValueKey('academic-work-save'),
                     onTap: _saving ? null : _save,
-                    child: Opacity(
-                      opacity: _saving ? 0.55 : 1,
-                      child: GoldSurface(
-                        cut: 9,
-                        glow: false,
-                        textured: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Center(
-                            child: Text(
-                              _saving ? 'SAVING…' : 'KEEP THIS $label',
-                              style: Type.label.copyWith(
-                                fontSize: 12,
-                                letterSpacing: 1.1,
-                                color: Palette.onHoney,
-                              ),
-                            ),
-                          ),
+                    child: GoldSurface(
+                      cut: 9,
+                      glow: false,
+                      textured: false,
+                      level: _saving ? LampLevel.off : LampLevel.lit,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: GoldLabel(
+                          text: _saving ? 'SAVING…' : 'KEEP THIS $label',
+                          level: _saving ? LampLevel.off : LampLevel.lit,
                         ),
                       ),
                     ),
@@ -3905,36 +3874,33 @@ class _AcademicStudyPlannerDialogState
                             suggestion.blocks.isEmpty
                         ? null
                         : _save,
-                    child: Opacity(
-                      opacity:
+                    child: GoldSurface(
+                      cut: 9,
+                      glow: false,
+                      textured: false,
+                      level:
                           _saving ||
                               suggestion == null ||
                               suggestion.blocks.isEmpty
-                          ? 0.5
-                          : 1,
-                      child: GoldSurface(
-                        cut: 9,
-                        glow: false,
-                        textured: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Center(
-                            child: Text(
-                              _saving
-                                  ? 'SAVING…'
-                                  : widget.schedule.studyPlanFor(
-                                          widget.item.workId,
-                                        ) ==
-                                        null
-                                  ? 'KEEP THESE BLOCKS'
-                                  : 'REPLACE OPEN BLOCKS',
-                              style: Type.label.copyWith(
-                                fontSize: 12,
-                                letterSpacing: 1.1,
-                                color: Palette.onHoney,
-                              ),
-                            ),
-                          ),
+                          ? LampLevel.off
+                          : LampLevel.lit,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: GoldLabel(
+                          text: _saving
+                              ? 'SAVING…'
+                              : widget.schedule.studyPlanFor(
+                                      widget.item.workId,
+                                    ) ==
+                                    null
+                              ? 'KEEP THESE BLOCKS'
+                              : 'REPLACE OPEN BLOCKS',
+                          level:
+                              _saving ||
+                                  suggestion == null ||
+                                  suggestion.blocks.isEmpty
+                              ? LampLevel.off
+                              : LampLevel.lit,
                         ),
                       ),
                     ),

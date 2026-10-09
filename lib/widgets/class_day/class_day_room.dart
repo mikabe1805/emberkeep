@@ -22,8 +22,7 @@ import '../../engine.dart';
 import '../../main_room_music.dart' show MainRoomMusic;
 import '../../tokens.dart';
 import '../count_up.dart';
-import '../facets.dart';
-import '../gold_surface.dart';
+import '../lamplight.dart';
 import '../pressable.dart';
 import '../quest_card.dart' show QuestCheckRing;
 import '../routine_ledger.dart' show LedgerType;
@@ -1362,6 +1361,9 @@ class _ForemostRow extends StatelessWidget {
           ClassThereButton(
             label: inSession ? "I'M HERE" : 'I WAS THERE',
             enabled: markable,
+            kept: held,
+            light: lightDirection,
+            reduceMotion: reduceMotion,
             onTap: () => onMark([row]),
             semanticLabel: inSession
                 ? "I'm here: ${classShortTitle(entry.title)}"
@@ -1375,7 +1377,9 @@ class _ForemostRow extends StatelessWidget {
   }
 }
 
-/// The one luminous control on the screen.
+/// The one luminous control on the screen: the card's lamp ([LampShade]).
+/// Contact turns its light up under the finger at once; a kept class turns
+/// the lamp low; a class that cannot be marked yet is an unlit shade.
 class ClassThereButton extends StatelessWidget {
   const ClassThereButton({
     super.key,
@@ -1383,68 +1387,56 @@ class ClassThereButton extends StatelessWidget {
     required this.onTap,
     required this.semanticLabel,
     this.enabled = true,
+    this.kept = false,
+    this.light,
+    this.reduceMotion = false,
   });
 
   final String label;
   final VoidCallback onTap;
   final String semanticLabel;
   final bool enabled;
+  final bool kept;
+  final ValueListenable<Offset>? light;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
+    final level = kept
+        ? LampLevel.low
+        : enabled
+        ? LampLevel.lit
+        : LampLevel.off;
+    Widget face(bool pressed) => ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 50),
+      child: LampShade(
+        cut: 10,
+        level: level,
+        pressed: pressed,
+        light: light,
+        reduceMotion: reduceMotion,
+        dimFrom: kept ? LampShade.warmthFor(LampLevel.lit) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+          child: LampLabel(text: label, level: level),
+        ),
+      ),
+    );
     return Pressable(
       key: const Key('class-there-button'),
-      pressDepth: 3,
+      pressDepth: 2,
       material: MaterialSound.brass,
       // The completion composite voices the press; a second contact sound
       // would strike over it.
       soundEnabled: false,
       enabled: enabled,
-      edgeColor: Colors.transparent,
+      shape: const LampShadeBorder(cut: 10),
+      edgeColor: const Color(0xFF1E1109),
       semanticLabel: semanticLabel,
       onTapUp: (_) => onTap(),
-      stateBuilder: (context, child, pressed, focused, hovered) {
-        if (!pressed) return child;
-        // Pressed into the glass: the top lip goes into shadow.
-        return Stack(
-          children: [
-            child,
-            Positioned.fill(
-              child: IgnorePointer(
-                child: ClipPath(
-                  clipper: const FacetedClipper(cut: 10),
-                  child: const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0x4D2A1608),
-                          Color(0x00000000),
-                          Color(0x12FFF0C8),
-                        ],
-                        stops: [0, 0.45, 1],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
-        child: GoldSurface(
-          cut: 10,
-          textured: false,
-          glow: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-            child: GoldLabel(text: label),
-          ),
-        ),
-      ),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          face(pressed),
+      child: face(false),
     );
   }
 }

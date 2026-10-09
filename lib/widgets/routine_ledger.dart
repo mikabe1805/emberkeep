@@ -8,6 +8,7 @@ import '../audio.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'glass.dart';
+import 'lamplight.dart';
 import 'luxe_depth.dart';
 import 'pressable.dart';
 
@@ -1032,6 +1033,11 @@ class _LedgerPerspectiveContent extends StatelessWidget {
   }
 }
 
+/// The ledger's primary: the book's brass clasp, now a label holder, with a
+/// card of the lamp's vellum set into it. The brass is the book's hardware
+/// and stays in shadow; the card carries the one lamp of the view, lit like
+/// the room's lamp shade, and its core shifts with the tilt and scroll the
+/// ledger already listens to. Contact turns the card's light up at once.
 class LedgerClaspButton extends StatelessWidget {
   const LedgerClaspButton({
     super.key,
@@ -1046,108 +1052,111 @@ class LedgerClaspButton extends StatelessWidget {
   final ValueListenable<Offset> light;
   final ValueListenable<double> scroll;
 
+  // The holder's opening inside ledger-clasp-v2.webp (1983 x 498): between
+  // the two rivet tabs and inside the engraved rule.
+  static const _opening = Rect.fromLTRB(
+    268 / 1983,
+    60 / 498,
+    1715 / 1983,
+    368 / 498,
+  );
+
   @override
   Widget build(BuildContext context) {
     const shape = FacetedBorder(cut: 7);
     final accessibilityText = MediaQuery.textScalerOf(context).scale(1) >= 1.75;
+    Widget face(bool pressed) => LayoutBuilder(
+      builder: (context, box) {
+        final w = box.maxWidth;
+        final h = box.maxHeight;
+        final card = Rect.fromLTRB(
+          _opening.left * w,
+          _opening.top * h,
+          _opening.right * w,
+          _opening.bottom * h,
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Aged brass in the dark: a little deeper and less saturated
+            // than the photograph, so the card is the light, not the metal.
+            ColorFiltered(
+              colorFilter: const ColorFilter.matrix(<double>[
+                0.70, 0.07, 0.02, 0, 0, //
+                0.05, 0.66, 0.02, 0, 0, //
+                0.04, 0.06, 0.55, 0, 0, //
+                0, 0, 0, 1, 0,
+              ]),
+              child: Image.asset(
+                'assets/routine/ledger-clasp-v2.webp',
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.high,
+                excludeFromSemantics: true,
+              ),
+            ),
+            Positioned.fromRect(
+              rect: card,
+              child: LampShade(
+                cut: 3,
+                spill: false,
+                pressed: pressed,
+                light: light,
+                scroll: scroll,
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: accessibilityText ? 2 : 10,
+                    ),
+                    child: LampWords(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            LampLabel.styleFor(
+                              label,
+                              fontSize: accessibilityText ? 9.5 : 14.5,
+                            ).copyWith(
+                              letterSpacing: accessibilityText ? 0.2 : 2.2,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // The holder's lip shades the top and left of the card.
+            Positioned.fromRect(
+              rect: card,
+              child: const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x8C120A05), Color(0x00120A05)],
+                      stops: [0, 0.16],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
     return Pressable(
       semanticLabel: label,
       material: MaterialSound.brass,
       shape: shape,
-      // The plate is a photograph with its own cast shadow and rounded ends.
-      // Pressable's under-edge drew an opaque chamfered slab in brassDeep
-      // behind it, which showed as a brown octagon poking out on all four
-      // sides — a synthetic shape stapled to a real object.
+      // The plate is a photograph with its own cast shadow and rounded ends;
+      // an under-edge would staple a synthetic slab behind it.
       edgeColor: Colors.transparent,
+      pressDepth: 2,
       onTapUp: (_) => onTap(),
-      child: AnimatedBuilder(
-        animation: Listenable.merge([light, scroll]),
-        builder: (context, _) {
-          final tilt = light.value;
-          final sweep =
-              (0.28 +
-                  tilt.dx * 0.15 -
-                  tilt.dy * 0.04 +
-                  scroll.value * 0.00038) %
-              1.0;
-          return RepaintBoundary(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/routine/ledger-clasp-v2.webp',
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.high,
-                  excludeFromSemantics: true,
-                ),
-                IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.13,
-                    child: ShaderMask(
-                      blendMode: BlendMode.srcIn,
-                      shaderCallback: (rect) => LinearGradient(
-                        begin: Alignment(-1.8 + sweep * 3.1, -1),
-                        end: Alignment(-1.1 + sweep * 3.1, 1),
-                        colors: const [
-                          Color(0x00FFF5D8),
-                          Color(0x18FFF5D8),
-                          Color(0xA8FFF7E5),
-                          Color(0x18FFF5D8),
-                          Color(0x00FFF5D8),
-                        ],
-                        stops: const [0, 0.3, 0.5, 0.7, 1],
-                      ).createShader(rect),
-                      child: ColorFiltered(
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
-                        child: Image.asset(
-                          'assets/routine/ledger-clasp-v2.webp',
-                          fit: BoxFit.fill,
-                          filterQuality: FilterQuality.medium,
-                          excludeFromSemantics: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      accessibilityText ? 6 : 34,
-                      1,
-                      accessibilityText ? 6 : 34,
-                      4,
-                    ),
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: LedgerType.button.copyWith(
-                        fontSize: accessibilityText ? 10.5 : 14,
-                        letterSpacing: accessibilityText ? 0.5 : 2,
-                        color: const Color(0xFF352014),
-                        shadows: const [
-                          Shadow(
-                            color: Color(0x72FFF0C8),
-                            offset: Offset(0, 1),
-                          ),
-                          Shadow(
-                            color: Color(0x43000000),
-                            blurRadius: 0.6,
-                            offset: Offset(0, -0.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          RepaintBoundary(child: face(pressed)),
+      child: RepaintBoundary(child: face(false)),
     );
   }
 }

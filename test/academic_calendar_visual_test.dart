@@ -45,6 +45,8 @@ void main() {
     final fraunces = FontLoader('Fraunces')
       ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
       ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'));
+    final garamond = FontLoader('EBGaramond')
+      ..addFont(rootBundle.load('assets/google_fonts/EBGaramond-Variable.ttf'));
     final inter = FontLoader('Inter')
       ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
       ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
@@ -57,6 +59,7 @@ void main() {
     await Future.wait([
       icons.load(),
       fraunces.load(),
+      garamond.load(),
       inter.load(),
       mono.load(),
     ]);

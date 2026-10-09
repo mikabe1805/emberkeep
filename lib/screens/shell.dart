@@ -2649,11 +2649,11 @@ class _DockItem extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 88),
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          // The selected tab used to invert to a near-white honey slab with dark
-          // ink on it, which made the navigation the single brightest object in
-          // the app — brighter than the hearth. Selection now reads as a warm
-          // lit tab with honey ink, so the top of the value range goes back to
-          // the fire and the one primary action.
+          // Selection is the room's light falling on the tab, not a second
+          // gilded object: a faint warmth in the tab, a pale glass edge and
+          // cream ink. The one lamp of the view stays the primary control
+          // (2026-10-04, the lamplight pass; the honey tile and brass rim
+          // were the old gold language).
           decoration: facetedDecoration(
             cut: 11,
             gradient: selected
@@ -2661,23 +2661,14 @@ class _DockItem extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      selectedAccent.withValues(alpha: 0.21),
-                      const Color(0xFF221A14),
+                      selectedAccent.withValues(alpha: 0.10),
+                      const Color(0xFF1E1713),
                     ],
                   )
                 : null,
             borderColor: selected
-                ? selectedAccent.withValues(alpha: 0.52)
+                ? const Color(0x2EFFF1DE)
                 : Colors.transparent,
-            shadows: selected
-                ? [
-                    BoxShadow(
-                      color: selectedAccent.withValues(alpha: 0.14),
-                      blurRadius: 12,
-                      offset: const Offset(0, -2),
-                    ),
-                  ]
-                : const [],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -2690,19 +2681,17 @@ class _DockItem extends StatelessWidget {
                 width: 31,
                 height: 31,
                 alignment: Alignment.center,
-                decoration: facetedDecoration(
-                  cut: 7,
-                  color: selected
-                      ? selectedAccent.withValues(alpha: 0.90)
-                      : Colors.transparent,
-                  borderColor: selected
-                      ? selectedAccent.withValues(alpha: 0.75)
-                      : Colors.transparent,
-                ),
+                decoration: selected
+                    ? const BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: [Color(0x2EE9B27A), Color(0x00E9B27A)],
+                        ),
+                      )
+                    : null,
                 child: Icon(
                   icon,
-                  size: 20,
-                  color: selected ? const Color(0xFF3A210E) : Palette.textLo,
+                  size: 21,
+                  color: selected ? const Color(0xFFF3DEC0) : Palette.textLo,
                 ),
               ),
               const SizedBox(height: 4),
@@ -2717,7 +2706,7 @@ class _DockItem extends StatelessWidget {
                   style: Type.label.copyWith(
                     fontSize: Type.minLabel,
                     letterSpacing: 0.8,
-                    color: selected ? Palette.xpLight : Palette.textLo,
+                    color: selected ? const Color(0xFFEAD7BA) : Palette.textLo,
                   ),
                 ),
               ),

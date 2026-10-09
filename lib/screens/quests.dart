@@ -2572,6 +2572,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   child: HoneyButton(
                     label: 'MOVE TO ${plural.toUpperCase()}',
                     expand: true,
+                    quiet: true,
                     onTap: () {
                       setState(() {
                         q.weekdays = [day];

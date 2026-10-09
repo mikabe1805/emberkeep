@@ -620,7 +620,7 @@ class _ThemeCard extends StatelessWidget {
         label: 'MOVE IN',
         icon: Icons.meeting_room_outlined,
         fontSize: 10.5,
-        glow: false,
+        quiet: true,
         onTap: onMoveIn,
       );
     }
@@ -628,7 +628,7 @@ class _ThemeCard extends StatelessWidget {
       label: 'TRY THE ROOM',
       icon: Icons.visibility_outlined,
       fontSize: 10.5,
-      glow: false,
+      quiet: true,
       onTap: onOpen,
     );
   }

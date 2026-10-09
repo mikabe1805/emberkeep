@@ -6106,30 +6106,10 @@ class _SpaceRail extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
         alignment: Alignment.center,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.meeting_room_outlined,
-              size: 15.5,
-              color: Palette.onHoney,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                'CHANGE SPACE',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Type.label.copyWith(
-                  fontSize: 10.5,
-                  letterSpacing: 1.3,
-                  color: Palette.onHoney,
-                ),
-              ),
-            ),
-          ],
+        child: const GoldLabel(
+          text: 'CHANGE SPACE',
+          icon: Icons.meeting_room_outlined,
+          fontSize: 10.5,
         ),
       ),
     );
@@ -7316,7 +7296,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                 HoneyButton(
                   label: _busy ? 'DELETING…' : 'DELETE ACCOUNT',
                   enabled: !_busy,
-                  glow: false,
+                  quiet: true,
                   onTap: _delete,
                 ),
               ],

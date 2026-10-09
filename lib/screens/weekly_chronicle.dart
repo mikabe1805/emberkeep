@@ -18,6 +18,7 @@ import '../widgets/constellation.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/morrow_tapestry_glyph.dart';
 
 class WeeklyChronicleScreen extends StatefulWidget {
@@ -131,8 +132,9 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
                         ),
                       ),
                     const SizedBox(height: 14),
-                    _HoneyButton(
+                    HoneyButton(
                       label: _busy ? 'PREPARING…' : 'SHARE CHRONICLE',
+                      expand: true,
                       onTap: _share,
                     ),
                     const SizedBox(height: 9),
@@ -527,36 +529,6 @@ class _PrivacyChoice extends StatelessWidget {
           ),
           const Icon(Icons.lock_outline, size: 16, color: Palette.textLo),
         ],
-      ),
-    ),
-  );
-}
-
-class _HoneyButton extends StatelessWidget {
-  const _HoneyButton({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: onTap,
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 50),
-      alignment: Alignment.center,
-      decoration: facetedDecoration(
-        cut: 10,
-        gradient: Palette.honeyGradient,
-        borderColor: Palette.xpLight.withValues(alpha: 0.8),
-        shadows: const [BoxShadow(color: Palette.honeyGlow, blurRadius: 18)],
-      ),
-      child: Text(
-        label,
-        style: Type.label.copyWith(
-          fontSize: 11.5,
-          letterSpacing: 1.4,
-          color: Palette.onHoney,
-        ),
       ),
     ),
   );
