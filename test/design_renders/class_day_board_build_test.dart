@@ -595,7 +595,7 @@ void main() {
         'K1_tue1152_your_24th_lecture',
         at: at,
         surface: 'Class celebration',
-        note: 'YOUR 24TH LECTURE: the numeral inside the diamond',
+        note: 'YOUR 24TH LECTURE ON RECORD: the numeral inside the diamond',
       );
     },
   );

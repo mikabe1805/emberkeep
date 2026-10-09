@@ -177,7 +177,7 @@ void main() {
         at: home,
         surface: 'Quests, class day evening',
         note:
-            'the window and the armchair, afternoon sky; the day on one '
+            'the window and the armchair, the painted night glass; the day on one '
             'line; music, Write a line; no Close the day before 5 PM',
       );
     },
@@ -278,7 +278,7 @@ void main() {
         'E4c_mon1916_monday_evening',
         at: _at(5, 19, 16),
         surface: 'Quests, class day evening',
-        note: 'all three attended, one line; dusk in the window',
+        note: 'all three attended, one line; the painted night window',
       );
       await showQuestBoard(tester);
       final reached = await revealIn(
@@ -373,7 +373,7 @@ void main() {
         'E6c_thu1856_thursday_evening',
         at: _at(8, 18, 56),
         surface: 'Quests, class day evening',
-        note: 'all three attended; dusk',
+        note: 'all three attended; the painted night window',
       );
     },
   );

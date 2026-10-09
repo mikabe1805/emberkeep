@@ -28,6 +28,9 @@ day's last class is over. Monday's starts at 7:00 (his 5:40 to 7:00 lecture), Th
 (the lab), Tuesday's at 5:00 (classes end at 3:20). The board's CLOSE THE DAY rail follows the
 same rule on class days.
 
+The room is the night painting it was made as at every hour: the runtime daylight (a sky keyed into
+the window, a daylight grade) was removed, so an afternoon walk still ends at the painted moon.
+
 ## The story
 
 The week of Oct 5 is played forward through the engine as if the class day shipped on Monday:
@@ -43,7 +46,7 @@ music setting still off.
 | E1a | Tue 15:35 | TUESDAY, DONE. held for a tap (the board slice's day tier) |
 | E1b | +180 ms after the tap | Going back: the words gone, the dim lifting on the kept framing |
 | E1c to E1e | +0.8, 1.4, 1.9 s | The walk: from the celebration's framing past the desk to the window; the glass arrives in the last 45% |
-| E1f | Tue 15:36 | Settled: the window's afternoon sky, the armchair, the lamp; the day on one line, MUSIC Lamp left on, Write a line; no CLOSE THE DAY before 5 PM |
+| E1f | Tue 15:36 | Settled: the window's painted night and moon, the armchair, the lamp; the day on one line, MUSIC Lamp left on, Write a line; no CLOSE THE DAY before 5 PM |
 | E2a | Tue 20:30 | The evening, music off (his saved setting): the painting's own night and moon, CLOSE THE DAY in the glass |
 | E2b | Tue 20:30 | After one press: Lamp left on playing for tonight (pause, still levels); his setting untouched |
 | E2c | Tue 20:30 | CLOSE THE DAY from the glass opens the real night ledger |
@@ -56,7 +59,7 @@ music setting still off.
 | E5b | Mon 17:45 | BOARD scrolled to its end: no CLOSE THE DAY rail mid-class (the footer's manual CLOSE DAY door is the board's all-day path) |
 | E6a | Thu 18:55 | The lab ended 6:50 and the wind-down began with it: the lab leads the glass |
 | E6b | Thu 18:56 | After THURSDAY, DONE., the existing rank-up beat (the lab's CRAFT crossed a rank) |
-| E6c | Thu 18:56 | Thursday's classes, all three attended +90 XP at dusk |
+| E6c | Thu 18:56 | Thursday's classes, all three attended +90 XP, the window's painted night |
 | E7 | Tue 20:30 | The archive room: the plate held still behind the same evening glass |
 | E8a, E8b | Tue 15:35, 15:36 | Reduce Motion: no walk; the desk still fades into the evening still |
 | E9a | Tue 20:30 | 130% text: the day line may wrap rather than shrink; nothing clips |
