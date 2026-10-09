@@ -16,6 +16,7 @@ import '../tokens.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/detail_route.dart';
 import '../widgets/ember_sheet.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -3741,48 +3742,26 @@ class _GoalCardState extends State<_GoalCard> {
                             onPersist: widget.onPersist,
                           ),
                         const SizedBox(height: 4),
+                        // Every idea in the catalog can be open at once, so
+                        // none of them is the page's one lamp: a quiet pane.
                         Center(
-                          child: Pressable(
+                          child: HoneyButton(
+                            quiet: true,
+                            compact: true,
                             enabled: !fullyUnderway,
                             soundEnabled: false,
-                            pressDepth: fullyUnderway ? 0 : 3,
-                            borderRadius: BorderRadius.circular(8),
+                            tint: fullyUnderway ? Palette.success : null,
                             semanticLabel: fullyUnderway
                                 ? '${idea.title} goal underway'
                                 : widget.adopted
                                 ? 'Add missing actions to ${idea.title}'
                                 : 'Adopt the whole ${idea.title} goal',
-                            onTapUp: fullyUnderway
-                                ? null
-                                : (_) => widget.onAdopt(),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: facetedDecoration(
-                                cut: 8,
-                                gradient: fullyUnderway
-                                    ? null
-                                    : Palette.honeyGradient,
-                                borderColor: fullyUnderway
-                                    ? Palette.success.withValues(alpha: 0.5)
-                                    : Colors.transparent,
-                              ),
-                              child: Text(
-                                fullyUnderway
-                                    ? 'GOAL UNDERWAY ✓'
-                                    : widget.adopted
-                                    ? 'ADD MISSING ACTIONS'
-                                    : 'ADOPT WHOLE GOAL',
-                                style: Type.label.copyWith(
-                                  fontSize: 11,
-                                  color: fullyUnderway
-                                      ? Palette.success
-                                      : Palette.onHoney,
-                                ),
-                              ),
-                            ),
+                            label: fullyUnderway
+                                ? 'GOAL UNDERWAY ✓'
+                                : widget.adopted
+                                ? 'ADD MISSING ACTIONS'
+                                : 'ADOPT WHOLE GOAL',
+                            onTap: widget.onAdopt,
                           ),
                         ),
                       ],
@@ -3964,31 +3943,13 @@ class _TemplateRowState extends State<_TemplateRow> {
                   ).pop(_TakenQuestAction.takeBack),
                 ),
                 const SizedBox(height: 9),
-                Semantics(
-                  button: true,
-                  label: 'Keep ${t.title} on the quest board',
+                HoneyButton(
+                  key: const Key('goal-quest-keep'),
+                  label: 'KEEP IT',
+                  semanticLabel: 'Keep ${t.title} on the quest board',
+                  expand: true,
+                  soundEnabled: false,
                   onTap: () => Navigator.of(sheetContext).pop(),
-                  child: GestureDetector(
-                    key: const Key('goal-quest-keep'),
-                    excludeFromSemantics: true,
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(sheetContext).pop(),
-                    child: Container(
-                      alignment: Alignment.center,
-                      constraints: const BoxConstraints(minHeight: 46),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        gradient: Palette.honeyGradient,
-                      ),
-                      child: Text(
-                        'KEEP IT',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -4188,37 +4149,22 @@ class _TemplateRowState extends State<_TemplateRow> {
                 ? 'Manage ${t.title}, currently taken'
                 : 'Take on ${t.title}',
             onTap: taken ? () => _manageTakenQuest(activeQuest) : _takeOnQuest,
-            child: GestureDetector(
-              key: ValueKey<String>(
-                'goal-quest-${taken ? 'manage' : 'take'}-${_questTitleKey(t.title)}',
-              ),
-              excludeFromSemantics: true,
-              behavior: HitTestBehavior.opaque,
-              onTap: taken
-                  ? () => _manageTakenQuest(activeQuest)
-                  : _takeOnQuest,
-              child: AnimatedContainer(
-                duration: Motion.quick,
-                alignment: Alignment.center,
-                constraints: const BoxConstraints(minHeight: 44),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
+            // A catalog row repeats down the page, so TAKE ON is a quiet
+            // pane; the page keeps its one lamp elsewhere. The outer
+            // Semantics speaks for it.
+            child: ExcludeSemantics(
+              child: HoneyButton(
+                key: ValueKey<String>(
+                  'goal-quest-${taken ? 'manage' : 'take'}-${_questTitleKey(t.title)}',
                 ),
-                decoration: facetedDecoration(
-                  cut: 7,
-                  gradient: taken ? null : Palette.honeyGradient,
-                  borderColor: taken
-                      ? Palette.success.withValues(alpha: 0.5)
-                      : Colors.transparent,
-                ),
-                child: Text(
-                  taken ? 'TAKEN · EDIT' : 'TAKE ON',
-                  style: Type.label.copyWith(
-                    fontSize: 11,
-                    color: taken ? Palette.success : Palette.onHoney,
-                  ),
-                ),
+                quiet: true,
+                compact: true,
+                soundEnabled: false,
+                tint: taken ? Palette.success : null,
+                label: taken ? 'TAKEN · EDIT' : 'TAKE ON',
+                onTap: taken
+                    ? () => _manageTakenQuest(activeQuest)
+                    : _takeOnQuest,
               ),
             ),
           ),
