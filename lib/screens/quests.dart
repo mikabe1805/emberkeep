@@ -3631,10 +3631,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       builder: (_) => ClassKeptCelebration(
         plan: plan,
         state: s,
-        hour: RoomHour.atInstant(
-          now,
-          day.classes.isEmpty ? null : day.classes.first.timeZoneId,
-        ),
         fromShot: classRoomIsLayered(s) ? _classCamera.shot : null,
         holdFraming: inEvening,
         stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
@@ -3999,16 +3995,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   scrollPosition: _scrollLight,
                   igniting: widget.roomIgniting,
                   hearthLit: widget.roomHearthLit,
-                  // On a class day the board's room shows the same hour in
-                  // its window as the class-day room it slides over.
-                  windowHour: classDay == null
-                      ? null
-                      : RoomHour.atInstant(
-                          now,
-                          classDay.classes.isEmpty
-                              ? null
-                              : classDay.classes.first.timeZoneId,
-                        ),
                 ),
                 _QuestBackdropBlur(
                   state: _state,
@@ -4826,7 +4812,6 @@ class _QuestRoomBackdrop extends StatelessWidget {
     required this.scrollPosition,
     required this.igniting,
     required this.hearthLit,
-    this.windowHour,
   });
 
   final GameState state;
@@ -4835,9 +4820,6 @@ class _QuestRoomBackdrop extends StatelessWidget {
   final ValueListenable<double> scrollPosition;
   final bool igniting;
   final bool hearthLit;
-
-  /// The class day's hour, lit in the window (null: the painting's night).
-  final RoomHour? windowHour;
 
   @override
   Widget build(BuildContext context) {
@@ -4878,12 +4860,6 @@ class _QuestRoomBackdrop extends StatelessWidget {
                           hearthLit: hearthLit,
                           level: state.level,
                           roomPhoto: RoomPhotoStore.instance.photo,
-                          windowLayer: switch (windowHour) {
-                            final hour? when hour.skyLit => ClassWindowSky(
-                              hour: hour,
-                            ),
-                            _ => null,
-                          },
                         ),
                       ),
                     ),

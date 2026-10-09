@@ -35,7 +35,6 @@ class ClassKeptCelebration extends StatefulWidget {
     super.key,
     required this.plan,
     required this.state,
-    required this.hour,
     required this.onDismiss,
     this.fromShot,
     this.stageTop = 0,
@@ -53,7 +52,6 @@ class ClassKeptCelebration extends StatefulWidget {
 
   /// Read for the room style only.
   final GameState state;
-  final RoomHour hour;
   final VoidCallback onDismiss;
 
   /// The room's camera when the plate was pressed: the move starts here.
@@ -337,7 +335,6 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                             height: layered ? imageBottom : plateHeight,
                             child: layered
                                 ? ClassRoomStage(
-                                    hour: widget.hour,
                                     shot: shot,
                                     bloom: _bloom * (1 - home),
                                     warmth: 1,

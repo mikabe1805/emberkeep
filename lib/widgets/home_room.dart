@@ -574,13 +574,7 @@ class HomeRoom extends StatefulWidget {
     this.parallax,
     this.scrollPosition,
     this.igniting = false,
-    this.windowLayer,
   });
-
-  /// An extra far-plane layer for the layered writer room, registered to the
-  /// painting (the class day's sky for the hour in the window). Under the
-  /// private photo when both exist. Other rooms ignore it.
-  final Widget? windowLayer;
 
   /// The wall-style id, used to look up a painted plate in `assets/rooms/`.
   /// When a plate exists it replaces the whole procedural room — geometry,
@@ -866,25 +860,22 @@ class _HomeRoomState extends State<HomeRoom>
                       : widget.lightweightPreview
                       ? theme!.previewAsset
                       : null,
-                  farOverlay: _writerFarOverlay(
-                    window: widget.softened ? null : widget.windowLayer,
-                    photo: hasWriterPhoto
-                        ? RepaintBoundary(
-                            child: Semantics(
-                              image: true,
-                              label: 'Your room photo above the fireplace',
-                              child: CustomPaint(
-                                key: const ValueKey('room-private-photo-plane'),
-                                painter: _WriterPhotoPainter(
-                                  _photoInfo!.image,
-                                  widget.roomPhoto!,
-                                  widget.softened,
-                                ),
+                  farOverlay: hasWriterPhoto
+                      ? RepaintBoundary(
+                          child: Semantics(
+                            image: true,
+                            label: 'Your room photo above the fireplace',
+                            child: CustomPaint(
+                              key: const ValueKey('room-private-photo-plane'),
+                              painter: _WriterPhotoPainter(
+                                _photoInfo!.image,
+                                widget.roomPhoto!,
+                                widget.softened,
                               ),
                             ),
-                          )
-                        : null,
-                  ),
+                          ),
+                        )
+                      : null,
                 ),
               )
             else
@@ -4093,11 +4084,4 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect, {double t = 0}) {
       canvas.drawPath(ridge, Paint()..color = const Color(0xFF120E12));
   }
   canvas.restore();
-}
-
-/// The writer room's far-plane layers: the window's sky under the photo.
-Widget? _writerFarOverlay({Widget? window, Widget? photo}) {
-  if (window == null) return photo;
-  if (photo == null) return window;
-  return Stack(fit: StackFit.expand, children: [window, photo]);
 }

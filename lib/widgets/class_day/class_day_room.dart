@@ -289,10 +289,6 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     final widget = this.widget;
     final card = widget.card;
     final evening = widget.evening;
-    final hour = RoomHour.atInstant(
-      widget.now,
-      card.day.classes.isEmpty ? null : card.day.classes.first.timeZoneId,
-    );
     final layered = classRoomIsLayered(widget.state);
     // The painting runs up under the status bar (the shell's SafeArea keeps
     // the page below it), so the room is opened into, never placed under a
@@ -399,7 +395,6 @@ class _ClassDayRoomState extends State<ClassDayRoom>
                       }
                       Widget stageAt(RoomShot at, {Key? key}) => ClassRoomStage(
                         key: key,
-                        hour: hour,
                         shot: at,
                         warmth: warmth,
                         fadeStart: fadeStartFor(at),

@@ -305,7 +305,7 @@ void main() {
       expect(_roomShot(tester).left, desk.left);
 
       final stillFilters = _imageFilters(tester);
-      expect(stillFilters, hasLength(1), reason: "the window's softening");
+      expect(stillFilters, isEmpty, reason: 'the room carries no image filter');
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       // The walk starts from the celebration's own framing.
