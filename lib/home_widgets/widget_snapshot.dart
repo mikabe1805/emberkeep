@@ -280,12 +280,17 @@ final class WidgetDayClass {
     required this.keptXp,
     required this.state,
     this.markUrl,
+    this.countsTowardDay = true,
   });
 
   final String occurrenceKey;
   final String courseCode;
   final String title;
   final String shortTitle;
+
+  /// False for an optional meeting (office hours): it never decides the
+  /// day's record and the widget's evening line leaves it to the board.
+  final bool countsTowardDay;
 
   /// The meeting kind's name (`lecture`, `lab`, ...).
   final String kind;
@@ -329,6 +334,7 @@ final class WidgetDayClass {
     'keptXp': keptXp,
     'state': state.name,
     if (markUrl != null) 'markUrl': markUrl,
+    if (!countsTowardDay) 'countsTowardDay': false,
   };
 }
 
@@ -531,6 +537,7 @@ abstract final class WidgetSnapshotBuilder {
           markUrl: marks
               ? classDayMarkUrl(entry.occurrenceKey, day.dayKey)
               : null,
+          countsTowardDay: entry.countsTowardDay,
         ),
       );
     }

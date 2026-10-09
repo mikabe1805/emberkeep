@@ -25,6 +25,7 @@ const _backdrop = Color.fromRGBO(19, 13, 11, 1);
 const _panel = Color.fromRGBO(31, 21, 17, 1);
 const _text = Color.fromRGBO(242, 219, 181, 1);
 const _secondary = Color.fromRGBO(173, 148, 122, 1);
+const _plateCut = BorderRadius.all(Radius.circular(4.5));
 const _honey = Color.fromRGBO(232, 166, 61, 1);
 const _brass = Color.fromRGBO(140, 99, 56, 1);
 const _ink = Color.fromRGBO(41, 26, 15, 1);
@@ -32,7 +33,6 @@ const _brassLight = Color.fromRGBO(219, 189, 136, 1);
 const _brassFace = Color.fromRGBO(197, 162, 114, 1);
 const _brassEdge = Color.fromRGBO(121, 80, 43, 1);
 const _brassDeep = Color.fromRGBO(76, 47, 19, 1);
-const _brassTick = Color.fromRGBO(220, 180, 119, 1);
 const _brassWireDark = Color.fromRGBO(122, 76, 36, 1);
 const _brassWireMid = Color.fromRGBO(149, 96, 46, 1);
 const _brassWireLight = Color.fromRGBO(227, 190, 124, 1);
@@ -98,6 +98,10 @@ class DayLedgerWidgetMock extends StatelessWidget {
 
   double _s(double size) => size * typeScale;
 
+  /// Swift `calmTint`: the everyday look's eyebrows and numerals are honey,
+  /// and go quiet on a class day.
+  Color get _calm => entry.classDay != null ? _secondary : _honey;
+
   @override
   Widget build(BuildContext context) {
     final size = family == LedgerFamily.small
@@ -145,7 +149,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _eyebrow('NEXT CLASS', _honey),
+          _eyebrow('NEXT CLASS', _calm),
           const SizedBox(height: 7),
           _nextClassName(next, compact: false),
           const SizedBox(height: 2),
@@ -157,7 +161,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _eyebrow('NEXT CLASS', _honey),
+        _eyebrow('NEXT CLASS', _calm),
         const SizedBox(height: 7),
         Text(
           'Your day is open',
@@ -225,26 +229,6 @@ class DayLedgerWidgetMock extends StatelessWidget {
     final eyebrow = entry.classesDone
         ? '${_noun(day)} DONE'
         : day.weekday.toUpperCase();
-    if (entry.markAllUrl != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _eyebrow(eyebrow, _secondary),
-          const SizedBox(height: 5),
-          Text(
-            '${day.weekday}’s classes',
-            style: _serifStyle(16),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          _line('Ended ${day.classes.last.endLabel}', _sansStyle(_s(11))),
-          const SizedBox(height: 4),
-          const Spacer(),
-          _capsule(entry.markAllLabel, fullWidth: true),
-        ],
-      );
-    }
     if (focus != null) {
       final next = entry.nextAfter;
       return Column(
@@ -319,7 +303,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
     final left = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _eyebrow('NEXT CLASS', _honey),
+        _eyebrow('NEXT CLASS', _calm),
         const SizedBox(height: 7),
         if (next != null) ...[
           _nextClassName(next, compact: evening != null),
@@ -345,7 +329,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _eyebrow('UP NEXT', _honey),
+                    _eyebrow('UP NEXT', _calm),
                     const SizedBox(height: 7),
                     if (quests.isEmpty) ...[
                       Text(
@@ -365,7 +349,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
                               '${index + 1}',
                               style: _monoStyle(
                                 10,
-                                color: _honey,
+                                color: _calm,
                                 weight: FontWeight.w700,
                               ),
                             ),
@@ -411,7 +395,14 @@ class DayLedgerWidgetMock extends StatelessWidget {
         const Spacer(),
         Row(
           children: [
-            ClassRingMock(kept: focus == null, size: 26),
+            if (focus == null || url != null)
+              ClassRingMock(kept: focus == null, size: 26)
+            else
+              const SizedBox(
+                width: 26,
+                height: 26,
+                child: Center(child: _DimDot()),
+              ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -478,7 +469,6 @@ class DayLedgerWidgetMock extends StatelessWidget {
             row,
             height: tight ? 21 : 24,
             primary:
-                !markAll &&
                 row.occurrenceKey == focus?.occurrenceKey &&
                 row.markUrl != null,
           ),
@@ -488,7 +478,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
             padding: EdgeInsets.only(top: tight ? 4 : 6),
             child: Align(
               alignment: Alignment.centerRight,
-              child: _capsule(entry.markAllLabel, compact: true),
+              child: _quietControl(entry.markAllLabel),
             ),
           ),
         SizedBox(height: gap),
@@ -515,14 +505,7 @@ class DayLedgerWidgetMock extends StatelessWidget {
       trailing = _capsule('I WAS THERE', compact: true);
     } else {
       // A quiet dim dot: waiting, never a hollow socket.
-      mark = Container(
-        width: 6,
-        height: 6,
-        decoration: BoxDecoration(
-          color: _secondary.withValues(alpha: 0.45),
-          shape: BoxShape.circle,
-        ),
-      );
+      mark = const _DimDot();
       trailing = Text(
         row.startLabel,
         style: _monoStyle(_s(10.5), weight: FontWeight.w500),
@@ -640,24 +623,14 @@ class DayLedgerWidgetMock extends StatelessWidget {
 
   // ── pieces ─────────────────────────────────────────────────────────────
 
-  /// The everyday look leads with the class's name, its code beneath (the
-  /// code gives way when the evening line needs the room).
+  /// The everyday look leads with the class's name; the course code is left
+  /// to the board.
   Widget _nextClassName(LedgerClassGlance next, {required bool compact}) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            next.shortTitle ?? next.courseTitle,
-            style: _serifStyle(16),
-            maxLines: compact ? 2 : 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (!compact) ...[
-            const SizedBox(height: 4),
-            _line(next.courseCode, _sansStyle(11)),
-          ],
-        ],
+      Text(
+        next.shortTitle ?? next.courseTitle,
+        style: _serifStyle(16),
+        maxLines: compact ? 2 : 4,
+        overflow: TextOverflow.ellipsis,
       );
 
   /// One quiet line: `NEXT 2:00 PM  Discrete Structures II`.
@@ -666,14 +639,18 @@ class DayLedgerWidgetMock extends StatelessWidget {
     if (next == null) return const SizedBox.shrink();
     return Row(
       children: [
-        Text('NEXT ${next.time}', style: _monoStyle(_s(10.5))),
+        Text(
+          typeScale > 1 ? next.time : 'NEXT ${next.time}',
+          style: _monoStyle(_s(10.5)),
+        ),
         const SizedBox(width: 8),
         Expanded(child: _line(next.title, _sansStyle(_s(11.5)))),
       ],
     );
   }
 
-  Widget _nextTime(String time) => _line('NEXT $time', _monoStyle(_s(10.5)));
+  Widget _nextTime(String time) =>
+      _line(typeScale > 1 ? time : 'NEXT $time', _monoStyle(_s(10.5)));
 
   /// `CLASS` on a day with one, else `CLASSES`.
   String _noun(LedgerClassDay day) =>
@@ -745,9 +722,11 @@ class DayLedgerWidgetMock extends StatelessWidget {
   /// A control that marks without owning the evening: outlined, not lit.
   Widget _quietControl(String label) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: _brass, width: 1),
+    decoration: const ShapeDecoration(
+      shape: BeveledRectangleBorder(
+        borderRadius: _plateCut,
+        side: BorderSide(color: _brass, width: 1),
+      ),
     ),
     child: Text(
       label,
@@ -770,14 +749,16 @@ class DayLedgerWidgetMock extends StatelessWidget {
   }) {
     final capsule = Container(
       // The under-lip: one point of deep brass below the plate.
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: const [
+      decoration: const ShapeDecoration(
+        shape: BeveledRectangleBorder(borderRadius: _plateCut),
+        shadows: [
           BoxShadow(color: _brassDeep, offset: Offset(0, 1), blurRadius: 0),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
+      child: ClipPath(
+        clipper: const ShapeBorderClipper(
+          shape: BeveledRectangleBorder(borderRadius: _plateCut),
+        ),
         child: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -796,27 +777,34 @@ class DayLedgerWidgetMock extends StatelessWidget {
                 ],
                 stops: const [0.1, 0.3, 0.52],
               ),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: _brassEdge, width: 0.75),
             ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                // A full-width plate centres its label.
-                horizontal: compact ? 9 : (fullWidth ? 8 : 13),
-                vertical: compact ? 5 : 7,
+            child: DecoratedBox(
+              decoration: const ShapeDecoration(
+                shape: BeveledRectangleBorder(
+                  borderRadius: _plateCut,
+                  side: BorderSide(color: _brassEdge, width: 0.75),
+                ),
               ),
-              // SwiftUI's `.lineLimit(1).minimumScaleFactor(0.85)`.
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                  style: _monoStyle(
-                    _s(compact ? 11 : 11.5),
-                    color: _ink,
-                    weight: FontWeight.w700,
-                    tracking: compact ? 0.4 : 0.9,
+              position: DecorationPosition.foreground,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  // A full-width plate centres its label.
+                  horizontal: compact ? 9 : (fullWidth ? 8 : 13),
+                  vertical: compact ? 5 : 7,
+                ),
+                // SwiftUI's `.lineLimit(1).minimumScaleFactor(0.85)`.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: _monoStyle(
+                      _s(compact ? 11 : 11.5),
+                      color: _ink,
+                      weight: FontWeight.w700,
+                      tracking: compact ? 0.4 : 0.9,
+                    ),
                   ),
                 ),
               ),
@@ -831,8 +819,24 @@ class DayLedgerWidgetMock extends StatelessWidget {
   }
 }
 
-/// The Swift `ClassRing`: the board's check ring at widget size, open with
-/// its clasp for a class to mark, closed with a tick once kept.
+/// The quiet dot a waiting class gets where nothing can be pressed.
+class _DimDot extends StatelessWidget {
+  const _DimDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 6,
+    height: 6,
+    decoration: BoxDecoration(
+      color: _secondary.withValues(alpha: 0.45),
+      shape: BoxShape.circle,
+    ),
+  );
+}
+
+/// The Swift `ClassRing`: the board's check ring at widget size in brass
+/// wire. Kept: the bright ring with its edge and tick. Waiting: the same
+/// circle, thin and empty, still to be filled.
 class ClassRingMock extends StatelessWidget {
   const ClassRingMock({super.key, required this.kept, required this.size});
 
@@ -856,25 +860,23 @@ class _ClassRingPainter extends CustomPainter {
     final s = size.width;
     final line = math.max(1.2, s * 0.075);
     final center = size.center(Offset.zero);
+    // `.stroke` on a circle padded by 11%: the line is centred on it.
+    final radius = s / 2 - s * 0.11;
+    final full = Offset.zero & size;
     // SwiftUI's AngularGradient starts at three o'clock, like SweepGradient.
-    Paint wire(Rect rect, {double rotation = 0}) => Paint()
-      ..shader = SweepGradient(
-        transform: GradientRotation(rotation),
-        colors: const [
+    final wire = Paint()
+      ..shader = const SweepGradient(
+        colors: [
           _brassWireDark,
           _brassWireLight,
           _brassWireMid,
           _brassWireHot,
           _brassWireDark,
         ],
-      ).createShader(rect)
+      ).createShader(full)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = line
-      ..strokeCap = StrokeCap.round;
-    final full = Offset.zero & size;
+      ..strokeWidth = line;
     if (kept) {
-      // `.stroke` on a circle padded by 11%: the line is centred on it.
-      final radius = s / 2 - s * 0.11;
       canvas.drawCircle(
         center,
         radius,
@@ -883,53 +885,24 @@ class _ClassRingPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = line * 1.6,
       );
-      canvas.drawCircle(center, radius, wire(full));
-      _tick(
-        canvas,
-        size,
-        const [Offset(0.29, 0.51), Offset(0.44, 0.65), Offset(0.72, 0.35)],
-        _brassLight,
-        line,
-      );
+      canvas.drawCircle(center, radius, wire);
     } else {
-      // The trimmed circle is rotated as a whole, its gradient with it.
-      const turn = 82.8 * math.pi / 180;
-      final radius = s / 2 - s * 0.08;
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        turn,
-        0.82 * 2 * math.pi,
-        false,
-        wire(full, rotation: turn),
-      );
-      _tick(
-        canvas,
-        size,
-        const [Offset(0.672, 0.706), Offset(0.752, 0.856), Offset(0.942, 0.59)],
-        _brassTick,
-        line * 0.85,
-      );
+      // The same circle, whole and thin, no tick: an empty place.
+      canvas.saveLayer(full, Paint()..color = const Color(0xCCFFFFFF));
+      canvas.drawCircle(center, radius, wire..strokeWidth = line * 0.9);
+      canvas.restore();
+      return;
     }
-  }
-
-  void _tick(
-    Canvas canvas,
-    Size size,
-    List<Offset> points,
-    Color color,
-    double width,
-  ) {
     final path = Path()
-      ..moveTo(points[0].dx * size.width, points[0].dy * size.height);
-    for (final point in points.skip(1)) {
-      path.lineTo(point.dx * size.width, point.dy * size.height);
-    }
+      ..moveTo(0.29 * s, 0.51 * s)
+      ..lineTo(0.44 * s, 0.65 * s)
+      ..lineTo(0.72 * s, 0.35 * s);
     canvas.drawPath(
       path,
       Paint()
-        ..color = color
+        ..color = _brassLight
         ..style = PaintingStyle.stroke
-        ..strokeWidth = width
+        ..strokeWidth = line
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );

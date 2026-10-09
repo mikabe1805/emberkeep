@@ -55,6 +55,19 @@ class _Writer implements WidgetSnapshotWriter {
   }
 }
 
+/// A timetable repository whose load the test releases.
+class _SlowRepository implements AcademicScheduleRepository {
+  _SlowRepository(this._load);
+
+  final Future<AcademicSchedule> _load;
+
+  @override
+  Future<AcademicSchedule> load() => _load;
+
+  @override
+  Future<bool> save(AcademicSchedule schedule) async => true;
+}
+
 /// Stands in for the Quests board's side of the seam: it keeps through the
 /// engine the way the board does (keepClass with the tap's `at`), and
 /// records what it was asked.
@@ -639,6 +652,50 @@ void main() {
       navigator.currentState!.pop();
       await _settle(tester);
       expect(seam.debugReceived.single.isMark, isTrue);
+
+      await _unmount(tester);
+      inbox.dispose();
+    },
+  );
+
+  testWidgets(
+    'a link still waiting for the timetable when the app is backgrounded '
+    'is dropped, not celebrated hours later',
+    (tester) async {
+      await _saveState();
+      Clock.freeze(tuesday(11, 52));
+      final schedule = mikaSchedule();
+      final load = Completer<AcademicSchedule>();
+      final inbox = ClassDayLinkInbox()
+        ..enqueueUri(
+          Uri.parse(
+            classDayMarkUrl(_keyFor(schedule, '14:332:331'), '2026-10-06'),
+          ),
+        );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppShell(
+            initialPage: AppShellInitialPage.quests,
+            classDayLinks: inbox,
+            classDayBoardSeam: seam,
+            scheduleRepository: _SlowRepository(load.future),
+            widgetSnapshotWriter: _Writer(),
+          ),
+        ),
+      );
+      await _settle(tester);
+      expect(inbox.isNotEmpty, isTrue, reason: 'held until the timetable');
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      expect(inbox.isNotEmpty, isFalse, reason: 'dropped on the way out');
+
+      load.complete(schedule);
+      await _settle(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await _settle(tester);
+      expect(seam.debugReceived, isEmpty);
 
       await _unmount(tester);
       inbox.dispose();

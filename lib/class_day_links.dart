@@ -353,9 +353,11 @@ abstract mixin class ClassDayLinkTarget {
   /// `checkClassKeep` for [at]; check again here, since the state may have
   /// moved on.
   ///
-  /// Complete the future when the celebration closes. The next request
-  /// waits for it, so two widget marks play as two celebrations; if the
-  /// board is disposed first, [ClassDayBoardSeam.detach] releases the seam.
+  /// Complete the future when the celebration has closed and so has any
+  /// level-up moment it chains into. The next request waits for it, so two
+  /// widget marks play as two celebrations and a level-up is never cut short
+  /// or stacked under the next mark's; if the board is disposed first,
+  /// [ClassDayBoardSeam.detach] releases the seam.
   Future<bool> markClassFromLink(
     String occurrenceKey,
     String dayKey, {

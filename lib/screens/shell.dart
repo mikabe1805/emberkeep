@@ -807,8 +807,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       if (lifecycle == AppLifecycleState.paused) {
         _openedByClassDayLink = false;
         // A link whose room was never on screen before the app left is
-        // dropped: its class stays as it was, markable from the widget again,
-        // and no celebration plays out of place on a later open.
+        // dropped, whether it was held for the room or still waiting in the
+        // inbox for the save and timetable to load: its class stays as it
+        // was, markable from the widget again, and no celebration plays out
+        // of place on a later open.
+        final inbox = widget.classDayLinks;
+        if (inbox != null) {
+          while (inbox.takeNext() != null) {}
+        }
         _heldClassDayRequests.clear();
         _classDayRecheck?.cancel();
         _classDayRecheck = null;

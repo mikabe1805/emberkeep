@@ -169,7 +169,8 @@ class LedgerDayClass {
       endEpochMillis = json['endEpochMillis'] as int,
       kept = json['kept'] as bool,
       keptXp = json['keptXp'] as int,
-      markUrl = json['markUrl'] as String?;
+      markUrl = json['markUrl'] as String?,
+      countsTowardDay = json['countsTowardDay'] as bool? ?? true;
 
   final String occurrenceKey;
   final String title;
@@ -184,6 +185,9 @@ class LedgerDayClass {
 
   /// Present only while the app's board keeps classes from links.
   final String? markUrl;
+
+  /// False for office hours (the snapshot leaves the key out when true).
+  final bool countsTowardDay;
 }
 
 enum LedgerMode { today, classes, allKept }
@@ -303,9 +307,16 @@ class DayLedgerEntry {
     return activeClassDay?.markAllUrl;
   }
 
-  /// `I WENT TO BOTH`, else `I WENT TO ALL`: never a count of what waits.
-  String get markAllLabel =>
-      waitingClasses.length == 2 ? 'I WENT TO BOTH' : 'I WENT TO ALL';
+  /// `I WENT TO BOTH` only for a day of exactly two classes, both waiting;
+  /// otherwise `I WENT TO ALL`: never a count of what waits.
+  String get markAllLabel => _markAllLabel(activeClassDay, waitingClasses);
+
+  static String _markAllLabel(
+    LedgerClassDay? day,
+    List<LedgerDayClass> waiting,
+  ) => day != null && day.classes.length == 2 && waiting.length == 2
+      ? 'I WENT TO BOTH'
+      : 'I WENT TO ALL';
 
   /// After the last class: at most three rows, in time order, the newest
   /// waiting classes first in line for a place, then the newest kept.
@@ -364,13 +375,18 @@ class DayLedgerEntry {
     return day;
   }
 
-  /// The evening's classes that ended and are not kept, oldest first.
+  /// The evening's counted classes that ended and are not kept, oldest
+  /// first. An optional meeting (office hours) is left to the board, so it
+  /// never crowds out the day's record.
   List<LedgerDayClass> get eveningWaiting {
     final day = eveningDay;
     if (day == null) return const [];
     return [
       for (final entry in day.classes)
-        if (entry.endEpochMillis <= nowMillis && !entry.kept) entry,
+        if (entry.endEpochMillis <= nowMillis &&
+            !entry.kept &&
+            entry.countsTowardDay)
+          entry,
     ];
   }
 
@@ -381,13 +397,16 @@ class DayLedgerEntry {
     if (waiting.length >= 2 && day.markAllUrl != null) {
       return LedgerEveningLine.markAll;
     }
-    if (waiting.isNotEmpty) return LedgerEveningLine.waiting;
+    // A control with nothing to press is not drawn: without a mark link the
+    // line gives way to the record.
+    if (waiting.isNotEmpty && waiting.last.markUrl != null) {
+      return LedgerEveningLine.waiting;
+    }
     if (day.recordLine != null) return LedgerEveningLine.record;
     return null;
   }
 
-  String get eveningMarkAllLabel =>
-      eveningWaiting.length == 2 ? 'I WENT TO BOTH' : 'I WENT TO ALL';
+  String get eveningMarkAllLabel => _markAllLabel(eveningDay, eveningWaiting);
 
   /// `classTime(_:)`: `8:30 AM`, or `WED 8:30 AM` when the class is not on
   /// the entry's own date in the class's zone. [localDateOf] stands in for
@@ -426,11 +445,10 @@ class DayLedgerEntry {
         '${there.day.toString().padLeft(2, '0')}';
   }
 
-  /// The small widget is one tap: the control it shows (mark all, or the
-  /// class to mark), else the class day while it has something to show.
+  /// The small widget is one tap: the newest class to mark, else the class
+  /// day while it has something to show. Mark-all lives on the medium widget
+  /// and the board, as a quiet row under the newest class.
   String? get smallUrl {
-    final all = markAllUrl;
-    if (all != null) return all;
     final url = focusClass?.markUrl;
     if (url != null) return url;
     return _openUrl;
@@ -461,13 +479,10 @@ class DayLedgerEntry {
             break;
         }
       case LedgerMode.classes:
+        final url = focusClass?.markUrl;
+        if (url != null) links.add(url);
         final all = markAllUrl;
-        if (all != null) {
-          links.add(all);
-        } else {
-          final url = focusClass?.markUrl;
-          if (url != null) links.add(url);
-        }
+        if (all != null) links.add(all);
       case LedgerMode.allKept:
         break;
     }
