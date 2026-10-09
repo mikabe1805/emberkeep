@@ -370,6 +370,24 @@ void main() {
       expect(week.title, isNull);
       expect(week.detail, isNull);
       expect(week.numeralLabel, isNot(contains(' OF ')));
+      // The list matches the diamond: one row per class day attended, with
+      // how many, and no row for a count of nothing.
+      expect(
+        [for (final row in week.rows) (row.title, row.time)],
+        [
+          ('Monday', '3'),
+          ('Tuesday', '1'),
+          ('Wednesday', '2'),
+          ('Thursday', '3'),
+          ('Friday', '2'),
+        ],
+      );
+      expect(
+        week.rows.fold(0, (sum, row) => sum + int.parse(row.time)),
+        week.numeral,
+      );
+      expect(week.rows.where((row) => row.marked).single.title, 'Friday');
+      expect(week.rows.every((row) => row.xp > 0), isTrue);
     });
 
     test('the shortcut keeps several in one plan', () {
@@ -444,6 +462,16 @@ void main() {
         expect(second.streakLine, isNull, reason: 'the day was already lit');
         final wednesday = keepAndPlan(state, _ny(7, 11, 40), [0]);
         expect(wednesday.streakLine, '2 DAYS RUNNING · TODAY COUNTS');
+      });
+
+      test('the shortcut keeps three at once and still reads one day', () {
+        ClassDayRules.debugOverride = const ClassDayRules(
+          classDayLightsStreak: true,
+        );
+        final plan = keepAndPlan(GameState(), _ny(5, 19, 15), [0, 1, 2]);
+        expect(plan.tier, ClassCelebrationTier.dayDone);
+        expect(plan.streakLine, '1 DAY RUNNING · TODAY COUNTS');
+        expect(plan.streakLine, isNot(contains('0 DAYS')));
       });
 
       test('absent when the rule is off', () {

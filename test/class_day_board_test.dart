@@ -536,6 +536,11 @@ void main() {
         'ATTENDED THIS WEEK',
       );
       expect(find.textContaining('ON RECORD'), findsNothing);
+      // The list matches the diamond: a row per class day of the week.
+      for (final name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday']) {
+        expect(find.text(name), findsOneWidget);
+      }
+      expect(find.text('Friday'), findsOneWidget);
       expect(
         _closing(tester),
         'Twelve for twelve.\nFree until Monday at 8:30.',

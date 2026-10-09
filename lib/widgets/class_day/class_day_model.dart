@@ -583,7 +583,9 @@ final class ClassCelebrationPlan {
   /// "10:20 TO 11:40 · HLL 114", for a single mark.
   final String? detail;
 
-  /// Today's kept classes (day and week tiers, or a shortcut).
+  /// Today's kept classes (day tier, or a shortcut). On the week tier, one
+  /// row per class day attended: [ClassCelebrationRow.title] is the day name
+  /// and [ClassCelebrationRow.time] the number attended.
   final List<ClassCelebrationRow> rows;
 
   /// "All of Tuesday's classes" with [bonusXp], only when this gesture paid
@@ -719,9 +721,32 @@ ClassCelebrationPlan planClassCelebration({
   // Rows: today's kept classes in timetable order.
   final markedKeys = {for (final entry in marked) entry.facts.identity};
   final rows = <ClassCelebrationRow>[];
-  if (tier == ClassCelebrationTier.dayDone ||
-      tier == ClassCelebrationTier.weekDone ||
-      several) {
+  if (tier == ClassCelebrationTier.weekDone) {
+    // The week speaks in days: one row per class day he went to, with how
+    // many he attended and that day's class XP. A day he did not attend gets
+    // no row (no zero, no denominator).
+    for (final other in week) {
+      final kept = state.classesKeptOn(other.dayKey);
+      if (kept.isEmpty) continue;
+      final counts = <Stat, int>{};
+      for (final item in kept) {
+        counts[item.stat] = (counts[item.stat] ?? 0) + 1;
+      }
+      var lead = kept.first.stat;
+      for (final entry in counts.entries) {
+        if (entry.value > counts[lead]!) lead = entry.key;
+      }
+      rows.add(
+        ClassCelebrationRow(
+          title: weekdayOf(other.date),
+          time: '${kept.length}',
+          xp: state.classXpForDay(other.dayKey),
+          stat: lead,
+          marked: other.date == day.date,
+        ),
+      );
+    }
+  } else if (tier == ClassCelebrationTier.dayDone || several) {
     for (final entry in day.classes) {
       final kept = state.keptClassFor(entry.facts);
       if (kept == null) continue;
@@ -883,10 +908,15 @@ ClassCelebrationPlan planClassCelebration({
     }
   }
 
-  final streak = hero.streak;
+  // The keep that lit the day carries the count. A later keep of the same
+  // day (the shortcut's last credit) lights nothing and reads 0, so the
+  // streak is read from the credit that lit, never from the last one. A
+  // count under one is never shown.
+  final lit = credits.where((credit) => credit.streak.lit);
+  final streakDays = lit.isEmpty ? 0 : lit.last.streak.streakDays;
   final streakLine =
-      ClassDayRules.current.classDayLightsStreak && credits.first.streak.lit
-      ? '${streak.streakDays} ${streak.streakDays == 1 ? 'DAY' : 'DAYS'} '
+      ClassDayRules.current.classDayLightsStreak && streakDays >= 1
+      ? '$streakDays ${streakDays == 1 ? 'DAY' : 'DAYS'} '
             'RUNNING · TODAY COUNTS'
       : null;
 
