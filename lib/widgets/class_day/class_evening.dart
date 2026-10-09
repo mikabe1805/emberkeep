@@ -285,6 +285,18 @@ class _EveningDoors extends StatelessWidget {
             ],
           );
         }
+        // Too wide for one line: the music keeps a line of its own and the
+        // day's two doors share the next, so no door is left on its own.
+        if (music != null && doors.length > 2) {
+          return Column(
+            key: const Key('class-evening-doors'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              doors.first,
+              Wrap(spacing: 14, children: doors.sublist(1)),
+            ],
+          );
+        }
         return Wrap(
           key: const Key('class-evening-doors'),
           spacing: 14,
