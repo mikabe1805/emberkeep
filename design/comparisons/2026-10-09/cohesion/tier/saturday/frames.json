@@ -1,0 +1,65 @@
+[
+  {
+    "file": "F3_sat1040_mark_complete.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "no classes: the ordinary board, featured Quest"
+  },
+  {
+    "file": "F3p_sat1040_press_60ms.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "MARK COMPLETE, finger down 60 ms"
+  },
+  {
+    "file": "F4_sat1040_quest_complete_280ms.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "released, 280 ms: QUEST COMPLETE"
+  },
+  {
+    "file": "F4a_sat1040_done_120ms.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "released, 120 ms: the lamp turning low"
+  },
+  {
+    "file": "F4b_sat1040_after.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "settled: the next Quest featured"
+  },
+  {
+    "file": "F4c_sat1040_quest_complete_440ms.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "released, 440 ms: the lamp low, before the card banks"
+  },
+  {
+    "file": "S1_sat1040_scrolled_140.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday, scrolled",
+    "note": "the board dragged up 140 pt"
+  },
+  {
+    "file": "T2a_sat1040_tilt_left.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "phone tilted left"
+  },
+  {
+    "file": "T2b_sat1040_tilt_right.png",
+    "when": "Sat Oct 10 10:40",
+    "at": "2026-10-10T10:40:00.000",
+    "surface": "Quests, Saturday",
+    "note": "phone tilted right"
+  }
+]

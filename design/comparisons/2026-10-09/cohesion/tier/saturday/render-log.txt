@@ -1,0 +1,6 @@
+Saturday classes: []
+RECT F3 action 33.2 496.7 326.6 50.0
+RECT S1 action 33.2 376.7 326.6 50.0
+RECT F4a plate 31.9 495.2 329.2 47.8
+RECT F4 plate 33.2 496.7 326.6 50.0
+RECT F4c plate 33.2 496.7 326.6 50.0
