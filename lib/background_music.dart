@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
+import 'clock.dart';
 import 'main_room_music.dart';
 import 'platform/audio_support_stub.dart'
     if (dart.library.js_interop) 'platform/audio_support_web.dart';
@@ -113,6 +114,24 @@ class BackgroundMusicController {
   /// quiet. Ephemeral like the Focus choices: it never rewrites the saved
   /// preference, and changing that preference clears it.
   bool? _roomChoice;
+
+  /// When tonight's choice lapses by itself (the class day's night end). It
+  /// is read through [Clock], so the choice never waits for a page to
+  /// rebuild before it gives way to the saved setting.
+  DateTime? _roomChoiceUntil;
+
+  /// Tonight's choice while it holds; null once its night is over.
+  bool? get _activeChoice {
+    final until = _roomChoiceUntil;
+    if (_roomChoice != null &&
+        until != null &&
+        !Clock.now().toUtc().isBefore(until.toUtc())) {
+      _roomChoice = null;
+      _roomChoiceUntil = null;
+    }
+    return _roomChoice;
+  }
+
   final ValueNotifier<bool> _mainWanted = ValueNotifier<bool>(false);
   bool _sessionActive = false;
   bool _sessionEnabled = false;
@@ -126,7 +145,7 @@ class BackgroundMusicController {
   Future<void> _tail = Future<void>.value();
 
   bool get enabled => _enabled;
-  bool? get roomChoice => _roomChoice;
+  bool? get roomChoice => _activeChoice;
 
   /// Whether the main rotation is wanted now (the saved setting, or tonight's
   /// choice over it), outside Focus and in the foreground. Said at once, before
@@ -152,13 +171,13 @@ class BackgroundMusicController {
       final focusWanted = (_enabled || _sessionEnabled) && !_sessionMuted;
       return focusWanted ? RoomMusicRole.focus : null;
     }
-    return (_roomChoice ?? _enabled) ? RoomMusicRole.main : null;
+    return (_activeChoice ?? _enabled) ? RoomMusicRole.main : null;
   }
 
   /// Whether the main rotation would play outside Focus: the saved setting,
   /// or tonight's choice over it. Unlike [mainWanted] it ignores the
   /// foreground, so a control reads the same while the app is backgrounded.
-  bool get roomMusicOn => _roomChoice ?? _enabled;
+  bool get roomMusicOn => _activeChoice ?? _enabled;
 
   /// Logical music intent. This can remain true while a browser is waiting
   /// for a user gesture or while a failed audio start remains retryable.
@@ -168,7 +187,10 @@ class BackgroundMusicController {
     if (_disposed) return Future<void>.value();
     // The saved setting changing (Me's switch) is the newer word: tonight's
     // evening choice gives way to it.
-    if (enabled != _enabled) _roomChoice = null;
+    if (enabled != _enabled) {
+      _roomChoice = null;
+      _roomChoiceUntil = null;
+    }
     _enabled = enabled;
     return _schedule();
   }
@@ -176,11 +198,19 @@ class BackgroundMusicController {
   /// The evening room's music control: [listening] true plays the main
   /// rotation for now, starting on [startWithTake] when nothing is playing
   /// yet; false keeps the room quiet for now; null goes back to the saved
-  /// setting. Never written to the saved preference, and nothing calls it
-  /// except a person's tap, so the room never starts music on its own.
-  Future<void> setRoomChoice(bool? listening, {int? startWithTake}) {
+  /// setting. [until] is when the choice lapses by itself (tonight's end),
+  /// so the app coming back the next morning never starts the rotation
+  /// against the saved setting. Never written to the saved preference, and
+  /// nothing calls it except a person's tap, so the room never starts music
+  /// on its own.
+  Future<void> setRoomChoice(
+    bool? listening, {
+    int? startWithTake,
+    DateTime? until,
+  }) {
     if (_disposed) return Future<void>.value();
     _roomChoice = listening;
+    _roomChoiceUntil = listening == null ? null : until;
     if (listening == true &&
         startWithTake != null &&
         _currentRole != RoomMusicRole.main) {

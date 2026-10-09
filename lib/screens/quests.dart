@@ -101,6 +101,7 @@ class QuestsPage extends StatefulWidget {
     this.musicController,
     this.classDays,
     this.onAddClasses,
+    this.dockQuiet,
   });
 
   final GameState state;
@@ -188,6 +189,10 @@ class QuestsPage extends StatefulWidget {
   /// the timetable is loaded and empty; with it, weekdays show one calm
   /// "Add your classes" row under the Quest hero until "Not in school".
   final VoidCallback? onAddClasses;
+
+  /// Set while the class-day evening's room music plays over the folded day,
+  /// so the shell's dock can step back with the glass. Optional.
+  final ValueNotifier<bool>? dockQuiet;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -341,6 +346,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// The class day on which the evening's music control set tonight's
   /// choice; it gives way to the saved setting once that evening is over.
   String? _eveningMusicDay;
+
+  /// The room's evening has stepped back for its music (the shell's dock
+  /// follows it while the room is on screen).
+  bool _roomStepBack = false;
+
+  void _syncDockQuiet() {
+    final notifier = widget.dockQuiet;
+    if (notifier == null) return;
+    final quiet = _roomInView && _roomStepBack;
+    if (notifier.value == quiet) return;
+    // After this frame: the shell listening to it may be building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) notifier.value = _roomInView && _roomStepBack;
+    });
+  }
 
   /// The real level-up is up: the room's words step back behind it.
   bool _levelTakeover = false;
@@ -3242,6 +3262,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _classBoundaryAt = null;
       _eveningShown = false;
       _settleEveningMusic(null, false);
+      _syncDockQuiet();
       return _buildBoard(context);
     }
     _armClassBoundary(classDay, now);
@@ -3252,6 +3273,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     final showBoard = _boardOpenDay == classDay.dayKey;
     _roomInView = !showBoard;
+    _syncDockQuiet();
     final reduceMotion =
         _state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -3363,6 +3385,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       camera: _classCamera,
       evening: evening ? _classEvening(day, now) : null,
       walkFrom: _eveningWalkFrom,
+      onStepBack: (step) {
+        _roomStepBack = step;
+        _syncDockQuiet();
+      },
       dockHeight: _dockHeight(context),
       reduceMotion: reduceMotion,
       lightDirection: _activeLight,
@@ -3393,7 +3419,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final nightOpen = _state.nightDoneDay != Days.nightKey(now);
     final music = widget.musicController;
     return ClassEvening(
-      onWrite: _writeALine,
+      onWrite: () => _writeALine(day),
       onCloseDay: nightOpen && classWindDown(day, now)
           ? () => _openNight(alreadyAcknowledged: true)
           : null,
@@ -3415,11 +3441,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final music = widget.musicController;
     if (music == null) return;
     _eveningMusicDay = day.dayKey;
+    // Tonight's choice lapses by itself when the class day's night ends.
+    final until = day.classes.isEmpty
+        ? null
+        : classNightEndFor(day.date, day.classes.first.timeZoneId);
     if (music.roomMusicOn) {
-      unawaited(music.setRoomChoice(false));
+      unawaited(music.setRoomChoice(false, until: until));
     } else {
       unawaited(
-        music.setRoomChoice(true, startWithTake: MainRoomMusic.lampLeftOnTake),
+        music.setRoomChoice(
+          true,
+          startWithTake: MainRoomMusic.lampLeftOnTake,
+          until: until,
+        ),
       );
       // The press is the gesture a browser waits for before audio.
       unawaited(music.retryAfterUserGesture());
@@ -3434,20 +3468,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (evening && day?.dayKey == chosenOn) return;
     _eveningMusicDay = null;
     final music = widget.musicController;
-    if (music == null || music.roomChoice == null) return;
+    if (music == null) return;
+    // The choice may already have lapsed by itself at the night's end; going
+    // back to the saved setting is harmless then, and reconciles the voice.
     // After this frame: the control listening to it may still be built.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(music.setRoomChoice(null));
     });
   }
 
-  /// "Write a line": a fresh journal page stamped with today, as the
+  /// "Write a line": a fresh journal page stamped with the class day the
+  /// evening belongs to (after midnight, still the night's own day), as the
   /// Journal's own new page is.
-  Future<void> _writeALine() async {
+  Future<void> _writeALine(ClassDay day) async {
     if (_journalRouteOpen) return;
     _flushCommit();
     final state = _state;
-    final trace = state.todayJournalTrace(widget.quests);
+    final trace = state.journalTraceFor(widget.quests, day.dayKey);
     Note? current;
     _journalRouteOpen = true;
     try {

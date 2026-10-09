@@ -1159,6 +1159,25 @@ class GameState extends ChangeNotifier {
         : null,
   );
 
+  /// The trace for [dayKey]: the night-owned day's own when it is that day
+  /// (a class-day evening's page after midnight still belongs to it),
+  /// otherwise what that day carried.
+  JournalTrace journalTraceFor(List<Quest> quests, String dayKey) {
+    if (dayKey == activeNightDayKey) return nightJournalTrace(quests);
+    return _journalTrace(
+      quests,
+      day: dayKey,
+      xp: _dayXp(dayKey),
+      statGains: _dayStats(dayKey),
+      questTitles: _dayQuestTitles(dayKey),
+      energy: energyWeatherDay == dayKey
+          ? energyWeather
+          : previousDayKey == dayKey
+          ? previousDayEnergy
+          : null,
+    );
+  }
+
   JournalTrace _journalTrace(
     List<Quest> quests, {
     required String day,

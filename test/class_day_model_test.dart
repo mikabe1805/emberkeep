@@ -274,15 +274,39 @@ void main() {
       expect(full.caption, "TUESDAY'S CLASSES · +35 THIS MARK");
     });
 
-    test('a later mark after the first one past the last class is not '
-        'the day tier unless it completes the day', () {
+    test('the day tier plays once a day: a later mark that completes the '
+        'day says so without a second DONE.', () {
       final state = GameState();
-      keepAndPlan(state, _ny(5, 19, 15), [2]);
+      final first = keepAndPlan(state, _ny(5, 19, 15), [2]);
+      expect(first.tier, ClassCelebrationTier.dayDone);
+      expect(first.headline, 'MONDAY, DONE.');
       final second = keepAndPlan(state, _ny(5, 19, 20), [0]);
       expect(second.tier, ClassCelebrationTier.classKept);
+      expect(second.closing.join(' '), isNot(contains('for')));
       final third = keepAndPlan(state, _ny(5, 19, 25), [1]);
-      expect(third.tier, ClassCelebrationTier.dayDone);
+      expect(third.tier, ClassCelebrationTier.classKept);
+      expect(third.headline, 'YOU WERE THERE.');
       expect(third.closing.first, 'Three for three.');
+      expect(third.bonusLine, "All of Monday's classes");
+      expect(third.bonusXp, 10);
+    });
+
+    test('marked one at a time in the evening: DONE., THAT ONE TOO., then '
+        'THAT ONE TOO. with the full day, never DONE. twice', () {
+      final state = GameState();
+      final first = keepAndPlan(state, _ny(5, 19, 15, 5), [2]);
+      final second = keepAndPlan(state, _ny(5, 19, 15, 11), [
+        0,
+      ], previous: _ny(5, 19, 15, 5));
+      final third = keepAndPlan(state, _ny(5, 19, 15, 17), [
+        1,
+      ], previous: _ny(5, 19, 15, 11));
+      expect(
+        [first.headline, second.headline, third.headline],
+        ['MONDAY, DONE.', 'THAT ONE TOO.', 'THAT ONE TOO.'],
+      );
+      expect(third.closing.first, 'Three for three.');
+      expect(third.bonusXp, 10);
     });
 
     test('the week tier counts the week without a denominator', () {

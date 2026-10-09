@@ -211,6 +211,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   );
   late final LuxeMotionController _luxeMotion;
   late final BackgroundMusicController _music;
+
+  /// The class-day evening's music steps the Quests room back; the dock
+  /// steps back with it while Quests is the tab.
+  final ValueNotifier<bool> _dockQuiet = ValueNotifier<bool>(false);
   late final AcademicScheduleRepository _academicScheduleRepository;
   late final WidgetSnapshotWriter _widgetSnapshotWriter;
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
@@ -302,6 +306,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _dockQuiet.dispose();
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
     widget.academicScheduleFiles?.removeListener(
       _onIncomingAcademicScheduleFile,
@@ -2062,6 +2067,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onAddClasses: _offerAddClasses
                                               ? _openAddClasses
                                               : null,
+                                          dockQuiet: _dockQuiet,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)
@@ -2171,6 +2177,28 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               questAccent: activeQuestDeskLook(state).brass,
                               bottomInset: MediaQuery.paddingOf(context).bottom,
                               onSelect: _selectTab,
+                            ),
+                          ),
+                          // The class-day evening's music: the dock steps
+                          // back with the room's glass (still pressable).
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: 88 + MediaQuery.paddingOf(context).bottom,
+                            child: IgnorePointer(
+                              child: ValueListenableBuilder<bool>(
+                                valueListenable: _dockQuiet,
+                                builder: (context, quiet, _) => AnimatedOpacity(
+                                  key: const Key('app-bottom-dock-quiet'),
+                                  opacity: quiet && _tab == 1 ? 1 : 0,
+                                  duration: const Duration(milliseconds: 1200),
+                                  curve: Curves.easeInOut,
+                                  child: const ColoredBox(
+                                    color: Color(0x99191210),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],

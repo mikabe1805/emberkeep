@@ -128,6 +128,17 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
 
   double get _ms => _c.value * _length;
 
+  /// The evening's framing is held only when its lamp sits clear of the
+  /// status scrim, so the lamp can answer where it stands. Otherwise the
+  /// camera eases back to the whole lamp and desk, as by day.
+  late final bool _hold = () {
+    if (!widget.holdFraming) return false;
+    final shot = widget.fromShot ?? widget.camera?.shot;
+    if (shot == null) return false;
+    final scrim = widget.camera?.scrimHeight ?? widget.scrimHeight;
+    return shot.toStage(RoomMarks.bulb).dy >= scrim;
+  }();
+
   @override
   void initState() {
     super.initState();
@@ -256,7 +267,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                     (layered ? camera?.shot : null) ??
                     widget.fromShot ??
                     RoomShot.kept(width: width);
-                final target = widget.holdFraming
+                final target = _hold
                     ? (widget.fromShot ?? room)
                     : RoomShot.kept(width: width);
                 // The quick tier holds the kept framing: the camera already
@@ -294,7 +305,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                 final scrim = widget.reduceMotion || _quick
                     ? 0.0
                     // Held in the evening, the window never leaves the frame.
-                    : widget.holdFraming
+                    : _hold
                     ? 1.0
                     : 1 - travel * (1 - home);
                 final dim =
@@ -456,7 +467,12 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
           ),
         ),
       ],
-      if (plan.rows.isNotEmpty) ...[const SizedBox(height: 12), _rows()],
+      // The day's rows, or only the full-day line when a later mark
+      // completes a day whose day tier already played.
+      if (plan.rows.isNotEmpty || plan.bonusLine != null) ...[
+        const SizedBox(height: 12),
+        _rows(),
+      ],
       SizedBox(height: plan.rows.isEmpty ? 16 : 12),
       // The quick tier lands its count by about 500 ms, so its last 0.9 s
       // is still and the new count can be read.

@@ -81,7 +81,8 @@ class _NightFlowState extends State<NightFlow> {
   double get _extraPageHeight {
     final shown = _tomorrowClassLines.length;
     final total = widget.tomorrowClasses?.classes.length ?? 0;
-    final lines = shown + (total > shown ? 1 : 0);
+    // The first class's name prints on its own line above its tag.
+    final lines = shown + (total > shown ? 1 : 0) + (shown > 0 ? 1 : 0);
     return 96 +
         (lines == 0 ? 0 : lines * _LedgerTomorrowClasses.lineHeight + 8);
   }
@@ -2311,7 +2312,8 @@ String _finishedSectionLabel({required int classes, required int threads}) {
   }
   final classPart =
       '${_ledgerCountWord(classes)} CLASS${classes == 1 ? '' : 'ES'}';
-  if (threads == 0) return '$classPart KEPT';
+  // "Attended", the room's own word for a kept class.
+  if (threads == 0) return '$classPart ATTENDED';
   return '$classPart · ${_ledgerCountWord(threads)} THREAD${threads == 1 ? '' : 'S'}';
 }
 
@@ -2718,6 +2720,14 @@ class _LedgerTomorrowClasses extends StatelessWidget {
     color: Palette.textLo,
   );
 
+  /// The next class by name, on its own line over its tag: what the room's
+  /// evening leaves to the ledger to say.
+  TextStyle get _nextStyle => LedgerType.body.copyWith(
+    fontSize: compact ? 13 : 14.5,
+    height: 1.1,
+    color: Palette.textHi.withValues(alpha: 0.9),
+  );
+
   /// The tag always prints in full; the course name joins it only when the
   /// whole name fits, so the line never ends in a clipped word.
   InlineSpan _line(BuildContext context, ProjectedClass entry, double width) {
@@ -2761,7 +2771,22 @@ class _LedgerTomorrowClasses extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final entry in classes)
+                if (classes.isNotEmpty)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: height),
+                    child: Container(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(vertical: 1.5),
+                      child: Text(
+                        shortClassLabel(classes.first.title),
+                        key: const Key('ledger-next-class-name'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _nextStyle,
+                      ),
+                    ),
+                  ),
+                for (final (i, entry) in classes.indexed)
                   ConstrainedBox(
                     constraints: BoxConstraints(minHeight: height),
                     child: Container(
@@ -2770,7 +2795,13 @@ class _LedgerTomorrowClasses extends StatelessWidget {
                       // At large text the tag may take a second line rather
                       // than lose its time or room.
                       child: Text.rich(
-                        _line(context, entry, bounds.maxWidth),
+                        // The first class is already named above its tag.
+                        i == 0
+                            ? TextSpan(
+                                text: tomorrowClassTag(entry),
+                                style: _tagStyle,
+                              )
+                            : _line(context, entry, bounds.maxWidth),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),

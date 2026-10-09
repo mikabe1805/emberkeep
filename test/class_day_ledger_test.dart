@@ -162,7 +162,7 @@ void main() {
     expect(find.text('+85 XP'), findsOneWidget);
     expect(find.text('+0 XP'), findsNothing);
     expect(find.text('the quiet days still count'), findsNothing);
-    expect(find.text('THREE CLASSES KEPT'), findsOneWidget);
+    expect(find.text('THREE CLASSES ATTENDED'), findsOneWidget);
     expect(find.text('NO THREADS FINISHED'), findsNothing);
     expect(find.text('Nothing had to be proven today.'), findsNothing);
     expect(find.text('Electronics Devices'), findsOneWidget);
@@ -187,7 +187,7 @@ void main() {
     await _pumpNight(tester, state);
 
     expect(find.text('THREE CLASSES · ONE THREAD'), findsOneWidget);
-    expect(find.text('THREE CLASSES KEPT'), findsNothing);
+    expect(find.text('THREE CLASSES ATTENDED'), findsNothing);
     // Three lines show, the fourth folds into the same "more" the threads
     // always used.
     expect(find.text('and 1 more!'), findsOneWidget);
@@ -239,11 +239,13 @@ void main() {
           matching: find.byType(Text),
         ),
       ))
-        widget.textSpan!.toPlainText(),
+        widget.data ?? widget.textSpan!.toPlainText(),
     ];
-    // At 393 pt the course names do not fit beside the tags, so the lines
-    // print the tags whole rather than a clipped name.
+    // The next class is named on its own line over its tag; at 393 pt the
+    // later course names do not fit beside their tags, so those lines print
+    // the tags whole rather than a clipped name.
     expect(lineText, [
+      'Computer Architecture',
       'TUESDAY · 10:20 AM · HLL 114',
       'TUESDAY · 2:00 PM · PHY 001',
     ]);

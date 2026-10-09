@@ -639,11 +639,20 @@ ClassCelebrationPlan planClassCelebration({
   final completeAfter = covers(keptAfter);
   final completes = completeAfter && !completeBefore;
   final lastEnd = day.lastClassEnd;
+  // The clock-based day tier already played for this day: a class was kept
+  // after the last one ended (or the day was complete before).
+  final dayTierPlayed =
+      completeBefore ||
+      (lastEnd != null &&
+          keptBefore.any((kept) => !kept.keptAt.toUtc().isBefore(lastEnd)));
   final afterLast =
-      lastEnd != null &&
-      !instant.isBefore(lastEnd) &&
-      !keptBefore.any((kept) => !kept.keptAt.toUtc().isBefore(lastEnd));
-  final dayTier = completes || afterLast;
+      lastEnd != null && !instant.isBefore(lastEnd) && !dayTierPlayed;
+  // The day tier plays once a day: the first mark after the last class has
+  // ended, or the mark that completes the day when that came first. A mark
+  // that completes the day after it played is a class (or quick) moment that
+  // carries the full-day line and "Three for three." instead of a second
+  // "MONDAY, DONE.".
+  final dayTier = afterLast || (completes && !dayTierPlayed);
 
   // The week (Monday to Sunday) the class day belongs to.
   final monday = day.date.addDays(-(day.date.weekday - 1));
@@ -787,6 +796,14 @@ ClassCelebrationPlan planClassCelebration({
     }
     closing.add(nextClassDayLine(day, dayOf));
   } else {
+    // The day tier already played tonight; the mark that completes the day
+    // still says so, once, and only because it is true.
+    if (completes) {
+      closing.add(
+        '${_capital(classCountWord(keys.length))} for '
+        '${classCountWord(keys.length)}.',
+      );
+    }
     ProjectedClass? next;
     ProjectedClass? running;
     for (final entry in day.classes) {

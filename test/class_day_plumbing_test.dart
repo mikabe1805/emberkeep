@@ -89,9 +89,10 @@ Future<GameState> _mountBoard(
   WidgetTester tester,
   _RecordingLookup lookup, {
   bool morning = false,
+  Size size = const Size(393, 852),
 }) async {
   tester.view.devicePixelRatio = 1;
-  await tester.binding.setSurfaceSize(const Size(393, 852));
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() {
     tester.view.resetDevicePixelRatio();
     tester.binding.setSurfaceSize(null);
@@ -220,11 +221,15 @@ void main() {
   });
 
   group('the board hands the timetable to its routine flows', () {
-    // Monday night, and the same night after midnight: both close Monday,
-    // so the MARK TOMORROW tray asks for Tuesday Oct 6.
+    // Sunday night, and the same night after midnight: both close Sunday,
+    // so the MARK TOMORROW tray asks for Monday Oct 5. Sunday has no
+    // classes, so the board's CLOSE THE DAY rail follows the host's own
+    // wind-down and the night date is the host's: these hold on a host in
+    // any zone (a class night's rail reads the timetable's New York clock,
+    // which a host-local 9:30 PM is not on Codemagic's Mac).
     for (final at in [
-      DateTime(2026, 10, 5, 21, 30),
-      DateTime(2026, 10, 6, 0, 30),
+      DateTime(2026, 10, 4, 21, 30),
+      DateTime(2026, 10, 5, 0, 30),
     ]) {
       final label = at.hour == 0 ? 'after midnight' : 'at 9:30 PM';
       testWidgets('the ledger asks for the day after the night $label', (
@@ -232,22 +237,25 @@ void main() {
       ) async {
         Clock.freeze(at);
         final lookup = _RecordingLookup(_fall2026());
-        await _mountBoard(tester, lookup);
+        // Monday's three classes print under the folio: at the test font's
+        // square glyphs the folio needs the larger phone (the ledger's own
+        // fit at 393 pt is rendered with the real fonts).
+        await _mountBoard(tester, lookup, size: const Size(430, 932));
         expect(find.byType(NightFlow), findsNothing);
         await _tapDoor(tester, find.byKey(const Key('close-day-rail')));
         expect(find.byType(NightFlow), findsOneWidget);
 
         expect(lookup.asked.whereType<CivilDate>().toSet(), {
-          CivilDate(2026, 10, 6),
+          CivilDate(2026, 10, 5),
         });
         final flow = tester.widget<NightFlow>(find.byType(NightFlow));
-        expect(flow.tomorrowClasses?.date, CivilDate(2026, 10, 6));
+        expect(flow.tomorrowClasses?.date, CivilDate(2026, 10, 5));
         final lines = find.byKey(const Key('ledger-tomorrow-classes'));
         await tester.ensureVisible(lines);
         await tester.pump(const Duration(milliseconds: 150));
         for (final line in [
-          'TUESDAY · 10:20 AM · HLL 114',
-          'TUESDAY · 2:00 PM · PHY 001',
+          'MONDAY · 8:30 AM · SEC 111',
+          'MONDAY · 2:00 PM · SEC 111',
         ]) {
           expect(
             find.descendant(of: lines, matching: find.textContaining(line)),

@@ -435,7 +435,7 @@ void main() {
       expect(find.byKey(const Key('class-quiet-dot')), findsNWidgets(2));
       final shortcut = find.byKey(const Key('class-all-of-today'));
       expect(shortcut, findsOneWidget);
-      expect(find.text("I went to all of today's classes"), findsOneWidget);
+      expect(find.text('I went to all of today’s classes'), findsOneWidget);
       await tester.tap(shortcut);
       await tester.pump();
       expect(board.state.classesKeptOn('2026-10-05'), hasLength(3));

@@ -5,8 +5,10 @@
 //
 // Clocks are frozen at INSTANTS (New York wall times converted from UTC), so
 // these hold on a host in any zone: Codemagic's Mac is not on New York time.
-// No test reads a wall time after 8 PM New York, where a UTC host's local
-// date would already be the next day (the night's own key, nightDoneDay).
+// No test reads a wall time at or after 8 PM New York, where a UTC host's
+// local date would already be the next day (the night's own key,
+// nightDoneDay), except where a test says so and reads only the class day's
+// own key.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -30,6 +32,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'design_renders/class_day_harness.dart' show loadRoomFonts;
 import 'support/rutgers_fall_2026_ics_fixture.dart';
 
 /// A New York wall time in October 2026 (EDT, UTC-4) as an instant.
@@ -212,6 +215,9 @@ final _there = find.byKey(const Key('class-there-button'));
 final _celebration = find.byType(ClassKeptCelebration);
 final _closeDay = find.byKey(const Key('class-evening-close-day'));
 final _musicRow = find.byKey(const Key('class-evening-music'));
+final _playMark = find.byKey(const Key('class-evening-music-play'));
+final _levels = find.byKey(const Key('class-evening-music-levels'));
+final _write = find.byKey(const Key('class-evening-write'));
 
 /// BOARD, then the board scrolled to its end, where the evening rail lives.
 Future<void> _boardToEnd(WidgetTester tester) async {
@@ -225,6 +231,31 @@ Future<void> _boardToEnd(WidgetTester tester) async {
   }
 }
 
+const _phone = Size(393, 852);
+const _small = Size(375, 667);
+
+/// How far the evening glass could scroll: zero when everything fits.
+double _scrollExtent(WidgetTester tester) => tester
+    .state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const Key('class-evening-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    )
+    .position
+    .maxScrollExtent;
+
+/// Every image filter on the room, by its description (a blur's sigma).
+List<String> _imageFilters(WidgetTester tester) => [
+  for (final filtered in tester.widgetList<ImageFiltered>(
+    find.descendant(
+      of: find.byKey(const Key('class-day-room')),
+      matching: find.byType(ImageFiltered),
+    ),
+  ))
+    '${filtered.imageFilter}',
+];
+
 /// The room's own stage (the celebration paints another while it is up).
 RoomShot _roomShot(WidgetTester tester) => tester
     .widget<ClassRoomStage>(
@@ -236,7 +267,11 @@ RoomShot _roomShot(WidgetTester tester) => tester
     .shot;
 
 void main() {
-  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+  setUpAll(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    // The real faces: the test font's wide glyphs would wrap doors that fit.
+    await loadRoomFonts();
+  });
   setUp(() {
     GameState.debugRandomFactory = _NoLuck.new;
     Sfx.instance.soundEnabled = false;
@@ -269,6 +304,8 @@ void main() {
       expect(_evening, findsNothing);
       expect(_roomShot(tester).left, desk.left);
 
+      final stillFilters = _imageFilters(tester);
+      expect(stillFilters, hasLength(1), reason: "the window's softening");
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       // The walk starts from the celebration's own framing.
@@ -280,7 +317,9 @@ void main() {
         final shot = _roomShot(tester);
         lefts.add(shot.left);
         tilts.add(shot.tilt.dx);
-        // No blur anywhere on the room while it moves.
+        // No blur anywhere on the room while it moves: only the glass blurs
+        // what is behind it, and the only image filter is the window's fixed
+        // one-pixel softening (the app's travel blur is an ImageFiltered).
         expect(
           find.descendant(
             of: find.byKey(const Key('class-day-room')),
@@ -289,6 +328,7 @@ void main() {
           findsOneWidget,
           reason: 'only the glass blurs what is behind it',
         );
+        expect(_imageFilters(tester), stillFilters, reason: 'frame $i');
       }
       expect(_celebration, findsNothing);
       expect(lefts.first, lessThan(kept.left));
@@ -320,7 +360,7 @@ void main() {
     testWidgets('opened in the evening, the room is already there', (
       tester,
     ) async {
-      await _mount(tester, at: _ny(6, 20, 0), state: _tuesdayKept());
+      await _mount(tester, at: _ny(6, 19, 30), state: _tuesdayKept());
       expect(_evening, findsOneWidget);
       expect(_roomShot(tester).tilt, Offset.zero);
       expect(find.text('Tuesday’s classes, both attended'), findsOneWidget);
@@ -357,24 +397,57 @@ void main() {
       final state = _tuesdayKept()
         ..wallStyle = 'wall_archive'
         ..ownedStyles.add('wall_archive');
-      await _mount(tester, at: _ny(6, 20, 0), state: state);
+      await _mount(tester, at: _ny(6, 19, 30), state: state);
       expect(_evening, findsOneWidget);
       expect(find.byType(ClassRoomStage), findsNothing);
       expect(find.byKey(const Key('class-day-room-plate')), findsOneWidget);
     });
 
-    testWidgets('text at 130% lays the evening out', (tester) async {
-      await _mount(
+    // Visible, not merely present: the glass scrolls what does not fit, so
+    // every door must be hit-testable and nothing may hide in the scroll.
+    for (final (label, at, size, scale) in [
+      ('Tuesday folded, 393 x 852 at 130%', _ny(6, 19, 30), _phone, 1.3),
+      ('Monday three waiting, 393 x 852 at 130%', _ny(5, 19, 15), _phone, 1.3),
+      ('Monday three waiting, 375 x 667', _ny(5, 19, 15), _small, 1.0),
+      ('Monday three waiting, 375 x 667 at 130%', _ny(5, 19, 15), _small, 1.3),
+    ]) {
+      testWidgets('$label: every door is on screen and pressable', (
         tester,
-        at: _ny(6, 20, 0),
-        state: _tuesdayKept(),
-        textScale: 1.3,
-      );
-      expect(_evening, findsOneWidget);
-      expect(tester.takeException(), isNull);
-      expect(find.text('Write a line'), findsOneWidget);
-      expect(find.text('CLOSE THE DAY'), findsOneWidget);
-    });
+      ) async {
+        await _mount(
+          tester,
+          at: at,
+          state: at.day == _ny(6, 19, 30).day ? _tuesdayKept() : null,
+          textScale: scale,
+          size: size,
+        );
+        expect(_evening, findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(
+          _scrollExtent(tester),
+          0,
+          reason: 'nothing in the evening glass is out of view',
+        );
+        expect(_write.hitTestable(), findsOneWidget);
+        expect(_closeDay.hitTestable(), findsOneWidget);
+        if (at.day == 5) {
+          expect(_there.hitTestable(), findsOneWidget);
+          expect(
+            find.byKey(const Key('class-all-of-today')).hitTestable(),
+            findsOneWidget,
+          );
+        }
+        // Close the day keeps the text size: it is set as large as Write a
+        // line, never shrunk to fit beside it.
+        final close = tester.getSize(
+          find.descendant(of: _closeDay, matching: find.byType(Text)),
+        );
+        final write = tester.getSize(
+          find.descendant(of: _write, matching: find.byType(Text)),
+        );
+        expect(close.height, closeTo(write.height, 0.5));
+      });
+    }
   });
 
   group('the wind-down follows his timetable', () {
@@ -410,7 +483,7 @@ void main() {
       // during the day; the two earlier classes are quiet dots.
       expect(find.text('SEC 204 · ended 7:00'), findsOneWidget);
       expect(find.byKey(const Key('class-quiet-dot')), findsNWidgets(2));
-      expect(find.text("I went to all of today's classes"), findsOneWidget);
+      expect(find.text('I went to all of today’s classes'), findsOneWidget);
       expect(_musicRow, findsNothing, reason: 'the glass stays about marking');
       expect(_closeDay, findsOneWidget);
 
@@ -553,19 +626,17 @@ void main() {
       );
       expect(_musicRow, findsOneWidget);
       expect(find.text('Lamp left on'), findsOneWidget);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(_playMark, findsOneWidget);
+      expect(_levels, findsNothing);
       expect(main.calls, isEmpty);
 
       await tester.tap(_musicRow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(main.calls, ['prefer:${MainRoomMusic.lampLeftOnTake}', 'start']);
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(_playMark, findsNothing);
       expect(find.text('Lamp left on'), findsOneWidget);
-      expect(
-        find.byKey(const Key('class-evening-music-levels')),
-        findsOneWidget,
-      );
+      expect(_levels, findsOneWidget);
       expect(page.state.musicEnabled, isFalse);
       expect(music.enabled, isFalse);
 
@@ -578,7 +649,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(main.calls.last, 'pause');
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(_playMark, findsOneWidget);
     });
 
     testWidgets('with music on in Me, the evening shows it playing and a '
@@ -591,7 +662,7 @@ void main() {
       final state = _tuesdayKept()..musicEnabled = true;
       unawaited(music.setEnabled(true));
       await _mount(tester, at: _ny(6, 19, 30), state: state, music: music);
-      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(_levels, findsOneWidget);
       await tester.tap(_musicRow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
