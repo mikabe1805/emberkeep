@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -13,46 +14,84 @@ import '../tokens.dart';
 import '../widgets/facets.dart';
 import '../widgets/goal_steward.dart';
 import '../widgets/goal_world.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/pressable.dart';
 import '../widgets/steward_room.dart';
+import 'quick_goal_composer.dart';
 import 'steward_encounter.dart';
+import 'steward_intake.dart';
 
 typedef GoalWorkshopAction = Future<void> Function(Goal goal);
 
-/// The returnable route register inside the steward's tavern workshop.
+/// Receives a finished new-goal intake (or a request to start another way).
+typedef GoalWorkshopCreate =
+    Future<void> Function(QuickGoalComposerResult result);
+
+/// Receives the plan the Steward drafted for a goal that already existed.
+typedef GoalWorkshopShape = Future<void> Function(Goal goal, GoalPlan plan);
+
+/// The Steward's workshop: where a goal becomes a plan and one first step.
 ///
-/// This screen owns no planning state. It reads each [GoalPlan] and its exact
-/// current Quest identity, then sends the selected goal back through the same
-/// workshop bench used by first acceptance and route repair.
+/// The home lists every goal by what it needs from the Steward, leading with
+/// the one that needs him most. The same room also hosts his questions (a new
+/// goal, or a plan for a goal that has none) so the whole journey from a vague
+/// goal to a first Quest happens with him. This screen owns no planning state:
+/// it reads each [GoalPlan] and its exact current Quest, and hands every
+/// decision back to Goals.
 class GoalWorkshopScreen extends StatefulWidget {
   const GoalWorkshopScreen({
     super.key,
     required this.state,
     required this.quests,
     required this.onOpenGoal,
-    required this.onBuildRoute,
+    required this.onShapePlan,
+    required this.onCreateGoal,
     required this.onFocusGoal,
-    required this.onNewGoal,
     this.onPersist,
     this.initialGoalTitle,
+    this.startNewGoal = false,
+    this.shapeGoal,
   });
 
   final GameState state;
   final List<Quest> quests;
   final GoalWorkshopAction onOpenGoal;
-  final GoalWorkshopAction onBuildRoute;
+  final GoalWorkshopShape onShapePlan;
+  final GoalWorkshopCreate onCreateGoal;
   final ValueChanged<Goal> onFocusGoal;
-  final Future<void> Function() onNewGoal;
   final VoidCallback? onPersist;
   final String? initialGoalTitle;
+
+  /// Opens straight into the Steward's questions for a new goal.
+  final bool startNewGoal;
+
+  /// Opens straight into the Steward's questions for this goal's plan.
+  final Goal? shapeGoal;
 
   @override
   State<GoalWorkshopScreen> createState() => _GoalWorkshopScreenState();
 }
 
+class _IntakeTarget {
+  const _IntakeTarget({this.goal, this.nextChapter = false});
+
+  /// Null for a new goal.
+  final Goal? goal;
+  final bool nextChapter;
+}
+
 class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
   late final LuxeMotionController _motion;
+  final _intakeKey = GlobalKey<StewardIntakeState>();
+  final _intakeExpression = ValueNotifier<GoalStewardExpression>(
+    GoalStewardExpression.welcome,
+  );
+  _IntakeTarget? _intake;
+
+  /// True while the questions are the first thing the screen showed, so back
+  /// from the first question leaves the workshop instead of showing its home.
+  late bool _intakeIsEntry;
   bool _opening = false;
   bool _stewardAssetsCached = false;
 
@@ -61,6 +100,16 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
     super.initState();
     _motion = LuxeMotionController(reduceMotion: widget.state.reduceMotion);
     unawaited(_motion.start());
+    final shape = widget.shapeGoal;
+    if (shape != null) {
+      _intake = _IntakeTarget(
+        goal: shape,
+        nextChapter: shape.plan?.complete == true,
+      );
+    } else if (widget.startNewGoal) {
+      _intake = const _IntakeTarget();
+    }
+    _intakeIsEntry = _intake != null;
   }
 
   @override
@@ -79,6 +128,7 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
   @override
   void dispose() {
     _motion.dispose();
+    _intakeExpression.dispose();
     super.dispose();
   }
 
@@ -98,33 +148,72 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
     });
   }
 
+  void _beginIntake(_IntakeTarget target) {
+    if (_opening) return;
+    _intakeExpression.value = GoalStewardExpression.welcome;
+    setState(() => _intake = target);
+  }
+
   Future<void> _open(_WorkshopGoalEntry entry) async {
     if (_opening) return;
-    if (entry.kind == _WorkshopGoalKind.routeComplete) {
-      widget.onFocusGoal(entry.goal);
-      if (mounted) Navigator.of(context).pop();
-      return;
-    }
-    setState(() => _opening = true);
-    try {
-      if (entry.kind == _WorkshopGoalKind.needsRoute) {
-        await widget.onBuildRoute(entry.goal);
-      } else {
-        await widget.onOpenGoal(entry.goal);
-      }
-    } finally {
-      if (mounted) setState(() => _opening = false);
+    switch (entry.kind) {
+      case _WorkshopGoalKind.needsPlan:
+        _beginIntake(_IntakeTarget(goal: entry.goal));
+        return;
+      case _WorkshopGoalKind.planDone:
+        _beginIntake(_IntakeTarget(goal: entry.goal, nextChapter: true));
+        return;
+      case _WorkshopGoalKind.stepReady:
+      case _WorkshopGoalKind.onBoard:
+        setState(() => _opening = true);
+        try {
+          await widget.onOpenGoal(entry.goal);
+        } finally {
+          if (mounted) setState(() => _opening = false);
+        }
     }
   }
 
-  Future<void> _newGoal() async {
+  void _newGoal() => _beginIntake(const _IntakeTarget());
+
+  Future<void> _finishIntake(QuickGoalComposerResult result) async {
     if (_opening) return;
+    final target = _intake;
     setState(() => _opening = true);
     try {
-      await widget.onNewGoal();
+      final goal = target?.goal;
+      if (result.exit == QuickGoalComposerExit.create && goal != null) {
+        await widget.onShapePlan(goal, result.plan!);
+      } else {
+        await widget.onCreateGoal(result);
+      }
     } finally {
-      if (mounted) setState(() => _opening = false);
+      if (mounted) {
+        setState(() {
+          _opening = false;
+          // Back from the first Quest lands on the home, where the goal now
+          // shows what it needs next.
+          if (result.exit == QuickGoalComposerExit.create) {
+            _intake = null;
+            _intakeIsEntry = false;
+          }
+        });
+      }
     }
+  }
+
+  /// Back from the room: one question back, then out of the questions, then
+  /// out of the workshop.
+  void _back() {
+    if (_opening) return;
+    if (_intake != null) {
+      if (_intakeKey.currentState?.stepBack() ?? false) return;
+      if (!_intakeIsEntry) {
+        setState(() => _intake = null);
+        return;
+      }
+    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _openEncounter() async {
@@ -160,12 +249,6 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
           for (final goal in _activeGoals)
             _WorkshopGoalEntry.from(goal, widget.quests, now),
         ];
-        final waiting = entries
-            .where((entry) => entry.kind == _WorkshopGoalKind.cutWaiting)
-            .length;
-        final moving = entries
-            .where((entry) => entry.kind == _WorkshopGoalKind.questOnBoard)
-            .length;
         return LayoutBuilder(
           builder: (context, constraints) => MouseRegion(
             onHover: (event) =>
@@ -176,18 +259,30 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
                   unawaited(_motion.requestBrowserMotionPermission()),
               child: _WorkshopRoom(
                 entries: entries,
-                waiting: waiting,
-                moving: moving,
                 stewardMemory: widget.state.stewardMemory,
                 busy: _opening,
                 reduceMotion: still,
                 parallax: _motion.parallax,
                 light: _motion.light,
-                onBack: () => Navigator.of(context).pop(),
+                onBack: _back,
                 onOpen: _open,
                 onNewGoal: _newGoal,
                 onOpenEncounter: _openEncounter,
-                initialGoalTitle: widget.initialGoalTitle,
+                intake: _intake == null
+                    ? null
+                    : StewardIntake(
+                        // Each target gets its own questions and answers.
+                        key: _intakeKey,
+                        existingGoalTitles: [
+                          for (final goal in widget.state.goals) goal.title,
+                        ],
+                        existingGoal: _intake!.goal,
+                        nextChapter: _intake!.nextChapter,
+                        expression: _intakeExpression,
+                        busy: _opening,
+                        onResult: _finishIntake,
+                      ),
+                intakeExpression: _intakeExpression,
               ),
             ),
           ),
@@ -197,7 +292,8 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
   }
 }
 
-enum _WorkshopGoalKind { cutWaiting, questOnBoard, needsRoute, routeComplete }
+/// What a goal needs from the Steward, most in need first.
+enum _WorkshopGoalKind { needsPlan, stepReady, onBoard, planDone }
 
 class _WorkshopGoalEntry {
   const _WorkshopGoalEntry({
@@ -206,7 +302,7 @@ class _WorkshopGoalEntry {
     required this.actionTitle,
     required this.status,
     required this.actionLabel,
-    this.routePosition,
+    this.stepPosition,
   });
 
   final Goal goal;
@@ -214,7 +310,7 @@ class _WorkshopGoalEntry {
   final String actionTitle;
   final String status;
   final String actionLabel;
-  final String? routePosition;
+  final String? stepPosition;
 
   static String _key(String value) => value.trim().toLowerCase();
 
@@ -239,13 +335,11 @@ class _WorkshopGoalEntry {
       final owned = decision.quest != null;
       return _WorkshopGoalEntry(
         goal: goal,
-        kind: owned
-            ? _WorkshopGoalKind.questOnBoard
-            : _WorkshopGoalKind.cutWaiting,
+        kind: owned ? _WorkshopGoalKind.onBoard : _WorkshopGoalKind.stepReady,
         actionTitle: decision.actionTitle,
-        status: owned ? 'QUEST ON BOARD' : 'NEXT STEP READY',
-        actionLabel: owned ? 'Review Quest' : 'Review next step',
-        routePosition: decision.routePosition,
+        status: owned ? 'ON YOUR BOARD' : 'NEXT STEP READY',
+        actionLabel: owned ? 'Open the Quest' : 'Take the next step',
+        stepPosition: decision.routePosition,
       );
     }
     if (goal.plan == null) {
@@ -253,26 +347,27 @@ class _WorkshopGoalEntry {
       if (legacy != null) {
         return _WorkshopGoalEntry(
           goal: goal,
-          kind: _WorkshopGoalKind.questOnBoard,
+          kind: _WorkshopGoalKind.onBoard,
           actionTitle: legacy.displayTitle,
-          status: 'QUEST ON BOARD',
-          actionLabel: 'Review Quest',
+          status: 'ON YOUR BOARD',
+          actionLabel: 'Open the Quest',
         );
       }
       return _WorkshopGoalEntry(
         goal: goal,
-        kind: _WorkshopGoalKind.needsRoute,
-        actionTitle: 'No route has been shaped for this goal yet.',
-        status: 'ROUTE TO SHAPE',
-        actionLabel: 'Shape a route',
+        kind: _WorkshopGoalKind.needsPlan,
+        actionTitle:
+            'No plan yet. A few questions and I will draft one, with a small first step.',
+        status: 'NEEDS A PLAN',
+        actionLabel: 'Shape a plan',
       );
     }
     return _WorkshopGoalEntry(
       goal: goal,
-      kind: _WorkshopGoalKind.routeComplete,
-      actionTitle: 'Every marker in this route is complete.',
-      status: 'ROUTE COMPLETE',
-      actionLabel: 'Return to goal',
+      kind: _WorkshopGoalKind.planDone,
+      actionTitle: 'Every step in this plan is done.',
+      status: 'PLAN COMPLETE',
+      actionLabel: 'Shape what comes next',
     );
   }
 }
@@ -280,8 +375,6 @@ class _WorkshopGoalEntry {
 class _WorkshopRoom extends StatelessWidget {
   const _WorkshopRoom({
     required this.entries,
-    required this.waiting,
-    required this.moving,
     required this.stewardMemory,
     required this.busy,
     required this.reduceMotion,
@@ -291,12 +384,11 @@ class _WorkshopRoom extends StatelessWidget {
     required this.onOpen,
     required this.onNewGoal,
     required this.onOpenEncounter,
-    required this.initialGoalTitle,
+    required this.intake,
+    required this.intakeExpression,
   });
 
   final List<_WorkshopGoalEntry> entries;
-  final int waiting;
-  final int moving;
   final StewardMemory stewardMemory;
   final bool busy;
   final bool reduceMotion;
@@ -306,147 +398,124 @@ class _WorkshopRoom extends StatelessWidget {
   final ValueChanged<_WorkshopGoalEntry> onOpen;
   final VoidCallback onNewGoal;
   final VoidCallback onOpenEncounter;
-  final String? initialGoalTitle;
+  final Widget? intake;
+  final ValueListenable<GoalStewardExpression> intakeExpression;
 
-  String get _summary {
-    final parts = <String>[];
-    if (waiting > 0) {
-      parts.add('$waiting ${waiting == 1 ? 'step' : 'steps'} to review');
-    }
-    if (moving > 0) {
-      parts.add('$moving ${moving == 1 ? 'Quest' : 'Quests'} on board');
-    }
-    final unshaped = entries
-        .where((entry) => entry.kind == _WorkshopGoalKind.needsRoute)
-        .length;
-    if (unshaped > 0) {
-      parts.add('$unshaped ${unshaped == 1 ? 'route' : 'routes'} to shape');
-    }
-    final complete = entries
-        .where((entry) => entry.kind == _WorkshopGoalKind.routeComplete)
-        .length;
-    if (complete > 0) {
-      parts.add('$complete ${complete == 1 ? 'route' : 'routes'} complete');
-    }
-    if (parts.isEmpty) return 'Nothing is waiting on the bench';
-    return parts.join('  ·  ');
-  }
-
-  GoalStewardExpression get _stewardExpression {
+  GoalStewardExpression get _homeExpression {
     return resolveGoalStewardRegisterExpression(
       hasCutWaiting: entries.any(
-        (entry) => entry.kind == _WorkshopGoalKind.cutWaiting,
+        (entry) => entry.kind == _WorkshopGoalKind.stepReady,
       ),
       hasRouteToShape: entries.any(
-        (entry) => entry.kind == _WorkshopGoalKind.needsRoute,
+        (entry) => entry.kind == _WorkshopGoalKind.needsPlan,
       ),
       hasQuestOnBoard: entries.any(
-        (entry) => entry.kind == _WorkshopGoalKind.questOnBoard,
+        (entry) => entry.kind == _WorkshopGoalKind.onBoard,
       ),
       hasCompletedRoute: entries.any(
-        (entry) => entry.kind == _WorkshopGoalKind.routeComplete,
+        (entry) => entry.kind == _WorkshopGoalKind.planDone,
       ),
     );
   }
 
+  /// The goal that most needs the Steward: no plan, then a next step that is
+  /// ready but not on the board, then one already on the board.
+  _WorkshopGoalEntry? get _lead {
+    _WorkshopGoalEntry? best;
+    for (final entry in entries) {
+      if (best == null || entry.kind.index < best.kind.index) best = entry;
+    }
+    return best;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final surface = MediaQuery.sizeOf(context);
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final compact = surface.height < 700 || textScale > 1.2;
+    final inIntake = intake != null;
     final still =
         reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    return PopScope<Object?>(
-      canPop: !busy,
-      child: Scaffold(
-        backgroundColor: const Color(0xFF100D0B),
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            GoalStewardArtwork(
+    final artwork = inIntake
+        ? ValueListenableBuilder<GoalStewardExpression>(
+            valueListenable: intakeExpression,
+            builder: (context, expression, _) => GoalStewardArtwork(
               key: const Key('goal-workshop-tavern'),
-              expression: _stewardExpression,
+              expression: expression,
               reduceMotion: still,
               parallax: parallax,
               light: light,
             ),
+          )
+        : GoalStewardArtwork(
+            key: const Key('goal-workshop-tavern'),
+            expression: _homeExpression,
+            reduceMotion: still,
+            parallax: parallax,
+            light: light,
+          );
+    return PopScope<Object?>(
+      // Back from a question steps back through the questions; the screen
+      // decides what a back from the first one means.
+      canPop: !busy && !inIntake,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !busy) onBack();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF100D0B),
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            artwork,
             const DecoratedBox(
               decoration: BoxDecoration(gradient: goalsWorkshopDetailScrim),
             ),
+            if (inIntake)
+              _IntakeLayer(busy: busy, child: intake!)
+            else
+              _HomeScroll(
+                entries: entries,
+                lead: _lead,
+                stewardMemory: stewardMemory,
+                busy: busy,
+                onOpen: onOpen,
+                onNewGoal: onNewGoal,
+                onOpenEncounter: onOpenEncounter,
+              ),
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: _WorkshopBackButton(enabled: !busy, onTap: onBack),
-                    ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          // The register belongs on the lower counter. Even on
-                          // compact phones it must leave the steward's face and
-                          // offered route card visible; the slips scroll inside
-                          // the bench instead of growing over him.
-                          final visibleRows = entries.length.clamp(1, 3);
-                          final desiredHeight = 236.0 + (visibleRows * 62.0);
-                          final compactFraction = textScale > 1.4 ? 0.92 : 0.62;
-                          final maxPanelHeight =
-                              constraints.maxHeight *
-                              (compact ? compactFraction : 0.52);
-                          final minPanelHeight = compact
-                              ? maxPanelHeight * 0.88
-                              : 390.0.clamp(0.0, maxPanelHeight);
-                          final panelHeight = desiredHeight.clamp(
-                            minPanelHeight,
-                            maxPanelHeight,
-                          );
-                          return Stack(
-                            alignment: Alignment.bottomCenter,
-                            children: [
-                              if (!stewardMemory.discovered && !compact)
-                                Positioned(
-                                  right: 2,
-                                  bottom: panelHeight + 12,
-                                  child: _StewardHiddenCard(
-                                    enabled: !busy,
-                                    onTap: onOpenEncounter,
-                                  ),
-                                ),
-                              Align(
-                                alignment: Alignment.bottomCenter,
-                                child: AnimatedOpacity(
-                                  duration: still ? Motion.ack : Motion.quick,
-                                  opacity: busy ? 0.78 : 1,
-                                  child: SizedBox(
-                                    height: panelHeight,
-                                    child: _WorkshopRegister(
-                                      entries: entries,
-                                      summary: _summary,
-                                      stewardMemory: stewardMemory,
-                                      showDiscoveryInFooter:
-                                          !stewardMemory.discovered && compact,
-                                      busy: busy,
-                                      onOpen: onOpen,
-                                      onNewGoal: onNewGoal,
-                                      onOpenEncounter: onOpenEncounter,
-                                      initialGoalTitle: initialGoalTitle,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.fromLTRB(16, 10, 0, 0),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: _WorkshopBackButton(enabled: !busy, onTap: onBack),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The Steward's questions sit on the lower counter and rise with the
+/// keyboard; the room behind them stays where it is.
+class _IntakeLayer extends StatelessWidget {
+  const _IntakeLayer({required this.busy, required this.child});
+
+  final bool busy;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final bottom = math.max(media.padding.bottom, media.viewInsets.bottom);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, media.padding.top + 66, 16, bottom + 12),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: AnimatedOpacity(
+          duration: Motion.quick,
+          opacity: busy ? 0.78 : 1,
+          child: child,
         ),
       ),
     );
@@ -467,7 +536,7 @@ class _WorkshopBackButton extends StatelessWidget {
     pressDepth: 1.2,
     shape: const FacetedBorder(cut: 9),
     edgeColor: Colors.transparent,
-    semanticLabel: 'Return to Goals',
+    semanticLabel: 'Back',
     onTapUp: (_) => onTap(),
     child: Container(
       width: 46,
@@ -490,82 +559,105 @@ class _WorkshopBackButton extends StatelessWidget {
   );
 }
 
-class _WorkshopRegister extends StatefulWidget {
-  const _WorkshopRegister({
+/// The whole home scrolls over the Steward: at rest his face and shoulders
+/// are visible above the panel, and the panel rises over him as it scrolls.
+class _HomeScroll extends StatelessWidget {
+  const _HomeScroll({
     required this.entries,
-    required this.summary,
+    required this.lead,
     required this.stewardMemory,
-    required this.showDiscoveryInFooter,
     required this.busy,
     required this.onOpen,
     required this.onNewGoal,
     required this.onOpenEncounter,
-    required this.initialGoalTitle,
   });
 
   final List<_WorkshopGoalEntry> entries;
-  final String summary;
+  final _WorkshopGoalEntry? lead;
   final StewardMemory stewardMemory;
-  final bool showDiscoveryInFooter;
   final bool busy;
   final ValueChanged<_WorkshopGoalEntry> onOpen;
   final VoidCallback onNewGoal;
   final VoidCallback onOpenEncounter;
-  final String? initialGoalTitle;
 
-  @override
-  State<_WorkshopRegister> createState() => _WorkshopRegisterState();
-}
-
-class _WorkshopRegisterState extends State<_WorkshopRegister> {
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final compact = MediaQuery.sizeOf(context).height < 700 || textScale > 1.2;
-    final largeText = textScale > 1.2;
-    final hasFileBoxEntry =
-        widget.stewardMemory.discovered || widget.showDiscoveryInFooter;
-    Widget fileBoxAction(Alignment alignment) => TextButton.icon(
-      key: widget.stewardMemory.discovered
-          ? const Key('goal-workshop-talk')
-          : const Key('steward-hidden-card'),
-      onPressed: widget.busy ? null : widget.onOpenEncounter,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        alignment: alignment,
-        textStyle: Type.body.copyWith(
-          fontSize: 13,
-          height: 1.2,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      icon: const Icon(Icons.inventory_2_outlined, size: 17),
-      label: Text(
-        widget.stewardMemory.discovered
-            ? widget.stewardMemory.nodeId != null &&
-                      !widget.stewardMemory.completed
-                  ? 'Continue talking'
-                  : 'Talk with the Steward'
-            : 'Talk with the Steward',
+    final compact = media.size.height < 700 || textScale > 1.2;
+    final gap = (media.size.height * (compact ? 0.28 : 0.40)).clamp(
+      150.0,
+      420.0,
+    );
+    // The back button stays put at the top left, so the panel dissolves into
+    // the room as it scrolls up to meet it rather than running under it.
+    final fadeFrom = media.padding.top + 2;
+    final fadeTo = media.padding.top + 62;
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (rect) => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [Color(0x00000000), Color(0xFF000000)],
+        stops: [
+          (fadeFrom / rect.height).clamp(0.0, 1.0),
+          (fadeTo / rect.height).clamp(0.0, 1.0),
+        ],
+      ).createShader(rect),
+      child: ListView(
+        key: const PageStorageKey<String>('goal-workshop-home-scroll'),
+        padding: EdgeInsets.fromLTRB(16, 0, 16, media.padding.bottom + 28),
+        children: [
+          SizedBox(height: gap),
+          AnimatedOpacity(
+            duration: Motion.quick,
+            opacity: busy ? 0.78 : 1,
+            child: _WorkshopHome(
+              entries: entries,
+              lead: lead,
+              stewardMemory: stewardMemory,
+              busy: busy,
+              onOpen: onOpen,
+              onNewGoal: onNewGoal,
+              onOpenEncounter: onOpenEncounter,
+            ),
+          ),
+        ],
       ),
     );
-    Widget newGoalAction(Alignment alignment) => TextButton.icon(
-      key: const Key('goal-workshop-home-new-goal'),
-      onPressed: widget.busy ? null : widget.onNewGoal,
-      style: TextButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        alignment: alignment,
-        textStyle: Type.body.copyWith(
-          fontSize: 13,
-          height: 1.2,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      icon: const Icon(Icons.add_rounded, size: 17),
-      label: const Text('New goal'),
-    );
+  }
+}
+
+class _WorkshopHome extends StatelessWidget {
+  const _WorkshopHome({
+    required this.entries,
+    required this.lead,
+    required this.stewardMemory,
+    required this.busy,
+    required this.onOpen,
+    required this.onNewGoal,
+    required this.onOpenEncounter,
+  });
+
+  final List<_WorkshopGoalEntry> entries;
+  final _WorkshopGoalEntry? lead;
+  final StewardMemory stewardMemory;
+  final bool busy;
+  final ValueChanged<_WorkshopGoalEntry> onOpen;
+  final VoidCallback onNewGoal;
+  final VoidCallback onOpenEncounter;
+
+  @override
+  Widget build(BuildContext context) {
+    final others = [
+      for (final entry in entries)
+        if (!identical(entry, lead)) entry,
+    ];
+    final talkLabel = stewardMemory.discovered
+        ? stewardMemory.nodeId != null && !stewardMemory.completed
+              ? 'Continue talking'
+              : 'Talk with the Steward'
+        : 'Talk with the Steward';
     return KeyedSubtree(
       key: const Key('goal-workshop-home'),
       child: ClipPath(
@@ -588,160 +680,130 @@ class _WorkshopRegisterState extends State<_WorkshopRegister> {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: ListView(
-                  key: const PageStorageKey<String>(
-                    'goal-workshop-home-scroll',
-                  ),
-                  padding: EdgeInsets.zero,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        19,
-                        compact ? 15 : 18,
-                        19,
-                        12,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.home_repair_service_outlined,
-                                size: 16,
+                          const Icon(
+                            Icons.home_repair_service_outlined,
+                            size: 16,
+                            color: Palette.brassLit,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'THE STEWARD\u2019S WORKSHOP',
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                letterSpacing: 1.15,
                                 color: Palette.brassLit,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "AT THE STEWARD'S BENCH",
-                                  maxLines: compact ? 2 : 1,
-                                  style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    letterSpacing: 1.15,
-                                    color: Palette.brassLit,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 7),
-                          Text(
-                            'What are we working on?',
-                            style: Type.display.copyWith(
-                              fontSize: compact ? 19 : 28,
-                              height: 1.02,
-                              color: Palette.textHi,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Choose a goal. We'll open the Quest you have, or shape the next move together.",
-                            style: Type.body.copyWith(
-                              fontSize: compact ? 13 : 13.5,
-                              height: 1.3,
-                              color: Palette.textMid,
-                            ),
-                          ),
-                          const SizedBox(height: 9),
-                          Text(
-                            widget.summary.toUpperCase(),
-                            key: const Key('goal-workshop-home-summary'),
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              letterSpacing: 0.72,
-                              color: Palette.textMid,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: Color(0x48A97445),
-                    ),
-                    if (widget.entries.isEmpty)
-                      _WorkshopEmpty(onNewGoal: widget.onNewGoal)
-                    else
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          12,
-                          compact ? 8 : 10,
-                          12,
-                          10,
+                      const SizedBox(height: 8),
+                      Text(
+                        'Let\u2019s work on a goal',
+                        key: const Key('goal-workshop-home-title'),
+                        style: Type.display.copyWith(
+                          fontSize: 27,
+                          height: 1.04,
+                          color: Palette.textHi,
                         ),
-                        child: Column(
-                          children: [
-                            for (
-                              var index = 0;
-                              index < widget.entries.length;
-                              index++
-                            ) ...[
-                              _WorkshopGoalSlip(
-                                entry: widget.entries[index],
-                                selected:
-                                    widget.initialGoalTitle
-                                        ?.trim()
-                                        .toLowerCase() ==
-                                    widget.entries[index].goal.title
-                                        .trim()
-                                        .toLowerCase(),
-                                enabled: !widget.busy,
-                                onTap: () =>
-                                    widget.onOpen(widget.entries[index]),
-                              ),
-                              if (index != widget.entries.length - 1)
-                                const Divider(
-                                  height: 1,
-                                  thickness: 1,
-                                  indent: 12,
-                                  endIndent: 12,
-                                  color: Color(0x31986A3E),
-                                ),
-                            ],
-                          ],
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        'I turn a goal into a short plan and one small first step. Nothing goes on your Quest board until you take it.',
+                        key: const Key('goal-workshop-home-intro'),
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          height: 1.35,
+                          color: Palette.textMid,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (lead case final entry?)
+                  _WorkshopLeadCard(
+                    entry: entry,
+                    enabled: !busy,
+                    onTap: () => onOpen(entry),
+                  )
+                else
+                  _WorkshopFirstGoalCard(enabled: !busy, onTap: onNewGoal),
+                if (others.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Text(
+                      'YOUR OTHER GOALS',
+                      key: const Key('goal-workshop-home-others'),
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 1.0,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  for (var index = 0; index < others.length; index++) ...[
+                    _WorkshopGoalRow(
+                      entry: others[index],
+                      enabled: !busy,
+                      onTap: () => onOpen(others[index]),
+                    ),
+                    if (index != others.length - 1)
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 10,
+                        endIndent: 10,
+                        color: Color(0x31986A3E),
                       ),
                   ],
+                ],
+                const SizedBox(height: 16),
+                if (entries.isNotEmpty) ...[
+                  HoneyButton(
+                    key: const Key('goal-workshop-home-new-goal'),
+                    label: 'New goal',
+                    icon: Icons.add_rounded,
+                    quiet: true,
+                    expand: true,
+                    enabled: !busy,
+                    onTap: onNewGoal,
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: HoneyButton(
+                      key: stewardMemory.discovered
+                          ? const Key('goal-workshop-talk')
+                          : const Key('steward-hidden-card'),
+                      label: talkLabel,
+                      icon: Icons.forum_outlined,
+                      quiet: true,
+                      tint: Palette.textMid,
+                      enabled: !busy,
+                      onTap: onOpenEncounter,
+                    ),
+                  ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(18, 7, 18, 10),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0x3AAB7A49))),
-                ),
-                child: hasFileBoxEntry && largeText
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          fileBoxAction(Alignment.centerLeft),
-                          const SizedBox(height: 4),
-                          newGoalAction(Alignment.centerLeft),
-                        ],
-                      )
-                    : Row(
-                        children: [
-                          if (hasFileBoxEntry)
-                            Expanded(
-                              child: fileBoxAction(Alignment.centerLeft),
-                            ),
-                          if (hasFileBoxEntry) const SizedBox(width: 4),
-                          Expanded(
-                            child: newGoalAction(
-                              hasFileBoxEntry
-                                  ? Alignment.centerRight
-                                  : Alignment.center,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -749,87 +811,200 @@ class _WorkshopRegisterState extends State<_WorkshopRegister> {
   }
 }
 
-class _StewardHiddenCard extends StatelessWidget {
-  const _StewardHiddenCard({required this.enabled, required this.onTap});
+/// A short, tinted word for what a goal needs next.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.entry});
 
-  final bool enabled;
-  final VoidCallback onTap;
+  final _WorkshopGoalEntry entry;
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(
-      key: const Key('steward-hidden-card'),
-      enabled: enabled,
-      soundEnabled: false,
-      pressDepth: 1,
-      shape: const FacetedBorder(cut: 9),
-      edgeColor: Colors.transparent,
-      semanticLabel: 'Talk with the Steward',
-      semanticHint: 'Start a short optional conversation',
-      onTapUp: (_) => onTap(),
-      child: ExcludeSemantics(
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 160, minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: facetedDecoration(
-            cut: 9,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF34261B), Color(0xFF1C130E)],
-            ),
-            borderColor: const Color(0xA8B47C43),
-            borderWidth: 1.1,
-            shadows: const [
-              BoxShadow(
-                color: Color(0x90080603),
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.forum_outlined, size: 17, color: Palette.brassLit),
-              SizedBox(width: 8),
-              Text(
-                'Talk with the Steward',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'EBGaramond',
-                  fontSize: 16,
-                  height: 1.1,
-                  fontWeight: FontWeight.w600,
-                  color: Palette.textHi,
-                ),
-              ),
-            ],
-          ),
+    final attention =
+        entry.kind == _WorkshopGoalKind.needsPlan ||
+        entry.kind == _WorkshopGoalKind.stepReady;
+    final color = attention ? Palette.xpLight : Palette.textMid;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: facetedDecoration(
+        cut: 4,
+        color: color.withValues(alpha: attention ? 0.10 : 0.05),
+        borderColor: color.withValues(alpha: attention ? 0.55 : 0.28),
+      ),
+      child: Text(
+        entry.status,
+        style: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          letterSpacing: 0.7,
+          color: color,
         ),
       ),
     );
   }
 }
 
-class _WorkshopGoalSlip extends StatelessWidget {
-  const _WorkshopGoalSlip({
+/// The one goal that most needs the Steward, with the one thing to do about it.
+class _WorkshopLeadCard extends StatelessWidget {
+  const _WorkshopLeadCard({
     required this.entry,
-    required this.selected,
     required this.enabled,
     required this.onTap,
   });
 
   final _WorkshopGoalEntry entry;
-  final bool selected;
   final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final accent = entry.goal.stat.color;
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final compact = MediaQuery.sizeOf(context).height < 700 || textScale > 1.2;
+    return Container(
+      key: const Key('goal-workshop-lead'),
+      decoration: facetedDecoration(
+        cut: 10,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accent.withValues(alpha: 0.10),
+            const Color(0x1CF3DEC0),
+            const Color(0x0DF3DEC0),
+          ],
+          stops: const [0, 0.35, 1],
+        ),
+        borderColor: accent.withValues(alpha: 0.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _StatusChip(entry: entry),
+                if (entry.stepPosition case final position?)
+                  Text(
+                    position,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 0.8,
+                      color: Palette.textMid,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 11),
+            Text(
+              entry.goal.title,
+              key: const Key('goal-workshop-lead-title'),
+              style: Type.display.copyWith(
+                fontSize: 25,
+                height: 1.06,
+                color: Palette.textHi,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              entry.actionTitle,
+              style: Type.body.copyWith(
+                fontSize: 14.5,
+                height: 1.35,
+                color: Palette.textMid,
+              ),
+            ),
+            const SizedBox(height: 15),
+            HoneyButton(
+              key: ValueKey<String>(
+                'goal-workshop-home-goal-${entry.goal.title}',
+              ),
+              label: entry.actionLabel,
+              icon: Icons.arrow_forward_rounded,
+              expand: true,
+              glow: false,
+              enabled: enabled,
+              semanticLabel: '${entry.actionLabel}: ${entry.goal.title}',
+              onTap: onTap,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// No goals yet: the Steward offers to start the first one.
+class _WorkshopFirstGoalCard extends StatelessWidget {
+  const _WorkshopFirstGoalCard({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('goal-workshop-lead'),
+    decoration: facetedDecoration(
+      cut: 10,
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0x1CF3DEC0), Color(0x0DF3DEC0)],
+      ),
+      borderColor: Palette.brass.withValues(alpha: 0.5),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Start your first goal',
+            style: Type.display.copyWith(
+              fontSize: 25,
+              height: 1.06,
+              color: Palette.textHi,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            'Tell me what you want to change. I will ask a few questions, one at a time, and hand you one small first step.',
+            style: Type.body.copyWith(
+              fontSize: 14.5,
+              height: 1.35,
+              color: Palette.textMid,
+            ),
+          ),
+          const SizedBox(height: 15),
+          HoneyButton(
+            key: const Key('goal-workshop-home-new-goal'),
+            label: 'Start a goal',
+            icon: Icons.arrow_forward_rounded,
+            expand: true,
+            glow: false,
+            enabled: enabled,
+            onTap: onTap,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _WorkshopGoalRow extends StatelessWidget {
+  const _WorkshopGoalRow({
+    required this.entry,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final _WorkshopGoalEntry entry;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = entry.goal.stat.color;
     final semantic =
         '${entry.goal.title}. ${entry.status}. ${entry.actionTitle}. ${entry.actionLabel}.';
     return Pressable(
@@ -847,6 +1022,7 @@ class _WorkshopGoalSlip extends StatelessWidget {
       stateBuilder: (context, child, pressed, focused, hovered) =>
           AnimatedContainer(
             duration: pressed ? Duration.zero : Motion.ack,
+            constraints: const BoxConstraints(minHeight: 56),
             decoration: BoxDecoration(
               color: pressed
                   ? accent.withValues(alpha: 0.10)
@@ -858,37 +1034,69 @@ class _WorkshopGoalSlip extends StatelessWidget {
             child: child,
           ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(10, compact ? 9 : 12, 8, compact ? 9 : 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 3,
-              height: compact ? 62 : 48,
-              margin: const EdgeInsets.only(top: 1),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.78),
-                borderRadius: BorderRadius.circular(2),
+        padding: const EdgeInsets.fromLTRB(10, 12, 8, 12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.78),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: compact
-                  ? _CompactWorkshopGoalSlip(
-                      entry: entry,
-                      accent: accent,
-                      selected: selected,
-                    )
-                  : _RegularWorkshopGoalSlip(
-                      entry: entry,
-                      accent: accent,
-                      selected: selected,
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.goal.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 15,
+                        height: 1.15,
+                        fontWeight: FontWeight.w600,
+                        color: Palette.textHi,
+                      ),
                     ),
-            ),
-            if (!compact) ...[
+                    const SizedBox(height: 5),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _StatusChip(entry: entry),
+                        if (entry.stepPosition case final position?)
+                          Text(
+                            position,
+                            style: Type.label.copyWith(
+                              fontSize: Type.minLabel,
+                              letterSpacing: 0.7,
+                              color: Palette.textLo,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      entry.actionTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        height: 1.25,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
+              Align(
+                alignment: Alignment.centerRight,
                 child: Icon(
                   Icons.arrow_forward_rounded,
                   size: 18,
@@ -896,207 +1104,9 @@ class _WorkshopGoalSlip extends StatelessWidget {
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
-}
-
-class _RegularWorkshopGoalSlip extends StatelessWidget {
-  const _RegularWorkshopGoalSlip({
-    required this.entry,
-    required this.accent,
-    required this.selected,
-  });
-
-  final _WorkshopGoalEntry entry;
-  final Color accent;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (selected) ...[
-        Text(
-          'YOUR WORKBENCH',
-          key: const Key('goal-workshop-originating-goal'),
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 0.8,
-            color: Palette.brassLit,
-          ),
-        ),
-        const SizedBox(height: 3),
-      ],
-      Text(
-        entry.goal.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: Type.body.copyWith(
-          fontSize: 14,
-          height: 1.12,
-          fontWeight: FontWeight.w600,
-          color: Palette.textHi,
-        ),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        entry.actionTitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: Type.body.copyWith(
-          fontSize: 13,
-          height: 1.22,
-          color: Palette.textMid,
-        ),
-      ),
-      const SizedBox(height: 5),
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              entry.status,
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 0.62,
-                color: Palette.textMid,
-              ),
-            ),
-          ),
-          Text(
-            entry.actionLabel.toUpperCase(),
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              letterSpacing: 0.54,
-              color: accent.withValues(alpha: 0.92),
-            ),
-          ),
-        ],
-      ),
-      if (entry.routePosition case final position?) ...[
-        const SizedBox(height: 3),
-        Text(
-          position,
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 0.68,
-            color: Palette.textLo,
-          ),
-        ),
-      ],
-    ],
-  );
-}
-
-class _CompactWorkshopGoalSlip extends StatelessWidget {
-  const _CompactWorkshopGoalSlip({
-    required this.entry,
-    required this.accent,
-    required this.selected,
-  });
-
-  final _WorkshopGoalEntry entry;
-  final Color accent;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      if (selected) ...[
-        Text(
-          'YOUR WORKBENCH',
-          key: const Key('goal-workshop-originating-goal'),
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 0.8,
-            color: Palette.brassLit,
-          ),
-        ),
-        const SizedBox(height: 3),
-      ],
-      Row(
-        children: [
-          Expanded(
-            child: Text(
-              entry.status,
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 0.58,
-                color: Palette.textMid,
-              ),
-            ),
-          ),
-          Icon(
-            Icons.arrow_forward_rounded,
-            size: 16,
-            color: accent.withValues(alpha: 0.82),
-          ),
-        ],
-      ),
-      const SizedBox(height: 3),
-      Text(
-        entry.goal.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: Type.body.copyWith(
-          fontSize: 13.5,
-          height: 1.12,
-          fontWeight: FontWeight.w600,
-          color: Palette.textHi,
-        ),
-      ),
-      const SizedBox(height: 3),
-      Text(
-        entry.actionTitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: Type.body.copyWith(
-          fontSize: 13,
-          height: 1.16,
-          color: Palette.textMid,
-        ),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        entry.actionLabel.toUpperCase(),
-        style: Type.label.copyWith(
-          fontSize: Type.minLabel,
-          letterSpacing: 0.54,
-          color: accent.withValues(alpha: 0.92),
-        ),
-      ),
-    ],
-  );
-}
-
-class _WorkshopEmpty extends StatelessWidget {
-  const _WorkshopEmpty({required this.onNewGoal});
-
-  final VoidCallback onNewGoal;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
-      child: Column(
-        children: [
-          const Icon(Icons.handyman_outlined, size: 28, color: Palette.textLo),
-          const SizedBox(height: 10),
-          Text(
-            'The bench is clear.',
-            style: Type.display.copyWith(fontSize: 21, color: Palette.textHi),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Create a goal when there is something you want to make different.',
-            textAlign: TextAlign.center,
-            style: Type.body.copyWith(color: Palette.textMid),
-          ),
-        ],
-      ),
-    ),
-  );
 }

@@ -39,9 +39,9 @@ Future<void> _pumpWorkshop(
         quests: const [],
         onPersist: () {},
         onOpenGoal: (_) async {},
-        onBuildRoute: (_) async {},
+        onShapePlan: (_, _) async {},
+        onCreateGoal: (_) async {},
         onFocusGoal: (_) {},
-        onNewGoal: () async {},
       ),
     ),
   );

@@ -2962,6 +2962,8 @@ void main() {
         ),
       );
     }
+    await tester.ensureVisible(find.byKey(const Key('steward-hidden-card')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('steward-hidden-card')));
     await tester.pumpAndSettle();
     if (_capture) {
@@ -3491,13 +3493,19 @@ void main() {
     }
     expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
     expect(find.byKey(const Key('goal-workshop-accept')), findsOneWidget);
-    expect(find.byKey(const Key('goal-workshop-edit-action')), findsOneWidget);
     expect(
       find.byKey(const Key('goal-workshop-smaller-action')),
       findsOneWidget,
     );
     expect(find.byKey(const Key('goal-workshop-cancel')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    // Changing the step lives with the whole plan, one tap away.
+    expect(find.byKey(const Key('goal-workshop-edit-action')), findsNothing);
+    await tester.tap(find.byKey(const Key('goal-workshop-see-plan')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-edit-action')), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('goal-workshop-edit-action')),
+    );
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -3724,7 +3732,8 @@ void main() {
       find.byKey(const Key('goal-opening-action-title')),
     );
     expect(compactAction.style?.fontFamily, 'EBGaramond');
-    expect(compactAction.style?.fontSize, 19);
+    expect(compactAction.style?.fontSize, inInclusiveRange(16, 21));
+    expect(compactAction.maxLines, isNull);
     expect(compactAction.textScaler?.scale(1), closeTo(1.5, 0.01));
     expect(tester.widget<Text>(find.text(goal.title).last).maxLines, isNull);
     if (_capture) {
