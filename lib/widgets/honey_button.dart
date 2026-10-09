@@ -2,18 +2,15 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
-import '../tokens.dart';
-import 'facets.dart';
-import 'gold_surface.dart';
+import 'lamplight.dart';
 import 'pressable.dart';
 
-/// The one honey CTA — a plate of satin gold routed through [Pressable] so the
-/// primary action depresses (faux-3D) with a haptic tick, exactly like a quest
-/// card (round-30: the most important button should feel the MOST physical, not
-/// flatter than a list row).
+/// The one primary CTA: a lamp (see [LampShade]) routed through [Pressable],
+/// so contact turns its light up under the finger and drops the shade onto
+/// its binding at once, with the shared haptic and sound lanes.
 ///
-/// The face itself is [GoldSurface], which is also what the Quest control and
-/// the page rails on Goals/Journal use — one material, one reflection, one ink.
+/// Disabled is an unlit shade, never a faded copy of the lit one: the
+/// action exists and reads, it simply is not ready.
 class HoneyButton extends StatelessWidget {
   const HoneyButton({
     super.key,
@@ -32,75 +29,74 @@ class HoneyButton extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? icon;
 
-  /// Dim + unpressable when false (a "not ready yet" CTA).
+  /// An unlit, unpressable shade when false (a "not ready yet" CTA).
   final bool enabled;
   final bool glow;
 
   /// Stretch to fill the available width (a pinned footer button).
   final bool expand;
+
+  /// The old mono size; the lamp's Garamond capitals are sized from it.
   final double fontSize;
 
   /// The page's shared tilt/pointer light, when one is available. Without it
-  /// the reflection simply parks — the still frame is the designed one.
+  /// the core simply parks: the still frame is the designed one.
   final ValueListenable<Offset>? light;
 
   /// Some composite controls already own a more specific semantic sound in
   /// their callback. They can keep the physical [Pressable] response without
-  /// voicing a second, generic brass cue.
+  /// voicing a second, generic cue.
   final bool soundEnabled;
 
   @override
   Widget build(BuildContext context) {
     const cut = 11.0;
-    const shape = FacetedBorder(cut: cut);
-    final button = GoldSurface(
+    const shape = LampShadeBorder(cut: cut);
+    final level = enabled ? LampLevel.lit : LampLevel.off;
+    Widget face(bool pressed) => LampShade(
       cut: cut,
-      glow: glow,
+      spill: glow,
       light: light,
+      pressed: pressed,
+      level: level,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 50),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5
+              ? 12
+              : 22,
+          vertical: 12,
+        ),
         alignment: Alignment.center,
         child: Row(
           mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: fontSize + 5, color: Palette.onHoney),
-              const SizedBox(width: 8),
-            ],
             Flexible(
-              child: Text(
-                label,
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                style: Type.label.copyWith(
-                  fontSize: fontSize,
-                  letterSpacing: 1.3,
-                  color: Palette.onHoney,
-                  shadows: const [
-                    Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1)),
-                  ],
-                ),
+              child: LampLabel(
+                text: label,
+                icon: icon,
+                level: level,
+                fontSize: fontSize + 3.5,
               ),
             ),
           ],
         ),
       ),
     );
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.45,
-      child: Pressable(
-        enabled: enabled,
-        material: MaterialSound.brass,
-        soundEnabled: soundEnabled,
-        semanticLabel: label,
-        onTapUp: enabled ? (_) => onTap() : null,
-        shape: shape,
-        // a warm dark-amber under-edge, never grey
-        edgeColor: Palette.brassDeep,
-        child: button,
-      ),
+    return Pressable(
+      enabled: enabled,
+      material: MaterialSound.brass,
+      soundEnabled: soundEnabled,
+      semanticLabel: label,
+      onTapUp: enabled ? (_) => onTap() : null,
+      shape: shape,
+      pressDepth: 2,
+      // The shade's dark binding, seen as its thickness.
+      edgeColor: const Color(0xFF1E1109),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          face(pressed),
+      child: face(false),
     );
   }
 }

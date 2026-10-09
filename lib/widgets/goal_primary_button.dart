@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../tokens.dart';
 import 'facets.dart';
+import 'lamplight.dart';
 import 'pressable.dart';
 
 const goalsThresholdPlateAsset =
@@ -401,316 +402,79 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
         hovered: hovered,
       );
     }
-    final returnClasp =
-        widget.treatment == GoalPrimaryButtonTreatment.returnClasp;
+    return _lampFace(pressed: pressed);
+  }
+
+  /// Standard, opening and return actions are the app's lamp ([LampShade]):
+  /// one primary-control language across Quests, Goals and sheets. Contact
+  /// and the accepted (pending) frame both turn the light up; a disabled
+  /// action is an unlit shade.
+  Widget _lampFace({required bool pressed}) {
     final openingClasp =
         widget.treatment == GoalPrimaryButtonTreatment.openingClasp ||
-        returnClasp;
+        widget.treatment == GoalPrimaryButtonTreatment.returnClasp;
+    final compactLabel = _pending || widget.label.length > 18;
+    final level = widget.enabled ? LampLevel.lit : LampLevel.off;
+    final label = _pending ? widget.pendingLabel : widget.label;
+    final style = LampLabel.styleFor(
+      label,
+      level: level,
+      fontSize: label == label.toUpperCase()
+          ? 15.5
+          : compactLabel
+          ? 16.5
+          : openingClasp
+          ? 18
+          : 19,
+    );
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    // The accepted state keeps its word and progress glyph on one calm line,
-    // even in the narrow action slot used by the Goals card.
-    final compactLabel = _pending || widget.label.length > 18;
-    final active = widget.enabled && !_pending;
-    final animation =
-        widget.light ?? const AlwaysStoppedAnimation<Offset>(Offset.zero);
-
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) {
-        final light = still ? Offset.zero : animation.value;
-        final catchAlignment = Alignment(
-          (-0.38 + light.dx * 0.22).clamp(-0.7, -0.05),
-          (-0.08 + light.dy * 0.08).clamp(-0.22, 0.12),
-        );
-        final faceColors = returnClasp
-            ? !widget.enabled
-                  ? const [
-                      Color(0xFF65503A),
-                      Color(0xFF4C3828),
-                      Color(0xFF36251B),
-                    ]
-                  : pressed
-                  ? const [
-                      Color(0xFF684124),
-                      Color(0xFF513018),
-                      Color(0xFF392113),
-                    ]
-                  : _pending
-                  ? const [
-                      Color(0xFF806040),
-                      Color(0xFF644428),
-                      Color(0xFF472C1A),
-                    ]
-                  : const [
-                      Color(0xFF785536),
-                      Color(0xFF5E3F27),
-                      Color(0xFF422919),
-                    ]
-            : openingClasp
-            ? !widget.enabled
-                  ? const [
-                      Color(0xFF9A794E),
-                      Color(0xFF80603C),
-                      Color(0xFF68472A),
-                    ]
-                  : pressed
-                  ? const [
-                      Color(0xFFB78445),
-                      Color(0xFF94602D),
-                      Color(0xFF704019),
-                    ]
-                  : _pending
-                  ? const [
-                      Color(0xFFC8A363),
-                      Color(0xFFB68444),
-                      Color(0xFF94602E),
-                    ]
-                  : const [
-                      Color(0xFFD4AD6A),
-                      Color(0xFFC08D49),
-                      Color(0xFFA66C34),
-                    ]
-            : !widget.enabled
-            ? const [Color(0xFF9B794A), Color(0xFF8A673F), Color(0xFF765332)]
-            : pressed
-            ? const [Color(0xFFC78E3E), Color(0xFFA96B2D), Color(0xFF794216)]
-            : _pending
-            ? const [Color(0xFFE1B362), Color(0xFFD09A4D), Color(0xFFB77D3B)]
-            : const [Color(0xFFF0C873), Color(0xFFE5B35B), Color(0xFFD09643)];
-        final ink = returnClasp
-            ? widget.enabled
-                  ? const Color(0xFFF4DFBF)
-                  : const Color(0xFFB8A88E)
-            : widget.enabled
-            ? const Color(0xFF352316)
-            : const Color(0xFF4E3B29);
-        final border = pressed
-            ? const Color(0xFFC58B3E)
-            : focused
-            ? const Color(0xFFFFE3AA)
-            : hovered
-            ? const Color(0xFFF7D58F)
-            : returnClasp
-            ? const Color(0xFFD0A16B)
-            : openingClasp
-            ? const Color(0xFFC99B5E)
-            : const Color(0xFFE9C170);
-        final radius = openingClasp ? 9.0 : 14.0;
-
-        return AnimatedContainer(
-          duration: pressed || still ? Duration.zero : Motion.ack,
-          curve: Motion.respond,
-          transform: pressed && !openingClasp
-              ? Matrix4.diagonal3Values(0.97, 0.88, 1)
-              : Matrix4.identity(),
-          transformAlignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: faceColors,
-              stops: const [0, 0.52, 1],
-            ),
-            borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: border, width: focused ? 1.45 : 1.05),
-            boxShadow: !active || pressed || !widget.glow || openingClasp
-                ? const []
-                : const [
-                    BoxShadow(
-                      color: Color(0x38D5973B),
-                      blurRadius: 17,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
+    return LampShade(
+      cut: 10,
+      level: level,
+      pressed: pressed || _pending,
+      light: widget.light,
+      reduceMotion: widget.reduceMotion,
+      spill: widget.glow,
+      child: Container(
+        constraints: BoxConstraints(minHeight: openingClasp ? 48 : 52),
+        padding: EdgeInsets.symmetric(
+          horizontal: compactLabel ? 14 : 18,
+          vertical: 10,
+        ),
+        alignment: Alignment.center,
+        child: LampWords(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  textScaler: MediaQuery.textScalerOf(
+                    context,
+                  ).clamp(maxScaleFactor: 1.45),
+                  style: style,
+                ),
+              ),
+              SizedBox(width: _pending ? 7 : 9),
+              AnimatedRotation(
+                turns: _pending && !still ? 0.125 : 0,
+                duration: still ? Duration.zero : Motion.quick,
+                curve: Motion.respond,
+                child: Icon(
+                  _pending ? Icons.more_horiz_rounded : widget.icon,
+                  size: compactLabel ? 17 : 19,
+                  color: style.color,
+                ),
+              ),
+            ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radius),
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: Opacity(
-                      opacity: openingClasp ? 0.04 : 0.075,
-                      child: ColorFiltered(
-                        colorFilter: const ColorFilter.mode(
-                          Color(0xFFE4B869),
-                          BlendMode.modulate,
-                        ),
-                        child: Image.asset(
-                          'assets/quest/luminous-honey-gold-v2.webp',
-                          fit: BoxFit.cover,
-                          alignment: Alignment(
-                            light.dx * 0.035,
-                            light.dy * 0.02,
-                          ),
-                          filterQuality: FilterQuality.low,
-                          excludeFromSemantics: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: openingClasp
-                            ? LinearGradient(
-                                begin: Alignment(
-                                  -1 + light.dx * 0.08,
-                                  -0.75 + light.dy * 0.04,
-                                ),
-                                end: Alignment(
-                                  1 + light.dx * 0.08,
-                                  0.75 + light.dy * 0.04,
-                                ),
-                                colors: const [
-                                  Color(0x00FFF0BF),
-                                  Color(0x20FFF0BF),
-                                  Color(0x08FFF0BF),
-                                  Color(0x00FFF0BF),
-                                ],
-                                stops: const [0, 0.38, 0.62, 1],
-                              )
-                            : RadialGradient(
-                                center: catchAlignment,
-                                radius: 1.15,
-                                colors: const [
-                                  Color(0x28FFF0BF),
-                                  Color(0x0AFFF0BF),
-                                  Color(0x00FFF0BF),
-                                ],
-                                stops: const [0, 0.38, 1],
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 14,
-                  right: 14,
-                  top: 1,
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      duration: pressed || still ? Duration.zero : Motion.ack,
-                      opacity: pressed ? 0.08 : 1,
-                      child: Container(
-                        height: 1,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(0x00FFF0C4),
-                              Color(0xA6FFF0C4),
-                              Color(0x48FFF0C4),
-                              Color(0x00FFF0C4),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Container(
-                  constraints: BoxConstraints(
-                    minHeight: openingClasp ? 44 : 54,
-                  ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: openingClasp
-                        ? compactLabel
-                              ? 12
-                              : 15
-                        : compactLabel
-                        ? 14
-                        : 18,
-                    vertical: openingClasp ? 8 : 12,
-                  ),
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisSize: widget.expand
-                        ? MainAxisSize.max
-                        : MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          _pending ? widget.pendingLabel : widget.label,
-                          maxLines: openingClasp ? 1 : 2,
-                          overflow: openingClasp
-                              ? TextOverflow.ellipsis
-                              : TextOverflow.visible,
-                          textAlign: TextAlign.center,
-                          textScaler: MediaQuery.textScalerOf(
-                            context,
-                          ).clamp(maxScaleFactor: openingClasp ? 1.15 : 1.45),
-                          style: openingClasp
-                              ? const TextStyle(
-                                  fontFamily: 'EBGaramond',
-                                  fontSize: 17.5,
-                                  height: 1,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.1,
-                                  color: Color(0xFF352316),
-                                ).copyWith(color: ink)
-                              : Type.display.copyWith(
-                                  fontSize: compactLabel ? 15 : 18.5,
-                                  height: 1.02,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.05,
-                                  color: ink,
-                                  shadows: const [
-                                    Shadow(
-                                      color: Color(0x59FFE6A8),
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: openingClasp
-                            ? 7
-                            : _pending
-                            ? 7
-                            : 10,
-                      ),
-                      AnimatedRotation(
-                        turns: _pending && !still ? 0.125 : 0,
-                        duration: still ? Duration.zero : Motion.quick,
-                        curve: Motion.respond,
-                        child: Icon(
-                          _pending ? Icons.more_horiz_rounded : widget.icon,
-                          size: openingClasp
-                              ? 16
-                              : compactLabel
-                              ? 18
-                              : 20,
-                          color: ink,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 7,
-                  right: 7,
-                  bottom: 1,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: 1.5,
-                      color: pressed
-                          ? const Color(0x8A5E3515)
-                          : const Color(0x5C744318),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -800,9 +564,6 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
-    final openingClasp =
-        widget.treatment == GoalPrimaryButtonTreatment.openingClasp ||
-        widget.treatment == GoalPrimaryButtonTreatment.returnClasp;
     final questFolio =
         widget.treatment == GoalPrimaryButtonTreatment.questFolio;
     final thresholdPlate =
@@ -812,17 +573,11 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     final ShapeBorder shape = questFolio
         ? const FacetedBorder(cut: 12)
-        : RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(
-                thresholdPlate
-                    ? 6
-                    : openingClasp
-                    ? 9
-                    : 14,
-              ),
-            ),
-          );
+        : thresholdPlate
+        ? const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(6)),
+          )
+        : const LampShadeBorder(cut: 10);
     final button = Pressable(
       material: MaterialSound.brass,
       shape: shape,
@@ -831,18 +586,12 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
           ? 0
           : thresholdPlate
           ? 1.25
-          : questFolio
-          ? 2
-          : openingClasp
-          ? 2.25
-          : 3.75,
+          : 2,
       edgeColor: thresholdPlate
           ? Colors.transparent
           : questFolio
           ? const Color(0xFF3D2717)
-          : openingClasp
-          ? const Color(0xFF553315)
-          : const Color(0xFF70481F),
+          : const Color(0xFF1E1109),
       semanticLabel: _pending
           ? '${widget.label}. ${widget.pendingLabel}.'
           : thresholdPlate
@@ -857,28 +606,6 @@ class _GoalPrimaryButtonState extends State<GoalPrimaryButton> {
           _face(pressed: pressed, focused: focused, hovered: hovered),
       child: const SizedBox.shrink(),
     );
-    if (!openingClasp) return button;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF281A11), Color(0xFF140D09)],
-        ),
-        border: Border.all(color: const Color(0x8A9B7041), width: 0.9),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x8A0B0705),
-            blurRadius: 9,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(3, 3, 3, 5),
-        child: button,
-      ),
-    );
+    return button;
   }
 }

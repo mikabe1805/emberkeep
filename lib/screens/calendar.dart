@@ -2366,20 +2366,7 @@ class _SelectedDayHeader extends StatelessWidget {
                         horizontal: 13,
                         vertical: 8,
                       ),
-                      child: Text(
-                        'PLAN QUEST',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          letterSpacing: 1.2,
-                          color: Palette.onHoney,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x59FFEBBE),
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: const GoldLabel(text: 'PLAN QUEST', fontSize: 11),
                     ),
                   ),
                 ),

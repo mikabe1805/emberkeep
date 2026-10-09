@@ -2,6 +2,7 @@ import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/gold_surface.dart';
+import 'package:emberkeep/widgets/lamplight.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,7 +96,7 @@ void main() {
     await _pumpCard(tester, opensJournal: false);
 
     expect(find.byKey(const ValueKey('journal-quest-bookplate')), findsNothing);
-    expect(find.byType(GoldSurface), findsOneWidget);
+    expect(find.byType(LampShade), findsOneWidget);
     expect(find.text('MARK COMPLETE'), findsOneWidget);
     expect(find.text('OPEN JOURNAL'), findsNothing);
     expect(tester.takeException(), isNull);
