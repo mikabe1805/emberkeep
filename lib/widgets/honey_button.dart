@@ -25,6 +25,9 @@ class HoneyButton extends StatelessWidget {
     this.light,
     this.soundEnabled = true,
     this.quiet = false,
+    this.compact = false,
+    this.tint,
+    this.semanticLabel,
   });
 
   final String label;
@@ -55,14 +58,34 @@ class HoneyButton extends StatelessWidget {
   /// other tappable that used to wear the gold becomes quiet.
   final bool quiet;
 
+  /// A smaller control for a row, a bar or a list item: 44 pt tall (still a
+  /// full touch target), tighter padding and a smaller shade. Same lamp, same
+  /// quiet glass; only the scale changes.
+  final bool compact;
+
+  /// For a quiet control only: an accent for the ink and the hairline, for a
+  /// state that has its own mechanic colour (a quest already taken).
+  final Color? tint;
+
+  /// Overrides the spoken label when the visible words are shorter than the
+  /// action ("KEEP IT" reads as "Keep Morning walk on the quest board").
+  final String? semanticLabel;
+
+  double get _minHeight => compact ? 44 : 50;
+  double get _labelSize => fontSize + 3.5 - (compact ? 1.5 : 0);
+
   Widget _quietButton(BuildContext context) {
-    const cut = 9.0;
-    final ink = enabled ? const Color(0xFFEAD7BA) : LampTone.offInk;
+    final cut = compact ? 7.0 : 9.0;
+    final ink = tint ?? (enabled ? const Color(0xFFEAD7BA) : LampTone.offInk);
     Widget face(bool pressed) => Container(
-      constraints: const BoxConstraints(minHeight: 50),
+      constraints: BoxConstraints(minHeight: _minHeight),
       padding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5 ? 12 : 20,
-        vertical: 12,
+        horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5
+            ? 12
+            : compact
+            ? 14
+            : 20,
+        vertical: compact ? 8 : 12,
       ),
       alignment: Alignment.center,
       decoration: facetedDecoration(
@@ -72,29 +95,30 @@ class HoneyButton extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: pressed
               ? const [Color(0xF2433326), Color(0xF62A1F17)]
+              : compact
+              // Inside a list or a card the pane is a faint warm glass, not a
+              // dark slot: it must sit in the card rather than punch a hole.
+              ? const [Color(0x1CF3DEC0), Color(0x0DF3DEC0)]
               : const [Color(0xF02A211B), Color(0xF61A130F)],
         ),
         borderColor: pressed
             ? const Color(0x70E9B27A)
+            : tint != null
+            ? tint!.withValues(alpha: 0.5)
             : enabled
-            ? const Color(0x3DF3DEC0)
+            ? Color(compact ? 0x4DF3DEC0 : 0x3DF3DEC0)
             : const Color(0x1FF3DEC0),
         borderWidth: 1,
       ),
-      child: LampLabel(
-        text: label,
-        icon: icon,
-        fontSize: fontSize + 3.5,
-        ink: ink,
-      ),
+      child: LampLabel(text: label, icon: icon, fontSize: _labelSize, ink: ink),
     );
     return Pressable(
       enabled: enabled,
       material: MaterialSound.glass,
       soundEnabled: soundEnabled,
-      semanticLabel: label,
+      semanticLabel: semanticLabel ?? label,
       onTapUp: enabled ? (_) => onTap() : null,
-      shape: const FacetedBorder(cut: cut),
+      shape: FacetedBorder(cut: cut),
       pressDepth: 1,
       edgeColor: Colors.transparent,
       stateBuilder: (context, child, pressed, focused, hovered) =>
@@ -106,8 +130,8 @@ class HoneyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (quiet) return _quietButton(context);
-    const cut = 11.0;
-    const shape = LampShadeBorder(cut: cut);
+    final cut = compact ? 8.0 : 11.0;
+    final shape = LampShadeBorder(cut: cut);
     final level = enabled ? LampLevel.lit : LampLevel.off;
     Widget face(bool pressed) => LampShade(
       cut: cut,
@@ -116,12 +140,14 @@ class HoneyButton extends StatelessWidget {
       pressed: pressed,
       level: level,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 50),
+        constraints: BoxConstraints(minHeight: _minHeight),
         padding: EdgeInsets.symmetric(
           horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5
               ? 12
+              : compact
+              ? 16
               : 22,
-          vertical: 12,
+          vertical: compact ? 8 : 12,
         ),
         alignment: Alignment.center,
         child: Row(
@@ -133,7 +159,7 @@ class HoneyButton extends StatelessWidget {
                 text: label,
                 icon: icon,
                 level: level,
-                fontSize: fontSize + 3.5,
+                fontSize: _labelSize,
               ),
             ),
           ],
@@ -144,7 +170,7 @@ class HoneyButton extends StatelessWidget {
       enabled: enabled,
       material: MaterialSound.brass,
       soundEnabled: soundEnabled,
-      semanticLabel: label,
+      semanticLabel: semanticLabel ?? label,
       onTapUp: enabled ? (_) => onTap() : null,
       shape: shape,
       pressDepth: 2,
