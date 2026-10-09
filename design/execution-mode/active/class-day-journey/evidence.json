@@ -3,8 +3,8 @@
   "brief_id": "class-day-journey-board-2026-10-04",
   "brief_sha256": "b2b6d6830b96662a2660a7a8433e925aee9080c2f059e13f497376062a603db0",
   "phase": "slice",
-  "implementation_revision": "commit:22e698b358f1526e47f34b09ea4ebabb46f8ad3b",
-  "revision_captured_at": "2026-10-04T10:21:26-04:00",
+  "implementation_revision": "commit:c659a588d5d219b752f34c5146a3d690fc83bf8f",
+  "revision_captured_at": "2026-10-09T00:10:55-04:00",
   "checks": [
     {
       "id": "slice-product",
@@ -22,8 +22,8 @@
           "kind": "test_report",
           "state": "Widget, model, shell and full-suite results after the review fixes",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T10:25:37-04:00",
-          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "generated_at": "2026-10-09T00:14:00-04:00",
+          "content_sha256": "2664db86c51e135c3abc337d841338c7c7d4eba8f08fea2eba48c5d53724198d",
           "data_source": "test_output"
         }
       ]
@@ -44,32 +44,32 @@
           "kind": "test_report",
           "state": "Widget, model, shell and full-suite results after the review fixes",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T10:25:37-04:00",
-          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "generated_at": "2026-10-09T00:14:00-04:00",
+          "content_sha256": "2664db86c51e135c3abc337d841338c7c7d4eba8f08fea2eba48c5d53724198d",
           "data_source": "test_output"
         },
         {
           "kind": "render",
           "state": "Finger down on I WAS THERE",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2a_tue1152_press.png",
-          "generated_at": "2026-10-04T10:22:02-04:00",
-          "content_sha256": "631e8a80ead2384ef68bac61e5cfca832e68cfe82914a55e368b2cac3cd2bdeb",
+          "generated_at": "2026-10-09T00:15:28-04:00",
+          "content_sha256": "1097552095f7e362ec7139b12f7051052a7b245b44301f5396a653e9731eb885",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Released: the card ring closed, no total beside the kept count",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2b_tue1152_contact_100ms.png",
-          "generated_at": "2026-10-04T10:22:04-04:00",
-          "content_sha256": "7a2efbb4796f5d8eb49527ed1b57194893b40e0736af5bddf014a3c83b35e1a8",
+          "generated_at": "2026-10-09T00:15:30-04:00",
+          "content_sha256": "a260240799ff139aacf6a0e869c849f0c559676bcb4eb73f110509d7bf5d49ce",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Going back on its own at 2.3 s",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2e_tue1152_going_back_2300ms.png",
-          "generated_at": "2026-10-04T10:22:09-04:00",
-          "content_sha256": "07c6fd5a432e7f7cd48ddadcfdc93071ec162cc2c99b7a0195c2ecebd6e14aec",
+          "generated_at": "2026-10-09T00:15:35-04:00",
+          "content_sha256": "f5a8799421bd93b57cdbf166fa0d2b4e2554b93c2123d47b4d6541f850f7a0ae",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -90,32 +90,16 @@
           "kind": "comparison",
           "state": "Concept B beside the build: Tuesday first frame, press, celebration, day tier, back home",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-1.png",
-          "generated_at": "2026-10-04T10:24:25-04:00",
-          "content_sha256": "ad170d22b8f72108a6726c9296d08a5940a3870d3da13aee1c049c2208ce559f",
+          "generated_at": "2026-10-09T00:18:28-04:00",
+          "content_sha256": "69b722f4640c6a250149858aa9c7900db95fd25a3b5e0aa872933eba92c28478",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "comparison",
           "state": "Concept B beside the build: Monday shortcut, Thursday quick, week, level-up, no timetable, Reduce Motion, 130% text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/compare-sheet-2.png",
-          "generated_at": "2026-10-04T10:24:27-04:00",
-          "content_sha256": "e37ae6cc9d561bcbb4cf8262744600f560cd67d3cd695de2852c39642e09a8ce",
-          "data_source": "deterministic_fixture"
-        },
-        {
-          "kind": "comparison",
-          "state": "Before and after: the top of the room, the lamp under the HUD, the window at 300 ms",
-          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/review/after_fixes_1.png",
-          "generated_at": "2026-10-04T10:24:30-04:00",
-          "content_sha256": "96fea135147736f67be18304e0eeb875db23d123196f2da71ccf6378721cf420",
-          "data_source": "deterministic_fixture"
-        },
-        {
-          "kind": "comparison",
-          "state": "Before and after: the diamond, BOARD rising, the quick tier at 700 ms, the header after a mark",
-          "path": "design/comparisons/2026-10-03/class-day/build/journey/board/review/after_fixes_2.png",
-          "generated_at": "2026-10-04T10:24:31-04:00",
-          "content_sha256": "306232585994b314cb0a5c88ab8fdf28fb6dedfb77fb005984d56988fba50862",
+          "generated_at": "2026-10-09T00:18:28-04:00",
+          "content_sha256": "ac7f337bb432e8b4f5a1220a3c9b71d868308b5fd8452ff7342c931da576d936",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -136,8 +120,8 @@
           "kind": "render",
           "state": "Tuesday between classes",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B1_tue1152_between_classes.png",
-          "generated_at": "2026-10-04T10:22:01-04:00",
-          "content_sha256": "df068952d5b537eb806fcf48a5150745261e01cc19961657cfab0592fba5bdcc",
+          "generated_at": "2026-10-09T00:15:27-04:00",
+          "content_sha256": "5a43b9e3d5851001ddb33ec751f4f1ba8bab001c54df7790346dafccce057454",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -158,24 +142,24 @@
           "kind": "render",
           "state": "300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2c_tue1152_celebration_300ms.png",
-          "generated_at": "2026-10-04T10:22:05-04:00",
-          "content_sha256": "cd7c4bebd21edb4ee9bda0eedaa5d15d4296f5f773dbf0a417ae56c668a551e5",
+          "generated_at": "2026-10-09T00:15:32-04:00",
+          "content_sha256": "d1bfeea7e6496bcdc95d9e85574c9154f954c76b53edc60ef96b58bfb7deb19e",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "settled",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B2d_tue1152_celebration_settled.png",
-          "generated_at": "2026-10-04T10:22:07-04:00",
-          "content_sha256": "1b0201a5ee9024b8260997faba09b1efd41426f1b09c2fa22707924d456d2d23",
+          "generated_at": "2026-10-09T00:15:33-04:00",
+          "content_sha256": "38fd77a72a2ccbfdb6b14346e6e5ffc8a12b7b62d21f790a5212a942a888b955",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "back in the room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/B3_tue1153_after_first_mark.png",
-          "generated_at": "2026-10-04T10:22:11-04:00",
-          "content_sha256": "8ccbfb81ad31308a489418f82e0d53dfb3a3b4a3b355fbd9e897a674086b4fe5",
+          "generated_at": "2026-10-09T00:15:36-04:00",
+          "content_sha256": "bc91c875fba6f1f11e0e79e5026397cb49f73dfa3c6d467a90381242a78cc839",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -196,16 +180,16 @@
           "kind": "render",
           "state": "day tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D2b_tue1535_day_settled.png",
-          "generated_at": "2026-10-04T10:22:22-04:00",
-          "content_sha256": "85988cff8e1b265b3fb95226a5884dbfdd1e976336770534213c98d6cd82f89e",
+          "generated_at": "2026-10-09T00:15:45-04:00",
+          "content_sha256": "eb38140e0a5650cffc5a0f14be8f1290c9491a5442dd70bc4457566c5be9eff5",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "record",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D3_tue1536_back_home.png",
-          "generated_at": "2026-10-04T10:22:23-04:00",
-          "content_sha256": "ddafd37b97b482e6f3c23abe6896d2e1188df8bb9128b34c2113eb08990f65fe",
+          "generated_at": "2026-10-09T00:15:46-04:00",
+          "content_sha256": "c03149a8a05edb2a19714825f52b60086bbc6d2b9a309f1ed9e242b516ee2e03",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -226,16 +210,16 @@
           "kind": "render",
           "state": "three waiting",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X1_mon1915_three_waiting.png",
-          "generated_at": "2026-10-04T10:22:28-04:00",
-          "content_sha256": "db4858a4e40f404c29a78cd8e319c6c8c688f4cbc475944fcb94b116780d07c5",
+          "generated_at": "2026-10-09T00:15:50-04:00",
+          "content_sha256": "764384977512bebb5d5dce7bee5a342fcd121388012cf8254655df8ebd4e5808",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "one celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/X2b_mon1915_monday_done.png",
-          "generated_at": "2026-10-04T10:22:31-04:00",
-          "content_sha256": "28a0d93c4c568442cae832a7c509f1fb604d1a533886f9616b6bbe1dbfd8000d",
+          "generated_at": "2026-10-09T00:15:52-04:00",
+          "content_sha256": "670108bc8fe4e656f6bd460c8a83a178705ce66a037e47d9d843dd0c449d74e2",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -256,24 +240,24 @@
           "kind": "render",
           "state": "130% room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T1_tue1152_text_130.png",
-          "generated_at": "2026-10-04T10:23:05-04:00",
-          "content_sha256": "6857ee3091a7de1718f76a94c0b79fc6dce652aa6890a6aa5d07269c064110ac",
+          "generated_at": "2026-10-09T00:16:08-04:00",
+          "content_sha256": "381166a9ad9f5fe833564e00da0e41e82e6a0b272adae2790e8d22d3ecfc00c9",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "130% celebration",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/T2_tue1152_text_130_celebration.png",
-          "generated_at": "2026-10-04T10:23:06-04:00",
-          "content_sha256": "49b144061ebd77c616872b6929db0c2bd6ec84fa48c0d40eac57cf946fdd49a8",
+          "generated_at": "2026-10-09T00:16:09-04:00",
+          "content_sha256": "b660165046dfe11af3d0a82e82be9a4bf737d4a76190105d97aaee390fea43b5",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Reduce Motion at 300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/R1_tue1152_reduce_motion_300ms.png",
-          "generated_at": "2026-10-04T10:23:01-04:00",
-          "content_sha256": "1b0201a5ee9024b8260997faba09b1efd41426f1b09c2fa22707924d456d2d23",
+          "generated_at": "2026-10-09T00:16:06-04:00",
+          "content_sha256": "38fd77a72a2ccbfdb6b14346e6e5ffc8a12b7b62d21f790a5212a942a888b955",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -294,16 +278,16 @@
           "kind": "render",
           "state": "BOARD rising",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D4a_tue1536_board_rising.png",
-          "generated_at": "2026-10-04T10:22:25-04:00",
-          "content_sha256": "e7b1db32efe9cca1ae040c219b9916e569ddd1f1d13295b4c1d3c10dbc77b920",
+          "generated_at": "2026-10-09T00:15:47-04:00",
+          "content_sha256": "5dbf6ffb4e0ac59bd5a1e9e1cfc41d26b51cc7293bd2aed5301700058bb49b2c",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "board settled",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/D4b_tue1536_board.png",
-          "generated_at": "2026-10-04T10:22:26-04:00",
-          "content_sha256": "b30206ded5d432a5d2b0236aaa3dcc1e82be91b051fe0a91b1d2f3d33fdcdb83",
+          "generated_at": "2026-10-09T00:15:48-04:00",
+          "content_sha256": "07a2a2c2b6e1c42354022a17e88e877259ad0ec98df548d59bf66cf51cb02a37",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -324,24 +308,24 @@
           "kind": "render",
           "state": "class tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K1_tue1152_your_24th_lecture.png",
-          "generated_at": "2026-10-04T10:23:08-04:00",
-          "content_sha256": "c63135698a78459eb5f5803cb181a2a191fa5a05e41d5e940f572f8c317c6cbe",
+          "generated_at": "2026-10-09T00:16:10-04:00",
+          "content_sha256": "a44ef061fe06cd501207e020eabcc0744dc75437549a31a6ded4c2035fc9a653",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "day tier",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K2_tue1535_day_tier_24th.png",
-          "generated_at": "2026-10-04T10:23:10-04:00",
-          "content_sha256": "cc361c2059cade5558b279a1f9157213dfca0c590118a6c9ba2fd387c9ba0bb9",
+          "generated_at": "2026-10-09T00:16:12-04:00",
+          "content_sha256": "8f1f87f6b82e56bd4f118ed27d11ba295856c10be3117daec5e84bfe2ccecd27",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "130% text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/K3_tue1152_text_130_24th.png",
-          "generated_at": "2026-10-04T10:23:12-04:00",
-          "content_sha256": "eacddae494c54896f6c8b8e38bbbd609689870dc5969b8629da67c7fe3bd55f6",
+          "generated_at": "2026-10-09T00:16:13-04:00",
+          "content_sha256": "72da5832b02ab8524a057804dab2ad4aa7a6dbda558ab3015df2d91269922d1b",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -362,7 +346,7 @@
           "kind": "render",
           "state": "between classes",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P1_tue1152_archive_between.png",
-          "generated_at": "2026-10-04T10:23:13-04:00",
+          "generated_at": "2026-10-09T00:16:14-04:00",
           "content_sha256": "f7417d5d80be1f3cf3272f2a2d8fe9856cc10b932f5f6dbe45dd114162fe6f4b",
           "data_source": "deterministic_fixture"
         },
@@ -370,7 +354,7 @@
           "kind": "render",
           "state": "300 ms",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P2_tue1152_archive_300ms.png",
-          "generated_at": "2026-10-04T10:23:14-04:00",
+          "generated_at": "2026-10-09T00:16:15-04:00",
           "content_sha256": "f9c12e57c59262179ecd9a5f6eda853381710320b9a48428dba3d81ef14cae97",
           "data_source": "deterministic_fixture"
         },
@@ -378,7 +362,7 @@
           "kind": "render",
           "state": "back in the room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/board/P4_tue1153_archive_after.png",
-          "generated_at": "2026-10-04T10:23:17-04:00",
+          "generated_at": "2026-10-09T00:16:17-04:00",
           "content_sha256": "ecda3e0e480301bf205cd5aee0f49d3e967d0e341f54fc809d45fdecc0b08bd3",
           "data_source": "deterministic_fixture"
         }
@@ -400,24 +384,24 @@
           "kind": "comparison",
           "state": "Concept B beside the build: turning, 15:36, 20:30 music on, Mon 19:15, Reduce Motion, large text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/compare-sheet.png",
-          "generated_at": "2026-10-04T10:24:33-04:00",
-          "content_sha256": "2507bd4a4efef659e005e4b2683f70eb422a8bef5e461f3a74f7f308d3abb4d8",
+          "generated_at": "2026-10-09T00:18:27-04:00",
+          "content_sha256": "7f527065927cc301e3c681f59fb64775dfccf4cd2bbed769699e829043704508",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "every evening frame",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/sheet.png",
-          "generated_at": "2026-10-04T10:24:35-04:00",
-          "content_sha256": "48661b59b3a41f6c12d21351a5f36c42629eff8bae3a438e55205f219836dbe5",
+          "generated_at": "2026-10-09T00:16:23-04:00",
+          "content_sha256": "1884e4a52b849d61842d9934f5be5753724e6235e68b1598c0cd23d81a2d2311",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "test_report",
           "state": "Board and evening test results, full suite on 86f9989",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T10:25:37-04:00",
-          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "generated_at": "2026-10-09T00:14:00-04:00",
+          "content_sha256": "2664db86c51e135c3abc337d841338c7c7d4eba8f08fea2eba48c5d53724198d",
           "data_source": "test_output"
         }
       ]
@@ -438,15 +422,15 @@
           "kind": "render",
           "state": "Mon 17:45 in the late class",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E5a_mon1745_in_the_late_class.png",
-          "generated_at": "2026-10-04T10:23:55-04:00",
-          "content_sha256": "35a0487b94b6e7eb8da9104364bc28a60b58e34fbc8c50c5e44964409273bff7",
+          "generated_at": "2026-10-09T00:15:48-04:00",
+          "content_sha256": "126bb55ba1b64248ee0406db96f2a5b7c234e13fb69831c581601a5d93c48a16",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Mon 17:45 board end, no rail",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E5b_mon1745_board_no_rail.png",
-          "generated_at": "2026-10-04T10:23:56-04:00",
+          "generated_at": "2026-10-09T00:15:50-04:00",
           "content_sha256": "4bd8a65309d5f2f399a5484f98a1014ee84a767a5d5dce463ce822e9a2dbadf7",
           "data_source": "deterministic_fixture"
         },
@@ -454,7 +438,7 @@
           "kind": "render",
           "state": "Mon 19:16 board with the rail",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E4d_mon1916_board_rail.png",
-          "generated_at": "2026-10-04T10:23:53-04:00",
+          "generated_at": "2026-10-09T00:15:47-04:00",
           "content_sha256": "4fdd1bcfee0e6fb767d5e7b656b08a4a03199ccbd7ae87885dff3c94688df023",
           "data_source": "deterministic_fixture"
         },
@@ -462,8 +446,8 @@
           "kind": "test_report",
           "state": "Board and evening test results, full suite on 86f9989",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T10:25:37-04:00",
-          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "generated_at": "2026-10-09T00:14:00-04:00",
+          "content_sha256": "2664db86c51e135c3abc337d841338c7c7d4eba8f08fea2eba48c5d53724198d",
           "data_source": "test_output"
         }
       ]
@@ -484,31 +468,31 @@
           "kind": "render",
           "state": "music off",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2a_tue2030_evening_music_off.png",
-          "generated_at": "2026-10-04T10:23:43-04:00",
-          "content_sha256": "31dea9a116ad1ea8d5eb3e476895a144c38795cee42d2d46c55a13b03d8ff500",
+          "generated_at": "2026-10-09T00:15:38-04:00",
+          "content_sha256": "ed8eb9a51f2b51f8cbc7af15dbb9e481aeadf86037a97292551d9db40bfe4875",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "music on",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2b_tue2030_evening_music_on.png",
-          "generated_at": "2026-10-04T10:23:44-04:00",
-          "content_sha256": "a6f3bd0c47856986798de1871060bb7bbd61c90137b878ee08bde58717f6ac8d",
+          "generated_at": "2026-10-09T00:15:39-04:00",
+          "content_sha256": "456e24635ac849fc8a22cdc359835b45bb345ac071be1364dcc2583818b7eaf3",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Close the day",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E2c_tue2030_close_the_day.png",
-          "generated_at": "2026-10-04T10:23:46-04:00",
-          "content_sha256": "6588b0df5ca8f28d48206a0f49706147a177b49a10e26513c6025287f5fdcbb9",
+          "generated_at": "2026-10-09T00:15:41-04:00",
+          "content_sha256": "302ba14a9dda0d85a8131a390a1412d292b7f8268635f72657dac80281edd763",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Write a line",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E3_tue2031_write_a_line.png",
-          "generated_at": "2026-10-04T10:23:47-04:00",
+          "generated_at": "2026-10-09T00:15:42-04:00",
           "content_sha256": "21366947bda5fde3cfa291b54209fffbb6d021f0866c8d86514c92c824170c42",
           "data_source": "deterministic_fixture"
         },
@@ -516,8 +500,8 @@
           "kind": "test_report",
           "state": "Board and evening test results, full suite on 86f9989",
           "path": "design/execution-mode/active/class-day-journey/test-report.md",
-          "generated_at": "2026-10-04T10:25:37-04:00",
-          "content_sha256": "3da33fab7f0e5f00ba28df6bee34f95a56325fecd5948861b73cb4342240a949",
+          "generated_at": "2026-10-09T00:14:00-04:00",
+          "content_sha256": "2664db86c51e135c3abc337d841338c7c7d4eba8f08fea2eba48c5d53724198d",
           "data_source": "test_output"
         }
       ]
@@ -538,32 +522,32 @@
           "kind": "render",
           "state": "Mon 19:15 three unmarked",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E4a_mon1915_evening_three_waiting.png",
-          "generated_at": "2026-10-04T10:23:49-04:00",
-          "content_sha256": "db4858a4e40f404c29a78cd8e319c6c8c688f4cbc475944fcb94b116780d07c5",
+          "generated_at": "2026-10-09T00:15:44-04:00",
+          "content_sha256": "764384977512bebb5d5dce7bee5a342fcd121388012cf8254655df8ebd4e5808",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "Reduce Motion",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E8b_tue1536_reduce_motion_evening.png",
-          "generated_at": "2026-10-04T10:24:09-04:00",
-          "content_sha256": "d61ac6a3d2ccef5282c99903e3413bec49d72bbfeebc781b32c771fdfa5539f5",
+          "generated_at": "2026-10-09T00:15:57-04:00",
+          "content_sha256": "c03149a8a05edb2a19714825f52b60086bbc6d2b9a309f1ed9e242b516ee2e03",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "130% text",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E9a_tue2030_text_130.png",
-          "generated_at": "2026-10-04T10:24:10-04:00",
-          "content_sha256": "86de9f7066cac992b0e17f358bdade1a2ffb8849bfa9f82340df7637dc4b97cf",
+          "generated_at": "2026-10-09T00:15:59-04:00",
+          "content_sha256": "84557f174168d0d7610e6cf5a05f6378d954f1eb1c2de6d85efb3fe1a7606441",
           "data_source": "deterministic_fixture"
         },
         {
           "kind": "render",
           "state": "archive room",
           "path": "design/comparisons/2026-10-03/class-day/build/journey/evening/E7_tue2030_archive_evening.png",
-          "generated_at": "2026-10-04T10:24:04-04:00",
-          "content_sha256": "bc234e08854c24a7e11db8d3bbca06383deb41144a64dc73b18fce819ff02b58",
+          "generated_at": "2026-10-09T00:15:54-04:00",
+          "content_sha256": "a2cdb57dd3c0bba234fb3c85fab4c6d41dc5df51c96638919ce17d3c3e7b0fa8",
           "data_source": "deterministic_fixture"
         }
       ]
@@ -706,9 +690,9 @@
     {
       "id": "independent-critique",
       "gate": "A reviewer who did not author the slice re-reviews the fixed renders and tests",
-      "why": "The first review failed the board slice with 25 findings; all are fixed in ee857f5 and 68ee337. The evening slice (86f9989, 22e698b) has had no review at all.",
+      "why": "The first review failed the board slice with 25 findings (fixed in ee857f5 and 68ee337). The evening slice's review (fidelity, correctness, CI) found 16 issues; they are finished on 1f72401 to c659a58 but the fixed evening has not been re-reviewed by a reviewer who did not author it.",
       "owner_or_system": "workflow reviewer",
-      "next_action": "Re-review the board sheets (compare-sheet-1.png, compare-sheet-2.png, review/after_fixes_1.png, review/after_fixes_2.png) and the evening (build/journey/evening/compare-sheet.png, sheet.png, NOTES.md) with test-report.md against source.md.",
+      "next_action": "Re-review the evening frames (build/journey/evening/sheet.png, E1f, E2b, E4a, E9b) and the board frames with test-report.md against source.md; the hand-cut compare sheets predate the daylight removal.",
       "blocking": true
     },
     {
@@ -782,6 +766,22 @@
       "implementation_decision": "The music is a row in the glass (MUSIC, Lamp left on, a fine brass ring with play or pause).",
       "reason": "Rubric 4: controls live in the glass, never on the painting.",
       "user_visible_consequence": "Nothing is drawn on the painting.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "Concept B's window shows the sky for the hour (afternoon and dusk skies keyed into the painted glass).",
+      "implementation_decision": "The room stays the painted night at every hour; no sky, daylight grade or window light is simulated at runtime.",
+      "reason": "The keyed sky read as a pasted disc and left a pale, blown-out strip at the left edge of the board frames; the painted day-window swap was already killed (build_window_1.json).",
+      "user_visible_consequence": "The window always shows the painted moon and stars, in the afternoon as at night.",
+      "status": "resolved",
+      "owner_approval_required": false
+    },
+    {
+      "source_decision": "The celebration's count reads YOUR FIRST LECTURE / YOUR 9TH LECTURE.",
+      "implementation_decision": "It reads FIRST ONE ON RECORD / YOUR 9TH LECTURE ON RECORD.",
+      "reason": "The count only includes marks the app has, so 'first' and 'Nth' overclaimed.",
+      "user_visible_consequence": "A longer label under the numeral; it still only grows and never shows a denominator.",
       "status": "resolved",
       "owner_approval_required": false
     }

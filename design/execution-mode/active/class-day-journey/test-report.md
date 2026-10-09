@@ -158,3 +158,87 @@ playing once a day, the ledger naming the next class) are not part of this check
 committed here. Run on that tree, the board, model, plumbing and credit tests pass, and three
 tests from that unfinished work still fail: two evening layout tests at 375 x 667 and the
 ledger's "tomorrow's classes head the tray".
+
+## The evening review round, finished on c659a58
+
+2026-10-09, after the 2026-10-04 usage-limit cut-off. The evening review's three reports (fidelity,
+correctness, CI) came back with 9, 3 and 4 findings; the cut-off tree carried most of the fixes
+uncommitted. This round finished them, removed the runtime daylight and changed the count's words.
+Commits: 1f72401 (review fixes), 6cc193a (the room stays the night painting), aff9fb6 (the count
+says "on record"), 779467d (doors), c659a58 (renders and notes).
+
+### Findings, each one
+
+- Glass hidden and unpressable for 2.4 s when the evening starts on a room already up: fixed. Only
+  the walk under the celebration stages the glass's arrival; reopening, the wind-down timer and an
+  undo crossfade with the glass on screen.
+- Room shrunk to a band while classes wait: fixed in `RoomShot.evening` (lamp held under the HUD, the
+  floor runs on behind the glass). Seen in E4a, E6a, E9b: lamp and moon in frame.
+- Settled glass not letting the room own the frame, hierarchy inverted, still level bars: partly
+  fixed. The doors are one quiet row under the record (record textHi, doors textMid), the music
+  steps the glass, HUD, line and dock back and eases the camera closer, and the levels move. Not
+  changed: with the music on the glass is still the record plus two rows of doors; I looked at
+  E2b but did not measure how much of the frame it takes against concept F5.
+- Mark made in the evening plays the day tier in an unlit room: fixed (the framing is held only
+  when the lamp is clear of the scrim; otherwise the camera eases back to the whole lamp).
+- Day tier twice (DONE., THAT ONE TOO., DONE.): fixed in `planClassCelebration`
+  (`dayTier = afterLast || (completes && !dayTierPlayed)`); model tests for the one-at-a-time case.
+- Window sky pasted onto the painting: resolved by removing the daylight (below), not by
+  patching it.
+- CLOSE THE DAY did not follow large text: fixed (no FittedBox; the doors wrap whole).
+- Mixed apostrophes: fixed. Ledger header said KEPT and dropped the next class's name: fixed
+  (ATTENDED, and the next class by name over its tag).
+- After midnight Write a line took the calendar day's trace: fixed (`journalTraceFor` the class day).
+- Tonight's music choice outliving its night: fixed (`setRoomChoice(until:)`, read through Clock).
+- CI blocker (plumbing test read host-local wall time): fixed, the case now uses a Sunday night.
+- 130% test could not see a scrolled-away door: the evening test now asserts hit-testable doors
+  and a zero scroll extent. The no-blur check now asserts no ImageFiltered at all in the room.
+  The three 8 PM mounts: header corrected.
+- Rejected: none. Left open: a night reminder hour chosen in Me can still fire mid-class, and the
+  board's footer CLOSE DAY door still shows mid-class (both were open before).
+
+### The three tests that failed on the dirty tree
+
+- `class_day_evening_test` Monday three waiting, 375 x 667, at 100% and 130%: the test file never
+  loaded the real faces, so every label ran in the test font's square glyphs and the doors wrapped
+  onto a second row that real text does not need. That was the test's fault: it now loads the
+  faces (`loadRoomFonts`). With real text only 130% was left, 1 pt over; the compact glass's gap
+  under its header went from 12 to 10 pt. The assertion (nothing scrolled out of view) is unchanged.
+- `class_day_ledger_test` "tomorrow's classes head the tray": the new next-class line is a plain
+  Text, and the test read `textSpan!` on every line. The test reads `data ?? textSpan` now; the
+  expected lines were already right.
+
+### Runtime daylight removed
+
+`ClassWindowSky`, the daylight colour grade, the window-light panel, the blurred window edge, the
+lower-pane range and head shade (all of the uncommitted window edits only served daylight) and the
+board's `windowLayer` plumbing in `HomeRoom` are gone, along with `RoomHour`. The lamp keeps one
+resting glow. Kept: the evening camera framing (`RoomShot.evening`, `coverLeft`).
+
+### Count copy
+
+The celebration's per-course label reads `FIRST ONE ON RECORD` and `YOUR 9TH LECTURE ON RECORD`
+(it counts the marks the app has, not the lectures he has been to). Tests: model (first, 2nd,
+a lab, no ` OF `), board (24 at 100% and 130%: label inside the screen, no exception).
+
+### Verified
+
+- `flutter analyze --no-pub lib test`: no issues. `dart format` over the Dart files changed since
+  278a73f: 0 changed.
+- Class-day tests, background music and main-room-music tests: green; the full suite
+  (`flutter test --no-pub`), run after 779467d: **1,555 passed, 54 skipped, 0 failed**. The only
+  later changes are render tests' captions and notes (those tests ran green, gated on).
+- Renders (`CLASS_DAY_RENDERS=true`, board 15 passed, evening 10 passed, no layout issue logged).
+  Looked at full size: B1, B2c, D2a (the left edge is the painted night window, no pale strip),
+  E1f, E4a, E2b (the window is the painted moon and stars, the lamp and the moon in frame, the
+  glass leads with the class waiting, the doors on their own rows).
+- Contact sheets regenerated (`sheet.png` in both folders). `compare-sheet.png` and
+  `compare-sheet-1/2.png` were rebuilt as plain concept B beside build pairs (the old ones were hand
+  cut against the daylight frames); the reviewers' before/after crops `review/after_fixes_*.png`
+  show the old frames, so they are no longer cited as evidence.
+
+### Inferred, not verified
+
+Anything about how the walk, the music step-back and the glass feel on his phone; whether the
+glass's three rows still read as "a list" to him (E2a/E2b), which is the first thing in the
+evening that still feels a little built, not painted.
