@@ -339,7 +339,7 @@ void main() {
       expect(_celebration, findsOneWidget);
       expect(find.text('YOU WERE THERE.'), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-numeral')), '1');
-      expect(find.text('YOUR FIRST LECTURE'), findsOneWidget);
+      expect(find.text('FIRST ONE ON RECORD'), findsOneWidget);
       expect(
         find.text('Computer Architecture & Assembly Language'),
         findsOneWidget,
@@ -1095,7 +1095,14 @@ void main() {
           expect(find.text(label), findsOneWidget);
           final numeral = find.byKey(const Key('class-celebration-numeral'));
           expect(tester.widget<Text>(numeral).data, '24');
-          expect(find.text('YOUR 24TH LECTURE'), findsOneWidget);
+          expect(find.text('YOUR 24TH LECTURE ON RECORD'), findsOneWidget);
+          // At large text the count's label stays inside the screen, whole.
+          final labelBox = tester.getRect(
+            find.byKey(const Key('class-celebration-numeral-label')),
+          );
+          expect(labelBox.left, greaterThanOrEqualTo(0));
+          expect(labelBox.right, lessThanOrEqualTo(393));
+          expect(tester.takeException(), isNull);
           final text = tester.getRect(numeral);
           final centre = text.center;
           final half = side * math.sqrt1_2;

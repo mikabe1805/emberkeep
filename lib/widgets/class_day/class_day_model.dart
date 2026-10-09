@@ -555,7 +555,7 @@ final class ClassCelebrationPlan {
   /// kept today when one gesture kept several.
   final int numeral;
 
-  /// "YOUR 9TH LECTURE", "CLASSES TODAY".
+  /// "YOUR 9TH LECTURE ON RECORD", "FIRST ONE ON RECORD", "CLASSES TODAY".
   final String numeralLabel;
 
   /// The course, for a single mark.
@@ -694,8 +694,12 @@ ClassCelebrationPlan planClassCelebration({
   final numeral = several ? keptAfter.length : hero.courseCount;
   final numeralLabel = several
       ? 'CLASSES TODAY'
+      // Only the marks on record are counted, so the words say "on record":
+      // he has been to more lectures than the app has been told about.
+      : hero.courseCount == 1
+      ? 'FIRST ONE ON RECORD'
       : 'YOUR ${classOrdinal(hero.courseCount)} '
-            '${classKindWord(heroEntry.kind).toUpperCase()}';
+            '${classKindWord(heroEntry.kind).toUpperCase()} ON RECORD';
 
   final gained = credits.fold(0, (sum, credit) => sum + credit.xp);
   final bonus = credits.fold(0, (sum, credit) => sum + credit.fullDayBonus);

@@ -219,7 +219,7 @@ void main() {
       expect(plan.tier, ClassCelebrationTier.classKept);
       expect(plan.headline, 'YOU WERE THERE.');
       expect(plan.numeral, 1);
-      expect(plan.numeralLabel, 'YOUR FIRST LECTURE');
+      expect(plan.numeralLabel, 'FIRST ONE ON RECORD');
       expect(plan.autoReturn, const Duration(milliseconds: 2400));
       expect(plan.closing.first, 'First one down.');
       expect(plan.rows, isEmpty);
@@ -231,9 +231,10 @@ void main() {
       keepAndPlan(state, _ny(5, 19, 0), [0]);
       final plan = keepAndPlan(state, _ny(8, 10, 0), [0]);
       expect(plan.numeral, 2);
-      expect(plan.numeralLabel, 'YOUR 2ND LECTURE');
+      expect(plan.numeralLabel, 'YOUR 2ND LECTURE ON RECORD');
+      expect(plan.numeralLabel, isNot(contains(' OF ')));
       final lab = keepAndPlan(state, _ny(7, 11, 40), [0]);
-      expect(lab.numeralLabel, 'YOUR FIRST LAB');
+      expect(lab.numeralLabel, 'FIRST ONE ON RECORD');
       expect(lab.gains.keys.single.name, 'foc');
     });
 

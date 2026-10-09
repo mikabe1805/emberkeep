@@ -420,6 +420,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
           plan.numeralLabel,
           key: const Key('class-celebration-numeral-label'),
           textAlign: TextAlign.center,
+          maxLines: 2,
           style: Type.label.copyWith(
             fontSize: Type.minLabel,
             letterSpacing: 2.0,
