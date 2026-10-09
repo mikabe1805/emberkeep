@@ -7,6 +7,8 @@ import '../models.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'glass.dart';
+import 'lamplight.dart';
+import 'pressable.dart';
 
 /// Warm, human relative time for a note: "just now" / "2h ago" / "yesterday" /
 /// "3 days ago" / "Mar 4" / "Mar 4, 2025" — never a raw timestamp. A note
@@ -377,6 +379,22 @@ class _NotesSheetState extends State<_NotesSheet> {
     if (mounted) setState(() {});
   }
 
+  /// The sheet's one lamp: add a note, or keep the edit.
+  Widget _noteLamp(bool pressed) => SizedBox.square(
+    dimension: 46,
+    child: LampShade(
+      cut: 6,
+      pressed: pressed,
+      child: Center(
+        child: Icon(
+          _editing != null ? Icons.check : Icons.add,
+          size: 22,
+          color: LampTone.ink,
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final notes = widget.read().reversed.toList(); // newest first
@@ -558,20 +576,20 @@ class _NotesSheetState extends State<_NotesSheet> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _submit,
-                      child: FacetMedallion(
-                        size: 46,
-                        accent: Palette.xp,
-                        glow: true,
-                        gradient: Palette.honeyGradient,
-                        child: Icon(
-                          _editing != null ? Icons.check : Icons.add,
-                          size: 22,
-                          color: const Color(0xFF4A2F1A),
-                        ),
-                      ),
+                    Pressable(
+                      semanticLabel: _editing != null
+                          ? 'Save note'
+                          : 'Add note',
+                      material: MaterialSound.brass,
+                      soundEnabled: false,
+                      shape: const LampShadeBorder(cut: 6),
+                      pressDepth: 2,
+                      edgeColor: const Color(0xFF1E1109),
+                      onTapUp: (_) => _submit(),
+                      stateBuilder:
+                          (context, child, pressed, focused, hovered) =>
+                              _noteLamp(pressed),
+                      child: _noteLamp(false),
                     ),
                   ],
                 ),

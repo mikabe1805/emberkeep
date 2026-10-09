@@ -38,6 +38,7 @@ import '../widgets/domain_hint.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/gold_surface.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/night_reflection_sheet.dart';
 import 'journal_entry.dart';
@@ -3117,32 +3118,10 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                 onChanged: (v) => setState(() => _difficulty = v),
               ),
               Center(
-                child: GestureDetector(
+                child: HoneyButton(
+                  label: 'PLAN IT',
+                  soundEnabled: false,
                   onTap: _add,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 26,
-                      vertical: 11,
-                    ),
-                    decoration: facetedDecoration(
-                      cut: 9,
-                      gradient: Palette.honeyGradient,
-                      shadows: const [
-                        BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 16,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'PLAN IT',
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: Palette.onHoney,
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],

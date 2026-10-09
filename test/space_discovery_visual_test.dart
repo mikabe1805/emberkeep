@@ -167,11 +167,15 @@ void main() {
         rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
       )
       ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    // The lamp's printed capitals (SAVE PAGE) are EB Garamond.
+    final garamond = FontLoader('EBGaramond')
+      ..addFont(rootBundle.load('assets/google_fonts/EBGaramond-Variable.ttf'));
     await Future.wait([
       icons.load(),
       fraunces.load(),
       inter.load(),
       mono.load(),
+      garamond.load(),
     ]);
     await preloadHomeRoomAssets();
     GoogleFonts.config.allowRuntimeFetching = false;

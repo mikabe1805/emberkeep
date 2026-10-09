@@ -9,6 +9,7 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/honey_button.dart';
 
 /// Opens one Momentum Kit from anywhere the user has asked for this exact
 /// kind of support. The sheet remains the single place that validates and
@@ -993,34 +994,11 @@ class _LaunchButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
+  Widget build(BuildContext context) => HoneyButton(
     label: label,
+    expand: true,
+    soundEnabled: false,
     onTap: onTap,
-    child: GestureDetector(
-      excludeFromSemantics: true,
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: 50),
-        alignment: Alignment.center,
-        decoration: facetedDecoration(
-          cut: 10,
-          gradient: Palette.honeyGradient,
-          borderColor: Palette.xpLight.withValues(alpha: 0.8),
-          shadows: const [BoxShadow(color: Palette.honeyGlow, blurRadius: 18)],
-        ),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 12,
-            letterSpacing: 1.5,
-            color: Palette.onHoney,
-          ),
-        ),
-      ),
-    ),
   );
 }
 

@@ -1035,25 +1035,10 @@ class GoalDetailScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GestureDetector(
+                    HoneyButton(
+                      label: 'KEEP IT',
+                      soundEnabled: false,
                       onTap: () => Navigator.of(ctx).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 9,
-                        ),
-                        decoration: facetedDecoration(
-                          cut: 8,
-                          gradient: Palette.honeyGradient,
-                        ),
-                        child: Text(
-                          'KEEP IT',
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: Palette.onHoney,
-                          ),
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 10),
                     GestureDetector(

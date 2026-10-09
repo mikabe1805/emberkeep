@@ -636,16 +636,15 @@ class _NightFlowState extends State<NightFlow> {
                       const SizedBox(height: 7),
                       Row(
                         children: [
-                          FilledButton(
-                            onPressed: () {
+                          HoneyButton(
+                            quiet: true,
+                            compact: true,
+                            label: 'RISE',
+                            soundEnabled: false,
+                            onTap: () {
                               Navigator.of(dialogContext).pop();
                               _rise(quest);
                             },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Palette.xp,
-                              foregroundColor: Palette.onHoney,
-                            ),
-                            child: const Text('RISE'),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
@@ -1053,48 +1052,23 @@ class _NightFlowState extends State<NightFlow> {
                           ],
                         ),
                         const SizedBox(height: 6),
+                        // One row per quest, so both answers are quiet panes.
                         Row(
                           children: [
-                            GestureDetector(
+                            HoneyButton(
+                              quiet: true,
+                              compact: true,
+                              label: 'RISE',
+                              soundEnabled: false,
                               onTap: () => _rise(q),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 11,
-                                  vertical: 6,
-                                ),
-                                decoration: facetedDecoration(
-                                  cut: 7,
-                                  gradient: Palette.honeyGradient,
-                                ),
-                                child: Text(
-                                  'RISE',
-                                  style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: Palette.onHoney,
-                                  ),
-                                ),
-                              ),
                             ),
                             const SizedBox(width: 6),
-                            GestureDetector(
+                            HoneyButton(
+                              quiet: true,
+                              compact: true,
+                              label: 'NOT YET',
+                              soundEnabled: false,
                               onTap: () => _notYet(q),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 11,
-                                  vertical: 6,
-                                ),
-                                decoration: facetedDecoration(
-                                  cut: 7,
-                                  color: Colors.transparent,
-                                  borderColor: Palette.textLo.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                ),
-                                child: Text(
-                                  'NOT YET',
-                                  style: Type.label.copyWith(fontSize: 11),
-                                ),
-                              ),
                             ),
                           ],
                         ),
