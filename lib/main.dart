@@ -228,10 +228,10 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
           brightness: Brightness.dark,
         ),
         useMaterial3: true,
-        // Every pushed surface travels the same way — a settle out of the
-        // room's depth with a blur that lands sharp — instead of the stock
-        // platform zoom. iOS/macOS keep their native slide and edge-swipe
-        // with the motion blur riding on top (room_travel.dart).
+        // Ordinary pushed pages move natively and calmly (room_travel.dart):
+        // iOS/macOS use the platform's own slide, parallax and edge-swipe
+        // with nothing layered on; other platforms a short fade and rise.
+        // No blur anywhere. Reduced Motion parks on a plain fade.
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: RoomPageTransitionsBuilder(),

@@ -895,8 +895,10 @@ Future<void> scrollToTop(WidgetTester tester, Finder scope) async {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// The app's MaterialApp theme, mirrored from lib/main.dart
-/// (`_LifeRpgAppState.build`, Build 49). If main.dart's theme changes, update
-/// this copy; [debugCheckRoomTheme] compares the two on a booted app.
+/// (`_LifeRpgAppState.build`). If main.dart's theme changes, update this copy;
+/// [debugCheckRoomTheme] compares the two on a booted app. The page
+/// transitions are the native-calm builders (room_travel.dart), so renders
+/// that push a page show the same slide and fade the app does, with no blur.
 ThemeData roomThemeData() => ThemeData(
   brightness: Brightness.dark,
   scaffoldBackgroundColor: Palette.parchment,
@@ -927,7 +929,18 @@ bool debugCheckRoomTheme(WidgetTester tester) {
       live.brightness == copy.brightness &&
       live.scaffoldBackgroundColor == copy.scaffoldBackgroundColor &&
       live.colorScheme == copy.colorScheme &&
-      live.useMaterial3 == copy.useMaterial3;
+      live.useMaterial3 == copy.useMaterial3 &&
+      _sameBuilders(live.pageTransitionsTheme, copy.pageTransitionsTheme);
+}
+
+bool _sameBuilders(PageTransitionsTheme a, PageTransitionsTheme b) {
+  for (final platform in TargetPlatform.values) {
+    if (a.builders[platform]?.runtimeType !=
+        b.builders[platform]?.runtimeType) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// Renders [child] as the home of a MaterialApp built with the app's real

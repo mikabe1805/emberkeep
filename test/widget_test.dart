@@ -1238,8 +1238,8 @@ void main() {
 
     // due today → leads the quest list
     await tester.tap(find.byIcon(Icons.task_alt));
-    // The first frame begins the room-travel pan; a second pump reaches the
-    // parked Quest room before asserting its live board.
+    // The dock dissolves to the Quest room in 120 ms; the pumps reach the
+    // parked room (and its board's own entrance) before asserting it.
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('6 open · choose'), findsOneWidget);

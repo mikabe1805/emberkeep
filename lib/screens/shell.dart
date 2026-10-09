@@ -2307,8 +2307,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                             child: RoomTravelStack(
                               index: _tab,
                               // The travel stack retains IndexedStack's state/lifecycle
-                              // contract while giving the dock's parchment contact a
-                              // restrained camera pan to inhabit.
+                              // contract; the dock changes rooms at once, softened by
+                              // a very short cross-dissolve (no pan, no blur).
                               children: [
                                 for (final (i, page) in <Widget>[
                                   _visitedTabs.contains(0)
