@@ -6650,32 +6650,14 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  GestureDetector(
+                  // LET'S GO is the sheet's one lamp; with nothing pulled in
+                  // the same place only closes, so it stays a quiet pane.
+                  HoneyButton(
+                    compact: true,
+                    quiet: _spawned.isEmpty,
+                    label: _spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
+                    soundEnabled: false,
                     onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 22,
-                        vertical: 10,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 9,
-                        gradient: Palette.honeyGradient,
-                        shadows: const [
-                          BoxShadow(
-                            color: Palette.honeyGlow,
-                            blurRadius: 14,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        _spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -6769,7 +6751,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
   }
 }
 
-/// One encore action — a honey pill when recommended, an outline otherwise.
+/// One encore action: a quiet glass pane when recommended, an outline otherwise.
 class _MomentumChip extends StatelessWidget {
   const _MomentumChip({
     required this.label,
@@ -6785,7 +6767,9 @@ class _MomentumChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = highlight ? Palette.onHoney : Palette.xpLight;
+    // A quest card can sit beside several others, so the recommended encore is
+    // a quiet pane with a warmer hairline, never a lit one.
+    final fg = highlight ? const Color(0xFFEAD7BA) : Palette.xpLight;
     return GestureDetector(
       onTap: onTap,
       child: ConstrainedBox(
@@ -6794,9 +6778,15 @@ class _MomentumChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: facetedDecoration(
             cut: 8,
-            gradient: highlight ? Palette.honeyGradient : null,
+            gradient: highlight
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xF02A211B), Color(0xF61A130F)],
+                  )
+                : null,
             borderColor: highlight
-                ? Colors.transparent
+                ? Palette.xpLight.withValues(alpha: 0.7)
                 : Palette.xpLight.withValues(alpha: 0.5),
           ),
           child: Column(
@@ -6813,7 +6803,7 @@ class _MomentumChip extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Type.body.copyWith(
                       fontSize: 11,
-                      color: highlight ? Palette.onHoney : Palette.textMid,
+                      color: Palette.textMid,
                     ),
                   ),
                 ),
@@ -7063,7 +7053,9 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
               const SizedBox(height: 12),
             ],
             Center(
-              child: GestureDetector(
+              child: HoneyButton(
+                label: 'SAVE',
+                soundEnabled: false,
                 onTap: () {
                   Sfx.instance.play('streak');
                   HapticFeedback.selectionClick();
@@ -7082,30 +7074,6 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   widget.onSaved();
                   Navigator.of(context).pop();
                 },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 9,
-                    gradient: Palette.honeyGradient,
-                    shadows: const [
-                      BoxShadow(
-                        color: Palette.honeyGlow,
-                        blurRadius: 14,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    'SAVE',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.onHoney,
-                    ),
-                  ),
-                ),
               ),
             ),
           ],

@@ -20,6 +20,7 @@ import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/spark_picker.dart';
 import 'visit_room.dart';
 
@@ -557,48 +558,20 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  GestureDetector(
+                  HoneyButton(
+                    quiet: true,
+                    label: 'NOT NOW',
+                    soundEnabled: false,
                     onTap: () => Navigator.of(ctx).pop(false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        borderColor: Palette.glassEdge,
-                      ),
-                      child: Text(
-                        'NOT NOW',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.textMid,
-                        ),
-                      ),
-                    ),
                   ),
-                  GestureDetector(
+                  HoneyButton(
+                    label: 'SHARE + SIT DOWN',
+                    soundEnabled: false,
                     onTap: () => Navigator.of(ctx).pop(true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        gradient: Palette.honeyGradient,
-                      ),
-                      child: Text(
-                        'SHARE + SIT DOWN',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -1694,34 +1667,18 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
             ],
           ),
           const SizedBox(height: 18),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    Navigator.of(context).pop();
-                    await widget.onStart(_kind, _minutes);
-                  },
-            child: Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(minHeight: 50),
-              alignment: Alignment.center,
-              decoration: facetedDecoration(
-                cut: 10,
-                gradient: Palette.honeyGradient,
-                borderColor: Palette.xpLight.withValues(alpha: 0.8),
-              ),
-              child: Text(
-                widget.firstShare
-                    ? 'SHARE + LIGHT THE TIMER'
-                    : 'LIGHT THE TIMER',
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: Palette.onHoney,
-                ),
-              ),
-            ),
+          HoneyButton(
+            label: widget.firstShare
+                ? 'SHARE + LIGHT THE TIMER'
+                : 'LIGHT THE TIMER',
+            expand: true,
+            soundEnabled: false,
+            enabled: !_busy,
+            onTap: () async {
+              setState(() => _busy = true);
+              Navigator.of(context).pop();
+              await widget.onStart(_kind, _minutes);
+            },
           ),
         ],
       ),

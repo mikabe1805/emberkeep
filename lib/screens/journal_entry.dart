@@ -13,6 +13,7 @@ import '../release_features.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/notes_sheet.dart' show relativeWhen;
 
 /// What the editor hands back on each autosave.
@@ -1496,24 +1497,13 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       label: 'Done writing. Your entry is saved.',
       onTap: _finishEditing,
       excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _finishEditing,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-          decoration: facetedDecoration(
-            cut: 7,
-            gradient: Palette.honeyGradient,
-          ),
-          child: Text(
-            'DONE',
-            style: Type.label.copyWith(
-              fontSize: 11,
-              letterSpacing: 1.1,
-              color: Palette.onHoney,
-            ),
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: HoneyButton(
+          compact: true,
+          label: 'DONE',
+          soundEnabled: false,
+          onTap: _finishEditing,
         ),
       ),
     );

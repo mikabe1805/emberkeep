@@ -10,6 +10,7 @@ import '../widgets/detail_header.dart';
 import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/lamplight.dart';
 import '../widgets/pressable.dart';
 
 /// The maker's page: a short, human account of why Room of Days exists, plus
@@ -343,7 +344,6 @@ class _SupportCard extends StatelessWidget {
             key: const ValueKey('about-send-coffee'),
             label: 'VISIT KO-FI',
             icon: Icons.local_cafe_outlined,
-            gold: true,
             onTap: onCoffee,
           ),
           const SizedBox(height: 10),
@@ -352,7 +352,6 @@ class _SupportCard extends StatelessWidget {
           key: const ValueKey('about-share-app'),
           label: 'SHARE ROOM OF DAYS',
           icon: Icons.ios_share_rounded,
-          gold: !showCoffee,
           onTap: onShare,
         ),
       ],
@@ -376,13 +375,28 @@ class _AboutAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = gold ? Palette.onHoney : Palette.textHi;
+    if (gold) {
+      // The page's one lamp. The tap position still travels with it (the
+      // share sheet anchors to it).
+      return Pressable(
+        semanticLabel: label,
+        material: MaterialSound.brass,
+        onTapUp: onTap,
+        pressDepth: 2,
+        edgeColor: const Color(0xFF1E1109),
+        shape: const LampShadeBorder(cut: 11),
+        stateBuilder: (context, child, pressed, focused, hovered) =>
+            _lamp(context, pressed),
+        child: _lamp(context, false),
+      );
+    }
+    const ink = Palette.textHi;
     return Pressable(
       semanticLabel: label,
-      material: gold ? MaterialSound.brass : MaterialSound.glass,
+      material: MaterialSound.glass,
       onTapUp: onTap,
       pressDepth: 3,
-      edgeColor: gold ? const Color(0xFF5B3215) : const Color(0xFF0F0905),
+      edgeColor: const Color(0xFF0F0905),
       shape: const FacetedBorder(cut: 9),
       child: Container(
         width: double.infinity,
@@ -391,9 +405,8 @@ class _AboutAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: facetedDecoration(
           cut: 9,
-          gradient: gold ? Palette.honeyGradient : null,
-          color: gold ? null : Palette.glassFill,
-          borderColor: gold ? Colors.transparent : Palette.glassEdge,
+          color: Palette.glassFill,
+          borderColor: Palette.glassEdge,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -409,6 +422,25 @@ class _AboutAction extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _lamp(BuildContext context, bool pressed) {
+    return LampShade(
+      cut: 11,
+      pressed: pressed,
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 50),
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.textScalerOf(context).scale(1) >= 1.5
+              ? 12
+              : 22,
+          vertical: 12,
+        ),
+        child: LampLabel(text: label, icon: icon, fontSize: 14.5),
       ),
     );
   }

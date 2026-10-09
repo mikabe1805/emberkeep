@@ -12,8 +12,8 @@ import '../platform/share_stub.dart'
 import '../social.dart' show roomInviteUrl;
 import '../tokens.dart';
 import 'facets.dart';
+import 'honey_button.dart';
 import 'living_hearth_fire.dart';
-import 'pressable.dart';
 
 /// The words that travel with the card. The room link rides along only while a
 /// shared room actually exists — a code that was never shared, or was
@@ -127,30 +127,10 @@ class _ShareMomentSheetState extends State<ShareMomentSheet> {
                       ),
                     ),
                   ),
-                  Pressable(
+                  HoneyButton(
+                    label: _busy ? 'SHARING…' : 'SHARE THIS MOMENT',
                     semanticLabel: 'Share this moment',
-                    material: MaterialSound.brass,
-                    shape: const FacetedBorder(cut: 9),
-                    onTapUp: (_) => _share(),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 26,
-                        vertical: 13,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 9,
-                        gradient: Palette.honeyGradient,
-                        borderColor: Palette.brassLit.withValues(alpha: 0.6),
-                      ),
-                      child: Text(
-                        _busy ? 'SHARING…' : 'SHARE THIS MOMENT',
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
+                    onTap: _share,
                   ),
                 ],
               ),

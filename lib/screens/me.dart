@@ -524,33 +524,12 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                         ),
                       ),
                     ),
-                    Semantics(
-                      button: true,
-                      label: 'Add to shared room',
-                      child: GestureDetector(
-                        key: const ValueKey('confirm-share-room-photo'),
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.of(dialogContext).pop(true),
-                        child: Container(
-                          constraints: const BoxConstraints(minHeight: 48),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          decoration: facetedDecoration(
-                            cut: 8,
-                            gradient: Palette.honeyGradient,
-                            borderColor: Palette.brassLit.withValues(
-                              alpha: 0.75,
-                            ),
-                          ),
-                          child: Text(
-                            'ADD TO SHARED ROOM',
-                            style: Type.label.copyWith(
-                              fontSize: Type.minLabel,
-                              color: Palette.onHoney,
-                            ),
-                          ),
-                        ),
-                      ),
+                    HoneyButton(
+                      key: const ValueKey('confirm-share-room-photo'),
+                      label: 'ADD TO SHARED ROOM',
+                      semanticLabel: 'Add to shared room',
+                      soundEnabled: false,
+                      onTap: () => Navigator.of(dialogContext).pop(true),
                     ),
                   ],
                 ),
@@ -2210,42 +2189,23 @@ class _SpaceArrangerActions extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Semantics(
-                  label: busy ? 'Updating visitor page' : 'Save page',
-                  button: true,
+                // The sheet's one lamp. While the page is updating the shade
+                // is simply unlit, and its words say what is happening.
+                child: HoneyButton(
+                  key: const ValueKey('space-arranger-save'),
+                  icon: busy ? null : Icons.check_rounded,
+                  expand: true,
                   enabled: onSave != null,
-                  excludeSemantics: true,
-                  child: FilledButton.icon(
-                    key: const ValueKey('space-arranger-save'),
-                    onPressed: onSave,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      backgroundColor: Palette.xp,
-                      foregroundColor: Palette.onHoney,
-                    ),
-                    icon: busy
-                        ? const SizedBox.square(
-                            dimension: 17,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Palette.onHoney,
-                            ),
-                          )
-                        : const Icon(Icons.check_rounded),
-                    label: Text(
-                      busy
-                          ? compactLabels
-                                ? 'SAVING\u2026'
-                                : 'Updating visitor page\u2026'
-                          : compactLabels
-                          ? 'SAVE'
-                          : 'SAVE PAGE',
-                      style: Type.label.copyWith(
-                        fontSize: Type.minLabel,
-                        color: Palette.onHoney,
-                      ),
-                    ),
-                  ),
+                  soundEnabled: false,
+                  semanticLabel: busy ? 'Updating visitor page' : 'Save page',
+                  label: busy
+                      ? compactLabels
+                            ? 'SAVING\u2026'
+                            : 'Updating visitor page\u2026'
+                      : compactLabels
+                      ? 'SAVE'
+                      : 'SAVE PAGE',
+                  onTap: onSave ?? () {},
                 ),
               ),
             ],
@@ -3915,31 +3875,12 @@ class _ResetDialogState extends State<_ResetDialog> {
                   spacing: 10,
                   runSpacing: 10,
                   children: [
-                    Semantics(
-                      button: true,
+                    HoneyButton(
+                      label: 'KEEP MY PROGRESS',
+                      semanticLabel: 'Keep my progress',
+                      soundEnabled: false,
                       enabled: !_busy,
-                      label: 'Keep my progress',
-                      excludeSemantics: true,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _busy ? null : () => Navigator.of(context).pop(),
-                        child: Container(
-                          constraints: const BoxConstraints(minHeight: 48),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          decoration: facetedDecoration(
-                            cut: 8,
-                            gradient: Palette.honeyGradient,
-                          ),
-                          child: Text(
-                            'KEEP MY PROGRESS',
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: Palette.onHoney,
-                            ),
-                          ),
-                        ),
-                      ),
+                      onTap: () => Navigator.of(context).pop(),
                     ),
                     Semantics(
                       button: true,
@@ -5676,65 +5617,20 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GestureDetector(
+              HoneyButton(
+                compact: true,
+                icon: Icons.ios_share,
+                label: _busy ? 'SAVING…' : 'SHARE IMAGE',
+                soundEnabled: false,
                 onTap: _shareImage,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 9,
-                    gradient: Palette.honeyGradient,
-                    shadows: const [
-                      BoxShadow(
-                        color: Palette.honeyGlow,
-                        blurRadius: 14,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.ios_share,
-                        size: 13,
-                        color: Palette.onHoney,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _busy ? 'SAVING…' : 'SHARE IMAGE',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ),
               const SizedBox(width: 10),
-              GestureDetector(
+              HoneyButton(
+                quiet: true,
+                compact: true,
+                label: 'COPY TEXT',
+                soundEnabled: false,
                 onTap: _copyText,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 9,
-                    color: Palette.glassFill,
-                    borderColor: Palette.glassEdge,
-                  ),
-                  child: Text(
-                    'COPY TEXT',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.textHi,
-                    ),
-                  ),
-                ),
               ),
             ],
           ),
@@ -6610,25 +6506,10 @@ class _RestoreDialogState extends State<_RestoreDialog> {
             ),
             const SizedBox(height: 12),
             Center(
-              child: GestureDetector(
+              child: HoneyButton(
+                label: _busy ? 'RESTORING…' : 'RESTORE',
+                soundEnabled: false,
                 onTap: _restore,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 22,
-                    vertical: 10,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 8,
-                    gradient: Palette.honeyGradient,
-                  ),
-                  child: Text(
-                    _busy ? 'RESTORING…' : 'RESTORE',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.onHoney,
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
@@ -6723,25 +6604,10 @@ class _AccountPanel extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 10,
                 children: [
-                  GestureDetector(
+                  HoneyButton(
+                    label: 'KEEP MY PROGRESS',
+                    soundEnabled: false,
                     onTap: () => Navigator.of(ctx).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        gradient: Palette.honeyGradient,
-                      ),
-                      child: Text(
-                        'KEEP MY PROGRESS',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
                   ),
                   GestureDetector(
                     onTap: () async {
@@ -7425,36 +7291,14 @@ class _AccountDialogState extends State<_AccountDialog> {
             ),
             const SizedBox(height: 14),
             Center(
-              child: GestureDetector(
+              child: HoneyButton(
+                label: _busy
+                    ? '…'
+                    : widget.signIn
+                    ? 'SIGN IN'
+                    : 'CREATE ACCOUNT',
+                soundEnabled: false,
                 onTap: _submit,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 11,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 9,
-                    gradient: Palette.honeyGradient,
-                    shadows: const [
-                      BoxShadow(
-                        color: Palette.honeyGlow,
-                        blurRadius: 16,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    _busy
-                        ? '…'
-                        : widget.signIn
-                        ? 'SIGN IN'
-                        : 'CREATE ACCOUNT',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.onHoney,
-                    ),
-                  ),
-                ),
               ),
             ),
           ],
