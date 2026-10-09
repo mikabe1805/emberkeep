@@ -946,8 +946,12 @@ ClassCelebrationPlan planClassCelebration({
     title: title,
     detail: detail,
     rows: rows,
-    bonusLine: bonus > 0 ? "All of $dayName's classes" : null,
-    bonusXp: bonus,
+    // The week's day rows already carry each day's full-day bonus, so a
+    // separate bonus row would count the closing day's bonus twice.
+    bonusLine: bonus > 0 && tier != ClassCelebrationTier.weekDone
+        ? "All of $dayName's classes"
+        : null,
+    bonusXp: tier == ClassCelebrationTier.weekDone ? 0 : bonus,
     xpShown: shown,
     xpFrom: from < 0 ? 0 : from,
     caption: caption,

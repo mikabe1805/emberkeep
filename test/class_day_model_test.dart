@@ -388,6 +388,15 @@ void main() {
       );
       expect(week.rows.where((row) => row.marked).single.title, 'Friday');
       expect(week.rows.every((row) => row.xp > 0), isTrue);
+      // The day rows already carry each day's full-day bonus, so the list
+      // sums exactly to the big number, with no separate bonus row.
+      expect(week.bonusLine, isNull);
+      expect(week.bonusXp, 0);
+      expect(
+        week.rows.fold(0, (sum, row) => sum + row.xp),
+        week.xpShown,
+        reason: 'the week rows add up to the big XP number',
+      );
     });
 
     test('the shortcut keeps several in one plan', () {
