@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -380,7 +379,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
     required this.progress,
     this.invitation,
     this.openingSequence = false,
-    this.motionBlur,
     this.destinationExpression = GoalStewardExpression.ready,
     this.destinationParallax,
     this.destinationLight,
@@ -396,11 +394,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
   final ValueListenable<Offset>? destinationLight;
   final bool reduceMotion;
   final String sourceAsset;
-
-  /// An optional velocity-derived blur amount. The one-time opening supplies
-  /// this so its wide-room hold resolves completely even though the same
-  /// progress value can be crossed at several deliberately different speeds.
-  final double? motionBlur;
 
   @override
   Widget build(BuildContext context) {
@@ -430,19 +423,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
     final handoffVeil = Curves.easeInOutCubic.transform(
       _roomPulse(destinationMix, 0.04, 0.50, 0.96),
     );
-    // The room is the only blurred plane. Live type and controls stay crisp,
-    // while the painted camera picks up a very small velocity softness at the
-    // two fastest parts of the move and resolves completely at every rest.
-    final retreatBlur =
-        Curves.easeInOutCubic.transform(_roomPulse(value, 0.10, 0.32, 0.56)) *
-        0.72;
-    final crossingBlur =
-        Curves.easeInOutCubic.transform(_roomPulse(value, 0.62, 0.82, 0.965)) *
-        2.1;
-    final sourceBlur = motionBlur ?? retreatBlur + crossingBlur;
-    final destinationBlur = motionBlur == null
-        ? crossingBlur * 0.46
-        : motionBlur! * 0.46;
     final invitationIn = Curves.easeOutCubic.transform(
       openingSequence
           ? _roomSegment(value, 0.16, 0.22)
@@ -477,10 +457,8 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
                 required Key key,
                 required Widget child,
                 required GoalRoomCameraPose pose,
-                required double blur,
-                required Key blurKey,
               }) {
-                Widget paintedPlate = RepaintBoundary(
+                return RepaintBoundary(
                   child: Transform.translate(
                     key: key,
                     offset: Offset(
@@ -490,16 +468,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
                     child: Transform.scale(scale: pose.scale, child: child),
                   ),
                 );
-                if (blur <= 0.01) return paintedPlate;
-                paintedPlate = ImageFiltered(
-                  key: blurKey,
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: blur * 0.72,
-                    sigmaY: blur,
-                  ),
-                  child: paintedPlate,
-                );
-                return paintedPlate;
               }
 
               final sourceRelease = Curves.easeInCubic.transform(
@@ -541,8 +509,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
                         },
                       ),
                       pose: masterPose,
-                      blur: sourceBlur,
-                      blurKey: const ValueKey('goal-room-travel-motion-blur'),
                     ),
                   ),
                   if (destinationMix > 0)
@@ -559,10 +525,6 @@ class GoalRoomTravelBackdrop extends StatelessWidget {
                           ),
                         ),
                         pose: destinationPose,
-                        blur: destinationBlur,
-                        blurKey: const ValueKey(
-                          'goal-room-travel-destination-blur',
-                        ),
                       ),
                     ),
                   IgnorePointer(

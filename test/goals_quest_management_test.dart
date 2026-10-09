@@ -798,8 +798,8 @@ void main() {
       }
       expect(
         sawTravelBlur,
-        isTrue,
-        reason: 'only the painted room receives velocity softness in flight',
+        isFalse,
+        reason: 'the opening is a calm dolly; only the kitchen walk streaks',
       );
       expect(sawWorkshopShell, isTrue);
 

@@ -15,6 +15,7 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/goal_action_card.dart';
 import '../widgets/goal_route_panel.dart';
+import '../widgets/goal_threshold_walk.dart' show GoalsKitchenFrame;
 import '../widgets/goal_world.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/luxe_depth.dart';
@@ -277,6 +278,12 @@ class GoalDetailScreen extends StatelessWidget {
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.2;
     final lightField =
         light ?? const AlwaysStoppedAnimation<Offset>(Offset.zero);
+    // The kitchen is painted from inside the arch, so its own jambs sit at the
+    // plate's edges. The Goals walk has already carried you through the arch,
+    // so the page frames the room beyond them; the walk lands on this framing.
+    final kitchenFrame = GoalsKitchenFrame.forBox(
+      GoalsKitchenFrame.heroBox(surface, compact: compactWorld),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF100D0B),
@@ -290,7 +297,8 @@ class GoalDetailScreen extends StatelessWidget {
         heroHeight: surface.height + (compactWorld ? 0 : 28),
         headingTop: compactWorld ? 10 : 16,
         heroAlignment: Alignment.center,
-        heroScale: compactWorld ? 1.015 : goalsRoomKitchenScale,
+        heroScale: kitchenFrame.scale,
+        heroTranslation: kitchenFrame.translation,
         heroScrim: goalsKitchenDetailScrim,
         contentSafeArea: true,
         bodyTextureAsset: 'assets/room/wall_grain.png',

@@ -14,8 +14,6 @@ import '../widgets/pressable.dart';
 
 enum _GoalOpeningStage { desk, wideRoom, threshold, arrival }
 
-enum _GoalOpeningMotionLeg { idle, deskRetreat, archApproach, doorwayCrossing }
-
 const _goalOpeningWideRoomProgress = 0.22;
 const _goalOpeningThresholdProgress = 0.60;
 
@@ -72,7 +70,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
   late final LuxeMotionController _motion;
   late String _actionTitle;
   late _GoalOpeningStage _stage;
-  _GoalOpeningMotionLeg _motionLeg = _GoalOpeningMotionLeg.idle;
   bool _moving = false;
   bool _workshopUpdating = false;
   late bool _questOwned;
@@ -98,18 +95,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.threshold => _goalOpeningThresholdProgress,
     _GoalOpeningStage.arrival => 1,
   };
-
-  double get _travelBlur {
-    if (_still || !_moving) return 0;
-    final legWeight = switch (_motionLeg) {
-      _GoalOpeningMotionLeg.idle => 0.0,
-      _GoalOpeningMotionLeg.deskRetreat =>
-        _room.value < _goalOpeningWideRoomProgress ? 1.8 : 0.95,
-      _GoalOpeningMotionLeg.archApproach => 0.95,
-      _GoalOpeningMotionLeg.doorwayCrossing => 2.15,
-    };
-    return (_room.velocity.abs() * legWeight).clamp(0.0, 2.2);
-  }
 
   bool get _isWideRoomStop => !_moving && _stage == _GoalOpeningStage.wideRoom;
 
@@ -147,27 +132,19 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage target, {
     required double progress,
     required Duration duration,
-    required _GoalOpeningMotionLeg motionLeg,
     Curve curve = Curves.easeInOutCubic,
   }) async {
     if (_moving || target == _stage) return;
     if (_still) {
-      setState(() {
-        _stage = target;
-        _motionLeg = _GoalOpeningMotionLeg.idle;
-      });
+      setState(() => _stage = target);
       return;
     }
-    setState(() {
-      _moving = true;
-      _motionLeg = motionLeg;
-    });
+    setState(() => _moving = true);
     await _room.animateTo(progress, duration: duration, curve: curve);
     if (!mounted) return;
     setState(() {
       _stage = target;
       _moving = false;
-      _motionLeg = _GoalOpeningMotionLeg.idle;
     });
   }
 
@@ -177,7 +154,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.wideRoom,
     progress: _goalOpeningWideRoomProgress,
     duration: const Duration(milliseconds: 760),
-    motionLeg: _GoalOpeningMotionLeg.deskRetreat,
     curve: Curves.easeOutCubic,
   );
 
@@ -185,7 +161,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.threshold,
     progress: _goalOpeningThresholdProgress,
     duration: const Duration(milliseconds: 1040),
-    motionLeg: _GoalOpeningMotionLeg.archApproach,
     curve: const Cubic(0.20, 0.72, 0.18, 1),
   );
 
@@ -193,7 +168,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.arrival,
     progress: 1,
     duration: const Duration(milliseconds: 1120),
-    motionLeg: _GoalOpeningMotionLeg.doorwayCrossing,
     curve: const Cubic(0.42, 0.02, 0.18, 1),
   );
 
@@ -201,7 +175,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.desk,
     progress: 0,
     duration: const Duration(milliseconds: 720),
-    motionLeg: _GoalOpeningMotionLeg.deskRetreat,
     curve: Curves.easeInOutCubic,
   );
 
@@ -209,7 +182,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     _GoalOpeningStage.wideRoom,
     progress: _goalOpeningWideRoomProgress,
     duration: const Duration(milliseconds: 840),
-    motionLeg: _GoalOpeningMotionLeg.archApproach,
     curve: const Cubic(0.32, 0, 0.42, 1),
   );
 
@@ -306,7 +278,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
           _GoalOpeningStage.threshold,
           progress: _goalOpeningThresholdProgress,
           duration: const Duration(milliseconds: 900),
-          motionLeg: _GoalOpeningMotionLeg.doorwayCrossing,
           curve: const Cubic(0.34, 0, 0.24, 1),
         );
         return;
@@ -325,8 +296,7 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
         ? _buildScene(_stageProgress)
         : AnimatedBuilder(
             animation: _room,
-            builder: (context, _) =>
-                _buildScene(_room.value, travelBlur: _travelBlur),
+            builder: (context, _) => _buildScene(_room.value),
           );
 
     return PopScope<Object?>(
@@ -354,7 +324,7 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
     );
   }
 
-  Widget _buildScene(double progress, {double travelBlur = 0}) {
+  Widget _buildScene(double progress) {
     final deskOut = Curves.easeInCubic.transform(
       _openingSegment(progress, 0.03, 0.18),
     );
@@ -422,7 +392,6 @@ class _GoalOpeningScreenState extends State<GoalOpeningScreen>
               child: GoalRoomTravelBackdrop(
                 progress: progress,
                 openingSequence: true,
-                motionBlur: travelBlur,
                 destinationExpression: _stewardExpression,
                 destinationParallax: _motion.parallax,
                 destinationLight: _motion.light,
