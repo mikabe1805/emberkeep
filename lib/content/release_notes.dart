@@ -53,6 +53,85 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.5+51',
+    versionLabel: 'VERSION 1.0.5 · BUILD 51',
+    dateLabel: 'OCTOBER 2026',
+    title: 'Going to class counts now.',
+    introduction:
+        'Mark a class when you get there or any time after it ends. Once your '
+        'last class is done, the room settles in for the evening.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.courseWork,
+        title: 'I WAS THERE',
+        body:
+            "On a class day the Quests tab opens on your room and today's "
+            'classes. Tap I WAS THERE when you arrive, or later, for XP and a '
+            'count that only goes up.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'ADD YOUR CLASSES',
+        body:
+            'Bring them in from a calendar file or link, or type them in '
+            "yourself. You'll find it in Plans.",
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'CLASS DAYS COUNT',
+        body:
+            'A day you go to class keeps your streak going. Days with no '
+            'classes pause it, so a quiet weekend costs nothing.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'FROM YOUR HOME SCREEN',
+        body:
+            'Tap a waiting class on the Day Ledger widget and the app opens '
+            'straight to its celebration.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
+    id: '1.0.5+50',
+    versionLabel: 'VERSION 1.0.5 · BUILD 50',
+    dateLabel: 'OCTOBER 2026',
+    title: 'Less between you and the Quest.',
+    introduction:
+        'Simple Quests finish in one tap now, and Goals puts your current '
+        'Quest first.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'ONE TAP MEANS DONE',
+        body:
+            'A straightforward Quest now completes from its card in one tap. '
+            'Manage stays separate for the times you actually need it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'TWO WAYS INTO GOALS',
+        body:
+            'Review and reshape the goals you have, or begin a fresh path. '
+            'Each choice now says where it will take you.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'ROOM TO ADJUST',
+        body:
+            'When today is too much, an easier step stays nearby without '
+            'taking over the Quest you chose.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.journalMemory,
+        title: 'KEEP THIS',
+        body:
+            'While reading a Journal page, save it to Keepsakes without '
+            'opening Edit.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+49',
     versionLabel: 'VERSION 1.0.4 · BUILD 49',
     dateLabel: 'SEPTEMBER 2026',
