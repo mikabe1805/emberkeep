@@ -152,6 +152,8 @@ flutter:
     - assets/rooms/previews/
     # the Doorway: the class-day room's painted lights, rail pieces and objects
     - assets/rooms/doorway/
+    # the house: one painted plate per room and light (Me, Goals, Plans, Journal)
+    - assets/rooms/house/
     - assets/routine/
     - assets/brand/
     - assets/quest/

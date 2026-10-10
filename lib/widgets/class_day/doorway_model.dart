@@ -294,6 +294,15 @@ final class DoorwayDay {
     this.weekTied = false,
   });
 
+  /// A day with nothing on the rail, nothing in the bowl and nothing on the
+  /// shelf: the Doorway as the house's hall on a day without classes.
+  factory DoorwayDay.quiet(CivilDate date) => DoorwayDay(
+    date: date,
+    tickets: const [],
+    bowlPairs: const [],
+    shelfBundles: const [],
+  );
+
   /// Reads [date]'s day (the night-owned day of [now] when null) from the
   /// timetable and the save's records. [state] says which classes were kept
   /// and which were set aside. The week and the term come from the schedule.

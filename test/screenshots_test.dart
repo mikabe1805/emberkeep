@@ -17,6 +17,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:emberkeep/widgets/house/house_backdrop.dart';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/cloud.dart';
@@ -4642,13 +4643,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 130));
 
-    // The active Goals page and its departing route share the same room plate
-    // during the handoff, so both source and transition are present here.
-    expect(
-      find.byKey(const Key('goal-room-travel-backdrop')),
-      findsNWidgets(2),
-    );
-    expect(find.byKey(const Key('goal-room-travel-master')), findsNWidgets(2));
+    // The active Goals page stands in the house's workshop plate; its
+    // departing route carries the walk's room, so the transition is present
+    // here with the page's room as its source.
+    expect(find.byType(HouseRoomBackdrop), findsOneWidget);
+    expect(find.byKey(const Key('goal-room-travel-backdrop')), findsOneWidget);
+    expect(find.byKey(const Key('goal-room-travel-master')), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),

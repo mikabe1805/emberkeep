@@ -11,6 +11,8 @@ import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/screens/goal_wizard.dart';
 import 'package:emberkeep/screens/goals.dart';
 import 'package:emberkeep/screens/quests.dart';
+import 'package:emberkeep/widgets/house/house_backdrop.dart';
+import 'package:emberkeep/widgets/house/house_room.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/goal_primary_button.dart';
@@ -1502,15 +1504,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 460));
     await tester.pump(const Duration(milliseconds: 10));
 
-    // The return page now keeps its real room as a still source behind the
-    // handoff. Reduced Motion must leave that source still, while the route
-    // itself has no travel, shared-axis, or scale animation.
-    final stillRoom = find.byType(GoalRoomTravelBackdrop);
+    // The return page keeps the workshop's painted room as a still source
+    // behind the handoff. Reduced Motion must leave that source still, while
+    // the route itself has no travel, shared-axis, or scale animation.
+    final stillRoom = find.byType(HouseRoomBackdrop);
     expect(stillRoom, findsOneWidget);
-    expect(
-      tester.widget<GoalRoomTravelBackdrop>(stillRoom).reduceMotion,
-      isTrue,
-    );
+    expect(tester.widget<HouseRoomBackdrop>(stillRoom).room, HouseRoom.goals);
+    expect(tester.widget<HouseRoomBackdrop>(stillRoom).reduceMotion, isTrue);
     expect(
       find.byKey(const Key('detail-route-threshold-travel')),
       findsNothing,

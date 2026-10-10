@@ -40,6 +40,7 @@ import '../widgets/glass_switch.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/house/house_room.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/morrow_tapestry_glyph.dart';
 import '../widgets/pressable.dart';
@@ -2390,26 +2391,11 @@ class MePage extends StatelessWidget {
                     (state.wallStyle == 'wall_walnut' ? 1.7 : 1.5))
                 .clamp(state.wallStyle == 'wall_walnut' ? 180.0 : 205.0, 460.0),
         presentWholeRoom: true,
-        hero: AnimatedBuilder(
-          animation: RoomPhotoStore.instance,
-          builder: (context, _) => HomeRoom(
-            key: const Key('me-room'),
-            aspect: state.wallStyle == 'wall_walnut' ? 1.7 : 1.5,
-            lively: !state.reduceMotion,
-            unlocked: const {},
-            wall: wallColorsFor(state),
-            plateId: state.wallStyle,
-            floor: floorColorsFor(state),
-            window: state.windowScene,
-            petAwake: state.streakDays > 0,
-            emberGlow: flameHueFor(state),
-            heirloomFlame: heirloomFlameFor(state),
-            level: state.level,
-            memoryArtifacts: memoryArtifactCount(state, quests),
-            roomPhoto: RoomPhotoStore.instance.photo,
-            parallax: state.reduceMotion ? null : parallax,
-          ),
-        ),
+        // Me is the mantel: the house's room for who he is. Its plate is the
+        // room; the page's cards are over it for now.
+        room: HouseRoom.me,
+        parallax: state.reduceMotion ? null : parallax,
+        hero: const SizedBox.shrink(),
         title: 'Your room',
         subtitle:
             spaceThemeById(state.wallStyle)?.name ?? 'The Writer’s Hearth',

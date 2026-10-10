@@ -17,6 +17,7 @@ import '../widgets/constellation.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/house/house_room.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/night_reflection_sheet.dart';
 import '../widgets/pressable.dart';
@@ -96,6 +97,7 @@ class InsightsPage extends StatelessWidget {
       builder: (context, _) {
         final noteCount = _noteCount();
         return LuxePageList(
+          room: HouseRoom.journal,
           assetPath: 'assets/pages/journal-archive-v1.webp',
           title: 'Journal',
           subtitle: 'what you noticed, and what changed',

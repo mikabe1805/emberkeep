@@ -6,13 +6,17 @@ import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/me.dart';
+import 'package:emberkeep/widgets/house/house_backdrop.dart';
+import 'package:emberkeep/widgets/house/house_room.dart';
 import 'package:emberkeep/screens/whats_new.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _phoneSize = Size(430, 932);
+// Tall enough that the cards under the room (the Me page now opens on the
+// painted mantel, with its glass below) are all built without scrolling.
+const _phoneSize = Size(430, 2200);
 
 Future<RoomPublishResult> _publishRoomSuccessfully(
   GameState _, {
@@ -383,7 +387,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('ambient light changes the Me canvas and hero treatment', (
+  testWidgets('Me is the mantel: the house room is its backdrop', (
     tester,
   ) async {
     final state = GameState()
@@ -391,37 +395,14 @@ void main() {
       ..level = 5;
 
     await _pumpMe(tester, state, () {});
-    final canvas = find.byKey(const ValueKey('luxe-custom-ambient-canvas'));
-    final walnut = tester.widget<AnimatedContainer>(canvas);
-    final walnutColors =
-        (walnut.decoration! as BoxDecoration).gradient! as LinearGradient;
-    expect(walnutColors.colors, const [Color(0xFF191210), Color(0xFF231A20)]);
-
-    state.setTheme('sea');
-    await tester.pump();
-
-    final sea = tester.widget<AnimatedContainer>(canvas);
-    final seaColors =
-        (sea.decoration! as BoxDecoration).gradient! as LinearGradient;
-    expect(seaColors.colors, const [Color(0xFF101A1C), Color(0xFF162428)]);
-    expect(seaColors.colors, isNot(walnutColors.colors));
-
-    final expectedHeroFade = const Color(0xFF162428).withValues(alpha: 0.30);
-    final heroFades = tester
-        .widgetList<DecoratedBox>(
-          find.descendant(
-            of: find.byKey(const ValueKey('luxe-custom-hero-transform')),
-            matching: find.byType(DecoratedBox),
-          ),
-        )
-        .map((box) => box.decoration)
-        .whereType<BoxDecoration>()
-        .map((decoration) => decoration.gradient)
-        .whereType<LinearGradient>();
-    expect(
-      heroFades.any((gradient) => gradient.colors.contains(expectedHeroFade)),
-      isTrue,
+    final backdrop = tester.widget<HouseRoomBackdrop>(
+      find.byType(HouseRoomBackdrop),
     );
+    expect(backdrop.room, HouseRoom.me);
+    // The painted mantel stands where the player's own room used to be the
+    // hero; the page's own cards are over it.
+    expect(find.byKey(const Key('me-room')), findsNothing);
+    expect(find.byKey(const ValueKey('me-level-summary')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

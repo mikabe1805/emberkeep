@@ -41,6 +41,9 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart' show OverlaySurface, WarmBackground;
 import '../widgets/home_room.dart'
     show preloadHearthFireFrames, preloadSpaceTheme;
+import '../widgets/house/house_backdrop.dart';
+import '../widgets/house/house_room.dart';
+import '../widgets/house/house_travel.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/pressable.dart';
@@ -2215,6 +2218,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // only on its first visit; keeping five illustrated pages alive from frame
     // one decoded tens of megabytes the person had not asked to see yet.
     Sfx.instance.setInteractionScreen(_soundTabScopes[i]);
+    // A room's painted plates start decoding now, on the tap's own frame, so a
+    // first visit finds them ready when its light arrives.
+    HouseRoomBackdrop.warm(context, HouseRoom.fromDockIndex(i));
     setState(() {
       if (i == 1 && _focusedQuest != null) {
         _focusedQuest = null;
@@ -2331,11 +2337,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: RoomTravelStack(
+                            child: HouseTravelStack(
                               index: _tab,
                               // The travel stack retains IndexedStack's state/lifecycle
-                              // contract; the dock changes rooms at once, softened by
-                              // a very short cross-dissolve (no pan, no blur).
+                              // contract; every tab is a room of one house, and the
+                              // dock turns toward a room: that room's own light
+                              // brings it up (no slide, no blur).
                               children: [
                                 for (final (i, page) in <Widget>[
                                   _visitedTabs.contains(0)

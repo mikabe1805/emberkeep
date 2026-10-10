@@ -1244,8 +1244,10 @@ void main() {
 
     // due today → leads the quest list
     await tester.tap(find.byIcon(Icons.task_alt));
-    // The dock dissolves to the Quest room in 120 ms; the pumps reach the
-    // parked room (and its board's own entrance) before asserting it.
+    // The Quest room arrives through the door glass in 700 ms (the first
+    // frame after the tap starts it); the pumps reach the parked room (and its
+    // board's own entrance) before asserting it.
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('6 open · choose'), findsOneWidget);

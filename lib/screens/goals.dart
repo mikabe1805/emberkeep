@@ -17,6 +17,8 @@ import '../widgets/day_picker.dart';
 import '../widgets/detail_route.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/house/house_backdrop.dart';
+import '../widgets/house/house_room.dart';
 import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -1327,6 +1329,7 @@ class _GoalsPageState extends State<GoalsPage> {
           );
           return _GoalsThresholdPage(
             activeRoom: true,
+            parallax: parallax,
             heading: _GoalsHeading(
               focus: null,
               hasGoals: true,
@@ -1385,6 +1388,7 @@ class _GoalsPageState extends State<GoalsPage> {
           ),
         );
         return _GoalsThresholdPage(
+          parallax: parallax,
           heading: _GoalsHeading(
             focus: null,
             hasGoals: state.goals.isNotEmpty,
@@ -2263,8 +2267,12 @@ class _GoalsThresholdPage extends StatelessWidget {
     this.todayField,
     this.otherGoals,
     this.arrivals,
+    this.parallax,
   });
   final bool reduceMotion;
+
+  /// The shell's tilt source for the room's plate.
+  final ValueListenable<Offset>? parallax;
   final bool activeRoom;
   final Widget heading, focus, support;
   final Widget? todayField, otherGoals, arrivals;
@@ -2351,17 +2359,14 @@ class _GoalsThresholdPage extends StatelessWidget {
         ),
       ),
     );
-    if (!activeRoom) return WorkingScene(child: page);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        GoalRoomTravelBackdrop(
-          progress: 0,
-          openingSequence: true,
-          reduceMotion: still,
-        ),
-        page,
-      ],
+    // Goals is the Steward's workshop: the house's room for what he is
+    // working toward. Its plate is the room; the page is over it for now.
+    return HouseRoomBackdrop(
+      room: HouseRoom.goals,
+      parallax: parallax,
+      reduceMotion: still,
+      veilFrom: activeRoom ? HouseRoom.goals.contentTop - 60 : 110,
+      child: page,
     );
   }
 }

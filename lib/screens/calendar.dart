@@ -39,6 +39,7 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/house/house_room.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/night_reflection_sheet.dart';
 import 'journal_entry.dart';
@@ -1017,6 +1018,10 @@ class _CalendarPageState extends State<CalendarPage> {
             selectedJournalEntries.isNotEmpty;
 
         return LuxePageList(
+          room: HouseRoom.plans,
+          roomPlates: _academicMode == AcademicCalendarMode.month
+              ? HousePlateSets.plansMonth
+              : HousePlateSets.plansDay,
           assetPath: 'assets/pages/plans-conservatory-v2.webp',
           title: 'Plans',
           subtitle: 'your days, held in one place',

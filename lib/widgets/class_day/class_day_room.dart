@@ -26,6 +26,8 @@ import '../../tokens.dart';
 import '../count_up.dart';
 import '../pressable.dart';
 import '../quest_card.dart' show QuestCheckRing;
+import '../house/house_room.dart' show HouseRoom;
+import '../house/house_travel_scope.dart' show HouseRoomUi;
 import '../routine_ledger.dart' show LedgerType;
 import 'class_day_model.dart';
 import 'class_room_stage.dart';
@@ -421,10 +423,15 @@ class _Quiet extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => AnimatedOpacity(
-    opacity: quiet ? 0 : 1,
-    duration: const Duration(milliseconds: 240),
-    child: IgnorePointer(ignoring: quiet, child: child),
+  // The room's live glass and HUD wait for the dock's light on arrival and
+  // let go first on departure (the painted Doorway behind stays).
+  Widget build(BuildContext context) => HouseRoomUi(
+    room: HouseRoom.quests,
+    child: AnimatedOpacity(
+      opacity: quiet ? 0 : 1,
+      duration: const Duration(milliseconds: 240),
+      child: IgnorePointer(ignoring: quiet, child: child),
+    ),
   );
 }
 
