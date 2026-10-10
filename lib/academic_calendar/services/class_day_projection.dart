@@ -113,6 +113,7 @@ final class ClassDay {
     required this.lastClassEnd,
     required this.nextClassAfter,
     required this.runsWeekdayOf,
+    this.dismissed = const [],
   });
 
   /// The night-owned civil day in the schedule's zone (before 04:00 belongs
@@ -121,8 +122,15 @@ final class ClassDay {
 
   /// Real classes only, by start: not cancelled, not tombstoned, course
   /// present and not archived (the widget snapshot's filter), term not
-  /// archived.
+  /// archived. A class he said he could not make is not here (see
+  /// [dismissed]): every rule that reads the day's class set reads this list.
   final List<ProjectedClass> classes;
+
+  /// The real classes that were set aside with "Couldn't make it", by start.
+  /// They are outside [classes], [isClassDay], [dayClassKeys] and
+  /// [lastClassEnd]; only the surfaces that draw the folded-away ticket and
+  /// the engine's own bookkeeping read this list. Never count it on screen.
+  final List<ProjectedClass> dismissed;
 
   /// The latest end among [classes] (UTC), or null on a day without classes.
   final DateTime? lastClassEnd;
@@ -151,7 +159,44 @@ final class ClassDay {
     final end = lastClassEnd;
     return end != null && !now.toUtc().isBefore(end);
   }
+
+  /// Every real class of the day, set aside or not, by start: what the
+  /// schedule holds for it.
+  List<ProjectedClass> get everyClass => dismissed.isEmpty
+      ? classes
+      : ([...classes, ...dismissed]..sort(_byProjectedStart));
+
+  /// This day with the classes [isDismissed] names moved out of [classes]
+  /// into [dismissed]. The same day when none match, so applying it to a day
+  /// that was already projected with the predicate changes nothing. The
+  /// screens that hold only a [ClassDayLookup] use it so a lookup built
+  /// without the live save still honors "Couldn't make it". (The next class
+  /// is not re-chosen here; [projectClassDay] skips set-aside classes itself.)
+  ClassDay withoutDismissed(ClassDismissed isDismissed) {
+    final left = <ProjectedClass>[];
+    final aside = <ProjectedClass>[];
+    for (final entry in classes) {
+      (isDismissed(entry.facts) ? aside : left).add(entry);
+    }
+    if (aside.isEmpty) return this;
+    return _assembleDay(
+      date,
+      left,
+      [...dismissed, ...aside]..sort(_byProjectedStart),
+      nextClassAfter,
+    );
+  }
 }
+
+int _byProjectedStart(ProjectedClass a, ProjectedClass b) {
+  final byStart = a.startsAt.compareTo(b.startsAt);
+  return byStart != 0 ? byStart : a.occurrenceKey.compareTo(b.occurrenceKey);
+}
+
+/// Whether the person set this class aside ("Couldn't make it"). The engine
+/// answers it (`GameState.isClassDismissed`); the schedule-holding callers
+/// pass that in, so the projection stays free of the engine.
+typedef ClassDismissed = bool Function(ClassFacts facts);
 
 /// A class day for a moment, from whoever holds the timetable (the shell
 /// passes one down so screens never load the schedule themselves). [day]
@@ -172,19 +217,46 @@ ClassMoment classMomentFor(DateTime startsAt, DateTime endsAt, DateTime now) {
 /// Projects the classes of the day that [now] belongs to. Pure: no clock, no
 /// device time zone. The day is read in the schedule's own zone so a test
 /// host (or a phone) in another zone still lands on the right date.
+///
+/// With [isDismissed], a class that was set aside moves from
+/// [ClassDay.classes] to [ClassDay.dismissed], and the next class skips it
+/// too: the day is read as if that class were not on the timetable.
 ClassDay projectClassDay(
   AcademicSchedule schedule,
   DateTime now, {
   CivilDate? day,
+  ClassDismissed? isDismissed,
 }) {
   final date = day ?? classDayDateFor(schedule, now);
   final real = [
     for (final occurrence in schedule.occurrencesOn(date))
       if (_isReal(schedule, occurrence)) occurrence,
   ]..sort(_byStart);
-  final classes = [
-    for (final occurrence in real) ?_project(schedule, occurrence, now),
-  ];
+  final classes = <ProjectedClass>[];
+  final dismissed = <ProjectedClass>[];
+  for (final occurrence in real) {
+    final entry = _project(schedule, occurrence, now);
+    if (entry == null) continue;
+    if (isDismissed != null && isDismissed(entry.facts)) {
+      dismissed.add(entry);
+    } else {
+      classes.add(entry);
+    }
+  }
+  return _assembleDay(
+    date,
+    classes,
+    dismissed,
+    _nextAfter(schedule, date, now, isDismissed),
+  );
+}
+
+ClassDay _assembleDay(
+  CivilDate date,
+  List<ProjectedClass> classes,
+  List<ProjectedClass> dismissed,
+  NextClass? nextClassAfter,
+) {
   DateTime? lastEnd;
   for (final entry in classes) {
     if (lastEnd == null || entry.endsAt.isAfter(lastEnd)) {
@@ -200,8 +272,9 @@ ClassDay projectClassDay(
     date: date,
     classes: List.unmodifiable(classes),
     lastClassEnd: lastEnd,
-    nextClassAfter: _nextAfter(schedule, date, now),
+    nextClassAfter: nextClassAfter,
     runsWeekdayOf: runs,
+    dismissed: List.unmodifiable(dismissed),
   );
 }
 
@@ -259,7 +332,16 @@ DateTime? classNightEndFor(CivilDate date, String timeZoneId) {
 /// term with no real classes a full day waits on, such as a weekend, a
 /// recess day, a day whose classes moved elsewhere, or a day holding only
 /// office hours. Days outside every term are ordinary days.
-bool restDayFor(AcademicSchedule schedule, String dayKey) {
+///
+/// With [isDismissed], a class he said he could not make no longer holds the
+/// day: a term day whose every counting class was set aside is a rest day, so
+/// the streak pauses over it instead of breaking. A kept class is never
+/// dismissed, so a day with one kept is never a rest day by this rule.
+bool restDayFor(
+  AcademicSchedule schedule,
+  String dayKey, {
+  ClassDismissed? isDismissed,
+}) {
   final parsed = Days.tryParse(dayKey);
   if (parsed == null) return false;
   final date = CivilDate(parsed.year, parsed.month, parsed.day);
@@ -269,8 +351,19 @@ bool restDayFor(AcademicSchedule schedule, String dayKey) {
       .any(
         (occurrence) =>
             _isReal(schedule, occurrence) &&
-            ClassPay.countsTowardDay(occurrence.kind.name),
+            ClassPay.countsTowardDay(occurrence.kind.name) &&
+            !_dismissed(schedule, occurrence, isDismissed),
       );
+}
+
+bool _dismissed(
+  AcademicSchedule schedule,
+  ClassOccurrence occurrence,
+  ClassDismissed? isDismissed,
+) {
+  if (isDismissed == null) return false;
+  final facts = classFactsFor(schedule, occurrence);
+  return facts != null && isDismissed(facts);
 }
 
 bool _isReal(AcademicSchedule schedule, ClassOccurrence occurrence) {
@@ -317,11 +410,17 @@ ProjectedClass? _project(
   );
 }
 
-NextClass? _nextAfter(AcademicSchedule schedule, CivilDate day, DateTime now) {
+NextClass? _nextAfter(
+  AcademicSchedule schedule,
+  CivilDate day,
+  DateTime now,
+  ClassDismissed? isDismissed,
+) {
   ClassOccurrence? next;
   for (final occurrence in schedule.occurrences) {
     if (occurrence.date.compareTo(day) <= 0) continue;
     if (!_isReal(schedule, occurrence)) continue;
+    if (_dismissed(schedule, occurrence, isDismissed)) continue;
     if (next == null || _byStart(occurrence, next) < 0) next = occurrence;
   }
   if (next == null) return null;

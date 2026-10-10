@@ -37,6 +37,7 @@ class ClassKeptCelebration extends StatefulWidget {
     required this.state,
     required this.onDismiss,
     this.fromShot,
+    this.backdrop,
     this.stageTop = 0,
     this.stageHeight,
     this.fadeStart,
@@ -56,6 +57,12 @@ class ClassKeptCelebration extends StatefulWidget {
 
   /// The room's camera when the plate was pressed: the move starts here.
   final RoomShot? fromShot;
+
+  /// What stands behind the moment in place of the painted room (the
+  /// Doorway, held still): given where the room's stage sat on screen and its
+  /// status scrim's height. Null paints the room the older way.
+  final Widget Function(BuildContext context, double stageTop, double scrim)?
+  backdrop;
 
   /// Where the room's stage sat on screen, so the first frame registers
   /// with the room behind it.
@@ -228,7 +235,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final width = mq.size.width;
-    final layered = classRoomIsLayered(widget.state);
+    final layered = widget.backdrop == null && classRoomIsLayered(widget.state);
     return OverlaySurface(
       child: Semantics(
         key: const Key('class-kept-celebration'),
@@ -333,7 +340,13 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                             right: 0,
                             top: stageTop,
                             height: layered ? imageBottom : plateHeight,
-                            child: layered
+                            child: widget.backdrop != null
+                                ? widget.backdrop!(
+                                    context,
+                                    stageTop,
+                                    scrimHeight,
+                                  )
+                                : layered
                                 ? ClassRoomStage(
                                     shot: shot,
                                     bloom: _bloom * (1 - home),

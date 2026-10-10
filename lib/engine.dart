@@ -1519,6 +1519,97 @@ class GameState extends ChangeNotifier {
     ...{for (final kept in classesKeptOn(dayKey)) kept.label},
   ];
 
+  // ── "Couldn't make it" ────────────────────────────────────────────
+  //
+  // A dismissed class is neither kept nor held against anyone. It pays no XP,
+  // no stat and no Glimmers, counts toward no streak and no tally, and drops
+  // out of that day's class set everywhere the set is read (the card, the
+  // full-day and tier plans, the evening, the board's close-the-day rule, the
+  // night ledger, the Day Ledger widget). The schedule is device-local, so
+  // the surfaces that hold it apply [isClassDismissed] when they project a
+  // day (`projectClassDay(isDismissed:)`), and the shell's rest-day resolver
+  // reads it too (`restDayFor(isDismissed:)`).
+
+  /// The classes he could not make on [dayKey]. Only this engine and the
+  /// schedule-holding surfaces read it; no screen shows a count of it.
+  List<DismissedClass> classesDismissedOn(String dayKey) =>
+      dayRecordFor(dayKey)?.dismissed ?? const [];
+
+  /// Whether this class was dismissed.
+  bool isClassDismissed(ClassFacts facts) =>
+      dayRecordFor(facts.dayKey)?.dismissedMatching(
+        occurrenceKey: facts.occurrenceKey,
+        courseCode: facts.keptCode ?? facts.courseCode.trim(),
+        startMinute: facts.startMinute,
+      ) !=
+      null;
+
+  /// Whether [facts] can be set aside now: a real class that is neither
+  /// kept nor already dismissed, inside its own night (so a class can be
+  /// folded away before it starts, while it runs, or after it ends, until its
+  /// night is over).
+  bool canDismissClass(ClassFacts facts) {
+    if (isClassDismissed(facts)) return false;
+    final check = checkClassKeep(facts);
+    return check == ClassKeepCheck.open ||
+        check == ClassKeepCheck.notStartedYet;
+  }
+
+  /// Says he could not make this class. Pays nothing and changes no counter,
+  /// stat or streak. Returns false (and writes nothing) when [canDismissClass]
+  /// is false: already kept, already dismissed, outside its night, not a class
+  /// or a day already holding the most dismissals a save keeps.
+  ///
+  /// Bumps [rewardSerial] although it pays nothing: a whole-save undo taken
+  /// before it would otherwise put the class back without a word.
+  bool dismissClass(ClassFacts facts) {
+    if (!canDismissClass(facts)) return false;
+    final before =
+        dayRecordFor(facts.dayKey) ?? DayRecord(dayKey: facts.dayKey);
+    if (before.dismissed.length >= DayRecord.maxClassesPerDay) return false;
+    _putDayRecord(
+      before.copyWith(
+        dismissed: [
+          ...before.dismissed,
+          DismissedClass(
+            occurrenceKey: facts.occurrenceKey,
+            courseCode: facts.keptCode!,
+            startMinute: facts.startMinute,
+            dismissedAt: Clock.now().toUtc(),
+            optional: !ClassPay.countsTowardDay(
+              KeptClass.cleanKind(facts.kind),
+            ),
+          ),
+        ],
+      ),
+    );
+    _rewardSerial++;
+    notifyListeners();
+    return true;
+  }
+
+  /// Takes a dismissal back: the class is on its day again, exactly as it was
+  /// (a day record that held nothing else goes away entirely). Returns false
+  /// when the class was not dismissed.
+  bool undoDismiss(ClassFacts facts) {
+    final record = dayRecordFor(facts.dayKey);
+    if (record == null) return false;
+    final left = [
+      for (final item in record.dismissed)
+        if (!item.sameClassAs(
+          occurrenceKey: facts.occurrenceKey,
+          courseCode: facts.keptCode ?? facts.courseCode.trim(),
+          startMinute: facts.startMinute,
+        ))
+          item,
+    ];
+    if (left.length == record.dismissed.length) return false;
+    _replaceDayRecord(record.copyWith(dismissed: left));
+    _rewardSerial++;
+    notifyListeners();
+    return true;
+  }
+
   /// Bumps on every reward (Quest commit, class keep, Extra Credit) and on an
   /// Extra Credit wording edit, which a whole-save restore would otherwise
   /// quietly put back (engine map 5.3.4). Not saved: it exists so a
@@ -1664,22 +1755,56 @@ class GameState extends ChangeNotifier {
     final before =
         dayRecordFor(facts.dayKey) ?? DayRecord(dayKey: facts.dayKey);
     final classes = [...before.classes, kept];
+    // Pressing "I was there" on a class that was set aside is his own word
+    // that he went after all: the dismissal is lifted, the class counts again,
+    // and it is judged with its day (the caller's keys came from a day that
+    // had folded it away).
+    final wasDismissed =
+        before.dismissedMatching(
+          occurrenceKey: facts.occurrenceKey,
+          courseCode: code,
+          startMinute: facts.startMinute,
+        ) !=
+        null;
     final keys = {
       for (final key in dayClassKeys)
         if (key.trim().isNotEmpty) key.trim(),
+      if (wasDismissed && ClassPay.countsTowardDay(kind)) facts.identity,
     };
     bool covers(List<KeptClass> list) =>
         keys.isNotEmpty &&
         keys.every((key) => list.any((item) => item.answersTo(key)));
     final dayComplete = covers(classes);
+    // The dismissals that stand once this keep is in: a keep on a set-aside
+    // class lifts that one.
+    final standing = wasDismissed
+        ? [
+            for (final item in before.dismissed)
+              if (!item.sameClassAs(
+                occurrenceKey: facts.occurrenceKey,
+                courseCode: code,
+                startMinute: facts.startMinute,
+              ))
+                item,
+          ]
+        : before.dismissed;
+    // The full-day bonus is for a day of every counting class kept. A day on
+    // which any counting class was set aside has no such day, whatever order
+    // the keeps and the dismissals came in; an optional meeting set aside
+    // (office hours) never matters to it.
+    final setAsideCounting = standing.any((item) => !item.optional);
     final bonus =
-        dayComplete && !covers(before.classes) && before.fullDayBonusXp == 0
+        dayComplete &&
+            !setAsideCounting &&
+            !covers(before.classes) &&
+            before.fullDayBonusXp == 0
         ? ClassPay.fullDayBonusXp
         : 0;
     _putDayRecord(
       before.copyWith(
         classes: classes,
         fullDayBonusXp: before.fullDayBonusXp + bonus,
+        dismissed: wasDismissed ? standing : null,
       ),
     );
 
@@ -1984,6 +2109,17 @@ class GameState extends ChangeNotifier {
 
   /// Replaces (or adds) the record for its day, keeps day order, and trims to
   /// the horizon without ever evicting the active night or this record.
+  /// Puts [record] back for its day, or removes the day's record when nothing
+  /// is left in it, so taking back the only thing a day held leaves the save
+  /// exactly as it was before.
+  void _replaceDayRecord(DayRecord record) {
+    if (record.isEmpty) {
+      _dayRecords.removeWhere((r) => r.dayKey == record.dayKey);
+    } else {
+      _putDayRecord(record);
+    }
+  }
+
   void _putDayRecord(DayRecord record) {
     final index = _dayRecords.indexWhere((r) => r.dayKey == record.dayKey);
     if (index >= 0) {

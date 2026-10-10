@@ -56,6 +56,14 @@ final class ClassRow {
   /// Over, unmarked and markable: what the "all of today's classes" shortcut
   /// gathers.
   bool get waiting => state == ClassRowState.ready;
+
+  /// "Couldn't make it" is offered: the class is later today or over and
+  /// still open. Never one he is sitting in, one already kept, or one whose
+  /// night has ended.
+  bool get canSetAside =>
+      state == ClassRowState.ready ||
+      state == ClassRowState.startsSoon ||
+      state == ClassRowState.upcoming;
 }
 
 /// The glass card's reading of a class day at one moment.
@@ -324,6 +332,18 @@ DateTime? nextClassStartOrEnd(ClassDay day, DateTime now) {
 }
 
 // ── Words ─────────────────────────────────────────────────────────────────
+
+/// The quiet control that sets a class aside. No reason asked, nothing paid,
+/// nothing held against anyone.
+const classSetAsideLabel = 'Couldn’t make it';
+
+/// What a screen reader says for that control on [title]'s row.
+String classSetAsideSemantics(String title) => '$classSetAsideLabel: $title';
+
+/// The line that waits beside "Undo" for a few seconds after a class folds
+/// away. It names the class once, as taken off today's list, and never says
+/// why or counts anything.
+String classSetAsideLine(String title) => '$title is off today’s list.';
 
 const classWeekdays = [
   'Monday',
@@ -835,10 +855,18 @@ ClassCelebrationPlan planClassCelebration({
     _ => (gained, 0, null),
   };
 
+  // "Two for two." says every class there was went. It is said only when
+  // nothing was set aside with "Couldn't make it" (the day's, or any day of
+  // the week it closes); otherwise the closing is the next-class line alone.
+  final daySetAside = state.classesDismissedOn(day.dayKey).isNotEmpty;
+  final weekSetAside = [
+    for (var i = 0; i < 7; i++) monday.addDays(i),
+  ].any((date) => state.classesDismissedOn(date.toString()).isNotEmpty);
+
   // Closing lines, from what is actually next.
   final closing = <String>[];
   if (tier == ClassCelebrationTier.weekDone) {
-    if (weekKept == weekTotal && weekTotal > 0) {
+    if (weekKept == weekTotal && weekTotal > 0 && !weekSetAside) {
       closing.add(
         '${_capital(classCountWord(weekTotal))} for '
         '${classCountWord(weekTotal)}.',
@@ -852,7 +880,7 @@ ClassCelebrationPlan planClassCelebration({
     }
     closing.add(nextClassDayLine(day, dayOf));
   } else if (tier == ClassCelebrationTier.dayDone) {
-    if (completeAfter) {
+    if (completeAfter && !daySetAside) {
       closing.add(
         '${_capital(classCountWord(keys.length))} for '
         '${classCountWord(keys.length)}.',
@@ -862,7 +890,7 @@ ClassCelebrationPlan planClassCelebration({
   } else {
     // The day tier already played tonight; the mark that completes the day
     // still says so, once, and only because it is true.
-    if (completes) {
+    if (completes && !daySetAside) {
       closing.add(
         '${_capital(classCountWord(keys.length))} for '
         '${classCountWord(keys.length)}.',

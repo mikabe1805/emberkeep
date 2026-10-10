@@ -1,12 +1,13 @@
-// The Quests tab on a class day: the room, large, with today's classes on one
-// calm pane of glass whose top edge sits on the floor line (ported from
-// concept B, "In the room", with concept A's seams into the real board).
+// The Quests tab on a class day: the Doorway, large, with today's classes on
+// one calm pane of glass floating above the dock.
 //
-// One owner and one luminous control: the class that just ended (or the one
-// he is sitting in) leads the glass with "I was there" (or "I'm here"). The
-// HUD keeps the life RPG in two quiet lines (level, XP, the six stats), and
-// Today's three is one line with a BOARD toggle that brings the full board
-// back. Controls live in the glass; nothing is drawn onto the painting.
+// The Doorway is the room on every class day and for every room style (the
+// tickets by the door are the day's state). One owner and one luminous
+// control: the class that just ended (or the one he is sitting in) leads the
+// glass with "I was there" (or "I'm here"). The HUD keeps the life RPG in two
+// quiet lines (level, XP, the six stats), and Today's three is one line with
+// a BOARD toggle at the glass's foot that brings the full board back.
+// Controls live in the glass; nothing is drawn onto the painting.
 library;
 
 import 'dart:math' as math;
@@ -14,6 +15,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 
 import '../../academic_calendar/services/class_day_projection.dart';
 import '../../academic_calendar/domain/academic_schedule.dart' show CivilDate;
@@ -22,12 +24,14 @@ import '../../engine.dart';
 import '../../main_room_music.dart' show MainRoomMusic;
 import '../../tokens.dart';
 import '../count_up.dart';
-import '../lamplight.dart';
 import '../pressable.dart';
 import '../quest_card.dart' show QuestCheckRing;
 import '../routine_ledger.dart' show LedgerType;
 import 'class_day_model.dart';
 import 'class_room_stage.dart';
+import 'doorway_model.dart';
+import 'doorway_motion.dart' show DoorwayBeat;
+import 'doorway_stage.dart';
 
 part 'class_evening.dart';
 
@@ -64,6 +68,7 @@ class ClassDayRoom extends StatefulWidget {
     super.key,
     required this.state,
     required this.card,
+    required this.doorway,
     required this.now,
     required this.bottomLine,
     required this.onMark,
@@ -73,17 +78,32 @@ class ClassDayRoom extends StatefulWidget {
     required this.camera,
     this.onUndo,
     this.undoIdentity,
+    this.onDismiss,
+    this.dismissedLabel,
+    this.onUndoDismiss,
     this.reduceMotion = false,
     this.lightDirection,
+    this.parallax,
     this.quiet = false,
     this.evening,
-    this.walkFrom,
     this.onStepBack,
+    this.onBeat,
   });
 
   final GameState state;
   final ClassCard card;
+
+  /// The Doorway's reading of the day: its tickets, hooks, bowl and shelf.
+  final DoorwayDay doorway;
   final DateTime now;
+
+  /// "Couldn't make it" on a row that can be set aside. Null: not offered.
+  final ValueChanged<ClassRow>? onDismiss;
+
+  /// The class just folded away (its short name) while its "Undo" waits;
+  /// null once the few seconds are up. [onUndoDismiss] brings it back.
+  final String? dismissedLabel;
+  final VoidCallback? onUndoDismiss;
 
   /// While the real level-up is up, the room's words step back so nothing
   /// reads through behind "YOU DID IT.".
@@ -101,6 +121,8 @@ class ClassDayRoom extends StatefulWidget {
 
   /// The shell's dock (88 pt plus the home indicator) sits over the page.
   final double dockHeight;
+
+  /// Where the room's stage sits on screen, for the celebration's backdrop.
   final ClassRoomCamera camera;
 
   /// The latest kept class can be swiped left past 42% to undo, exactly as
@@ -110,56 +132,35 @@ class ClassDayRoom extends StatefulWidget {
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
+  /// The shell's tilt (the accelerometer), which moves the Doorway's depth.
+  final ValueListenable<Offset>? parallax;
+
   /// The evening (the last class is over, and every class is kept or the
-  /// wind-down has begun): the camera walks to the window and the armchair
-  /// and the glass holds the day folded to one line, the music, a page in the
-  /// journal and closing the day. Null during the class day.
+  /// wind-down has begun): the glass holds the day folded to one line, the
+  /// music, a page in the journal and closing the day, over the Doorway's
+  /// light at that hour. Null during the class day.
   final ClassEvening? evening;
 
-  /// Where the camera's walk starts when the evening arrives under the
-  /// celebration (its framing). Only that walk stages the glass's arrival;
-  /// any other turn (the app reopened after the class, the wind-down's own
-  /// timer, an undo) crossfades with the glass on screen and pressable.
-  final RoomShot? walkFrom;
-
-  /// The folded evening with the room's music on: the glass, Today's three
-  /// and the HUD step back, the camera eases a little closer, and the page
-  /// is told so the shell's dock can step back too.
+  /// The folded evening with the room's music on: the glass and the HUD step
+  /// back, and the page is told so the shell's dock can step back too.
   final ValueChanged<bool>? onStepBack;
 
-  /// The walk between the desk and the evening: slow and eased, the real
-  /// planes moving at their own rates, never a blur.
-  static const walkDuration = Duration(milliseconds: 2400);
+  /// The Doorway's moves the page waits on: a ticket hung, the day's tickets
+  /// landed in the bowl, the week's bundle on the shelf.
+  final ValueChanged<DoorwayBeat>? onBeat;
 
   @override
   State<ClassDayRoom> createState() => _ClassDayRoomState();
 }
 
-enum _Move { walk, fade }
-
 class _ClassDayRoomState extends State<ClassDayRoom>
-    with TickerProviderStateMixin {
-  late final AnimationController _move = AnimationController(
-    vsync: this,
-    duration: ClassDayRoom.walkDuration,
-    value: 1,
-  );
-
-  /// 0..1: the music's step back (the glass dims, the camera eases closer).
+    with SingleTickerProviderStateMixin {
+  /// 0..1: the music's step back (the glass dims).
   late final AnimationController _near = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1800),
     value: _stepBack ? 1 : 0,
   );
-  _Move _kind = _Move.walk;
-  RoomShot? _from;
-
-  /// The walk under the celebration: the glass arrives as the camera
-  /// settles. Nothing is left to mark then.
-  bool _staged = false;
-
-  /// The framing on screen at the last frame.
-  RoomShot? _shown;
 
   ValueListenable<bool>? _musicOn;
   bool? _toldStepBack;
@@ -182,26 +183,6 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     super.didUpdateWidget(oldWidget);
     _bindMusic();
     _syncNear();
-    final turned = (oldWidget.evening == null) != (widget.evening == null);
-    if (!turned || _shown == null) return;
-    // The room turns. Under the celebration, on the depth room, the camera
-    // walks from the celebration's framing and the glass arrives as it
-    // settles. Any other turn (reopening the app after the class, the
-    // wind-down's timer, an undo) is a short crossfade with the glass kept
-    // on screen, so a class still to mark answers the first touch. Under
-    // Reduce Motion, or on a painted plate, a still fades into the next.
-    final walkFrom = widget.walkFrom;
-    final walks =
-        walkFrom != null &&
-        classRoomIsLayered(widget.state) &&
-        !widget.reduceMotion;
-    _kind = walks ? _Move.walk : _Move.fade;
-    _staged = walks;
-    _from = walks ? walkFrom : _shown;
-    _move.duration = walks
-        ? ClassDayRoom.walkDuration
-        : Duration(milliseconds: widget.reduceMotion ? 320 : 480);
-    _move.forward(from: 0);
   }
 
   void _bindMusic() {
@@ -243,6 +224,17 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     });
   }
 
+  /// A ticket was dragged up past the mark line in the Doorway: the same
+  /// mark as pressing "I was there" on its card.
+  void _markTicket(DoorwayTicket ticket) {
+    for (final row in widget.card.rows) {
+      if (row.entry.facts.identity == ticket.facts.identity) {
+        if (row.markable) widget.onMark([row]);
+        return;
+      }
+    }
+  }
+
   @override
   void dispose() {
     _musicOn?.removeListener(_onMusic);
@@ -250,37 +242,8 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     if (_toldStepBack == true && tell != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => tell(false));
     }
-    _move.dispose();
     _near.dispose();
     super.dispose();
-  }
-
-  bool get _moving => _move.value < 1 && _from != null;
-
-  /// The camera at this frame of the walk: eased, with the near planes
-  /// swinging wider than the far ones while it pans (the armchair passes the
-  /// window), settling as it arrives.
-  RoomShot _shotAt(RoomShot target) {
-    final from = _from;
-    if (!_moving || _kind != _Move.walk || from == null) return target;
-    final t = Curves.easeInOutSine.transform(_move.value);
-    final base = RoomShot.lerp(from, target, t);
-    final direction = (target.left - from.left).sign;
-    return RoomShot(
-      left: base.left,
-      top: base.top,
-      scale: base.scale,
-      tilt: base.tilt + Offset(0.9 * direction * math.sin(math.pi * t), 0),
-    );
-  }
-
-  /// The glass arrives as the camera settles (the last 45% of the walk under
-  /// the celebration); every other time it is simply there.
-  double get _glassArrive {
-    if (!_moving || !_staged) return 1;
-    return Curves.easeOut.transform(
-      ((_move.value - 0.55) / 0.45).clamp(0.0, 1.0),
-    );
   }
 
   @override
@@ -288,36 +251,40 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     final widget = this.widget;
     final card = widget.card;
     final evening = widget.evening;
-    final layered = classRoomIsLayered(widget.state);
     // The painting runs up under the status bar (the shell's SafeArea keeps
     // the page below it), so the room is opened into, never placed under a
     // band. The HUD stays where it was, on the room's own soft dark.
     final above = classStatusAbove(context);
     final topPad = MediaQuery.paddingOf(context).top;
-    final scaler = MediaQuery.textScalerOf(context);
-    // The lamp's shade may tuck just under the stat row, never higher.
-    final headroom =
-        above + topPad + _ClassDayDelegate.hudTop + scaler.scale(20) + 34;
     // The soft dark under the status bar and the HUD: 150 pt from the top
     // of the screen on his phone, as in the concept.
     final scrimHeight = math.max(
       91.0,
       above + topPad + classStatusScrimHeight - 59,
     );
-    // Once the day's classes are kept, or in the evening, the lamp keeps a
-    // quieter, lasting warmth.
-    final warmth = evening != null || card.allKept ? 1.0 : 0.0;
     final Widget body = evening == null
-        ? ClassCardBody(
-            state: widget.state,
-            card: card,
-            now: widget.now,
-            onMark: widget.onMark,
-            onSelect: widget.onSelect,
-            onUndo: widget.onUndo,
-            undoIdentity: widget.undoIdentity,
-            reduceMotion: widget.reduceMotion,
-            lightDirection: widget.lightDirection,
+        ? SingleChildScrollView(
+            // A day with many classes, or large text, scrolls inside the glass
+            // rather than running past it. Short days are exactly as tall as
+            // their rows (the viewport hugs them) and nothing is clipped.
+            key: const Key('class-day-scroll'),
+            primary: false,
+            clipBehavior: Clip.none,
+            physics: const ClampingScrollPhysics(),
+            child: ClassCardBody(
+              state: widget.state,
+              card: card,
+              now: widget.now,
+              onMark: widget.onMark,
+              onSelect: widget.onSelect,
+              onUndo: widget.onUndo,
+              undoIdentity: widget.undoIdentity,
+              onDismiss: widget.onDismiss,
+              dismissedLabel: widget.dismissedLabel,
+              onUndoDismiss: widget.onUndoDismiss,
+              reduceMotion: widget.reduceMotion,
+              lightDirection: widget.lightDirection,
+            ),
           )
         : SingleChildScrollView(
             key: const Key('class-evening-scroll'),
@@ -331,6 +298,9 @@ class _ClassDayRoomState extends State<ClassDayRoom>
               onSelect: widget.onSelect,
               onUndo: widget.onUndo,
               undoIdentity: widget.undoIdentity,
+              onDismiss: widget.onDismiss,
+              dismissedLabel: widget.dismissedLabel,
+              onUndoDismiss: widget.onUndoDismiss,
               reduceMotion: widget.reduceMotion,
               lightDirection: widget.lightDirection,
             ),
@@ -346,79 +316,22 @@ class _ClassDayRoomState extends State<ClassDayRoom>
               id: _Slot.stage,
               child: LayoutBuilder(
                 builder: (context, box) {
-                  final floorAt =
-                      box.maxHeight - _ClassDayDelegate.behindGlass - 4;
-                  return AnimatedBuilder(
-                    animation: Listenable.merge([_move, _near]),
-                    builder: (context, _) {
-                      final target = evening == null
-                          ? RoomShot.desk(
-                              floorAt: floorAt,
-                              width: box.maxWidth,
-                              headroom: headroom,
-                            )
-                          : RoomShot.evening(
-                              floorAt: floorAt,
-                              width: box.maxWidth,
-                              headroom: headroom,
-                              // Under Reduce Motion the camera stays put;
-                              // only the glass steps back.
-                              closer: widget.reduceMotion ? 0 : _near.value,
-                            );
-                      final shot = _shotAt(target);
-                      _shown = shot;
-                      double fadeEndFor(RoomShot at) =>
-                          math.min(box.maxHeight, (962 - at.top) * at.scale) -
-                          2;
-                      double fadeStartFor(RoomShot at) =>
-                          math.min(floorAt + 30, fadeEndFor(at) - 70);
-                      widget.camera
-                        ..shot = shot
-                        ..fadeStart = fadeStartFor(shot)
-                        ..fadeEnd = fadeEndFor(shot)
-                        ..scrimHeight = scrimHeight;
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        final ro = context.findRenderObject();
-                        if (ro is RenderBox && ro.attached && ro.hasSize) {
-                          widget.camera.stage =
-                              ro.localToGlobal(Offset.zero) & ro.size;
-                        }
-                      });
-                      if (!layered) {
-                        return ClassRoomPlate(
-                          state: widget.state,
-                          fadeStart: fadeStartFor(shot),
-                          fadeEnd: fadeEndFor(shot),
-                          scrimHeight: scrimHeight,
-                        );
-                      }
-                      Widget stageAt(RoomShot at, {Key? key}) => ClassRoomStage(
-                        key: key,
-                        shot: at,
-                        warmth: warmth,
-                        fadeStart: fadeStartFor(at),
-                        fadeEnd: fadeEndFor(at),
-                        scrimHeight: scrimHeight,
-                      );
-                      final from = _from;
-                      if (_moving && _kind == _Move.fade && from != null) {
-                        // Reduce Motion: one still fades into the other.
-                        return Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            stageAt(from),
-                            Opacity(
-                              opacity: Curves.easeOut.transform(_move.value),
-                              child: stageAt(
-                                shot,
-                                key: const Key('class-day-stage'),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      return stageAt(shot, key: const Key('class-day-stage'));
-                    },
+                  widget.camera.scrimHeight = scrimHeight;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final ro = context.findRenderObject();
+                    if (ro is RenderBox && ro.attached && ro.hasSize) {
+                      widget.camera.stage =
+                          ro.localToGlobal(Offset.zero) & ro.size;
+                    }
+                  });
+                  return DoorwayStage(
+                    key: const Key('class-day-stage'),
+                    day: widget.doorway,
+                    parallax: widget.parallax,
+                    reduceMotion: widget.reduceMotion,
+                    scrimHeight: scrimHeight,
+                    onBeat: widget.onBeat,
+                    onMarkTicket: _markTicket,
                   );
                 },
               ),
@@ -428,36 +341,31 @@ class _ClassDayRoomState extends State<ClassDayRoom>
               child: _Quiet(
                 quiet: widget.quiet,
                 child: AnimatedBuilder(
-                  animation: Listenable.merge([_move, _near]),
-                  builder: (context, child) {
-                    final arrive = _glassArrive;
-                    return Opacity(
-                      // With the music on the glass steps back; its doors
-                      // stay where they are and still answer a touch.
-                      opacity: arrive * (1 - 0.55 * _near.value),
-                      // Only the staged walk holds the glass back, and
-                      // nothing is left to mark then.
-                      child: IgnorePointer(
-                        ignoring: _staged && arrive < 0.5,
-                        child: child,
-                      ),
-                    );
-                  },
+                  animation: _near,
+                  builder: (context, child) => Opacity(
+                    // With the music on the glass steps back; its doors
+                    // stay where they are and still answer a touch.
+                    opacity: 1 - 0.55 * _near.value,
+                    child: child,
+                  ),
                   child: ClassGlass(
                     key: const Key('class-day-glass'),
-                    child: body,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Flexible(child: body),
+                        // Today's three and BOARD sit at the foot of the
+                        // glass, under a fine rule, as in the concept.
+                        const _GlassRule(inset: 0),
+                        _StepBack(
+                          near: _near,
+                          depth: 0.55,
+                          child: widget.bottomLine,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-            LayoutId(
-              id: _Slot.line,
-              child: _Quiet(
-                quiet: widget.quiet,
-                child: _StepBack(
-                  near: _near,
-                  depth: 0.55,
-                  child: widget.bottomLine,
                 ),
               ),
             ),
@@ -483,7 +391,7 @@ class _ClassDayRoomState extends State<ClassDayRoom>
   }
 }
 
-enum _Slot { stage, glass, line, hud }
+enum _Slot { stage, glass, hud }
 
 /// Steps [child] back by [depth] as the music's [near] rises.
 class _StepBack extends StatelessWidget {
@@ -520,9 +428,8 @@ class _Quiet extends StatelessWidget {
   );
 }
 
-/// Today's three sits just above the dock; the glass sits above it; the
-/// room's floor line sits on the glass's top edge, so the room grows when the
-/// glass is short and the camera eases in.
+/// The Doorway fills the page behind everything; the glass floats above the
+/// dock with a small gap, and the HUD sits over the room's top edge.
 class _ClassDayDelegate extends MultiChildLayoutDelegate {
   _ClassDayDelegate({required this.above, required this.topPad});
 
@@ -532,20 +439,14 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
   /// The page's own top padding (zero under the shell's SafeArea).
   final double topPad;
 
-  /// How far the room continues behind the glass before it settles.
-  static const behindGlass = 130.0;
+  /// The gap between the glass and the dock.
+  static const belowGlass = 14.0;
 
   /// The HUD's top, under the page's top edge.
   static const hudTop = 8.0;
 
   @override
   void performLayout(Size size) {
-    final line = layoutChild(
-      _Slot.line,
-      BoxConstraints.tightFor(width: size.width - 36),
-    );
-    final lineTop = size.height - line.height - 4;
-    positionChild(_Slot.line, Offset(18, lineTop));
     final hud = layoutChild(
       _Slot.hud,
       BoxConstraints.tightFor(width: size.width - 40),
@@ -559,19 +460,20 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
         // The room keeps at least a band above the glass, even at large text.
         maxHeight: math.max(
           140,
-          lineTop - 6 - (topPad + hudTop + hud.height + 96),
+          size.height - belowGlass - (topPad + hudTop + hud.height + 56),
         ),
       ),
     );
-    final glassTop = lineTop - 6 - glass.height;
-    positionChild(_Slot.glass, Offset(16, glassTop));
-    final stageHeight = math.min(size.height, glassTop + behindGlass) + above;
-    layoutChild(
-      _Slot.stage,
-      BoxConstraints.tightFor(width: size.width, height: stageHeight),
+    positionChild(
+      _Slot.glass,
+      Offset(16, size.height - belowGlass - glass.height),
     );
     // From the top of the screen: nothing clips the page above its own top,
     // so the painting shows under the status bar.
+    layoutChild(
+      _Slot.stage,
+      BoxConstraints.tightFor(width: size.width, height: size.height + above),
+    );
     positionChild(_Slot.stage, Offset(0, -above));
   }
 
@@ -781,48 +683,40 @@ class _MiniRail extends CustomPainter {
 
 // ── The glass ────────────────────────────────────────────────────────────
 
-/// Restrained glass: the room blurs through it under a walnut tint, the
-/// lamp's light falls across it from the left, and its top lip catches that
-/// light. No drop shadow and no bottom ledge: the lower edge dissolves into
-/// the floor's shadow, so the furniture reads as standing behind it. Never
-/// light parchment.
+/// Warm walnut glass floating over the Doorway: the room blurs through it
+/// under a dark brown tint, its corners are cut like the dock's, a fine brass
+/// edge runs round it and its top catches a little light. Never light
+/// parchment, never a flat card.
 class ClassGlass extends StatelessWidget {
   const ClassGlass({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.fromLTRB(18, 14, 18, 14),
+    this.padding = const EdgeInsets.fromLTRB(22, 17, 22, 6),
   });
 
   final Widget child;
   final EdgeInsets padding;
 
-  static const _lampX = -0.9;
-
   @override
   Widget build(BuildContext context) {
     return ClipPath(
-      clipper: const _TopFacetClipper(cut: 12),
+      clipper: const _FacetClipper(top: 8, bottom: 12),
       child: Stack(
         children: [
           Positioned.fill(
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
               child: const SizedBox.expand(),
             ),
           ),
-          Positioned.fill(
+          const Positioned.fill(
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      const Color(0xFF241911).withValues(alpha: 0.72),
-                      const Color(0xFF1C140F).withValues(alpha: 0.82),
-                      const Color(0xFF191210).withValues(alpha: 0.95),
-                    ],
-                    stops: const [0, 0.45, 1],
+                    begin: Alignment(-0.25, -1),
+                    end: Alignment(0.15, 1),
+                    colors: [Color(0xE0402C1E), Color(0xEE1E150F)],
                   ),
                 ),
               ),
@@ -830,26 +724,27 @@ class ClassGlass extends StatelessWidget {
           ),
           Positioned.fill(
             child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(_lampX, -1.35),
-                    radius: 1.25,
-                    colors: [
-                      const Color(0xFFE9B672).withValues(alpha: 0.14),
-                      const Color(0xFFE9B672).withValues(alpha: 0.04),
-                      const Color(0x00E9B672),
-                    ],
-                    stops: const [0, 0.5, 1],
+              child: FractionallySizedBox(
+                alignment: Alignment.topCenter,
+                heightFactor: 0.46,
+                widthFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFFFFE2AA).withValues(alpha: 0.075),
+                        const Color(0x00FFE2AA),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
           const Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(painter: _GlassEdgePainter(lampX: _lampX)),
-            ),
+            child: IgnorePointer(child: CustomPaint(painter: _GlassEdge())),
           ),
           Padding(padding: padding, child: child),
         ],
@@ -858,77 +753,58 @@ class ClassGlass extends StatelessWidget {
   }
 }
 
-class _TopFacetClipper extends CustomClipper<Path> {
-  const _TopFacetClipper({required this.cut});
+class _FacetClipper extends CustomClipper<Path> {
+  const _FacetClipper({required this.top, required this.bottom});
 
-  final double cut;
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(cut, 0)
-    ..lineTo(size.width - cut, 0)
-    ..lineTo(size.width, cut)
-    ..lineTo(size.width, size.height)
-    ..lineTo(0, size.height)
-    ..lineTo(0, cut)
-    ..close();
+  final double top;
+  final double bottom;
 
   @override
-  bool shouldReclip(_TopFacetClipper old) => old.cut != cut;
+  Path getClip(Size size) => _facet(size, top, bottom);
+
+  @override
+  bool shouldReclip(_FacetClipper old) =>
+      old.top != top || old.bottom != bottom;
 }
 
-class _GlassEdgePainter extends CustomPainter {
-  const _GlassEdgePainter({required this.lampX});
+Path _facet(Size size, double top, double bottom) => Path()
+  ..moveTo(top, 0)
+  ..lineTo(size.width - top, 0)
+  ..lineTo(size.width, top)
+  ..lineTo(size.width, size.height - bottom)
+  ..lineTo(size.width - bottom, size.height)
+  ..lineTo(bottom, size.height)
+  ..lineTo(0, size.height - bottom)
+  ..lineTo(0, top)
+  ..close();
 
-  final double lampX;
+/// The glass's fine brass edge: warm at the top left, settling to amber.
+class _GlassEdge extends CustomPainter {
+  const _GlassEdge();
 
   @override
   void paint(Canvas canvas, Size size) {
-    const cut = 12.0;
-    final w = size.width;
-    final h = size.height;
-    final edge = Path()
-      ..moveTo(0.5, h * 0.62)
-      ..lineTo(0.5, cut)
-      ..lineTo(cut, 0.5)
-      ..lineTo(w - cut, 0.5)
-      ..lineTo(w - 0.5, cut)
-      ..lineTo(w - 0.5, h * 0.62);
+    final box = Offset.zero & size;
     canvas.drawPath(
-      edge,
+      _facet(size, 7.5, 11.5).shift(const Offset(0.5, 0.5)),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
         ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            Palette.brass.withValues(alpha: 0.7),
-            Palette.brass.withValues(alpha: 0.32),
-            Palette.brass.withValues(alpha: 0),
+            const Color(0xFFECC480).withValues(alpha: 0.5),
+            const Color(0xFFAA7A40).withValues(alpha: 0.22),
+            const Color(0xFFECC480).withValues(alpha: 0.28),
           ],
-          stops: const [0, 0.35, 1],
-        ).createShader(Offset.zero & Size(w, h * 0.62)),
-    );
-    final lipCentre = (lampX + 1) / 2;
-    canvas.drawLine(
-      const Offset(cut + 4, 1.4),
-      Offset(w - cut - 4, 1.4),
-      Paint()
-        ..strokeWidth = 1.2
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0x00F3DDAE),
-            const Color(0xFFF3DDAE).withValues(alpha: 0.55),
-            const Color(0x00F3DDAE),
-          ],
-          stops: [0, lipCentre.clamp(0.08, 0.9), 1],
-        ).createShader(Rect.fromLTWH(0, 0, w, 2)),
+          stops: const [0, 0.4, 1],
+        ).createShader(box),
     );
   }
 
   @override
-  bool shouldRepaint(_GlassEdgePainter old) => old.lampX != lampX;
+  bool shouldRepaint(_GlassEdge old) => false;
 }
 
 Text _glassLabel(String text, {Color? color, TextAlign? align}) => Text(
@@ -959,7 +835,13 @@ TextStyle _serif(
 
 // ── The card's body ──────────────────────────────────────────────────────
 
-class ClassCardBody extends StatelessWidget {
+/// The day on the glass: the class that is ready (or in session, or next)
+/// leads with its one control and a quiet "Couldn't make it" under it; the
+/// next two classes still to come follow as quiet rows; the rest wait behind
+/// "N more later today", which opens the whole list. A class he went to hangs
+/// on its hook in the Doorway and folds off the card; one he set aside folds
+/// away. Tapping a class still to come shows its own quiet "Couldn't make it".
+class ClassCardBody extends StatefulWidget {
   const ClassCardBody({
     super.key,
     required this.state,
@@ -969,6 +851,9 @@ class ClassCardBody extends StatelessWidget {
     required this.onSelect,
     this.onUndo,
     this.undoIdentity,
+    this.onDismiss,
+    this.dismissedLabel,
+    this.onUndoDismiss,
     this.reduceMotion = false,
     this.lightDirection,
     this.compact = false,
@@ -981,6 +866,11 @@ class ClassCardBody extends StatelessWidget {
   final ValueChanged<ClassRow> onSelect;
   final VoidCallback? onUndo;
   final String? undoIdentity;
+
+  /// "Couldn't make it" (see [ClassDayRoom.onDismiss]).
+  final ValueChanged<ClassRow>? onDismiss;
+  final String? dismissedLabel;
+  final VoidCallback? onUndoDismiss;
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
@@ -990,8 +880,34 @@ class ClassCardBody extends StatelessWidget {
   /// start times. No list of the day's other rows: the room keeps the frame.
   final bool compact;
 
+  /// How many classes still to come show before "N more later today".
+  static const upcomingShown = 2;
+
+  @override
+  State<ClassCardBody> createState() => _ClassCardBodyState();
+}
+
+class _ClassCardBodyState extends State<ClassCardBody> {
+  /// The full list of classes still to come is open.
+  bool _expanded = false;
+
+  /// The class still to come whose own "Couldn't make it" is showing.
+  String? _revealed;
+
+  @override
+  void didUpdateWidget(ClassCardBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final revealed = _revealed;
+    if (revealed != null &&
+        !widget.card.rows.any((row) => row.identity == revealed)) {
+      _revealed = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final card = widget.card;
     final day = card.day;
     final dayName = weekdayOf(day.date).toUpperCase();
     final count = day.classes.length;
@@ -999,7 +915,12 @@ class ClassCardBody extends StatelessWidget {
     final foremost = card.foremost;
     final String left;
     final String? right;
-    if (card.isRecord && card.allKept) {
+    if (count == 0) {
+      // Every class was set aside: the day holds nothing to count, and the
+      // header says no number.
+      left = dayName;
+      right = null;
+    } else if (card.isRecord && card.allKept) {
       left =
           '$dayName · ${switch (count) {
             1 => 'ATTENDED',
@@ -1016,10 +937,6 @@ class ClassCardBody extends StatelessWidget {
       left = dayName;
       right = '$kept ATTENDED';
     }
-    final others = [
-      for (final row in card.rows)
-        if (foremost == null || row.identity != foremost.identity) row,
-    ];
     final header = Row(
       children: [
         Expanded(child: _glassLabel(left)),
@@ -1041,82 +958,204 @@ class ClassCardBody extends StatelessWidget {
           ),
       ],
     );
-    if (compact) return _compact(header);
-    final children = <Widget>[
-      header,
-      SizedBox(height: foremost == null ? 8 : 12),
-      if (foremost != null)
-        _ForemostRow(
-          key: ValueKey('class-foremost-${foremost.identity}'),
-          row: foremost,
-          card: card,
-          now: now,
-          onMark: onMark,
-          reduceMotion: reduceMotion,
-          lightDirection: lightDirection,
+    if (widget.compact) return _compact(header);
+
+    // What the glass shows, in order. A kept class has gone to its hook (it
+    // shows only while its undo is armed); one set aside is not here at all.
+    final others = <ClassRow>[
+      for (final row in card.rows)
+        if (row.identity != foremost?.identity &&
+            (row.markable ||
+                (row.isKept && row.identity == widget.undoIdentity)))
+          row,
+    ];
+    final coming = <ClassRow>[
+      for (final row in card.rows)
+        if (row.identity != foremost?.identity &&
+            (row.state == ClassRowState.upcoming ||
+                row.state == ClassRowState.startsSoon))
+          row,
+    ];
+    final shown = _expanded
+        ? coming
+        : coming.take(ClassCardBody.upcomingShown).toList();
+    final more = coming.length - shown.length;
+
+    final items = <_FoldItem>[];
+    if (foremost != null) {
+      items.add(
+        _FoldItem(
+          'foremost-${foremost.identity}',
+          _ForemostRow(
+            key: ValueKey('class-foremost-${foremost.identity}'),
+            row: foremost,
+            card: card,
+            now: widget.now,
+            onMark: widget.onMark,
+            onDismiss: widget.onDismiss,
+            onUndo: foremost.isKept && foremost.identity == widget.undoIdentity
+                ? widget.onUndo
+                : null,
+            reduceMotion: widget.reduceMotion,
+            lightDirection: widget.lightDirection,
+          ),
         ),
-      for (var i = 0; i < others.length; i++) ...[
-        if (foremost != null || i > 0) ...[
-          SizedBox(height: foremost != null && i == 0 ? 10 : 2),
-          const _GlassRule(),
-          const SizedBox(height: 2),
+      );
+    }
+    var first = true;
+    Widget lead(Widget row) {
+      final spacing = foremost != null && first ? 10.0 : 2.0;
+      final showRule = foremost != null || !first;
+      first = false;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: spacing),
+          if (showRule) ...[const _GlassRule(), const SizedBox(height: 2)],
+          row,
         ],
-        _QuietRow(
-          key: ValueKey('class-row-${others[i].identity}'),
-          row: others[i],
-          now: now,
-          onSelect: others[i].markable ? () => onSelect(others[i]) : null,
-          onUndo: others[i].isKept && others[i].identity == undoIdentity
-              ? onUndo
-              : null,
-        ),
-      ],
-      if (card.isRecord) ...[
-        if ((state.dayRecordFor(day.dayKey)?.fullDayBonusXp ?? 0)
-            case final bonus when bonus > 0)
-          Padding(
-            key: const Key('class-day-record-bonus'),
-            padding: const EdgeInsets.fromLTRB(56, 2, 0, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'All of ${weekdayOf(day.date)}’s classes',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _serif(
-                      16,
-                      color: Palette.textLo,
-                      style: FontStyle.italic,
-                    ),
-                  ),
-                ),
-                Text(
-                  '+$bonus XP',
-                  style: Type.numerals.copyWith(
-                    fontSize: 15,
-                    color: Palette.xp.withValues(alpha: 0.9),
-                  ),
-                ),
-              ],
+      );
+    }
+
+    for (final row in others) {
+      items.add(
+        _FoldItem(
+          'row-${row.identity}',
+          lead(
+            _QuietRow(
+              key: ValueKey('class-row-${row.identity}'),
+              row: row,
+              now: widget.now,
+              onSelect: row.markable ? () => widget.onSelect(row) : null,
+              onUndo: row.isKept && row.identity == widget.undoIdentity
+                  ? widget.onUndo
+                  : null,
+              onDismiss: widget.onDismiss == null || !row.canSetAside
+                  ? null
+                  : () => widget.onDismiss!(row),
             ),
           ),
-        if (day.nextClassAfter case final next?) ...[
-          const SizedBox(height: 8),
-          Container(height: 1, color: Palette.brass.withValues(alpha: 0.22)),
-          const SizedBox(height: 9),
-          _NextLine(next: next),
-        ],
-      ],
-    ];
+        ),
+      );
+    }
+    for (final row in shown) {
+      final revealed = _revealed == row.identity;
+      items.add(
+        _FoldItem(
+          'row-${row.identity}',
+          lead(
+            _QuietRow(
+              key: ValueKey('class-row-${row.identity}'),
+              row: row,
+              now: widget.now,
+              revealed: revealed,
+              onReveal: widget.onDismiss == null || !row.canSetAside
+                  ? null
+                  : () => setState(
+                      () => _revealed = revealed ? null : row.identity,
+                    ),
+              onDismiss: widget.onDismiss == null || !row.canSetAside
+                  ? null
+                  : () => widget.onDismiss!(row),
+            ),
+          ),
+        ),
+      );
+    }
+    if (coming.length > ClassCardBody.upcomingShown) {
+      items.add(
+        _FoldItem(
+          'more',
+          _MoreLine(
+            more: more,
+            expanded: _expanded,
+            onTap: () => setState(() => _expanded = !_expanded),
+          ),
+        ),
+      );
+    }
+    if (widget.dismissedLabel != null) {
+      items.add(
+        _FoldItem(
+          'dismissed',
+          ClassDismissedLine(
+            label: widget.dismissedLabel!,
+            onUndo: widget.onUndoDismiss,
+          ),
+        ),
+      );
+    }
+    if (card.isRecord) {
+      final bonus = state.dayRecordFor(day.dayKey)?.fullDayBonusXp ?? 0;
+      if (bonus > 0) {
+        items.add(
+          _FoldItem(
+            'bonus',
+            Padding(
+              key: const Key('class-day-record-bonus'),
+              padding: const EdgeInsets.fromLTRB(56, 2, 0, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'All of ${weekdayOf(day.date)}’s classes',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _serif(
+                        16,
+                        color: Palette.textLo,
+                        style: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '+$bonus XP',
+                    style: Type.numerals.copyWith(
+                      fontSize: 15,
+                      color: Palette.xp.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+      if (day.nextClassAfter case final next?) {
+        items.add(
+          _FoldItem(
+            'next',
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    height: 1,
+                    color: Palette.brass.withValues(alpha: 0.22),
+                  ),
+                  const SizedBox(height: 9),
+                  _NextLine(next: next),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: children,
+      children: [
+        header,
+        SizedBox(height: foremost == null ? 8 : 12),
+        _FoldColumn(items: items, reduceMotion: widget.reduceMotion),
+      ],
     );
   }
 
   Widget _compact(Widget header) {
+    final card = widget.card;
     final foremost = card.foremost;
     final open = [
       for (final row in card.rows)
@@ -1125,7 +1164,7 @@ class ClassCardBody extends StatelessWidget {
     ClassRow? undoRow;
     for (final row in card.rows) {
       if (row.isKept &&
-          row.identity == undoIdentity &&
+          row.identity == widget.undoIdentity &&
           row.identity != foremost?.identity) {
         undoRow = row;
       }
@@ -1141,10 +1180,17 @@ class ClassCardBody extends StatelessWidget {
             key: ValueKey('class-foremost-${foremost.identity}'),
             row: foremost,
             card: card,
-            now: now,
-            onMark: onMark,
-            reduceMotion: reduceMotion,
-            lightDirection: lightDirection,
+            now: widget.now,
+            onMark: widget.onMark,
+            onDismiss: widget.onDismiss,
+            reduceMotion: widget.reduceMotion,
+            lightDirection: widget.lightDirection,
+            besideLamp: true,
+          ),
+        if (widget.dismissedLabel != null)
+          ClassDismissedLine(
+            label: widget.dismissedLabel!,
+            onUndo: widget.onUndoDismiss,
           ),
         if (undoRow != null) ...[
           const SizedBox(height: 8),
@@ -1152,12 +1198,239 @@ class ClassCardBody extends StatelessWidget {
           _QuietRow(
             key: ValueKey('class-row-${undoRow.identity}'),
             row: undoRow,
-            now: now,
-            onUndo: onUndo,
+            now: widget.now,
+            onUndo: widget.onUndo,
           ),
         ],
-        if (open.isNotEmpty) _OpenTimesLine(rows: open, onSelect: onSelect),
+        if (open.isNotEmpty)
+          _OpenTimesLine(rows: open, onSelect: widget.onSelect),
       ],
+    );
+  }
+}
+
+/// One thing on the card that can fold in and out.
+class _FoldItem {
+  const _FoldItem(this.key, this.child);
+
+  final String key;
+  final Widget child;
+}
+
+/// A column whose members fold open when they arrive and fold shut when they
+/// leave (a class kept, a class set aside, a class brought back), so the card
+/// closes its gaps instead of jumping. Under Reduce Motion they simply come
+/// and go.
+class _FoldColumn extends StatefulWidget {
+  const _FoldColumn({required this.items, required this.reduceMotion});
+
+  final List<_FoldItem> items;
+  final bool reduceMotion;
+
+  @override
+  State<_FoldColumn> createState() => _FoldColumnState();
+}
+
+class _FoldEntry {
+  _FoldEntry(this.key, this.child, {this.appear = false});
+
+  final String key;
+  Widget child;
+  bool visible = true;
+
+  /// Folds open from nothing (arrived after the first build).
+  final bool appear;
+}
+
+class _FoldColumnState extends State<_FoldColumn> {
+  late List<_FoldEntry> _entries = [
+    for (final item in widget.items) _FoldEntry(item.key, item.child),
+  ];
+
+  @override
+  void didUpdateWidget(_FoldColumn oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final byKey = {for (final entry in _entries) entry.key: entry};
+    final wanted = {for (final item in widget.items) item.key};
+    final next = <_FoldEntry>[];
+    for (final item in widget.items) {
+      final entry =
+          byKey[item.key] ?? _FoldEntry(item.key, item.child, appear: true);
+      entry
+        ..child = item.child
+        ..visible = true;
+      next.add(entry);
+    }
+    // An entry that is leaving stays where it was, after the nearest
+    // survivor that came before it, while it folds shut.
+    for (var i = 0; i < _entries.length; i++) {
+      final entry = _entries[i];
+      if (wanted.contains(entry.key)) continue;
+      entry.visible = false;
+      var at = 0;
+      for (var j = i - 1; j >= 0; j--) {
+        final index = next.indexOf(_entries[j]);
+        if (index >= 0) {
+          at = index + 1;
+          break;
+        }
+      }
+      next.insert(at, entry);
+    }
+    _entries = next;
+  }
+
+  void _gone(_FoldEntry entry) {
+    if (!mounted || entry.visible) return;
+    setState(() => _entries.remove(entry));
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final entry in _entries)
+        _Fold(
+          key: ValueKey('fold-${entry.key}'),
+          visible: entry.visible,
+          appear: entry.appear,
+          animate: !widget.reduceMotion,
+          onGone: () => _gone(entry),
+          child: entry.child,
+        ),
+    ],
+  );
+}
+
+class _Fold extends StatefulWidget {
+  const _Fold({
+    super.key,
+    required this.visible,
+    required this.appear,
+    required this.animate,
+    required this.onGone,
+    required this.child,
+  });
+
+  final bool visible;
+  final bool appear;
+  final bool animate;
+  final VoidCallback onGone;
+  final Widget child;
+
+  @override
+  State<_Fold> createState() => _FoldState();
+}
+
+class _FoldState extends State<_Fold> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+    value: widget.appear && widget.animate ? 0 : (widget.visible ? 1 : 0),
+  )..addStatusListener(_status);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.appear && widget.animate && widget.visible) _c.forward();
+  }
+
+  void _status(AnimationStatus status) {
+    if (status != AnimationStatus.dismissed || widget.visible) return;
+    // Never inside a build: the column drops the entry after this frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onGone();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_Fold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.visible == oldWidget.visible) return;
+    if (!widget.animate) {
+      _c.value = widget.visible ? 1 : 0;
+    } else if (widget.visible) {
+      _c.forward();
+    } else {
+      _c.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.animate && !widget.visible) return const SizedBox.shrink();
+    final curve = CurvedAnimation(parent: _c, curve: Curves.easeInOut);
+    return SizeTransition(
+      sizeFactor: curve,
+      alignment: Alignment.topCenter,
+      child: FadeTransition(opacity: curve, child: widget.child),
+    );
+  }
+}
+
+/// "2 more later today": a quiet line that opens the whole list (and closes
+/// it again). Counts what is still to come, never what was not marked.
+class _MoreLine extends StatelessWidget {
+  const _MoreLine({
+    required this.more,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final int more;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = expanded ? 'Show fewer' : '$more more later today';
+    return Pressable(
+      key: const Key('class-more-later'),
+      pressDepth: 1,
+      soundEnabled: false,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
+      semanticLabel: expanded
+          ? 'Show fewer of today’s classes'
+          : '$more more ${more == 1 ? 'class' : 'classes'} later today',
+      semanticHint: expanded ? null : 'Show them all',
+      onTapUp: (_) => onTap(),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Row(
+          children: [
+            const SizedBox(width: 56),
+            Expanded(
+              child: ExcludeSemantics(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _serif(
+                    16,
+                    color: Palette.textMid.withValues(alpha: 0.78),
+                    style: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+            Icon(
+              expanded
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              size: 20,
+              color: Palette.brassLit.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1220,11 +1493,14 @@ class _OpenTimesLine extends StatelessWidget {
 }
 
 class _GlassRule extends StatelessWidget {
-  const _GlassRule();
+  const _GlassRule({this.inset = 57});
+
+  /// How far the rule is set in from the glass's left (a row's text edge).
+  final double inset;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 57),
+    padding: EdgeInsets.only(left: inset),
     child: Container(
       height: 1,
       decoration: BoxDecoration(
@@ -1249,22 +1525,41 @@ class _ForemostRow extends StatelessWidget {
     required this.now,
     required this.onMark,
     required this.reduceMotion,
+    this.onDismiss,
+    this.onUndo,
     this.lightDirection,
+    this.besideLamp = false,
   });
+
+  /// The quiet "Couldn't make it" sits beside the lamp instead of under it.
+  final bool besideLamp;
+
+  /// Swiping a class just kept (held in place while the Doorway hangs its
+  /// ticket) undoes it.
+  final VoidCallback? onUndo;
 
   final ClassRow row;
   final ClassCard card;
   final DateTime now;
   final void Function(List<ClassRow> rows) onMark;
+  final ValueChanged<ClassRow>? onDismiss;
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
   @override
   Widget build(BuildContext context) {
+    final held = card.held && row.isKept;
+    return _AttendingGate(
+      held: held,
+      reduceMotion: reduceMotion,
+      builder: (context, closed) => _body(context, held, closed),
+    );
+  }
+
+  Widget _body(BuildContext context, bool held, bool closed) {
     final entry = row.entry;
     final place = classPlace(entry);
     final markable = row.markable;
-    final held = card.held && row.isKept;
     final inSession =
         row.state == ClassRowState.inSession ||
         (held && entry.momentAt(now) == ClassMoment.inSession);
@@ -1291,14 +1586,17 @@ class _ForemostRow extends StatelessWidget {
             : '$place · ended ${classClockShort(entry.localEndMinute)}';
     }
     final showButton = markable || held;
+    final setAside = onDismiss != null && row.canSetAside && !held
+        ? () => onDismiss!(row)
+        : null;
     final ring = SizedBox.square(
       dimension: 44,
       child: Center(
         child: markable || held
             ? QuestCheckRing(
                 stat: classStatFor(row.entry),
-                done: held,
-                showReadyCheck: !held,
+                done: closed,
+                showReadyCheck: !closed,
                 size: 42,
                 reduceMotion: reduceMotion,
                 lightDirection: lightDirection,
@@ -1306,7 +1604,23 @@ class _ForemostRow extends StatelessWidget {
             : const _FutureMark(size: 30),
       ),
     );
-    return Column(
+    final lamp = ClassThereButton(
+      label: inSession ? "I'M HERE" : 'I WAS THERE',
+      attendedLabel: held ? 'ATTENDED · +${row.kept?.xp ?? 25} XP' : null,
+      enabled: markable,
+      kept: closed,
+      acknowledged: held && !closed,
+      light: lightDirection,
+      reduceMotion: reduceMotion,
+      onTap: () => onMark([row]),
+      onSetAside: setAside,
+      semanticLabel: held
+          ? 'Attended: ${classShortTitle(entry.title)}'
+          : inSession
+          ? "I'm here: ${classShortTitle(entry.title)}"
+          : 'I was there: ${classShortTitle(entry.title)}',
+    );
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
@@ -1357,27 +1671,152 @@ class _ForemostRow extends StatelessWidget {
           ],
         ),
         if (showButton) ...[
-          const SizedBox(height: 14),
-          ClassThereButton(
-            label: inSession ? "I'M HERE" : 'I WAS THERE',
-            enabled: markable,
-            kept: held,
-            light: lightDirection,
-            reduceMotion: reduceMotion,
-            onTap: () => onMark([row]),
-            semanticLabel: inSession
-                ? "I'm here: ${classShortTitle(entry.title)}"
-                : 'I was there: ${classShortTitle(entry.title)}',
-          ),
+          const SizedBox(height: 10),
+          // The one lamp, and under it the quiet word, small and centered:
+          // the lamp stays the largest thing on the card. The evening's card,
+          // which is short of room, keeps the word beside the lamp.
+          if (besideLamp)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: lamp),
+                if (setAside != null)
+                  ClassSetAsideButton(
+                    key: ValueKey('class-set-aside-${row.identity}'),
+                    title: classBriefTitle(entry.title),
+                    onTap: setAside,
+                    narrow: true,
+                  ),
+              ],
+            )
+          else ...[
+            lamp,
+            if (setAside != null)
+              Center(
+                child: ClassSetAsideButton(
+                  key: ValueKey('class-set-aside-${row.identity}'),
+                  title: classBriefTitle(entry.title),
+                  onTap: setAside,
+                ),
+              ),
+          ],
           if (card.offersShortcut && !held)
             _ShortcutLine(card: card, onMark: onMark),
-        ],
+        ] else if (setAside != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 56),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ClassSetAsideButton(
+                key: ValueKey('class-set-aside-${row.identity}'),
+                title: classBriefTitle(entry.title),
+                onTap: setAside,
+              ),
+            ),
+          ),
       ],
+    );
+    final undo = onUndo;
+    if (undo == null || !held) return column;
+    return Dismissible(
+      key: ValueKey('class-undo-${row.identity}'),
+      direction: DismissDirection.endToStart,
+      dismissThresholds: const {DismissDirection.endToStart: 0.42},
+      confirmDismiss: (_) async {
+        undo();
+        return false; // the restore handles the state change
+      },
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.undo, size: 16, color: Palette.xpLight),
+            const SizedBox(width: 6),
+            Text(
+              'UNDO',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
+            ),
+          ],
+        ),
+      ),
+      background: const SizedBox.shrink(),
+      child: column,
     );
   }
 }
 
-/// The one luminous control on the screen: the card's lamp ([LampShade]).
+/// A class just kept is held in place while the Doorway hangs its ticket: the
+/// card's ring closes and its control turns to "ATTENDED" half a second in,
+/// as the stamp lands. Under Reduce Motion, at once.
+class _AttendingGate extends StatefulWidget {
+  const _AttendingGate({
+    required this.held,
+    required this.reduceMotion,
+    required this.builder,
+  });
+
+  final bool held;
+  final bool reduceMotion;
+  final Widget Function(BuildContext context, bool closed) builder;
+
+  @override
+  State<_AttendingGate> createState() => _AttendingGateState();
+}
+
+class _AttendingGateState extends State<_AttendingGate>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _beat;
+
+  bool _closed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _beat = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addStatusListener(_status);
+    // A card first built already held (it was marked a moment ago, or the
+    // page was rebuilt around it) is closed.
+    _closed = widget.held;
+  }
+
+  void _status(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted && widget.held) {
+      setState(() => _closed = true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AttendingGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.held && !oldWidget.held) {
+      if (widget.reduceMotion) {
+        _closed = true;
+      } else {
+        _closed = false;
+        _beat.forward(from: 0);
+      }
+    } else if (!widget.held) {
+      _beat.stop();
+      _closed = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _beat.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _closed);
+}
+
+/// The one control on the card: a quiet bar of smoked glass with cream serif
+/// capitals and a thin warm hairline ([ClassThereButton]).
 /// Contact turns its light up under the finger at once; a kept class turns
 /// the lamp low; a class that cannot be marked yet is an unlit shade.
 class ClassThereButton extends StatelessWidget {
@@ -1386,57 +1825,309 @@ class ClassThereButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.semanticLabel,
+    this.attendedLabel,
+    this.onSetAside,
     this.enabled = true,
     this.kept = false,
+    this.acknowledged = false,
     this.light,
     this.reduceMotion = false,
   });
 
   final String label;
+
+  /// What the bar says once the class is kept ("ATTENDED · +25 XP").
+  final String? attendedLabel;
   final VoidCallback onTap;
   final String semanticLabel;
+
+  /// Offered to a screen reader as a named action on this control, beside the
+  /// quiet "Couldn't make it" button under it.
+  final VoidCallback? onSetAside;
   final bool enabled;
+
+  /// The class is kept: the bar settles to its attended face.
   final bool kept;
+
+  /// The press was taken a moment ago and the card has not closed its ring
+  /// yet: the bar holds a touch brighter.
+  final bool acknowledged;
   final ValueListenable<Offset>? light;
   final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
-    final level = kept
-        ? LampLevel.low
-        : enabled
-        ? LampLevel.lit
-        : LampLevel.off;
+    final words = kept && attendedLabel != null ? attendedLabel! : label;
+    Widget word(String text, {Key? key}) => Text(
+      text,
+      key: key,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: LedgerType.body.copyWith(
+        fontSize: 13.6,
+        height: 1,
+        fontWeight: FontWeight.w500,
+        letterSpacing: kept ? 2.0 : 2.7,
+        color: enabled || kept || acknowledged
+            ? const Color(0xFFF2E3C4)
+            : const Color(0xFFF2E3C4).withValues(alpha: 0.42),
+      ),
+    );
     Widget face(bool pressed) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 50),
-      child: LampShade(
-        cut: 10,
-        level: level,
-        pressed: pressed,
-        light: light,
-        reduceMotion: reduceMotion,
-        dimFrom: kept ? LampShade.warmthFor(LampLevel.lit) : null,
+      constraints: const BoxConstraints(minHeight: 44),
+      child: CustomPaint(
+        painter: _GlassBar(
+          kept: kept,
+          enabled: enabled || kept || acknowledged,
+          lit: pressed || acknowledged,
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-          child: LampLabel(text: label, level: level),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          child: Center(
+            child: attendedLabel == null
+                ? word(words)
+                // The bar turns to its attended words with a short cross-fade.
+                : AnimatedSwitcher(
+                    // The old words go, then the new ones come: never both
+                    // at once.
+                    duration: Duration(milliseconds: reduceMotion ? 0 : 360),
+                    switchInCurve: const Interval(0.45, 1),
+                    switchOutCurve: const Interval(0.45, 1),
+                    child: word(words, key: ValueKey(kept)),
+                  ),
+          ),
         ),
       ),
     );
     return Pressable(
       key: const Key('class-there-button'),
-      pressDepth: 2,
-      material: MaterialSound.brass,
+      pressDepth: 1,
       // The completion composite voices the press; a second contact sound
       // would strike over it.
       soundEnabled: false,
       enabled: enabled,
-      shape: const LampShadeBorder(cut: 10),
-      edgeColor: const Color(0xFF1E1109),
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
       semanticLabel: semanticLabel,
+      semanticActions: onSetAside == null
+          ? null
+          : {
+              const CustomSemanticsAction(label: classSetAsideLabel):
+                  onSetAside!,
+            },
       onTapUp: (_) => onTap(),
       stateBuilder: (context, child, pressed, focused, hovered) =>
           face(pressed),
       child: face(false),
+    );
+  }
+}
+
+/// The bar's glass: a smoked pane a little narrower at the top, warmed by the
+/// faintest gradient, with a thin warm hairline and a bright line along its
+/// top edge. No glow: the door's light is the scene's one warm accent.
+class _GlassBar extends CustomPainter {
+  const _GlassBar({
+    required this.kept,
+    required this.enabled,
+    required this.lit,
+  });
+
+  final bool kept;
+  final bool enabled;
+  final bool lit;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final inset = size.width * 0.025;
+    const r = 5.0;
+    final path = Path()
+      ..moveTo(inset + r, 0)
+      ..lineTo(size.width - inset - r, 0)
+      ..quadraticBezierTo(size.width - inset, 0, size.width - inset + 0.4, r)
+      ..lineTo(size.width - 0.2, size.height - r)
+      ..quadraticBezierTo(size.width, size.height, size.width - r, size.height)
+      ..lineTo(r, size.height)
+      ..quadraticBezierTo(0, size.height, 0.2, size.height - r)
+      ..lineTo(inset - 0.4, r)
+      ..quadraticBezierTo(inset, 0, inset + r, 0)
+      ..close();
+    // The pane's shade under it, soft.
+    canvas.drawPath(
+      path.shift(const Offset(0, 3)),
+      Paint()
+        ..color = const Color(0x59000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // Smoked glass: a dark body with the faintest warm gradient over it.
+    canvas.drawPath(path, Paint()..color = const Color(0x4A140A04));
+    final bump = lit ? 0.07 : 0.0;
+    final warm = kept ? 1.0 : 0.0;
+    final dim = enabled ? 1.0 : 0.55;
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.fromRGBO(255, 226, 170, (0.12 + 0.10 * warm + bump) * dim),
+            Color.fromRGBO(255, 210, 150, (0.03 + 0.05 * warm + bump) * dim),
+            Color.fromRGBO(255, 200, 130, (0.09 + 0.08 * warm + bump) * dim),
+          ],
+          stops: const [0, 0.55, 1],
+        ).createShader(Offset.zero & size),
+    );
+    // The bright line along the top, and the quiet one along the foot.
+    canvas.save();
+    canvas.clipPath(path);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, 1),
+      Paint()..color = Color.fromRGBO(255, 226, 170, 0.5 * dim),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 1, size.width, 1),
+      Paint()..color = Color.fromRGBO(255, 200, 130, 0.22 * dim),
+    );
+    canvas.restore();
+    // The hairline.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = kept
+            ? const Color(0xBFE8BE74)
+            : Color.fromRGBO(214, 170, 100, 0.5 * dim),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassBar old) =>
+      old.kept != kept || old.enabled != enabled || old.lit != lit;
+}
+
+/// "Couldn’t make it": a quiet word on a class that can be set aside. Cream
+/// text on the glass, no color, no icon, nothing that reads as a warning, and
+/// always smaller than the one bright control. [narrow] is the form that sits
+/// at the end of a quiet row (two short lines).
+class ClassSetAsideButton extends StatelessWidget {
+  const ClassSetAsideButton({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.narrow = false,
+  });
+
+  /// The class's short name, for the screen reader.
+  final String title;
+  final VoidCallback onTap;
+  final bool narrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      classSetAsideLabel,
+      textAlign: narrow ? TextAlign.right : TextAlign.center,
+      style: _serif(
+        narrow ? 14 : 16,
+        color: Palette.textMid.withValues(alpha: 0.72),
+        height: 1.1,
+        style: FontStyle.italic,
+      ),
+    );
+    return Pressable(
+      pressDepth: 1,
+      soundEnabled: false,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
+      semanticLabel: classSetAsideSemantics(title),
+      onTapUp: (_) => onTap(),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: narrow ? 44 : 40,
+          minWidth: 44,
+          maxWidth: narrow ? 118 : 220,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: narrow ? 6 : 10),
+          child: Center(widthFactor: 1, child: ExcludeSemantics(child: text)),
+        ),
+      ),
+    );
+  }
+}
+
+/// The few seconds after a class folds away: it is named once as off today's
+/// list, with "Undo". Polite live region; says nothing else.
+class ClassDismissedLine extends StatelessWidget {
+  const ClassDismissedLine({super.key, required this.label, this.onUndo});
+
+  final String label;
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = classSetAsideLine(label);
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      label: words,
+      child: ConstrainedBox(
+        key: const Key('class-dismissed-line'),
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Row(
+          children: [
+            Expanded(
+              child: ExcludeSemantics(
+                child: Text(
+                  words,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: _serif(
+                    16,
+                    color: Palette.textLo,
+                    style: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+            if (onUndo != null)
+              Pressable(
+                key: const Key('class-dismissed-undo'),
+                pressDepth: 1,
+                soundEnabled: false,
+                edgeColor: Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                semanticLabel: 'Undo: $label back on today’s list',
+                onTapUp: (_) => onUndo!(),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 44,
+                    minWidth: 56,
+                  ),
+                  child: Center(
+                    widthFactor: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: ExcludeSemantics(
+                        child: Text(
+                          'Undo',
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            letterSpacing: 1.2,
+                            color: Palette.xpLight,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1524,12 +2215,24 @@ class _QuietRow extends StatelessWidget {
     required this.now,
     this.onSelect,
     this.onUndo,
+    this.onDismiss,
+    this.onReveal,
+    this.revealed = false,
   });
 
   final ClassRow row;
   final DateTime now;
   final VoidCallback? onSelect;
   final VoidCallback? onUndo;
+
+  /// "Couldn't make it" on a row that can be set aside; null otherwise.
+  final VoidCallback? onDismiss;
+
+  /// A class still to come keeps its "Couldn't make it" out of sight until
+  /// the row is tapped: [onReveal] toggles it, [revealed] says it is showing.
+  /// Null (and [revealed] ignored) for a row whose word is always there.
+  final VoidCallback? onReveal;
+  final bool revealed;
 
   @override
   Widget build(BuildContext context) {
@@ -1562,10 +2265,10 @@ class _QuietRow extends StatelessWidget {
         row.state == ClassRowState.upcoming ||
         row.state == ClassRowState.startsSoon;
     Widget body = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 46),
+      constraints: const BoxConstraints(minHeight: 42),
       child: Row(
         children: [
-          SizedBox.square(dimension: 44, child: Center(child: mark)),
+          SizedBox.square(dimension: 40, child: Center(child: mark)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1620,8 +2323,47 @@ class _QuietRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         semanticLabel: '$title, ${classClock(entry.localStartMinute)}',
         semanticHint: 'Bring forward to mark it',
+        semanticActions: onDismiss == null
+            ? null
+            : {
+                const CustomSemanticsAction(label: classSetAsideLabel):
+                    onDismiss!,
+              },
         onTapUp: (_) => onSelect!(),
         child: body,
+      );
+    } else if (onReveal != null) {
+      body = Pressable(
+        key: ValueKey('class-reveal-${row.identity}'),
+        pressDepth: 1,
+        soundEnabled: false,
+        edgeColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        semanticLabel: '$title, ${classClock(entry.localStartMinute)}',
+        semanticHint: revealed ? null : 'Shows $classSetAsideLabel',
+        semanticActions: onDismiss == null
+            ? null
+            : {
+                const CustomSemanticsAction(label: classSetAsideLabel):
+                    onDismiss!,
+              },
+        onTapUp: (_) => onReveal!(),
+        child: body,
+      );
+    }
+    if (onDismiss != null && (onReveal == null || revealed)) {
+      // Beside the row, not inside its press: bringing a row forward and
+      // setting it aside are two separate touches.
+      body = Row(
+        children: [
+          Expanded(child: body),
+          ClassSetAsideButton(
+            key: ValueKey('class-set-aside-${row.identity}'),
+            title: title,
+            onTap: onDismiss!,
+            narrow: true,
+          ),
+        ],
       );
     }
     if (onUndo == null) return body;

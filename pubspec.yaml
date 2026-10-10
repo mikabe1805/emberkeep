@@ -150,6 +150,8 @@ flutter:
     # a style with no plate falls through to the procedural painter.
     - assets/rooms/
     - assets/rooms/previews/
+    # the Doorway: the class-day room's painted lights, rail pieces and objects
+    - assets/rooms/doorway/
     - assets/routine/
     - assets/brand/
     - assets/quest/

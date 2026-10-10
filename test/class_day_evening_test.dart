@@ -27,6 +27,7 @@ import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_kept_celebration.dart';
 import 'package:emberkeep/widgets/class_day/class_room_stage.dart';
+import 'package:emberkeep/widgets/class_day/doorway_stage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -210,6 +211,13 @@ Future<void> _pumpFor(WidgetTester tester, Duration total) async {
   }
 }
 
+/// The Doorway plays before the day's card: the tickets unhook and drop into
+/// the bowl (the mark, then about 1.9 s, then 0.9 s of flight), and the card
+/// shows half a second after they land, then takes about a second and a half to
+/// arrive. A shortcut that keeps several classes starts its marks 180 ms apart.
+const _dayCardAfter = Duration(milliseconds: 4800);
+const _shortcutCardAfter = Duration(milliseconds: 5400);
+
 final _evening = find.byKey(const Key('class-evening'));
 final _there = find.byKey(const Key('class-there-button'));
 final _celebration = find.byType(ClassKeptCelebration);
@@ -245,26 +253,12 @@ double _scrollExtent(WidgetTester tester) => tester
     .position
     .maxScrollExtent;
 
-/// Every image filter on the room, by its description (a blur's sigma).
-List<String> _imageFilters(WidgetTester tester) => [
-  for (final filtered in tester.widgetList<ImageFiltered>(
-    find.descendant(
-      of: find.byKey(const Key('class-day-room')),
-      matching: find.byType(ImageFiltered),
-    ),
-  ))
-    '${filtered.imageFilter}',
-];
-
-/// The room's own stage (the celebration paints another while it is up).
-RoomShot _roomShot(WidgetTester tester) => tester
-    .widget<ClassRoomStage>(
-      find.descendant(
-        of: find.byKey(const Key('class-day-room')),
-        matching: find.byKey(const Key('class-day-stage')),
-      ),
-    )
-    .shot;
+/// The room's own stage: the Doorway (the celebration paints another one
+/// while it is up).
+final Finder _doorway = find.descendant(
+  of: find.byKey(const Key('class-day-room')),
+  matching: find.byType(DoorwayStage),
+);
 
 void main() {
   setUpAll(() async {
@@ -290,36 +284,33 @@ void main() {
   });
 
   group('the room turns to the evening', () {
-    testWidgets('the last class kept: TUESDAY, DONE., then the camera walks '
-        'slowly to the window and the armchair, no blur', (tester) async {
+    testWidgets('the last class kept: TUESDAY, DONE., then the glass turns '
+        'to the evening over the same Doorway, no camera walk', (tester) async {
       final state = _mika();
       _keepAt(state, _ny(6, 11, 53), only: {'14:332:331'});
       await _mount(tester, at: _ny(6, 15, 35), state: state);
-      final desk = _roomShot(tester);
+      expect(_doorway, findsOneWidget);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       expect(find.text('TUESDAY, DONE.'), findsOneWidget);
-      // Under the held moment the room keeps the desk; nothing turns yet.
+      // Under the held moment the room keeps the day; nothing turns yet. The
+      // Doorway stands behind the moment too, held still.
       expect(_evening, findsNothing);
-      expect(_roomShot(tester).left, desk.left);
+      expect(
+        find.descendant(of: _celebration, matching: find.byType(DoorwayStage)),
+        findsOneWidget,
+      );
 
-      final stillFilters = _imageFilters(tester);
-      expect(stillFilters, isEmpty, reason: 'the room carries no image filter');
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
-      // The walk starts from the celebration's own framing.
-      final kept = RoomShot.kept(width: 393);
-      final lefts = <double>[];
-      final tilts = <double>[];
+      // The room is the same Doorway all the way: it never swaps for another
+      // view, and nothing walks. Only the glass turns.
+      final stage = tester.state<DoorwayStageState>(_doorway);
       for (var i = 0; i < 26; i++) {
         await tester.pump(const Duration(milliseconds: 100));
-        final shot = _roomShot(tester);
-        lefts.add(shot.left);
-        tilts.add(shot.tilt.dx);
-        // No blur anywhere on the room while it moves: only the glass blurs
-        // what is behind it, and the only image filter is the window's fixed
-        // one-pixel softening (the app's travel blur is an ImageFiltered).
+        expect(_doorway, findsOneWidget, reason: 'frame $i');
+        expect(tester.state<DoorwayStageState>(_doorway), same(stage));
         expect(
           find.descendant(
             of: find.byKey(const Key('class-day-room')),
@@ -328,21 +319,9 @@ void main() {
           findsOneWidget,
           reason: 'only the glass blurs what is behind it',
         );
-        expect(_imageFilters(tester), stillFilters, reason: 'frame $i');
       }
       expect(_celebration, findsNothing);
-      expect(lefts.first, lessThan(kept.left));
-      expect(lefts.first, greaterThan(lefts.last));
-      for (var i = 1; i < lefts.length; i++) {
-        expect(lefts[i], lessThanOrEqualTo(lefts[i - 1]), reason: 'frame $i');
-      }
-      // Slow: still on its way a second and a half in.
-      expect(lefts[14], greaterThan(lefts.last + 1));
-      // The near planes swing wider than the far ones mid-pan, and settle.
-      expect(tilts.reduce(math.min), lessThan(-0.5));
-      expect(tilts.last, 0);
-      final settled = _roomShot(tester);
-      expect(settled.left, lessThan(200), reason: 'the window is in frame');
+      expect(find.byType(ClassRoomStage), findsNothing);
 
       expect(_evening, findsOneWidget);
       expect(find.text('Tuesday’s classes, both attended'), findsOneWidget);
@@ -362,12 +341,16 @@ void main() {
     ) async {
       await _mount(tester, at: _ny(6, 19, 30), state: _tuesdayKept());
       expect(_evening, findsOneWidget);
-      expect(_roomShot(tester).tilt, Offset.zero);
+      expect(_doorway, findsOneWidget);
+      // Dusk: the clock's light is the evening plate, not a tint of another.
+      final stage = tester.state<DoorwayStageState>(_doorway);
+      expect(stage.lights.evening, 1);
+      expect(stage.lights.midday, 0);
       expect(find.text('Tuesday’s classes, both attended'), findsOneWidget);
       expect(_closeDay, findsOneWidget);
     });
 
-    testWidgets('Reduce Motion: no walk, one still fades into the other', (
+    testWidgets('Reduce Motion: no walk, the Doorway stands still', (
       tester,
     ) async {
       final state = _mika();
@@ -378,20 +361,19 @@ void main() {
         state: state,
         reduceMotion: true,
       );
+      expect(tester.state<DoorwayStageState>(_doorway).animating, isFalse);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 600));
+      // Every move is a fade: the tickets land in the bowl in under a second.
+      await _pumpFor(tester, const Duration(milliseconds: 1800));
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      final target = _roomShot(tester);
-      expect(target.tilt, Offset.zero);
-      await _pumpFor(tester, const Duration(milliseconds: 600));
-      expect(_roomShot(tester), target, reason: 'the camera never travels');
+      await _pumpFor(tester, const Duration(milliseconds: 700));
+      expect(tester.state<DoorwayStageState>(_doorway).animating, isFalse);
       expect(_evening, findsOneWidget);
     });
 
-    testWidgets('another room style: the same evening, the plate held still', (
+    testWidgets('another room style: the same Doorway, the same evening', (
       tester,
     ) async {
       final state = _tuesdayKept()
@@ -400,7 +382,8 @@ void main() {
       await _mount(tester, at: _ny(6, 19, 30), state: state);
       expect(_evening, findsOneWidget);
       expect(find.byType(ClassRoomStage), findsNothing);
-      expect(find.byKey(const Key('class-day-room-plate')), findsOneWidget);
+      expect(find.byKey(const Key('class-day-room-plate')), findsNothing);
+      expect(_doorway, findsOneWidget);
     });
 
     // Visible, not merely present: the glass scrolls what does not fit, so
@@ -490,7 +473,7 @@ void main() {
       await tester.tap(find.byKey(const Key('class-all-of-today')));
       await tester.pump();
       expect(page.state.classesKeptOn('2026-10-05'), hasLength(3));
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _shortcutCardAfter);
       expect(find.text('MONDAY, DONE.'), findsOneWidget);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
@@ -501,7 +484,7 @@ void main() {
       expect(_musicRow, findsOneWidget, reason: 'the music joins now');
     });
 
-    testWidgets('a mark made in the evening holds the camera where it is', (
+    testWidgets('a mark made in the evening plays over the same Doorway', (
       tester,
     ) async {
       final state = _mika();
@@ -509,20 +492,17 @@ void main() {
       _keepAt(state, _ny(8, 15, 22), only: {'01:198:206'});
       await _mount(tester, at: _ny(8, 18, 55), state: state);
       expect(_evening, findsOneWidget);
-      final room = _roomShot(tester);
       await tester.tap(_there);
       await tester.pump();
+      // The scene first: the evening glass stays as it was while the tickets
+      // drop into the bowl; nothing covers the room until they have landed.
       await _pumpFor(tester, const Duration(milliseconds: 900));
-      final inCelebration = tester
-          .widget<ClassRoomStage>(
-            find.descendant(
-              of: _celebration,
-              matching: find.byType(ClassRoomStage),
-            ),
-          )
-          .shot;
-      expect(inCelebration.left, room.left);
-      expect(inCelebration.scale, room.scale);
+      expect(_celebration, findsNothing);
+      await _pumpFor(tester, _dayCardAfter);
+      expect(
+        find.descendant(of: _celebration, matching: find.byType(DoorwayStage)),
+        findsOneWidget,
+      );
       expect(find.text('THURSDAY, DONE.'), findsOneWidget);
     });
 
@@ -587,7 +567,7 @@ void main() {
       final page = await _mount(tester, at: _ny(6, 15, 35), state: state);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 2800));
@@ -707,7 +687,7 @@ void main() {
       final before = jsonEncode(page.state.toJson());
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 2800));

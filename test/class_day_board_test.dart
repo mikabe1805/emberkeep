@@ -19,6 +19,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/class_day/class_kept_celebration.dart';
+import 'package:emberkeep/widgets/class_day/doorway_stage.dart';
 import 'package:emberkeep/widgets/honey_button.dart';
 import 'package:emberkeep/widgets/levelup_overlay.dart';
 import 'package:emberkeep/widgets/stat_chips.dart';
@@ -191,7 +192,17 @@ Future<_Board> _mount(
   return board;
 }
 
+/// A single class marks in the scene alone. A completed day's card comes after
+/// the Doorway has played: the tickets unhook and drop into the bowl (the mark,
+/// then about 1.9 s, then 0.9 s of flight), the card shows half a second after
+/// they land and takes about a second and a half to arrive. The week's bundle
+/// then rises to the shelf (about 1.5 s more) before the week's card.
+const _dayCardAfter = Duration(milliseconds: 4800);
+const _shortcutCardAfter = Duration(milliseconds: 5400);
+const _weekCardAfter = Duration(milliseconds: 7000);
+
 final _room = find.byKey(const Key('class-day-room'));
+final _attendedBar = find.text('ATTENDED · +25 XP');
 final _there = find.byKey(const Key('class-there-button'));
 final _celebration = find.byType(ClassKeptCelebration);
 final _headline = find.byKey(const Key('class-celebration-headline'));
@@ -312,7 +323,8 @@ void main() {
       await _tapThere(tester);
       expect(board.state.classesKeptOn('2026-10-06'), hasLength(1));
       await _pumpFor(tester, const Duration(milliseconds: 900));
-      expect(find.text("YOU'RE HERE."), findsOneWidget);
+      expect(_celebration, findsNothing, reason: 'the scene answers');
+      expect(_attendedBar, findsOneWidget);
     });
 
     testWidgets('the next class boundary re-reads the card by itself', (
@@ -336,8 +348,8 @@ void main() {
   });
 
   group('marking and the celebration', () {
-    testWidgets('I WAS THERE keeps the class through the engine and plays '
-        'YOU WERE THERE., back on its own at about 2.4 s', (tester) async {
+    testWidgets('I WAS THERE keeps the class through the engine and answers '
+        'in the scene: no card over the screen', (tester) async {
       final board = await _mount(tester, at: _ny(6, 11, 52));
       final s = board.state;
       await _tapThere(tester);
@@ -348,57 +360,54 @@ void main() {
       expect(s.history, isEmpty);
       expect(s.classesKeptOn('2026-10-06'), hasLength(1));
       expect(board.persisted, greaterThan(0));
-      // The card's own ring closes under the press, held in place.
-      expect(find.text('I WAS THERE'), findsOneWidget);
+      // Held in place while the Doorway hangs its ticket: the header counts
+      // what was kept, never a total beside it.
       expect(find.text('1 ATTENDED'), findsOneWidget);
-      // No total beside the kept count (it would read as 1 of 2).
       expect(find.text('TUESDAY'), findsOneWidget);
       expect(find.textContaining('2 CLASSES'), findsNothing);
-
-      await _pumpFor(tester, const Duration(milliseconds: 1600));
-      expect(_celebration, findsOneWidget);
-      expect(find.text('YOU WERE THERE.'), findsOneWidget);
-      expect(_textOf(tester, const Key('class-celebration-numeral')), '1');
-      expect(find.text('FIRST ONE ON RECORD'), findsOneWidget);
-      expect(
-        find.text('Computer Architecture & Assembly Language'),
-        findsOneWidget,
-      );
-      expect(find.text('10:20 TO 11:40 · HLL 114'), findsOneWidget);
-      expect(_textOf(tester, const Key('class-celebration-xp')), '+25 XP');
-      expect(
-        find.byKey(const Key('class-celebration-stat-intl')),
-        findsOneWidget,
-      );
-      expect(
-        _closing(tester),
-        'First one down.\nDiscrete Structures II is at 2:00\u00A0PM.',
-      );
-      // No streak line while ClassDayRules keeps it off.
-      expect(find.textContaining('DAYS RUNNING'), findsNothing);
-      expect(find.textContaining('Marked by mistake'), findsNothing);
-
-      await _pumpFor(tester, const Duration(milliseconds: 600));
-      expect(_celebration, findsOneWidget, reason: 'still up at 2.2 s');
-      await _pumpFor(tester, const Duration(milliseconds: 400));
-      expect(_celebration, findsNothing, reason: 'back on its own');
-      // Back in the room: Discrete leads, Computer Architecture is kept.
+      // Half a second in the ring closes and the bar turns to its attended
+      // words, with the XP it paid.
+      expect(_attendedBar, findsNothing);
+      await _pumpFor(tester, const Duration(milliseconds: 1100));
+      expect(_attendedBar, findsOneWidget);
+      expect(find.text('I WAS THERE'), findsNothing);
+      // The whole way, nothing covers the screen.
+      await _pumpFor(tester, const Duration(milliseconds: 1000));
+      expect(_celebration, findsNothing);
+      expect(find.textContaining('YOU WERE THERE'), findsNothing);
+      // The card then moves on: Discrete leads, Computer Architecture is kept
+      // (its row still swipes to undo).
+      await _pumpFor(tester, const Duration(milliseconds: 1500));
+      expect(_celebration, findsNothing);
+      expect(_attendedBar, findsNothing);
       expect(find.text('+25 XP'), findsOneWidget);
       expect(find.text('I WAS THERE'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a finger on the glass holds the class tier', (tester) async {
-      await _mount(tester, at: _ny(6, 11, 52));
-      await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 500));
-      final finger = await tester.startGesture(const Offset(196, 300));
-      await _pumpFor(tester, const Duration(seconds: 3));
-      expect(_celebration, findsOneWidget);
-      await finger.up();
+    testWidgets('dragging the waiting ticket up in the scene marks the class '
+        'like the bar does', (tester) async {
+      final board = await _mount(tester, at: _ny(6, 11, 52));
+      final stage = tester.state<DoorwayStageState>(
+        find.descendant(of: _room, matching: find.byType(DoorwayStage)),
+      );
+      final waiting = stage.placedTickets.firstWhere((p) => p.ticket.markable);
+      // The ticket's own place on the stage, scaled to the screen's width.
+      final scale = tester.getSize(_room).width / 393;
+      final from = Offset(
+        waiting.center.dx * scale,
+        waiting.center.dy * scale + tester.getTopLeft(_room).dy,
+      );
+      // Short of the line it settles back and marks nothing.
+      await tester.dragFrom(from, const Offset(0, -10 * 1.0));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(board.state.classesKeptOn('2026-10-06'), isEmpty);
+      await tester.dragFrom(from, const Offset(0, -34));
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 500));
-      expect(_celebration, findsNothing, reason: 'the fade back, then gone');
+      expect(board.state.classesKeptOn('2026-10-06'), hasLength(1));
+      await _pumpFor(tester, const Duration(milliseconds: 1000));
+      expect(_celebration, findsNothing);
+      expect(_attendedBar, findsOneWidget);
     });
 
     testWidgets('the last class: TUESDAY, DONE., two for two, +10, held', (
@@ -411,7 +420,13 @@ void main() {
       expect(find.text('PHY 001 · ended 3:20'), findsOneWidget);
       await _tapThere(tester);
       expect(board.state.xp, 284 + 25 + 25 + 10);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      // The scene plays first: nothing covers it while the tickets drop.
+      await _pumpFor(tester, const Duration(milliseconds: 2400));
+      expect(_celebration, findsNothing);
+      await _pumpFor(
+        tester,
+        _dayCardAfter - const Duration(milliseconds: 2400),
+      );
       expect(find.text('TUESDAY, DONE.'), findsOneWidget);
       expect(find.byKey(const Key('class-celebration-bonus')), findsOneWidget);
       expect(find.text("All of Tuesday's classes"), findsOneWidget);
@@ -456,7 +471,7 @@ void main() {
         'without two for two or the +10', (tester) async {
       await _mount(tester, at: _ny(6, 15, 35));
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       expect(find.text('TUESDAY, DONE.'), findsOneWidget);
       expect(find.byKey(const Key('class-celebration-bonus')), findsNothing);
       expect(find.textContaining('for two'), findsNothing);
@@ -477,7 +492,7 @@ void main() {
       await tester.pump();
       expect(board.state.classesKeptOn('2026-10-05'), hasLength(3));
       expect(board.state.xp, 284 + 25 * 3 + 10);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _shortcutCardAfter);
       expect(_celebration, findsOneWidget);
       expect(find.text('MONDAY, DONE.'), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-numeral')), '3');
@@ -493,30 +508,24 @@ void main() {
       expect(find.byKey(const Key('class-all-of-today')), findsNothing);
     });
 
-    testWidgets('Thursday: a second mark within 15 s is THAT ONE TOO. and '
-        'back in about 1.4 s', (tester) async {
-      await _mount(tester, at: _ny(8, 15, 22));
+    testWidgets('Thursday: two classes in a row stay in the scene, never a '
+        'card', (tester) async {
+      final board = await _mount(tester, at: _ny(8, 15, 22));
       expect(find.text('Discrete Structures II'), findsOneWidget);
       expect(find.text('I went to both'), findsOneWidget);
       await _tapThere(tester);
       await _pumpFor(tester, const Duration(milliseconds: 1400));
-      expect(find.text('YOU WERE THERE.'), findsOneWidget);
-      expect(
-        _closing(tester),
-        'First one down.\nElectron Devices Lab is at 3:50\u00A0PM.',
-      );
-      await _dismiss(tester);
+      expect(_celebration, findsNothing);
 
       Clock.freeze(_ny(8, 15, 22, 9));
       await tester.tap(find.text('Electronics Devices'));
       await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 500));
       expect(find.text('SEC 111 · ended 9:50'), findsOneWidget);
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 900));
-      expect(find.text('THAT ONE TOO.'), findsOneWidget);
-      expect(_closing(tester), 'The lab is at 3:50, in EE 209.');
-      await _pumpFor(tester, const Duration(milliseconds: 700));
-      expect(_celebration, findsNothing, reason: 'back at about 1.4 s');
+      await _pumpFor(tester, const Duration(milliseconds: 2500));
+      expect(_celebration, findsNothing);
+      expect(board.state.classesKeptOn('2026-10-08'), hasLength(2));
     });
 
     testWidgets("Friday: the week's last class is THAT'S THE WEEK., twelve "
@@ -528,7 +537,13 @@ void main() {
       _keepAt(state, _ny(9, 11, 45), only: {'14:332:331'});
       await _mount(tester, at: _ny(9, 18, 56), state: state);
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      // The day first (the tickets into the bowl), the week's bundle after.
+      await _pumpFor(tester, const Duration(milliseconds: 4000));
+      expect(_celebration, findsNothing);
+      await _pumpFor(
+        tester,
+        _weekCardAfter - const Duration(milliseconds: 4000),
+      );
       expect(find.text("THAT'S THE WEEK."), findsOneWidget);
       expect(_textOf(tester, const Key('class-celebration-numeral')), '12');
       expect(
@@ -561,7 +576,7 @@ void main() {
       _keepAt(state, _ny(9, 11, 45), only: {'14:332:331'});
       await _mount(tester, at: _ny(9, 18, 56), state: state);
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _weekCardAfter);
       expect(find.text("THAT'S THE WEEK."), findsOneWidget);
       expect(
         _closing(tester),
@@ -584,11 +599,10 @@ void main() {
         ..completionsAtLastLevel = 19;
       await _mount(tester, at: _ny(6, 11, 52), state: state);
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 1600));
-      expect(
-        _textOf(tester, const Key('class-celebration-rail')),
-        'LEVEL 19 READY',
-      );
+      // No class card in between: the ticket hangs, the level waits for it
+      // to settle, and then the real level-up is told.
+      await _pumpFor(tester, const Duration(milliseconds: 1500));
+      expect(_celebration, findsNothing);
       expect(find.byType(LevelUpOverlay), findsNothing);
       await _pumpFor(tester, const Duration(milliseconds: 1000));
       expect(_celebration, findsNothing);
@@ -606,7 +620,7 @@ void main() {
       final board = await _mount(tester, at: _ny(6, 11, 52));
       final before = jsonEncode(board.state.toJson());
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, const Duration(milliseconds: 3200));
       expect(_celebration, findsNothing);
       final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
       final row = find.byKey(ValueKey('class-undo-$identity'));
@@ -625,13 +639,14 @@ void main() {
     testWidgets('a short swipe keeps the class', (tester) async {
       final board = await _mount(tester, at: _ny(6, 11, 52));
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, const Duration(milliseconds: 3200));
       final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
       await tester.drag(
         find.byKey(ValueKey('class-undo-$identity')),
         const Offset(-80, 0),
       );
-      await tester.pumpAndSettle();
+      // The Doorway's light breathes for good, so time is pumped, not settled.
+      await _pumpFor(tester, const Duration(seconds: 1));
       expect(board.restored, isEmpty);
     });
 
@@ -660,24 +675,22 @@ void main() {
       expect(find.byKey(const ValueKey('undo-Read ten pages')), findsNothing);
     });
 
-    testWidgets('Reduce Motion: the celebration lands at once', (tester) async {
+    testWidgets('Reduce Motion: the ticket fades to its hook, the bar says '
+        'attended at once', (tester) async {
       await _mount(tester, at: _ny(6, 11, 52), reduceMotion: true);
       await _tapThere(tester);
       await tester.pump(const Duration(milliseconds: 50));
-      // Everything has landed; only one short fade brings it in.
-      expect(_textOf(tester, const Key('class-celebration-xp')), '+25 XP');
-      await tester.pump(const Duration(milliseconds: 250));
-      final opacity = tester
-          .widgetList<Opacity>(
-            find.ancestor(of: _headline, matching: find.byType(Opacity)),
-          )
-          .map((o) => o.opacity);
-      expect(opacity.every((o) => o == 1), isTrue);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      expect(_attendedBar, findsOneWidget);
+      await _pumpFor(tester, const Duration(milliseconds: 800));
+      final stage = tester.state<DoorwayStageState>(
+        find.descendant(of: _room, matching: find.byType(DoorwayStage)),
+      );
+      expect(stage.markingIds, isEmpty, reason: 'the fade is over');
+      expect(stage.animating, isFalse);
       expect(_celebration, findsNothing);
     });
 
-    testWidgets('text at 130% lays out the room and the celebration', (
+    testWidgets('text at 130% lays out the room and its attended bar', (
       tester,
     ) async {
       await _mount(tester, at: _ny(6, 11, 52), textScale: 1.3);
@@ -685,7 +698,7 @@ void main() {
       expect(_there.hitTestable(), findsOneWidget);
       await _tapThere(tester);
       await _pumpFor(tester, const Duration(milliseconds: 1800));
-      expect(find.text('YOU WERE THERE.'), findsOneWidget);
+      expect(_attendedBar, findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -710,7 +723,7 @@ void main() {
             textScale: 1.3,
           );
           await _tapThere(tester);
-          await _pumpFor(tester, const Duration(milliseconds: 2600));
+          await _pumpFor(tester, week ? _weekCardAfter : _dayCardAfter);
           expect(tester.takeException(), isNull);
           final label = find.byKey(
             const Key('class-celebration-numeral-label'),
@@ -1005,7 +1018,7 @@ void main() {
     ) async {
       await _mount(tester, at: _ny(6, 11, 52));
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, const Duration(milliseconds: 3200));
       final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
       expect(find.byKey(ValueKey('class-undo-$identity')), findsOneWidget);
       await tester.tap(find.byKey(const Key('class-day-todays-three')));
@@ -1100,10 +1113,9 @@ void main() {
   });
 
   group('sound and touch', () {
-    testWidgets('I WAS THERE: one completion composite and a light tap; the '
-        'stat note in the celebration; boing on undo; no levelup', (
-      tester,
-    ) async {
+    testWidgets('I WAS THERE: one completion composite, a light tap as the '
+        'ticket lifts and a detent as the stamp lands; boing on undo; no '
+        'levelup', (tester) async {
       final played = <String>[];
       final haptics = <String>[];
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -1129,10 +1141,21 @@ void main() {
       addTearDown(Sfx.instance.debugResetForTesting);
       await _tapThere(tester);
       expect(played.where((e) => e == 'complete'), hasLength(1));
-      expect(haptics, contains('HapticFeedbackType.lightImpact'));
-      await _pumpFor(tester, const Duration(milliseconds: 900));
-      expect(played, contains('stat_${Stat.intl.index}'));
-      await _pumpFor(tester, const Duration(milliseconds: 1700));
+      // The ticket's own taps: not at contact, but as it lifts and as the
+      // stamp lands.
+      List<String> impacts() => [
+        for (final h in haptics)
+          if (h.endsWith('Impact')) h,
+      ];
+      expect(impacts(), isEmpty, reason: 'the ticket has not lifted yet');
+      await _pumpFor(tester, const Duration(milliseconds: 200));
+      expect(impacts(), ['HapticFeedbackType.lightImpact']);
+      await _pumpFor(tester, const Duration(milliseconds: 300));
+      expect(impacts(), [
+        'HapticFeedbackType.lightImpact',
+        'HapticFeedbackType.mediumImpact',
+      ]);
+      await _pumpFor(tester, const Duration(milliseconds: 1500));
       expect(_celebration, findsNothing);
       final identity = _lookup(_ny(6, 11, 52)).classes.first.facts.identity;
       await tester.drag(
@@ -1147,7 +1170,7 @@ void main() {
     });
 
     testWidgets('a level crossed by a mark plays levelup once, after the '
-        'celebration', (tester) async {
+        'ticket has settled', (tester) async {
       final played = <String>[];
       final state = _mika()..xp = 850;
       await _mount(tester, at: _ny(6, 11, 52), state: state);
@@ -1157,9 +1180,9 @@ void main() {
         ..debugOnPlay = played.add;
       addTearDown(Sfx.instance.debugResetForTesting);
       await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2000));
+      await _pumpFor(tester, const Duration(milliseconds: 1500));
       expect(played, isNot(contains('levelup')));
-      await _pumpFor(tester, const Duration(milliseconds: 1600));
+      await _pumpFor(tester, const Duration(milliseconds: 1000));
       expect(find.byType(LevelUpOverlay), findsOneWidget);
       expect(played.where((e) => e == 'levelup'), hasLength(1));
     });
@@ -1198,57 +1221,7 @@ void main() {
   });
 
   group('the celebration, refined', () {
-    testWidgets('going back on its own fades out, and the room is home at '
-        '2.4 s', (tester) async {
-      await _mount(tester, at: _ny(6, 11, 52));
-      await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 2000));
-      double headlineOpacity() => tester
-          .widgetList<Opacity>(
-            find.ancestor(of: _headline, matching: find.byType(Opacity)),
-          )
-          .map((o) => o.opacity)
-          .reduce((a, b) => a * b);
-      expect(headlineOpacity(), 1);
-      await _pumpFor(tester, const Duration(milliseconds: 300));
-      expect(_celebration, findsOneWidget);
-      expect(headlineOpacity(), lessThan(1), reason: 'the words leave first');
-      await _pumpFor(tester, const Duration(milliseconds: 200));
-      expect(_celebration, findsNothing);
-    });
-
-    testWidgets('the quick tier holds still: its count has landed by about '
-        '500 ms and there is no time and room line', (tester) async {
-      await _mount(tester, at: _ny(8, 15, 22));
-      await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 1400));
-      await _dismiss(tester);
-      Clock.freeze(_ny(8, 15, 22, 9));
-      await tester.tap(find.text('Electronics Devices'));
-      await tester.pump();
-      await _tapThere(tester);
-      await _pumpFor(tester, const Duration(milliseconds: 500));
-      expect(find.text('THAT ONE TOO.'), findsOneWidget);
-      expect(_textOf(tester, const Key('class-celebration-xp')), '+25 XP');
-      expect(find.text('8:30 TO 9:50 · SEC 111'), findsNothing);
-      final closing = find.byKey(const Key('class-celebration-closing'));
-      final opacity = tester
-          .widgetList<Opacity>(
-            find.ancestor(of: closing, matching: find.byType(Opacity)),
-          )
-          .map((o) => o.opacity)
-          .reduce((a, b) => a * b);
-      expect(opacity, 1, reason: 'the closing line came in with the headline');
-    });
-
     for (final (label, at, side, count, words) in [
-      (
-        'YOU WERE THERE.',
-        _ny(6, 11, 52),
-        100.0,
-        '24',
-        'YOUR 24TH LECTURE ON RECORD',
-      ),
       ("THAT'S THE WEEK.", _ny(9, 18, 56), 84.0, '12', 'ATTENDED THIS WEEK'),
     ]) {
       for (final scale in [1.0, 1.3]) {
@@ -1266,7 +1239,7 @@ void main() {
           }
           await _mount(tester, at: at, state: state, textScale: scale);
           await _tapThere(tester);
-          await _pumpFor(tester, const Duration(milliseconds: 1900));
+          await _pumpFor(tester, _weekCardAfter);
           expect(find.text(label), findsOneWidget);
           final numeral = find.byKey(const Key('class-celebration-numeral'));
           expect(tester.widget<Text>(numeral).data, count);

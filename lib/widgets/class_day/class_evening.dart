@@ -50,6 +50,9 @@ class ClassEveningBody extends StatelessWidget {
     required this.onSelect,
     this.onUndo,
     this.undoIdentity,
+    this.onDismiss,
+    this.dismissedLabel,
+    this.onUndoDismiss,
     this.reduceMotion = false,
     this.lightDirection,
   });
@@ -62,6 +65,11 @@ class ClassEveningBody extends StatelessWidget {
   final ValueChanged<ClassRow> onSelect;
   final VoidCallback? onUndo;
   final String? undoIdentity;
+
+  /// "Couldn't make it" and its few seconds of "Undo" (see [ClassDayRoom]).
+  final ValueChanged<ClassRow>? onDismiss;
+  final String? dismissedLabel;
+  final VoidCallback? onUndoDismiss;
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
@@ -85,17 +93,23 @@ class ClassEveningBody extends StatelessWidget {
             onSelect: onSelect,
             onUndo: onUndo,
             undoIdentity: undoIdentity,
+            onDismiss: onDismiss,
+            dismissedLabel: dismissedLabel,
+            onUndoDismiss: onUndoDismiss,
             reduceMotion: reduceMotion,
             lightDirection: lightDirection,
             compact: true,
           )
-        else
+        else ...[
           _EveningRecord(
             state: state,
             card: card,
             onUndo: onUndo,
             undoIdentity: undoIdentity,
           ),
+          if (dismissedLabel != null)
+            ClassDismissedLine(label: dismissedLabel!, onUndo: onUndoDismiss),
+        ],
         SizedBox(height: waiting ? 6 : 0),
         // While a class can still be marked the glass stays about that: the
         // music joins once the day is on one line.

@@ -1,4 +1,5 @@
 import '../domain/academic_schedule.dart';
+import 'class_day_projection.dart';
 
 final class AcademicReminderNotice {
   const AcademicReminderNotice({
@@ -15,9 +16,14 @@ final class AcademicReminderNotice {
 /// Projects enabled class reminders into absolute instants without asking for
 /// permission or scheduling anything. Keeping this pure makes DST, cancelled
 /// classes, and privacy boundaries independently testable.
+///
+/// A class he set aside ("Couldn't make it", answered by [isDismissed]) has
+/// no reminder: a nudge to go to a class he said he could not make would be
+/// the one thing the app must never do.
 List<AcademicReminderNotice> projectAcademicReminderNotices({
   required AcademicSchedule schedule,
   required DateTime now,
+  ClassDismissed? isDismissed,
 }) {
   final nowUtc = now.toUtc();
   final notices = <AcademicReminderNotice>[];
@@ -29,6 +35,10 @@ List<AcademicReminderNotice> projectAcademicReminderNotices({
     }
     final course = schedule.courseById(occurrence.courseId);
     if (course == null || course.archived) continue;
+    if (isDismissed != null) {
+      final facts = classFactsFor(schedule, occurrence);
+      if (facts != null && isDismissed(facts)) continue;
+    }
     final series = schedule.meetingSeriesById(occurrence.meetingSeriesId);
     final reminders = occurrence.reminders.isNotEmpty
         ? occurrence.reminders

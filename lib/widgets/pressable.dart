@@ -74,6 +74,7 @@ class Pressable extends StatefulWidget {
     this.semanticToggled,
     this.stateBuilder,
     this.guardRapidReentry = false,
+    this.semanticActions,
   });
 
   final Widget child;
@@ -107,6 +108,10 @@ class Pressable extends StatefulWidget {
   /// second activation from the same touch/accessibility dispatch cannot fire.
   /// Frequent controls deliberately leave this false.
   final bool guardRapidReentry;
+
+  /// Extra named actions a screen reader offers on this control, beside
+  /// "Manage" (a quiet secondary choice that sits next to the control).
+  final Map<CustomSemanticsAction, VoidCallback>? semanticActions;
 
   @override
   State<Pressable> createState() => _PressableState();
@@ -223,10 +228,13 @@ class _PressableState extends State<Pressable> {
       _focused,
       _hovered,
     );
-    final manageActions = widget.onLongPress == null
+    final manageActions =
+        widget.onLongPress == null && widget.semanticActions == null
         ? null
         : <CustomSemanticsAction, VoidCallback>{
-            const CustomSemanticsAction(label: 'Manage'): widget.onLongPress!,
+            if (widget.onLongPress != null)
+              const CustomSemanticsAction(label: 'Manage'): widget.onLongPress!,
+            ...?widget.semanticActions,
           };
     return FocusableActionDetector(
       enabled: widget.enabled,
