@@ -345,8 +345,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     GameState.restDayResolver = _restDayFromSchedule;
   }
 
+  /// A class he set aside ("Couldn't make it") is not on its day: the
+  /// schedule-holding reads below all ask the live save.
+  bool _classDismissed(ClassFacts facts) =>
+      _state?.isClassDismissed(facts) ?? false;
+
+  /// A term day with no counting classes is a rest day, and so is one whose
+  /// counting classes were all set aside: the streak pauses over it.
   bool _restDayFromSchedule(String dayKey) =>
-      _academicScheduleLoaded && restDayFor(_academicSchedule, dayKey);
+      _academicScheduleLoaded &&
+      restDayFor(_academicSchedule, dayKey, isDismissed: _classDismissed);
 
   /// Today's (or [day]'s) classes, projected from the loaded timetable. Null
   /// until a timetable with at least one class is loaded, so pages without
@@ -356,7 +364,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return null;
     }
     final schedule = _academicSchedule;
-    return (now, {day}) => projectClassDay(schedule, now, day: day);
+    return (now, {day}) =>
+        projectClassDay(schedule, now, day: day, isDismissed: _classDismissed);
   }
 
   @override
@@ -631,6 +640,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (facts == null ||
         occurrence.state == OccurrenceState.cancelled ||
         occurrence.tombstonedAt != null ||
+        // A widget that still showed this class when it was tapped does not
+        // undo "Couldn't make it": the app just opens.
+        state.isClassDismissed(facts) ||
         state.checkClassKeep(facts, at: tappedAt) != ClassKeepCheck.open) {
       return open;
     }
@@ -655,6 +667,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _academicSchedule,
       tappedAt,
       day: CivilDate.fromDateTime(date),
+      isDismissed: state.isClassDismissed,
     );
     return [
       for (final entry in day.classes)

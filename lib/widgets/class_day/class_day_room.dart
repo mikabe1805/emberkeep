@@ -14,6 +14,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 
 import '../../academic_calendar/services/class_day_projection.dart';
 import '../../academic_calendar/domain/academic_schedule.dart' show CivilDate;
@@ -73,6 +74,9 @@ class ClassDayRoom extends StatefulWidget {
     required this.camera,
     this.onUndo,
     this.undoIdentity,
+    this.onDismiss,
+    this.dismissedLabel,
+    this.onUndoDismiss,
     this.reduceMotion = false,
     this.lightDirection,
     this.quiet = false,
@@ -84,6 +88,14 @@ class ClassDayRoom extends StatefulWidget {
   final GameState state;
   final ClassCard card;
   final DateTime now;
+
+  /// "Couldn't make it" on a row that can be set aside. Null: not offered.
+  final ValueChanged<ClassRow>? onDismiss;
+
+  /// The class just folded away (its short name) while its "Undo" waits;
+  /// null once the few seconds are up. [onUndoDismiss] brings it back.
+  final String? dismissedLabel;
+  final VoidCallback? onUndoDismiss;
 
   /// While the real level-up is up, the room's words step back so nothing
   /// reads through behind "YOU DID IT.".
@@ -308,16 +320,28 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     // quieter, lasting warmth.
     final warmth = evening != null || card.allKept ? 1.0 : 0.0;
     final Widget body = evening == null
-        ? ClassCardBody(
-            state: widget.state,
-            card: card,
-            now: widget.now,
-            onMark: widget.onMark,
-            onSelect: widget.onSelect,
-            onUndo: widget.onUndo,
-            undoIdentity: widget.undoIdentity,
-            reduceMotion: widget.reduceMotion,
-            lightDirection: widget.lightDirection,
+        ? SingleChildScrollView(
+            // A day with many classes, or large text, scrolls inside the glass
+            // rather than running past it. Short days are exactly as tall as
+            // their rows (the viewport hugs them) and nothing is clipped.
+            key: const Key('class-day-scroll'),
+            primary: false,
+            clipBehavior: Clip.none,
+            physics: const ClampingScrollPhysics(),
+            child: ClassCardBody(
+              state: widget.state,
+              card: card,
+              now: widget.now,
+              onMark: widget.onMark,
+              onSelect: widget.onSelect,
+              onUndo: widget.onUndo,
+              undoIdentity: widget.undoIdentity,
+              onDismiss: widget.onDismiss,
+              dismissedLabel: widget.dismissedLabel,
+              onUndoDismiss: widget.onUndoDismiss,
+              reduceMotion: widget.reduceMotion,
+              lightDirection: widget.lightDirection,
+            ),
           )
         : SingleChildScrollView(
             key: const Key('class-evening-scroll'),
@@ -331,6 +355,9 @@ class _ClassDayRoomState extends State<ClassDayRoom>
               onSelect: widget.onSelect,
               onUndo: widget.onUndo,
               undoIdentity: widget.undoIdentity,
+              onDismiss: widget.onDismiss,
+              dismissedLabel: widget.dismissedLabel,
+              onUndoDismiss: widget.onUndoDismiss,
               reduceMotion: widget.reduceMotion,
               lightDirection: widget.lightDirection,
             ),
@@ -969,6 +996,9 @@ class ClassCardBody extends StatelessWidget {
     required this.onSelect,
     this.onUndo,
     this.undoIdentity,
+    this.onDismiss,
+    this.dismissedLabel,
+    this.onUndoDismiss,
     this.reduceMotion = false,
     this.lightDirection,
     this.compact = false,
@@ -981,6 +1011,11 @@ class ClassCardBody extends StatelessWidget {
   final ValueChanged<ClassRow> onSelect;
   final VoidCallback? onUndo;
   final String? undoIdentity;
+
+  /// "Couldn't make it" (see [ClassDayRoom.onDismiss]).
+  final ValueChanged<ClassRow>? onDismiss;
+  final String? dismissedLabel;
+  final VoidCallback? onUndoDismiss;
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
@@ -999,7 +1034,12 @@ class ClassCardBody extends StatelessWidget {
     final foremost = card.foremost;
     final String left;
     final String? right;
-    if (card.isRecord && card.allKept) {
+    if (count == 0) {
+      // Every class was set aside: the day holds nothing to count, and the
+      // header says no number.
+      left = dayName;
+      right = null;
+    } else if (card.isRecord && card.allKept) {
       left =
           '$dayName · ${switch (count) {
             1 => 'ATTENDED',
@@ -1052,6 +1092,7 @@ class ClassCardBody extends StatelessWidget {
           card: card,
           now: now,
           onMark: onMark,
+          onDismiss: onDismiss,
           reduceMotion: reduceMotion,
           lightDirection: lightDirection,
         ),
@@ -1069,8 +1110,13 @@ class ClassCardBody extends StatelessWidget {
           onUndo: others[i].isKept && others[i].identity == undoIdentity
               ? onUndo
               : null,
+          onDismiss: onDismiss == null || !others[i].canSetAside
+              ? null
+              : () => onDismiss!(others[i]),
         ),
       ],
+      if (dismissedLabel != null)
+        ClassDismissedLine(label: dismissedLabel!, onUndo: onUndoDismiss),
       if (card.isRecord) ...[
         if ((state.dayRecordFor(day.dayKey)?.fullDayBonusXp ?? 0)
             case final bonus when bonus > 0)
@@ -1143,9 +1189,12 @@ class ClassCardBody extends StatelessWidget {
             card: card,
             now: now,
             onMark: onMark,
+            onDismiss: onDismiss,
             reduceMotion: reduceMotion,
             lightDirection: lightDirection,
           ),
+        if (dismissedLabel != null)
+          ClassDismissedLine(label: dismissedLabel!, onUndo: onUndoDismiss),
         if (undoRow != null) ...[
           const SizedBox(height: 8),
           const _GlassRule(),
@@ -1249,6 +1298,7 @@ class _ForemostRow extends StatelessWidget {
     required this.now,
     required this.onMark,
     required this.reduceMotion,
+    this.onDismiss,
     this.lightDirection,
   });
 
@@ -1256,6 +1306,7 @@ class _ForemostRow extends StatelessWidget {
   final ClassCard card;
   final DateTime now;
   final void Function(List<ClassRow> rows) onMark;
+  final ValueChanged<ClassRow>? onDismiss;
   final bool reduceMotion;
   final ValueListenable<Offset>? lightDirection;
 
@@ -1291,6 +1342,9 @@ class _ForemostRow extends StatelessWidget {
             : '$place · ended ${classClockShort(entry.localEndMinute)}';
     }
     final showButton = markable || held;
+    final setAside = onDismiss != null && row.canSetAside && !held
+        ? () => onDismiss!(row)
+        : null;
     final ring = SizedBox.square(
       dimension: 44,
       child: Center(
@@ -1358,20 +1412,49 @@ class _ForemostRow extends StatelessWidget {
         ),
         if (showButton) ...[
           const SizedBox(height: 14),
-          ClassThereButton(
-            label: inSession ? "I'M HERE" : 'I WAS THERE',
-            enabled: markable,
-            kept: held,
-            light: lightDirection,
-            reduceMotion: reduceMotion,
-            onTap: () => onMark([row]),
-            semanticLabel: inSession
-                ? "I'm here: ${classShortTitle(entry.title)}"
-                : 'I was there: ${classShortTitle(entry.title)}',
+          // The quiet word sits beside the one lamp, never under it: the
+          // lamp stays the largest thing on the card and the card does not
+          // grow taller for it (the room is anchored to the glass).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: ClassThereButton(
+                  label: inSession ? "I'M HERE" : 'I WAS THERE',
+                  enabled: markable,
+                  kept: held,
+                  light: lightDirection,
+                  reduceMotion: reduceMotion,
+                  onTap: () => onMark([row]),
+                  onSetAside: setAside,
+                  semanticLabel: inSession
+                      ? "I'm here: ${classShortTitle(entry.title)}"
+                      : 'I was there: ${classShortTitle(entry.title)}',
+                ),
+              ),
+              if (setAside != null)
+                ClassSetAsideButton(
+                  key: ValueKey('class-set-aside-${row.identity}'),
+                  title: classBriefTitle(entry.title),
+                  onTap: setAside,
+                  narrow: true,
+                ),
+            ],
           ),
           if (card.offersShortcut && !held)
             _ShortcutLine(card: card, onMark: onMark),
-        ],
+        ] else if (setAside != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 56),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ClassSetAsideButton(
+                key: ValueKey('class-set-aside-${row.identity}'),
+                title: classBriefTitle(entry.title),
+                onTap: setAside,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1386,6 +1469,7 @@ class ClassThereButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.semanticLabel,
+    this.onSetAside,
     this.enabled = true,
     this.kept = false,
     this.light,
@@ -1395,6 +1479,10 @@ class ClassThereButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final String semanticLabel;
+
+  /// Offered to a screen reader as a named action on this control, beside the
+  /// quiet "Couldn't make it" button under it.
+  final VoidCallback? onSetAside;
   final bool enabled;
   final bool kept;
   final ValueListenable<Offset>? light;
@@ -1433,10 +1521,139 @@ class ClassThereButton extends StatelessWidget {
       shape: const LampShadeBorder(cut: 10),
       edgeColor: const Color(0xFF1E1109),
       semanticLabel: semanticLabel,
+      semanticActions: onSetAside == null
+          ? null
+          : {
+              const CustomSemanticsAction(label: classSetAsideLabel):
+                  onSetAside!,
+            },
       onTapUp: (_) => onTap(),
       stateBuilder: (context, child, pressed, focused, hovered) =>
           face(pressed),
       child: face(false),
+    );
+  }
+}
+
+/// "Couldn’t make it": a quiet word on a class that can be set aside. Cream
+/// text on the glass, no color, no icon, nothing that reads as a warning, and
+/// always smaller than the one bright control. [narrow] is the form that sits
+/// at the end of a quiet row (two short lines).
+class ClassSetAsideButton extends StatelessWidget {
+  const ClassSetAsideButton({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.narrow = false,
+  });
+
+  /// The class's short name, for the screen reader.
+  final String title;
+  final VoidCallback onTap;
+  final bool narrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      classSetAsideLabel,
+      textAlign: narrow ? TextAlign.right : TextAlign.center,
+      style: _serif(
+        narrow ? 14 : 16,
+        color: Palette.textMid.withValues(alpha: 0.72),
+        height: 1.1,
+      ),
+    );
+    return Pressable(
+      pressDepth: 1,
+      soundEnabled: false,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
+      semanticLabel: classSetAsideSemantics(title),
+      onTapUp: (_) => onTap(),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: 44,
+          minWidth: 44,
+          maxWidth: narrow ? 84 : double.infinity,
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: narrow ? 6 : 10),
+          child: Center(widthFactor: 1, child: ExcludeSemantics(child: text)),
+        ),
+      ),
+    );
+  }
+}
+
+/// The few seconds after a class folds away: it is named once as off today's
+/// list, with "Undo". Polite live region; says nothing else.
+class ClassDismissedLine extends StatelessWidget {
+  const ClassDismissedLine({super.key, required this.label, this.onUndo});
+
+  final String label;
+  final VoidCallback? onUndo;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = classSetAsideLine(label);
+    return Semantics(
+      liveRegion: true,
+      container: true,
+      label: words,
+      child: ConstrainedBox(
+        key: const Key('class-dismissed-line'),
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Row(
+          children: [
+            Expanded(
+              child: ExcludeSemantics(
+                child: Text(
+                  words,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: _serif(
+                    16,
+                    color: Palette.textLo,
+                    style: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+            if (onUndo != null)
+              Pressable(
+                key: const Key('class-dismissed-undo'),
+                pressDepth: 1,
+                soundEnabled: false,
+                edgeColor: Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                semanticLabel: 'Undo: $label back on today’s list',
+                onTapUp: (_) => onUndo!(),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: 44,
+                    minWidth: 56,
+                  ),
+                  child: Center(
+                    widthFactor: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: ExcludeSemantics(
+                        child: Text(
+                          'Undo',
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            letterSpacing: 1.2,
+                            color: Palette.xpLight,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1524,12 +1741,16 @@ class _QuietRow extends StatelessWidget {
     required this.now,
     this.onSelect,
     this.onUndo,
+    this.onDismiss,
   });
 
   final ClassRow row;
   final DateTime now;
   final VoidCallback? onSelect;
   final VoidCallback? onUndo;
+
+  /// "Couldn't make it" on a row that can be set aside; null otherwise.
+  final VoidCallback? onDismiss;
 
   @override
   Widget build(BuildContext context) {
@@ -1620,8 +1841,29 @@ class _QuietRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         semanticLabel: '$title, ${classClock(entry.localStartMinute)}',
         semanticHint: 'Bring forward to mark it',
+        semanticActions: onDismiss == null
+            ? null
+            : {
+                const CustomSemanticsAction(label: classSetAsideLabel):
+                    onDismiss!,
+              },
         onTapUp: (_) => onSelect!(),
         child: body,
+      );
+    }
+    if (onDismiss != null) {
+      // Beside the row, not inside its press: bringing a row forward and
+      // setting it aside are two separate touches.
+      body = Row(
+        children: [
+          Expanded(child: body),
+          ClassSetAsideButton(
+            key: ValueKey('class-set-aside-${row.identity}'),
+            title: title,
+            onTap: onDismiss!,
+            narrow: true,
+          ),
+        ],
       );
     }
     if (onUndo == null) return body;

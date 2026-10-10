@@ -56,6 +56,14 @@ final class ClassRow {
   /// Over, unmarked and markable: what the "all of today's classes" shortcut
   /// gathers.
   bool get waiting => state == ClassRowState.ready;
+
+  /// "Couldn't make it" is offered: the class is later today or over and
+  /// still open. Never one he is sitting in, one already kept, or one whose
+  /// night has ended.
+  bool get canSetAside =>
+      state == ClassRowState.ready ||
+      state == ClassRowState.startsSoon ||
+      state == ClassRowState.upcoming;
 }
 
 /// The glass card's reading of a class day at one moment.
@@ -324,6 +332,18 @@ DateTime? nextClassStartOrEnd(ClassDay day, DateTime now) {
 }
 
 // ── Words ─────────────────────────────────────────────────────────────────
+
+/// The quiet control that sets a class aside. No reason asked, nothing paid,
+/// nothing held against anyone.
+const classSetAsideLabel = 'Couldn’t make it';
+
+/// What a screen reader says for that control on [title]'s row.
+String classSetAsideSemantics(String title) => '$classSetAsideLabel: $title';
+
+/// The line that waits beside "Undo" for a few seconds after a class folds
+/// away. It names the class once, as taken off today's list, and never says
+/// why or counts anything.
+String classSetAsideLine(String title) => '$title is off today’s list.';
 
 const classWeekdays = [
   'Monday',

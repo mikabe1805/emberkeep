@@ -253,6 +253,60 @@ void main() {
   );
 
   testWidgets(
+    'a class he could not make is not on the widget, and its stale mark link '
+    'only opens the app',
+    (tester) async {
+      // The save holds "Couldn't make it" for Tuesday's 10:20 lecture.
+      Clock.freeze(tuesday(9, 0));
+      final schedule = mikaSchedule();
+      final lecture = projectClassDay(
+        schedule,
+        Clock.now(),
+      ).classes.firstWhere((entry) => entry.courseCode == '14:332:331');
+      final saved = GameState()
+        ..onboarded = true
+        ..reduceMotion = true
+        ..soundEnabled = false;
+      expect(saved.dismissClass(lecture.facts), isTrue);
+      await Storage.save(saved, const []);
+
+      Clock.freeze(tuesday(11, 52));
+      final writer = _Writer();
+      final inbox = ClassDayLinkInbox()
+        ..enqueueUri(
+          Uri.parse(classDayMarkUrl(lecture.occurrenceKey, '2026-10-06')),
+        );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: shell(inbox: inbox, schedule: schedule, writer: writer),
+        ),
+      );
+      await _settle(tester);
+
+      // A widget that still showed the class when it was tapped does not
+      // undo the dismissal: the app just opens.
+      final request = seam.debugReceived.single;
+      expect(request.isMark, isFalse);
+      expect(request.isMarkAll, isFalse);
+
+      final day = writer.written.last.classDays.first;
+      expect(day.dayKey, '2026-10-06');
+      expect(
+        day.classes.map((entry) => entry.occurrenceKey),
+        isNot(contains(lecture.occurrenceKey)),
+      );
+      expect(
+        writer.written.last.upcomingClasses.map((c) => c.occurrenceKey),
+        isNot(contains(lecture.occurrenceKey)),
+      );
+      expect(day.classes.map((entry) => entry.courseCode), ['01:198:206']);
+
+      await _unmount(tester);
+      inbox.dispose();
+    },
+  );
+
+  testWidgets(
     'the board keeps the handed-over class once and the widget republishes',
     (tester) async {
       await _saveState();

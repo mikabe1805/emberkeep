@@ -309,6 +309,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   bool get _undoArmed => _undoSlot?.canRestore(_state) ?? false;
 
+  /// The class just folded away with "Couldn't make it", for about
+  /// [_dismissUndoFor]: its "Undo" line sits on the card, then goes by
+  /// itself. One at a time; a later one replaces it.
+  _DismissUndo? _dismissUndo;
+  Timer? _dismissUndoTimer;
+  static const _dismissUndoFor = Duration(seconds: 5);
+
   // ── the class day (the room owns the Quests tab on a day with classes) ──
 
   /// One-shot timer to the next moment the class card can change by itself
@@ -790,6 +797,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _heldClass = null;
       _preferredClass = null;
       _lastClassMarkAt = null;
+      _dismissUndoTimer?.cancel();
+      _dismissUndo = null;
       _pendingAchievementToasts.clear();
       for (final timer in _achievementToastTimers) {
         timer.cancel();
@@ -909,6 +918,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _classBoundaryTimer?.cancel();
+    _dismissUndoTimer?.cancel();
     _classCelebration?.remove();
     _classCelebration = null;
     _removeNightRoute();
@@ -1972,21 +1982,32 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
   }
 
-  /// Today's (night-owned) classes, when the shell holds a timetable.
+  /// A class day from the shell's timetable, read as the live save reads it:
+  /// a class he set aside ("Couldn't make it") is out of the set.
+  ClassDay? _classDayAt(DateTime now, {CivilDate? day}) {
+    final lookup = widget.classDays;
+    if (lookup == null) return null;
+    return lookup(now, day: day).withoutDismissed(_state.isClassDismissed);
+  }
+
+  /// Today's (night-owned) classes, when the shell holds a timetable. A day
+  /// whose every class was just set aside still reads as the class day while
+  /// its "Undo" is on the card, so the line has somewhere to be.
   ClassDay? _todayClasses() {
-    final day = widget.classDays?.call(Clock.now());
-    return day != null && day.isClassDay ? day : null;
+    final day = _classDayAt(Clock.now());
+    if (day == null) return null;
+    if (day.isClassDay) return day;
+    final undo = _dismissUndo;
+    return undo != null && undo.dayKey == day.dayKey ? day : null;
   }
 
   /// Tomorrow's classes for the ledger's MARK TOMORROW tray, when the shell
   /// holds a timetable. Tomorrow is the day after the night-owned day.
   ClassDay? _tomorrowClasses() {
-    final lookup = widget.classDays;
-    if (lookup == null) return null;
     final now = Clock.now();
     final tomorrow = CivilDate.fromDateTime(Days.afterNight(now));
-    final day = lookup(now, day: tomorrow);
-    return day.isClassDay ? day : null;
+    final day = _classDayAt(now, day: tomorrow);
+    return day != null && day.isClassDay ? day : null;
   }
 
   void _removeNightRoute() {
@@ -3402,6 +3423,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       onExploreStat: _exploreStat,
       onUndo: undoIdentity == null ? null : _undoLast,
       undoIdentity: undoIdentity,
+      onDismiss: _dismissClass,
+      dismissedLabel: _dismissUndo?.dayKey == day.dayKey
+          ? _dismissUndo?.label
+          : null,
+      onUndoDismiss: _undoDismissClass,
       bottomLine: ClassDayBottomLine(
         three: _ClassDayThreeLine(
           quests: widget.quests,
@@ -3602,7 +3628,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       keptBefore: keptBefore,
       now: now,
       previousMarkAt: previous,
-      dayOf: (date) => widget.classDays?.call(now, day: date),
+      dayOf: (date) => _classDayAt(now, day: date),
     );
     final slot = before.spanning(credits.length, last: marked.last.facts);
     setState(() {
@@ -3611,6 +3637,45 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _preferredClass = null;
     });
     _showClassCelebration(s, day, plan, now);
+  }
+
+  /// "Couldn't make it": the class folds off today's list. It pays nothing,
+  /// counts for nothing and is never named again; an "Undo" waits on the card
+  /// for [_dismissUndoFor]. A whole-save undo of an earlier reward settles
+  /// (the engine bumps the reward serial), so it can never put the class back
+  /// without a word.
+  void _dismissClass(ClassRow row) {
+    if (_classCelebration != null || _heldClass != null) return;
+    _flushCommit();
+    final s = _state;
+    final facts = row.entry.facts;
+    if (!s.dismissClass(facts)) {
+      setState(() {});
+      return;
+    }
+    _settleUndoBeforeLaterEdit();
+    widget.onPersist();
+    Haptics.tap();
+    _dismissUndoTimer?.cancel();
+    setState(() {
+      _preferredClass = null;
+      _dismissUndo = _DismissUndo(facts, classBriefTitle(row.entry.title));
+    });
+    _dismissUndoTimer = Timer(_dismissUndoFor, () {
+      _dismissUndoTimer = null;
+      if (mounted) setState(() => _dismissUndo = null);
+    });
+  }
+
+  void _undoDismissClass() {
+    final undo = _dismissUndo;
+    if (undo == null) return;
+    _dismissUndoTimer?.cancel();
+    _dismissUndoTimer = null;
+    _state.undoDismiss(undo.facts);
+    widget.onPersist();
+    Haptics.tap();
+    setState(() => _dismissUndo = null);
   }
 
   void _showClassCelebration(
@@ -4683,6 +4748,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 /// The guided runner enters as the destination room, while Quests stays the
 /// durable owner underneath it. This same takeover is used whether the entry
 /// tap began on a Quest card or the Goals workout door.
+/// The class just folded away with "Couldn't make it": what the card's
+/// "Undo" line names and puts back.
+final class _DismissUndo {
+  const _DismissUndo(this.facts, this.label);
+
+  final ClassFacts facts;
+  final String label;
+
+  String get dayKey => facts.dayKey;
+}
+
 class _WorkoutTakeover extends StatelessWidget {
   const _WorkoutTakeover({required this.reduceMotion, required this.child});
 

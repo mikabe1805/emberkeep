@@ -366,7 +366,7 @@ abstract final class WidgetSnapshotBuilder {
     final questsDayEnds = DateTime(local.year, local.month, local.day + 1);
     final nextDayEnds = DateTime(local.year, local.month, local.day + 2);
     final classDays = _classDays(schedule, now, state, classDayMarks);
-    final upcomingClasses = _upcomingClasses(schedule, instant);
+    final upcomingClasses = _upcomingClasses(schedule, instant, state);
     final boundaries = <DateTime>{
       for (final day in classDays) ...[
         for (final entry in day.classes) ...[entry.startsAt, entry.endsAt],
@@ -469,7 +469,11 @@ abstract final class WidgetSnapshotBuilder {
     bool marks,
   ) {
     if (schedule.occurrences.isEmpty) return const [];
-    final first = projectClassDay(schedule, now);
+    final first = projectClassDay(
+      schedule,
+      now,
+      isDismissed: state?.isClassDismissed,
+    );
     final days = <WidgetClassDay>[];
     void add(ClassDay day) {
       final built = _classDay(day, now, state, marks);
@@ -478,7 +482,14 @@ abstract final class WidgetSnapshotBuilder {
 
     add(first);
     for (var ahead = 1; ahead < roomOfDaysWidgetClassDayLimit; ahead++) {
-      add(projectClassDay(schedule, now, day: first.date.addDays(ahead)));
+      add(
+        projectClassDay(
+          schedule,
+          now,
+          day: first.date.addDays(ahead),
+          isDismissed: state?.isClassDismissed,
+        ),
+      );
     }
     return days;
   }
@@ -628,16 +639,24 @@ abstract final class WidgetSnapshotBuilder {
   static List<WidgetClassGlance> _upcomingClasses(
     AcademicSchedule schedule,
     DateTime nowUtc,
+    GameState? state,
   ) {
     final occurrences =
         schedule.occurrences
             .where((item) {
               final course = schedule.courseById(item.courseId);
-              return item.state != OccurrenceState.cancelled &&
-                  item.tombstonedAt == null &&
-                  course != null &&
-                  !course.archived &&
-                  !item.endInstant.toUtc().isBefore(nowUtc);
+              if (item.state == OccurrenceState.cancelled ||
+                  item.tombstonedAt != null ||
+                  course == null ||
+                  course.archived ||
+                  item.endInstant.toUtc().isBefore(nowUtc)) {
+                return false;
+              }
+              // A class he set aside ("Couldn't make it") is not coming up.
+              final facts = state == null
+                  ? null
+                  : classFactsFor(schedule, item);
+              return facts == null || !state!.isClassDismissed(facts);
             })
             .toList(growable: false)
           ..sort(

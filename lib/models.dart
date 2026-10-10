@@ -964,6 +964,83 @@ class KeptClass {
   }
 }
 
+/// A class someone said they could not make. It is the opposite of a kept
+/// class in what it does: it pays nothing, counts for nothing and leaves the
+/// day's class set, as if the class were not on that day. It is never shown
+/// back as a count or a name once it has folded away.
+///
+/// Like [KeptClass] it carries its own course code and start so it still
+/// answers on a restored phone that has no schedule behind it.
+class DismissedClass {
+  const DismissedClass({
+    this.occurrenceKey,
+    required this.courseCode,
+    required this.startMinute,
+    required this.dismissedAt,
+  });
+
+  /// The timetable occurrence, when the dismissal came from one.
+  final String? occurrenceKey;
+  final String courseCode;
+
+  /// Local start, minutes after midnight in the schedule's zone.
+  final int startMinute;
+  final DateTime dismissedAt;
+
+  /// The identity used when no occurrence key exists.
+  String get fallbackIdentity => '$courseCode@$startMinute';
+
+  /// The key a day's class list uses for this class.
+  String get identity => occurrenceKey ?? fallbackIdentity;
+
+  /// True when [key] (an occurrence key or a fallback identity) names this.
+  bool answersTo(String key) => key == occurrenceKey || key == fallbackIdentity;
+
+  /// The same match rule as [KeptClass.sameClassAs]: a key, or a course and
+  /// start, so a re-imported timetable cannot bring a dismissed class back.
+  bool sameClassAs({
+    String? occurrenceKey,
+    required String courseCode,
+    required int startMinute,
+  }) =>
+      (occurrenceKey != null && occurrenceKey == this.occurrenceKey) ||
+      (courseCode == this.courseCode && startMinute == this.startMinute);
+
+  Map<String, dynamic> toJson() => {
+    if (occurrenceKey != null) 'occurrenceKey': occurrenceKey,
+    'courseCode': courseCode,
+    'startMinute': startMinute,
+    'dismissedAt': dismissedAt.toUtc().millisecondsSinceEpoch,
+  };
+
+  /// Total: a malformed record returns null, never throws.
+  static DismissedClass? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final key = raw['occurrenceKey'];
+    final code = raw['courseCode'];
+    final start = raw['startMinute'];
+    final at = _utcFromMillis(raw['dismissedAt']);
+    if (code is! String ||
+        code.trim().isEmpty ||
+        code.length > KeptClass.maxCodeLength ||
+        start is! int ||
+        start < 0 ||
+        start >= 24 * 60 ||
+        at == null) {
+      return null;
+    }
+    if (key != null && (key is! String || key.isEmpty || key.length > 200)) {
+      return null;
+    }
+    return DismissedClass(
+      occurrenceKey: key as String?,
+      courseCode: code.trim(),
+      startMinute: start,
+      dismissedAt: at,
+    );
+  }
+}
+
 /// What a lived day held apart from Quests. Never a Quest, never in history,
 /// never part of Quest-only counters. One record per night-owned day.
 class DayRecord {
@@ -975,8 +1052,15 @@ class DayRecord {
     List<KeptClass> classes = const [],
     this.extraCredit,
     this.fullDayBonusXp = 0,
+    List<DismissedClass> dismissed = const [],
   }) : classes = List.unmodifiable(
          [...classes]..sort((a, b) {
+           final byStart = a.startMinute.compareTo(b.startMinute);
+           return byStart != 0 ? byStart : a.courseCode.compareTo(b.courseCode);
+         }),
+       ),
+       dismissed = List.unmodifiable(
+         [...dismissed]..sort((a, b) {
            final byStart = a.startMinute.compareTo(b.startMinute);
            return byStart != 0 ? byStart : a.courseCode.compareTo(b.courseCode);
          }),
@@ -991,13 +1075,21 @@ class DayRecord {
   /// The once-a-day bonus for keeping every class that day; 0 when not paid.
   final int fullDayBonusXp;
 
+  /// Classes he said he could not make, by start. They pay nothing and leave
+  /// the day's class set. Optional on disk (`dismissedClasses`), so a save
+  /// from before the feature reads with none.
+  final List<DismissedClass> dismissed;
+
   int get classXp =>
       classes.fold(0, (total, kept) => total + kept.xp) + fullDayBonusXp;
 
   int get xp => classXp + (extraCredit?.xp ?? 0);
 
   bool get isEmpty =>
-      classes.isEmpty && extraCredit == null && fullDayBonusXp == 0;
+      classes.isEmpty &&
+      extraCredit == null &&
+      fullDayBonusXp == 0 &&
+      dismissed.isEmpty;
 
   KeptClass? keptMatching({
     String? occurrenceKey,
@@ -1016,15 +1108,35 @@ class DayRecord {
     return null;
   }
 
+  /// The dismissal that answers to this class, if there is one.
+  DismissedClass? dismissedMatching({
+    String? occurrenceKey,
+    required String courseCode,
+    required int startMinute,
+  }) {
+    for (final item in dismissed) {
+      if (item.sameClassAs(
+        occurrenceKey: occurrenceKey,
+        courseCode: courseCode,
+        startMinute: startMinute,
+      )) {
+        return item;
+      }
+    }
+    return null;
+  }
+
   DayRecord copyWith({
     List<KeptClass>? classes,
     ExtraCreditEntry? extraCredit,
     int? fullDayBonusXp,
+    List<DismissedClass>? dismissed,
   }) => DayRecord(
     dayKey: dayKey,
     classes: classes ?? this.classes,
     extraCredit: extraCredit ?? this.extraCredit,
     fullDayBonusXp: fullDayBonusXp ?? this.fullDayBonusXp,
+    dismissed: dismissed ?? this.dismissed,
   );
 
   Map<String, dynamic> toJson() => {
@@ -1033,6 +1145,8 @@ class DayRecord {
       'classes': [for (final kept in classes) kept.toJson()],
     if (extraCredit != null) 'extraCredit': extraCredit!.toRecordJson(),
     if (fullDayBonusXp > 0) 'fullDayBonusXp': fullDayBonusXp,
+    if (dismissed.isNotEmpty)
+      'dismissedClasses': [for (final item in dismissed) item.toJson()],
   };
 
   /// Total. Malformed classes are dropped one by one; duplicates of the same
@@ -1051,15 +1165,58 @@ class DayRecord {
     }
     final extra = ExtraCreditEntry.fromJson(raw['extraCredit'], dayKey: day);
     final bonus = raw['fullDayBonusXp'];
+    final kept = dedupeKeptClasses(decoded);
+    final dismissed = <DismissedClass>[];
+    final rawDismissed = raw['dismissedClasses'];
+    if (rawDismissed is List) {
+      for (final item in rawDismissed.take(maxClassesPerDay * 2)) {
+        final value = DismissedClass.fromJson(item);
+        if (value != null) dismissed.add(value);
+      }
+    }
     final record = DayRecord(
       dayKey: day,
-      classes: dedupeKeptClasses(decoded),
+      classes: kept,
       extraCredit: extra,
       fullDayBonusXp: bonus is int && bonus > 0 && bonus <= maxStoredBonusXp
           ? bonus
           : 0,
+      dismissed: dedupeDismissedClasses(dismissed, keptAlready: kept),
     );
     return record.isEmpty ? null : record;
+  }
+
+  /// Newest wins per class, capped like the kept list. A class that was also
+  /// kept is not dismissed: the keep is the person's own word that he went,
+  /// and it carries the XP, so it outranks a dismissal that a damaged or
+  /// merged save might hold beside it.
+  static List<DismissedClass> dedupeDismissedClasses(
+    Iterable<DismissedClass> items, {
+    Iterable<KeptClass> keptAlready = const [],
+  }) {
+    final newestFirst = [...items]
+      ..sort((a, b) => b.dismissedAt.compareTo(a.dismissedAt));
+    final out = <DismissedClass>[];
+    for (final candidate in newestFirst) {
+      final wasKept = keptAlready.any(
+        (kept) => kept.sameClassAs(
+          occurrenceKey: candidate.occurrenceKey,
+          courseCode: candidate.courseCode,
+          startMinute: candidate.startMinute,
+        ),
+      );
+      final duplicate = out.any(
+        (existing) => existing.sameClassAs(
+          occurrenceKey: candidate.occurrenceKey,
+          courseCode: candidate.courseCode,
+          startMinute: candidate.startMinute,
+        ),
+      );
+      if (!wasKept && !duplicate && out.length < maxClassesPerDay) {
+        out.add(candidate);
+      }
+    }
+    return out;
   }
 
   /// Newest wins per class; capped so a damaged save cannot balloon.
@@ -1090,13 +1247,18 @@ class DayRecord {
         : right == null || !right.createdAt.isAfter(left.createdAt)
         ? left
         : right;
+    final kept = dedupeKeptClasses([...a.classes, ...b.classes]);
     return DayRecord(
       dayKey: a.dayKey,
-      classes: dedupeKeptClasses([...a.classes, ...b.classes]),
+      classes: kept,
       extraCredit: extra,
       fullDayBonusXp: a.fullDayBonusXp > b.fullDayBonusXp
           ? a.fullDayBonusXp
           : b.fullDayBonusXp,
+      dismissed: dedupeDismissedClasses([
+        ...a.dismissed,
+        ...b.dismissed,
+      ], keptAlready: kept),
     );
   }
 }
