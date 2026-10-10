@@ -259,8 +259,13 @@ ui.Color _black(double alpha) =>
 /// How much of each glow recipe's strength shows. The glow is the light
 /// arriving along the reveal's edge, faint: the plates already paint their own
 /// lamps, firelight and sun, and a strong glow over them reads as a wash.
-const double houseGlowGain =
-    0.0; // 0 matches the approved prototype v4, where the glow layer never showed; raise only with Mika's okay
+///
+/// Shipped switched off: it matches the approved prototype v4, where the glow
+/// layer never showed. Raise it only with Mika's okay.
+const double kShippedHouseGlowGain = 0.0;
+
+/// The gain in use. Tests raise it to check the glow recipes.
+double houseGlowGain = kShippedHouseGlowGain;
 
 ui.Color _rgba(List<int> c, double alpha) => ui.Color.fromRGBO(
   c[0],

@@ -25,6 +25,14 @@ double _glowPeak(HouseArrivalFrame f) =>
     _grid().map(f.glowAt).fold(0.0, (a, b) => a > b ? a : b);
 
 void main() {
+  // The glow ships switched off (kShippedHouseGlowGain); raise it here so the
+  // recipes stay tested.
+  setUpAll(() => houseGlowGain = 0.5);
+  tearDownAll(() => houseGlowGain = kShippedHouseGlowGain);
+  test('the glow ships switched off, as in the approved prototype', () {
+    expect(kShippedHouseGlowGain, 0);
+  });
+
   group('every arrival', () {
     for (final room in HouseRoom.values) {
       test('${room.name}: starts hidden, ends whole, never goes backward', () {
@@ -59,11 +67,6 @@ void main() {
         expect(_glowPeak(_at(room, 0)), lessThan(0.05));
         expect(_glowPeak(_at(room, 1)), lessThan(0.05));
         final mid = _glowPeak(_at(room, 0.5));
-        if (houseGlowGain == 0) {
-          // Off to match the approved prototype v4, where the glow never showed.
-          expect(mid, 0, reason: 'the glow is switched off');
-          return;
-        }
         expect(mid, greaterThan(0.05), reason: 'a glow shows mid-arrival');
         // Faint, never a wash: no single glow layer is above 0.9.
         for (var g = 0.0; g <= 1.0; g += 0.1) {
