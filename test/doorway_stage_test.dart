@@ -88,9 +88,14 @@ Finder _ticket(DoorwayTicket t) =>
     find.byKey(ValueKey('doorway-ticket-${t.id}'));
 Finder _hung(DoorwayTicket t) => find.byKey(ValueKey('doorway-hung-${t.id}'));
 
-/// Lets a glide (about 420 ms) finish.
-Future<void> _glide(WidgetTester tester) =>
-    tester.pump(const Duration(milliseconds: 600));
+/// Lets the rail's chain (a gap closing, the next ticket clipping in; about
+/// a second) and a ticket's trip to its hook (about 2.8 s with its swing)
+/// finish.
+Future<void> _glide(WidgetTester tester) async {
+  for (var i = 0; i < 40; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
 
 void main() {
   setUp(() => GameState.debugRandomFactory = _NoLuck.new);
@@ -259,9 +264,10 @@ void main() {
       );
       day = _doorway(schedule, state, at);
       await _mount(tester, day);
-      await tester.pump(const Duration(milliseconds: 200));
-      // Mid-glide the next is already coming in from above the rail.
-      expect(_ticket(all[3]), findsOneWidget);
+      // The kept ticket lifts out first; the next one clips in once the gap
+      // has closed.
+      await tester.pump(const Duration(milliseconds: 900));
+      expect(_ticket(all[3]), findsOneWidget, reason: 'coming in from the lip');
       await _glide(tester);
       expect(_stage(tester).placedTickets.map((p) => p.ticket.id), [
         for (final t in all.skip(1).take(3)) t.id,

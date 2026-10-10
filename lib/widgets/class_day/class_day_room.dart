@@ -24,13 +24,13 @@ import '../../engine.dart';
 import '../../main_room_music.dart' show MainRoomMusic;
 import '../../tokens.dart';
 import '../count_up.dart';
-import '../lamplight.dart';
 import '../pressable.dart';
 import '../quest_card.dart' show QuestCheckRing;
 import '../routine_ledger.dart' show LedgerType;
 import 'class_day_model.dart';
 import 'class_room_stage.dart';
 import 'doorway_model.dart';
+import 'doorway_motion.dart' show DoorwayBeat;
 import 'doorway_stage.dart';
 
 part 'class_evening.dart';
@@ -87,6 +87,7 @@ class ClassDayRoom extends StatefulWidget {
     this.quiet = false,
     this.evening,
     this.onStepBack,
+    this.onBeat,
   });
 
   final GameState state;
@@ -143,6 +144,10 @@ class ClassDayRoom extends StatefulWidget {
   /// The folded evening with the room's music on: the glass and the HUD step
   /// back, and the page is told so the shell's dock can step back too.
   final ValueChanged<bool>? onStepBack;
+
+  /// The Doorway's moves the page waits on: a ticket hung, the day's tickets
+  /// landed in the bowl, the week's bundle on the shelf.
+  final ValueChanged<DoorwayBeat>? onBeat;
 
   @override
   State<ClassDayRoom> createState() => _ClassDayRoomState();
@@ -217,6 +222,17 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) tell(step);
     });
+  }
+
+  /// A ticket was dragged up past the mark line in the Doorway: the same
+  /// mark as pressing "I was there" on its card.
+  void _markTicket(DoorwayTicket ticket) {
+    for (final row in widget.card.rows) {
+      if (row.entry.facts.identity == ticket.facts.identity) {
+        if (row.markable) widget.onMark([row]);
+        return;
+      }
+    }
   }
 
   @override
@@ -314,6 +330,8 @@ class _ClassDayRoomState extends State<ClassDayRoom>
                     parallax: widget.parallax,
                     reduceMotion: widget.reduceMotion,
                     scrimHeight: scrimHeight,
+                    onBeat: widget.onBeat,
+                    onMarkTicket: _markTicket,
                   );
                 },
               ),
@@ -975,6 +993,9 @@ class _ClassCardBodyState extends State<ClassCardBody> {
             now: widget.now,
             onMark: widget.onMark,
             onDismiss: widget.onDismiss,
+            onUndo: foremost.isKept && foremost.identity == widget.undoIdentity
+                ? widget.onUndo
+                : null,
             reduceMotion: widget.reduceMotion,
             lightDirection: widget.lightDirection,
           ),
@@ -1505,12 +1526,17 @@ class _ForemostRow extends StatelessWidget {
     required this.onMark,
     required this.reduceMotion,
     this.onDismiss,
+    this.onUndo,
     this.lightDirection,
     this.besideLamp = false,
   });
 
   /// The quiet "Couldn't make it" sits beside the lamp instead of under it.
   final bool besideLamp;
+
+  /// Swiping a class just kept (held in place while the Doorway hangs its
+  /// ticket) undoes it.
+  final VoidCallback? onUndo;
 
   final ClassRow row;
   final ClassCard card;
@@ -1522,10 +1548,18 @@ class _ForemostRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final held = card.held && row.isKept;
+    return _AttendingGate(
+      held: held,
+      reduceMotion: reduceMotion,
+      builder: (context, closed) => _body(context, held, closed),
+    );
+  }
+
+  Widget _body(BuildContext context, bool held, bool closed) {
     final entry = row.entry;
     final place = classPlace(entry);
     final markable = row.markable;
-    final held = card.held && row.isKept;
     final inSession =
         row.state == ClassRowState.inSession ||
         (held && entry.momentAt(now) == ClassMoment.inSession);
@@ -1561,8 +1595,8 @@ class _ForemostRow extends StatelessWidget {
         child: markable || held
             ? QuestCheckRing(
                 stat: classStatFor(row.entry),
-                done: held,
-                showReadyCheck: !held,
+                done: closed,
+                showReadyCheck: !closed,
                 size: 42,
                 reduceMotion: reduceMotion,
                 lightDirection: lightDirection,
@@ -1572,17 +1606,21 @@ class _ForemostRow extends StatelessWidget {
     );
     final lamp = ClassThereButton(
       label: inSession ? "I'M HERE" : 'I WAS THERE',
+      attendedLabel: held ? 'ATTENDED · +${row.kept?.xp ?? 25} XP' : null,
       enabled: markable,
-      kept: held,
+      kept: closed,
+      acknowledged: held && !closed,
       light: lightDirection,
       reduceMotion: reduceMotion,
       onTap: () => onMark([row]),
       onSetAside: setAside,
-      semanticLabel: inSession
+      semanticLabel: held
+          ? 'Attended: ${classShortTitle(entry.title)}'
+          : inSession
           ? "I'm here: ${classShortTitle(entry.title)}"
           : 'I was there: ${classShortTitle(entry.title)}',
     );
-    return Column(
+    final column = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
@@ -1678,10 +1716,107 @@ class _ForemostRow extends StatelessWidget {
           ),
       ],
     );
+    final undo = onUndo;
+    if (undo == null || !held) return column;
+    return Dismissible(
+      key: ValueKey('class-undo-${row.identity}'),
+      direction: DismissDirection.endToStart,
+      dismissThresholds: const {DismissDirection.endToStart: 0.42},
+      confirmDismiss: (_) async {
+        undo();
+        return false; // the restore handles the state change
+      },
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.undo, size: 16, color: Palette.xpLight),
+            const SizedBox(width: 6),
+            Text(
+              'UNDO',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
+            ),
+          ],
+        ),
+      ),
+      background: const SizedBox.shrink(),
+      child: column,
+    );
   }
 }
 
-/// The one luminous control on the screen: the card's lamp ([LampShade]).
+/// A class just kept is held in place while the Doorway hangs its ticket: the
+/// card's ring closes and its control turns to "ATTENDED" half a second in,
+/// as the stamp lands. Under Reduce Motion, at once.
+class _AttendingGate extends StatefulWidget {
+  const _AttendingGate({
+    required this.held,
+    required this.reduceMotion,
+    required this.builder,
+  });
+
+  final bool held;
+  final bool reduceMotion;
+  final Widget Function(BuildContext context, bool closed) builder;
+
+  @override
+  State<_AttendingGate> createState() => _AttendingGateState();
+}
+
+class _AttendingGateState extends State<_AttendingGate>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _beat;
+
+  bool _closed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _beat = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addStatusListener(_status);
+    // A card first built already held (it was marked a moment ago, or the
+    // page was rebuilt around it) is closed.
+    _closed = widget.held;
+  }
+
+  void _status(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted && widget.held) {
+      setState(() => _closed = true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_AttendingGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.held && !oldWidget.held) {
+      if (widget.reduceMotion) {
+        _closed = true;
+      } else {
+        _closed = false;
+        _beat.forward(from: 0);
+      }
+    } else if (!widget.held) {
+      _beat.stop();
+      _closed = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _beat.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _closed);
+}
+
+/// The one control on the card: a quiet bar of smoked glass with cream serif
+/// capitals and a thin warm hairline ([ClassThereButton]).
 /// Contact turns its light up under the finger at once; a kept class turns
 /// the lamp low; a class that cannot be marked yet is an unlit shade.
 class ClassThereButton extends StatelessWidget {
@@ -1690,14 +1825,19 @@ class ClassThereButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.semanticLabel,
+    this.attendedLabel,
     this.onSetAside,
     this.enabled = true,
     this.kept = false,
+    this.acknowledged = false,
     this.light,
     this.reduceMotion = false,
   });
 
   final String label;
+
+  /// What the bar says once the class is kept ("ATTENDED · +25 XP").
+  final String? attendedLabel;
   final VoidCallback onTap;
   final String semanticLabel;
 
@@ -1705,42 +1845,70 @@ class ClassThereButton extends StatelessWidget {
   /// quiet "Couldn't make it" button under it.
   final VoidCallback? onSetAside;
   final bool enabled;
+
+  /// The class is kept: the bar settles to its attended face.
   final bool kept;
+
+  /// The press was taken a moment ago and the card has not closed its ring
+  /// yet: the bar holds a touch brighter.
+  final bool acknowledged;
   final ValueListenable<Offset>? light;
   final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
-    final level = kept
-        ? LampLevel.low
-        : enabled
-        ? LampLevel.lit
-        : LampLevel.off;
+    final words = kept && attendedLabel != null ? attendedLabel! : label;
+    Widget word(String text, {Key? key}) => Text(
+      text,
+      key: key,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: LedgerType.body.copyWith(
+        fontSize: 13.6,
+        height: 1,
+        fontWeight: FontWeight.w500,
+        letterSpacing: kept ? 2.0 : 2.7,
+        color: enabled || kept || acknowledged
+            ? const Color(0xFFF2E3C4)
+            : const Color(0xFFF2E3C4).withValues(alpha: 0.42),
+      ),
+    );
     Widget face(bool pressed) => ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 46),
-      child: LampShade(
-        cut: 10,
-        level: level,
-        pressed: pressed,
-        light: light,
-        reduceMotion: reduceMotion,
-        dimFrom: kept ? LampShade.warmthFor(LampLevel.lit) : null,
+      constraints: const BoxConstraints(minHeight: 44),
+      child: CustomPaint(
+        painter: _GlassBar(
+          kept: kept,
+          enabled: enabled || kept || acknowledged,
+          lit: pressed || acknowledged,
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-          child: LampLabel(text: label, level: level),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          child: Center(
+            child: attendedLabel == null
+                ? word(words)
+                // The bar turns to its attended words with a short cross-fade.
+                : AnimatedSwitcher(
+                    // The old words go, then the new ones come: never both
+                    // at once.
+                    duration: Duration(milliseconds: reduceMotion ? 0 : 360),
+                    switchInCurve: const Interval(0.45, 1),
+                    switchOutCurve: const Interval(0.45, 1),
+                    child: word(words, key: ValueKey(kept)),
+                  ),
+          ),
         ),
       ),
     );
     return Pressable(
       key: const Key('class-there-button'),
-      pressDepth: 2,
-      material: MaterialSound.brass,
+      pressDepth: 1,
       // The completion composite voices the press; a second contact sound
       // would strike over it.
       soundEnabled: false,
       enabled: enabled,
-      shape: const LampShadeBorder(cut: 10),
-      edgeColor: const Color(0xFF1E1109),
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(6),
       semanticLabel: semanticLabel,
       semanticActions: onSetAside == null
           ? null
@@ -1754,6 +1922,90 @@ class ClassThereButton extends StatelessWidget {
       child: face(false),
     );
   }
+}
+
+/// The bar's glass: a smoked pane a little narrower at the top, warmed by the
+/// faintest gradient, with a thin warm hairline and a bright line along its
+/// top edge. No glow: the door's light is the scene's one warm accent.
+class _GlassBar extends CustomPainter {
+  const _GlassBar({
+    required this.kept,
+    required this.enabled,
+    required this.lit,
+  });
+
+  final bool kept;
+  final bool enabled;
+  final bool lit;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final inset = size.width * 0.025;
+    const r = 5.0;
+    final path = Path()
+      ..moveTo(inset + r, 0)
+      ..lineTo(size.width - inset - r, 0)
+      ..quadraticBezierTo(size.width - inset, 0, size.width - inset + 0.4, r)
+      ..lineTo(size.width - 0.2, size.height - r)
+      ..quadraticBezierTo(size.width, size.height, size.width - r, size.height)
+      ..lineTo(r, size.height)
+      ..quadraticBezierTo(0, size.height, 0.2, size.height - r)
+      ..lineTo(inset - 0.4, r)
+      ..quadraticBezierTo(inset, 0, inset + r, 0)
+      ..close();
+    // The pane's shade under it, soft.
+    canvas.drawPath(
+      path.shift(const Offset(0, 3)),
+      Paint()
+        ..color = const Color(0x59000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // Smoked glass: a dark body with the faintest warm gradient over it.
+    canvas.drawPath(path, Paint()..color = const Color(0x4A140A04));
+    final bump = lit ? 0.07 : 0.0;
+    final warm = kept ? 1.0 : 0.0;
+    final dim = enabled ? 1.0 : 0.55;
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.fromRGBO(255, 226, 170, (0.12 + 0.10 * warm + bump) * dim),
+            Color.fromRGBO(255, 210, 150, (0.03 + 0.05 * warm + bump) * dim),
+            Color.fromRGBO(255, 200, 130, (0.09 + 0.08 * warm + bump) * dim),
+          ],
+          stops: const [0, 0.55, 1],
+        ).createShader(Offset.zero & size),
+    );
+    // The bright line along the top, and the quiet one along the foot.
+    canvas.save();
+    canvas.clipPath(path);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, 1),
+      Paint()..color = Color.fromRGBO(255, 226, 170, 0.5 * dim),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 1, size.width, 1),
+      Paint()..color = Color.fromRGBO(255, 200, 130, 0.22 * dim),
+    );
+    canvas.restore();
+    // The hairline.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = kept
+            ? const Color(0xBFE8BE74)
+            : Color.fromRGBO(214, 170, 100, 0.5 * dim),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GlassBar old) =>
+      old.kept != kept || old.enabled != enabled || old.lit != lit;
 }
 
 /// "Couldn’t make it": a quiet word on a class that can be set aside. Cream

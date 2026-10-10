@@ -67,6 +67,7 @@ import '../widgets/class_day/class_day_model.dart';
 import '../widgets/class_day/class_day_room.dart';
 import '../widgets/class_day/class_kept_celebration.dart';
 import '../widgets/class_day/doorway_model.dart';
+import '../widgets/class_day/doorway_motion.dart' show DoorwayBeat;
 import '../widgets/class_day/doorway_stage.dart';
 import '../widgets/class_day/class_room_stage.dart';
 
@@ -350,6 +351,24 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   String? _heldClass;
   DateTime? _lastClassMarkAt;
   OverlayEntry? _classCelebration;
+
+  /// What a mark has set going in the Doorway and the room is waiting on:
+  /// the day's or the week's card once the tickets have landed in the bowl or
+  /// the bundle stands on the shelf, or (for an ordinary class) the level-up
+  /// chain once the ticket has settled on its hook. A single class marks in
+  /// the scene alone: its ticket moves and the card changes, nothing covers
+  /// the screen.
+  _PendingMoment? _moment;
+  Timer? _momentTimer;
+
+  /// How long a class just kept stays foremost on the card (the Doorway is
+  /// still hanging its ticket), and how long another mark waits.
+  Timer? _heldTimer;
+  bool _markBusy = false;
+  Timer? _markBusyTimer;
+  static const _heldFor = Duration(milliseconds: 2400);
+  static const _markBusyFor = Duration(milliseconds: 1100);
+  static const _momentWaitsAtMost = Duration(seconds: 10);
   final ClassRoomCamera _classCamera = ClassRoomCamera();
 
   /// The celebration has begun going back: the room may turn under it.
@@ -805,6 +824,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _removeNightRoute();
       _undoSlot = null;
       _heldClass = null;
+      _clearMoment();
       _preferredClass = null;
       _lastClassMarkAt = null;
       _dismissUndoTimer?.cancel();
@@ -929,6 +949,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _classBoundaryTimer?.cancel();
     _dismissUndoTimer?.cancel();
+    _momentTimer?.cancel();
+    _heldTimer?.cancel();
+    _markBusyTimer?.cancel();
     _classCelebration?.remove();
     _classCelebration = null;
     _removeNightRoute();
@@ -3398,14 +3421,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
     final slot = _undoSlot;
     final undoIdentity =
-        _heldClass == null &&
-            slot != null &&
+        slot != null &&
             slot.kind == RewardUndoKind.keptClass &&
             slot.dayKey == day.dayKey &&
             slot.canRestore(_state)
         ? slot.classIdentity
         : null;
-    final celebrating = _classCelebration != null && !_classCelebrationLeaving;
+    // While a mark's moment is still on its way (the tickets are dropping,
+    // the bundle rising) or its card is up, the room keeps the frame it had:
+    // the glass turns to the evening only once the moment is over.
+    final celebrating =
+        (_classCelebration != null && !_classCelebrationLeaving) ||
+        (_moment?.plan.held ?? false);
     final evening = celebrating ? _eveningShown : classEveningAt(card, now);
     _eveningShown = evening;
     _settleEveningMusic(day, evening);
@@ -3427,8 +3454,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       lightDirection: _activeLight,
       quiet: _levelTakeover,
       onMark: (rows) => _markClasses(day, rows),
+      onBeat: _onDoorwayBeat,
       onSelect: (row) {
         Haptics.tap();
+        // A class just kept stays foremost while its ticket hangs; bringing
+        // another forward lets that go.
+        if (!(_moment?.plan.held ?? false)) {
+          _heldTimer?.cancel();
+          _heldClass = null;
+        }
         setState(() => _preferredClass = row.identity);
       },
       onExploreStat: _exploreStat,
@@ -3594,9 +3628,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// through the engine's own keep path, then plays the class celebration and,
   /// after it, the usual chain (level-up, streak chest, rank-up, toasts).
   void _markClasses(ClassDay day, List<ClassRow> rows) {
-    if (rows.isEmpty || _classCelebration != null || _heldClass != null) {
-      return;
-    }
+    if (rows.isEmpty || _classBusy) return;
     // Land any Quest reward still staged, so the snapshot and the class XP
     // both build on it (engine map 5.3). The class slot below replaces an
     // armed Quest undo: one slot, the newest reward.
@@ -3632,12 +3664,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     widget.onPersist();
     Storage.logEvent('class_kept', [credits.length]);
-    // Acknowledged on contact: the card's own ring closes, the completion
-    // voice plays, one light tap.
+    // Acknowledged on contact: the completion voice plays. The ticket's own
+    // taps (a light one as it lifts, a detent as the stamp lands) are the
+    // Doorway's.
     Sfx.instance.playCompletionAccepted(
       transitionId: marked.last.facts.identity,
     );
-    Haptics.light();
     final previous = _lastClassMarkAt;
     _lastClassMarkAt = now;
     final plan = planClassCelebration(
@@ -3651,12 +3683,75 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       dayOf: (date) => _classDayAt(now, day: date),
     );
     final slot = before.spanning(credits.length, last: marked.last.facts);
+    // What the Doorway will do with this mark, and so what the room waits for
+    // before it says anything more: a day that is complete drops its tickets
+    // into the bowl (and a week's last day ties its bundle onto the shelf)
+    // before the day's or the week's card; every other mark is only the scene
+    // and the card.
+    final after = _doorwayFor(day, now);
+    final beat = !plan.held
+        ? DoorwayBeat.settled
+        : after.weekTied
+        ? DoorwayBeat.weekDone
+        : after.bowlPairs.contains(day.date)
+        ? DoorwayBeat.dayDone
+        : DoorwayBeat.settled;
+    _momentTimer?.cancel();
+    _heldTimer?.cancel();
+    _markBusyTimer?.cancel();
     setState(() {
       _undoSlot = slot;
       _heldClass = single ? marked.single.facts.identity : null;
       _preferredClass = null;
+      _markBusy = true;
+      _moment = _PendingMoment(s, day, plan, now, beat);
     });
-    _showClassCelebration(s, day, plan, now);
+    _markBusyTimer = Timer(_markBusyFor, () => _markBusy = false);
+    _momentTimer = Timer(_momentWaitsAtMost, () => _onDoorwayBeat(beat));
+    if (!plan.held && single) {
+      _heldTimer = Timer(_heldFor, () {
+        if (mounted) setState(() => _heldClass = null);
+      });
+    } else if (!plan.held) {
+      _heldClass = null;
+    }
+  }
+
+  /// A mark's moment, or the card's own hold, is still going: a new mark or a
+  /// set-aside waits.
+  bool get _classBusy =>
+      _classCelebration != null || _markBusy || (_moment?.plan.held ?? false);
+
+  void _clearMoment() {
+    _moment = null;
+    _momentTimer?.cancel();
+    _heldTimer?.cancel();
+    _markBusy = false;
+    _markBusyTimer?.cancel();
+  }
+
+  /// The Doorway reached a move the room waits on.
+  void _onDoorwayBeat(DoorwayBeat beat) {
+    if (!mounted) return;
+    if (beat == DoorwayBeat.hung) {
+      _markBusy = false;
+      _markBusyTimer?.cancel();
+      return;
+    }
+    final moment = _moment;
+    if (moment == null || moment.beat != beat) return;
+    _moment = null;
+    _momentTimer?.cancel();
+    // The save was replaced (an undo, a restore) since: nothing to say.
+    if (!identical(moment.state, _state)) return;
+    if (moment.plan.held) {
+      _showClassCelebration(moment.state, moment.day, moment.plan, moment.now);
+    } else {
+      // Nothing covers the screen for an ordinary class: a level it crossed
+      // is told once its ticket has settled.
+      setState(() {});
+      _resolveLevelUps(moment.state);
+    }
   }
 
   /// "Couldn't make it": the class folds off today's list. It pays nothing,
@@ -3665,7 +3760,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// (the engine bumps the reward serial), so it can never put the class back
   /// without a word.
   void _dismissClass(ClassRow row) {
-    if (_classCelebration != null || _heldClass != null) return;
+    if (_classBusy) return;
     _flushCommit();
     final s = _state;
     final facts = row.entry.facts;
@@ -4770,7 +4865,20 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 /// tap began on a Quest card or the Goals workout door.
 /// The class just folded away with "Couldn't make it": what the card's
 /// "Undo" line names and puts back.
-final class _DismissUndo {
+final
+/// A class mark's moment, decided at the mark and told when the Doorway has
+/// reached [beat].
+class _PendingMoment {
+  const _PendingMoment(this.state, this.day, this.plan, this.now, this.beat);
+
+  final GameState state;
+  final ClassDay day;
+  final ClassCelebrationPlan plan;
+  final DateTime now;
+  final DoorwayBeat beat;
+}
+
+class _DismissUndo {
   const _DismissUndo(this.facts, this.label);
 
   final ClassFacts facts;

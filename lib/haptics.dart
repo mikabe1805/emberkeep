@@ -27,6 +27,10 @@ abstract final class Haptics {
   /// A single soft bump — a routine quest completion.
   static void light() => HapticFeedback.lightImpact();
 
+  /// One firm detent — a stamp pressed into paper. A medium impact, kept
+  /// under Reduce Motion (it is one tap, not a flourish).
+  static void detent() => HapticFeedback.mediumImpact();
+
   /// The everyday quest cadence: the pointer-down selection is followed by a
   /// one soft landing as the drawn check turns. Heavy and composed impacts
   /// remain reserved for exceptional rewards.

@@ -122,6 +122,9 @@ class DoorwayTicketView extends StatelessWidget {
     this.inRail = false,
     this.attended,
     this.mini = false,
+    this.stamp,
+    this.wordsOpacity = 1,
+    this.bowlShade = 0,
   });
 
   final DoorwayTicket ticket;
@@ -139,6 +142,18 @@ class DoorwayTicketView extends StatelessWidget {
   /// A small ticket lying in the bowl: no words.
   final bool mini;
 
+  /// While the stamp lands (0 to 1): a patch of blank paper covers the
+  /// painted check and the check presses into it, settling from 1.3 to 1.0
+  /// with an ink-press fade. Null: no stamp in flight.
+  final double? stamp;
+
+  /// How much of the words and the ring show (a ticket sinking into the
+  /// bowl lets them go).
+  final double wordsOpacity;
+
+  /// How far the ticket has taken the bowl's shade (0 to 1).
+  final double bowlShade;
+
   @override
   Widget build(BuildContext context) {
     final att = attended ?? ticket.state == DoorwayTicketState.attended;
@@ -149,7 +164,12 @@ class DoorwayTicketView extends StatelessWidget {
     final height = doorwayTicketHeight * ky;
     final art = DoorwaySprite(
       asset: att ? DoorwayAssets.ticketAttended : DoorwayAssets.ticketBlank,
-      tone: quiet && !att
+      tone: bowlShade > 0
+          ? doorwayTone(
+              brightness: 1 - 0.2 * bowlShade,
+              saturation: 1 - 0.08 * bowlShade,
+            )
+          : quiet && !att
           ? doorwayTone(brightness: 0.975, saturation: 0.8)
           : null,
       shadow: inRail ? const Offset(0, 1.2) : const Offset(1.6, 2.6),
@@ -180,7 +200,7 @@ class DoorwayTicketView extends StatelessWidget {
               ),
             ),
           ],
-          if (!mini) ...[
+          if (!mini && wordsOpacity > 0.01) ...[
             if (!att && upcoming && !quiet)
               Positioned(
                 left: ringAt.dx - ringSize / 2,
@@ -210,27 +230,34 @@ class DoorwayTicketView extends StatelessWidget {
               top: 0,
               bottom: 0,
               width: doorwayTicketWidth * 0.69,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  doorwayTicketText(ticket),
-                  maxLines: 2,
-                  softWrap: false,
-                  overflow: TextOverflow.clip,
-                  style: Type.label.copyWith(
-                    fontSize: 5.1,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.05,
-                    height: ticket.counts ? 1 : 1.3,
-                    color: ticket.counts ? _ink : _inkQuiet,
-                    shadows: const [
-                      Shadow(offset: Offset(0, 0.45), color: Color(0x99FFFAEC)),
-                    ],
+              child: Opacity(
+                opacity: wordsOpacity,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    doorwayTicketText(ticket),
+                    maxLines: 2,
+                    softWrap: false,
+                    overflow: TextOverflow.clip,
+                    style: Type.label.copyWith(
+                      fontSize: 5.1,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.05,
+                      height: ticket.counts ? 1 : 1.3,
+                      color: ticket.counts ? _ink : _inkQuiet,
+                      shadows: const [
+                        Shadow(
+                          offset: Offset(0, 0.45),
+                          color: Color(0x99FFFAEC),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ],
+          if (stamp != null) _stampOver(stamp!, width, height),
           if (inRail) ...[
             // The rod's shade across the card's top edge.
             Positioned(
@@ -290,6 +317,62 @@ class DoorwayTicketView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The stamp landing on a ticket's attended face: a round patch of blank
+/// paper over the painted check, and the check pressing into it.
+Widget _stampOver(double progress, double width, double height) {
+  final left = width * 0.776;
+  final top = height * 0.276;
+  final w = width * 0.165;
+  final h = height * 0.504;
+  Widget crop(String asset) => ClipOval(
+    child: OverflowBox(
+      alignment: Alignment.topLeft,
+      minWidth: 0,
+      minHeight: 0,
+      maxWidth: width,
+      maxHeight: height,
+      child: Transform.translate(
+        offset: Offset(-left, -top),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Image.asset(
+            asset,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.medium,
+            gaplessPlayback: true,
+            excludeFromSemantics: true,
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    ),
+  );
+  final press = Curves.easeOutCubic.transform(progress.clamp(0.0, 1.0));
+  return Positioned(
+    key: const Key('doorway-stamp'),
+    left: left,
+    top: top,
+    width: w,
+    height: h,
+    child: Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        crop(DoorwayAssets.ticketBlank),
+        if (progress > 0)
+          Opacity(
+            opacity: (progress * 1.6).clamp(0.0, 1.0),
+            child: Transform.scale(
+              scale: 1.3 - 0.3 * press,
+              child: crop(DoorwayAssets.ticketAttended),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 class _ContactShade extends CustomPainter {

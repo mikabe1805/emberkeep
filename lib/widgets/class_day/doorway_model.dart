@@ -291,6 +291,7 @@ final class DoorwayDay {
     required this.bowlPairs,
     required this.shelfBundles,
     this.termName,
+    this.weekTied = false,
   });
 
   /// Reads [date]'s day (the night-owned day of [now] when null) from the
@@ -363,13 +364,30 @@ final class DoorwayDay {
         ),
       );
     }
+    final pairs = _bowlPairs(day, state, now, dayOf);
     return DoorwayDay(
       date: day.date,
       tickets: List.unmodifiable(tickets),
-      bowlPairs: List.unmodifiable(_bowlPairs(day, state, now, dayOf)),
+      bowlPairs: List.unmodifiable(pairs),
       shelfBundles: List.unmodifiable(_shelfBundles(day.date, state, term)),
       termName: term?.name,
+      weekTied: pairs.contains(day.date) && !_classesLaterThisWeek(day, dayOf),
     );
+  }
+
+  /// Whether any day after [today] in its week (Monday to Sunday) holds a
+  /// class: then the week is not over.
+  static bool _classesLaterThisWeek(
+    ClassDay today,
+    ClassDay Function(CivilDate) dayOf,
+  ) {
+    final monday = today.date.addDays(-(today.date.weekday - 1));
+    for (var i = 0; i < 7; i++) {
+      final date = monday.addDays(i);
+      if (date.compareTo(today.date) <= 0) continue;
+      if (dayOf(date).isClassDay) return true;
+    }
+    return false;
   }
 
   final CivilDate date;
@@ -392,10 +410,24 @@ final class DoorwayDay {
   /// outside every term.
   final String? termName;
 
+  /// This is the week's last class day and it is complete: the week's pairs
+  /// have been tied into a bundle and stand on the shelf with the others, and
+  /// the bowl is empty. (Every other week's bundle joins the shelf on its own
+  /// Monday; this one is tied the moment the week's last day is kept.)
+  final bool weekTied;
+
+  /// How many bundles stand on the shelf: the earlier weeks, and this one once
+  /// it is tied.
+  int get shelfCount => shelfBundles.length + (weekTied ? 1 : 0);
+
+  /// The pairs lying in the bowl: this week's finished days, none once the
+  /// week is tied.
+  int get bowlCount => weekTied ? 0 : bowlPairs.length;
+
   /// The shelf's label: "FALL TERM · 5 WEEKS", counting the weeks he went to
   /// a class. Null when there is nothing to count yet (a term's first week),
   /// so the shelf never says zero of anything.
-  String? get shelfLabel => doorwayShelfLabel(termName, shelfBundles.length);
+  String? get shelfLabel => doorwayShelfLabel(termName, shelfCount);
 
   /// The tickets still on the rail: everything but the folded-away.
   List<DoorwayTicket> get visibleTickets => [

@@ -211,6 +211,13 @@ Future<void> _pumpFor(WidgetTester tester, Duration total) async {
   }
 }
 
+/// The Doorway plays before the day's card: the tickets unhook and drop into
+/// the bowl (the mark, then about 1.9 s, then 0.9 s of flight), and the card
+/// shows half a second after they land, then takes about a second and a half to
+/// arrive. A shortcut that keeps several classes starts its marks 180 ms apart.
+const _dayCardAfter = Duration(milliseconds: 4800);
+const _shortcutCardAfter = Duration(milliseconds: 5400);
+
 final _evening = find.byKey(const Key('class-evening'));
 final _there = find.byKey(const Key('class-there-button'));
 final _celebration = find.byType(ClassKeptCelebration);
@@ -285,7 +292,7 @@ void main() {
       expect(_doorway, findsOneWidget);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       expect(find.text('TUESDAY, DONE.'), findsOneWidget);
       // Under the held moment the room keeps the day; nothing turns yet. The
       // Doorway stands behind the moment too, held still.
@@ -357,7 +364,8 @@ void main() {
       expect(tester.state<DoorwayStageState>(_doorway).animating, isFalse);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 600));
+      // Every move is a fade: the tickets land in the bowl in under a second.
+      await _pumpFor(tester, const Duration(milliseconds: 1800));
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 700));
@@ -465,7 +473,7 @@ void main() {
       await tester.tap(find.byKey(const Key('class-all-of-today')));
       await tester.pump();
       expect(page.state.classesKeptOn('2026-10-05'), hasLength(3));
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _shortcutCardAfter);
       expect(find.text('MONDAY, DONE.'), findsOneWidget);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
@@ -486,7 +494,11 @@ void main() {
       expect(_evening, findsOneWidget);
       await tester.tap(_there);
       await tester.pump();
+      // The scene first: the evening glass stays as it was while the tickets
+      // drop into the bowl; nothing covers the room until they have landed.
       await _pumpFor(tester, const Duration(milliseconds: 900));
+      expect(_celebration, findsNothing);
+      await _pumpFor(tester, _dayCardAfter);
       expect(
         find.descendant(of: _celebration, matching: find.byType(DoorwayStage)),
         findsOneWidget,
@@ -555,7 +567,7 @@ void main() {
       final page = await _mount(tester, at: _ny(6, 15, 35), state: state);
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 2800));
@@ -675,7 +687,7 @@ void main() {
       final before = jsonEncode(page.state.toJson());
       await tester.tap(_there);
       await tester.pump();
-      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      await _pumpFor(tester, _dayCardAfter);
       await tester.tapAt(const Offset(196, 300));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 2800));
