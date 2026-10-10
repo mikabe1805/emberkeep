@@ -368,6 +368,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         projectClassDay(schedule, now, day: day, isDismissed: _classDismissed);
   }
 
+  /// The term a day falls in, for the Doorway's shelf. Null until a
+  /// timetable is loaded.
+  AcademicTerm? Function(CivilDate day)? get _classTerm {
+    if (!_academicScheduleLoaded || _academicSchedule.occurrences.isEmpty) {
+      return null;
+    }
+    final schedule = _academicSchedule;
+    return schedule.termFor;
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -2128,7 +2138,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (refreshTimeZone) await Notifications.refreshTimeZone();
     final now = Clock.now();
     final classNotices = _academicScheduleLoaded
-        ? projectAcademicReminderNotices(schedule: _academicSchedule, now: now)
+        ? projectAcademicReminderNotices(
+            schedule: _academicSchedule,
+            now: now,
+            isDismissed: s.isClassDismissed,
+          )
         : const <AcademicReminderNotice>[];
     var classDeliveryAvailable = true;
     // Restores and system-settings changes can leave a persisted switch on
@@ -2387,6 +2401,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           workoutRequestId: _workoutRequest,
                                           musicController: _music,
                                           classDays: _classDays,
+                                          classTerm: _classTerm,
+                                          onClassesSetAside: () => unawaited(
+                                            _rescheduleNotifications(),
+                                          ),
                                           onAddClasses: _offerAddClasses
                                               ? _openAddClasses
                                               : null,

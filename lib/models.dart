@@ -977,11 +977,17 @@ class DismissedClass {
     required this.courseCode,
     required this.startMinute,
     required this.dismissedAt,
+    this.optional = false,
   });
 
   /// The timetable occurrence, when the dismissal came from one.
   final String? occurrenceKey;
   final String courseCode;
+
+  /// An optional meeting (office hours): the day's full-day bonus never waits
+  /// on it, so setting it aside never withholds the bonus. A dismissal saved
+  /// before this field existed reads as a counting class.
+  final bool optional;
 
   /// Local start, minutes after midnight in the schedule's zone.
   final int startMinute;
@@ -1011,6 +1017,7 @@ class DismissedClass {
     'courseCode': courseCode,
     'startMinute': startMinute,
     'dismissedAt': dismissedAt.toUtc().millisecondsSinceEpoch,
+    if (optional) 'optional': true,
   };
 
   /// Total: a malformed record returns null, never throws.
@@ -1037,6 +1044,7 @@ class DismissedClass {
       courseCode: code.trim(),
       startMinute: start,
       dismissedAt: at,
+      optional: raw['optional'] == true,
     );
   }
 }

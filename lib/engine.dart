@@ -1576,6 +1576,9 @@ class GameState extends ChangeNotifier {
             courseCode: facts.keptCode!,
             startMinute: facts.startMinute,
             dismissedAt: Clock.now().toUtc(),
+            optional: !ClassPay.countsTowardDay(
+              KeptClass.cleanKind(facts.kind),
+            ),
           ),
         ],
       ),
@@ -1772,25 +1775,36 @@ class GameState extends ChangeNotifier {
         keys.isNotEmpty &&
         keys.every((key) => list.any((item) => item.answersTo(key)));
     final dayComplete = covers(classes);
+    // The dismissals that stand once this keep is in: a keep on a set-aside
+    // class lifts that one.
+    final standing = wasDismissed
+        ? [
+            for (final item in before.dismissed)
+              if (!item.sameClassAs(
+                occurrenceKey: facts.occurrenceKey,
+                courseCode: code,
+                startMinute: facts.startMinute,
+              ))
+                item,
+          ]
+        : before.dismissed;
+    // The full-day bonus is for a day of every counting class kept. A day on
+    // which any counting class was set aside has no such day, whatever order
+    // the keeps and the dismissals came in; an optional meeting set aside
+    // (office hours) never matters to it.
+    final setAsideCounting = standing.any((item) => !item.optional);
     final bonus =
-        dayComplete && !covers(before.classes) && before.fullDayBonusXp == 0
+        dayComplete &&
+            !setAsideCounting &&
+            !covers(before.classes) &&
+            before.fullDayBonusXp == 0
         ? ClassPay.fullDayBonusXp
         : 0;
     _putDayRecord(
       before.copyWith(
         classes: classes,
         fullDayBonusXp: before.fullDayBonusXp + bonus,
-        dismissed: wasDismissed
-            ? [
-                for (final item in before.dismissed)
-                  if (!item.sameClassAs(
-                    occurrenceKey: facts.occurrenceKey,
-                    courseCode: code,
-                    startMinute: facts.startMinute,
-                  ))
-                    item,
-              ]
-            : null,
+        dismissed: wasDismissed ? standing : null,
       ),
     );
 

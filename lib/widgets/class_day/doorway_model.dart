@@ -201,6 +201,22 @@ String doorwayTicketLabel(
   return result.toUpperCase();
 }
 
+/// "FALL TERM · 5 WEEKS" for [weeks] weeks attended in the term named
+/// [termName]; null for none. A name that opens with a season ("Fall 2026")
+/// says "FALL TERM"; any other name is said as it is.
+String? doorwayShelfLabel(String? termName, int weeks) {
+  if (weeks <= 0) return null;
+  final name = (termName ?? '').trim();
+  final first = name.split(RegExp(r'\s+')).first.toUpperCase();
+  const seasons = {'FALL', 'AUTUMN', 'WINTER', 'SPRING', 'SUMMER'};
+  final term = seasons.contains(first)
+      ? '$first TERM'
+      : name.isEmpty
+      ? 'THIS TERM'
+      : name.toUpperCase();
+  return '$term · $weeks ${weeks == 1 ? 'WEEK' : 'WEEKS'}';
+}
+
 // ── Tickets ───────────────────────────────────────────────────────────────
 
 /// One class by the door.
@@ -274,6 +290,7 @@ final class DoorwayDay {
     required this.tickets,
     required this.bowlPairs,
     required this.shelfBundles,
+    this.termName,
   });
 
   /// Reads [date]'s day (the night-owned day of [now] when null) from the
@@ -351,6 +368,7 @@ final class DoorwayDay {
       tickets: List.unmodifiable(tickets),
       bowlPairs: List.unmodifiable(_bowlPairs(day, state, now, dayOf)),
       shelfBundles: List.unmodifiable(_shelfBundles(day.date, state, term)),
+      termName: term?.name,
     );
   }
 
@@ -369,6 +387,15 @@ final class DoorwayDay {
   /// The past weeks of this term in which he attended at least one class,
   /// oldest first.
   final List<DoorwayShelfBundle> shelfBundles;
+
+  /// The term's own name ("Fall 2026"), for the shelf's small label; null
+  /// outside every term.
+  final String? termName;
+
+  /// The shelf's label: "FALL TERM · 5 WEEKS", counting the weeks he went to
+  /// a class. Null when there is nothing to count yet (a term's first week),
+  /// so the shelf never says zero of anything.
+  String? get shelfLabel => doorwayShelfLabel(termName, shelfBundles.length);
 
   /// The tickets still on the rail: everything but the folded-away.
   List<DoorwayTicket> get visibleTickets => [

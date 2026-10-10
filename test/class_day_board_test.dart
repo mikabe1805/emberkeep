@@ -631,7 +631,8 @@ void main() {
         find.byKey(ValueKey('class-undo-$identity')),
         const Offset(-80, 0),
       );
-      await tester.pumpAndSettle();
+      // The Doorway's light breathes for good, so time is pumped, not settled.
+      await _pumpFor(tester, const Duration(seconds: 1));
       expect(board.restored, isEmpty);
     });
 

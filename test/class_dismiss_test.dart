@@ -549,7 +549,7 @@ void main() {
   });
 
   group('completion and the plans', () {
-    test('the day completes without the class he could not make', () {
+    test('the day completes without the class he could not make, no bonus', () {
       final at = _ny(8, 16, 0);
       Clock.freeze(at);
       final state = _state();
@@ -561,10 +561,11 @@ void main() {
           state.keepClass(entry.facts, dayClassKeys: day.dayClassKeys)!,
       ];
       expect(credits.last.dayComplete, isTrue);
-      expect(credits.last.fullDayBonus, ClassPay.fullDayBonusXp);
+      // A day with a counting class set aside has no full-day bonus.
+      expect(credits.last.fullDayBonus, 0);
       expect(credits.last.dayClassCount, 2);
       expect(credits.first.fullDayBonus, 0);
-      expect(state.classXpForDay('2026-10-08'), 25 + 25 + 10);
+      expect(state.classXpForDay('2026-10-08'), 25 + 25);
       expect(ClassCard.read(day, state, at).allKept, isTrue);
     });
 
@@ -592,13 +593,14 @@ void main() {
       for (final entry in day.classes) {
         state.keepClass(entry.facts, dayClassKeys: day.dayClassKeys);
       }
-      expect(state.dayRecordFor('2026-10-08')!.fullDayBonusXp, 10);
+      expect(state.dayRecordFor('2026-10-08')!.fullDayBonusXp, 0);
 
-      // Then the lab after all: the bonus is already paid and stays paid, the
-      // class itself pays, and nothing doubles.
+      // Then the lab after all: his own word that he went lifts the set-aside,
+      // so nothing is set aside any more and all three are kept: the full day
+      // is paid once, and nothing doubles.
       Clock.freeze(_ny(8, 19, 0));
       final credit = state.keepClass(lab.facts, dayClassKeys: day.dayClassKeys);
-      expect(credit!.fullDayBonus, 0);
+      expect(credit!.fullDayBonus, ClassPay.fullDayBonusXp);
       expect(state.classesKeptOn('2026-10-08'), hasLength(3));
       expect(state.dayRecordFor('2026-10-08')!.fullDayBonusXp, 10);
     });
@@ -628,7 +630,7 @@ void main() {
       );
     }
 
-    test('the day tier counts the day without it and never says how many', () {
+    test('the day tier counts the day without it, with no "N for N"', () {
       final at = _ny(8, 16, 0);
       Clock.freeze(at);
       final state = _state();
@@ -640,9 +642,16 @@ void main() {
 
       expect(p.tier, ClassCelebrationTier.dayDone);
       expect(p.headline, 'THURSDAY, DONE.');
-      expect(p.closing.first, 'Two for two.');
-      expect(p.bonusXp, 10);
-      expect(p.bonusLine, "All of Thursday's classes");
+      // Something was set aside, so the day is not "Two for two.": only
+      // what is next.
+      expect(p.closing, hasLength(1));
+      expect(p.closing.first, isNot(contains('for')));
+      expect(
+        p.closing.first,
+        'Friday ends late: Discrete Structures II at 5:55.',
+      );
+      expect(p.bonusXp, 0);
+      expect(p.bonusLine, isNull);
       expect(p.rows, hasLength(2));
       expect(p.numeral, 2);
       final words = [

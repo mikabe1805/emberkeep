@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../background_music.dart';
 import '../main_room_music.dart' show MainRoomMusic;
+import '../academic_calendar/domain/academic_schedule.dart' show AcademicTerm;
 import '../academic_calendar/services/class_day_projection.dart';
 import '../clock.dart';
 import '../content/achievements.dart';
@@ -65,6 +66,8 @@ import '../widgets/class_day/add_classes_row.dart';
 import '../widgets/class_day/class_day_model.dart';
 import '../widgets/class_day/class_day_room.dart';
 import '../widgets/class_day/class_kept_celebration.dart';
+import '../widgets/class_day/doorway_model.dart';
+import '../widgets/class_day/doorway_stage.dart';
 import '../widgets/class_day/class_room_stage.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
@@ -100,6 +103,8 @@ class QuestsPage extends StatefulWidget {
     this.workoutRequestId = 0,
     this.musicController,
     this.classDays,
+    this.classTerm,
+    this.onClassesSetAside,
     this.onAddClasses,
     this.dockQuiet,
   });
@@ -184,6 +189,14 @@ class QuestsPage extends StatefulWidget {
   /// The shell's class-day projection over the imported timetable, or null
   /// without one. Optional, so direct previews and tests need no schedule.
   final ClassDayLookup? classDays;
+
+  /// The timetable's term for a day (the Doorway's shelf counts the weeks of
+  /// the term he went to class). Optional: without it the shelf stays bare.
+  final AcademicTerm? Function(CivilDate day)? classTerm;
+
+  /// Told after a class is set aside, or brought back, so the shell can stop
+  /// (or restore) that class's reminder.
+  final VoidCallback? onClassesSetAside;
 
   /// Opens the Add your classes sheet in Plans. The shell passes it only when
   /// the timetable is loaded and empty; with it, weekdays show one calm
@@ -343,12 +356,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   bool _classCelebrationLeaving = false;
 
   /// Whether the room showed the evening at its last build. While a
-  /// celebration is up the room keeps that frame, so the camera's walk to the
-  /// armchair starts only once the moment is over.
+  /// celebration is up the room keeps that frame, so the glass turns to the
+  /// evening only once the moment is over.
   bool _eveningShown = false;
-
-  /// Where that walk starts: the held celebration's own framing.
-  RoomShot? _eveningWalkFrom;
 
   /// The class day on which the evening's music control set tonight's
   /// choice; it gives way to the saved setting once that evening is over.
@@ -3403,10 +3413,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       key: const Key('class-day-room'),
       state: _state,
       card: card,
+      doorway: _doorwayFor(day, now),
       now: now,
       camera: _classCamera,
+      parallax: _activeParallax,
       evening: evening ? _classEvening(day, now) : null,
-      walkFrom: _eveningWalkFrom,
       onStepBack: (step) {
         _roomStepBack = step;
         _syncDockQuiet();
@@ -3439,6 +3450,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       ),
     );
   }
+
+  /// The Doorway's reading of [day]: its tickets, hooks, bowl and shelf.
+  DoorwayDay _doorwayFor(ClassDay day, DateTime now) => DoorwayDay.build(
+    day: day,
+    state: _state,
+    now: now,
+    dayOf: (date) => _classDayAt(now, day: date) ?? day,
+    term: widget.classTerm?.call(day.date),
+  );
 
   /// The evening's doors: a page in the journal, the room's music, and
   /// closing the day once the wind-down has begun and tonight is open.
@@ -3655,6 +3675,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     _settleUndoBeforeLaterEdit();
     widget.onPersist();
+    widget.onClassesSetAside?.call();
     Haptics.tap();
     _dismissUndoTimer?.cancel();
     setState(() {
@@ -3674,6 +3695,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _dismissUndoTimer = null;
     _state.undoDismiss(undo.facts);
     widget.onPersist();
+    widget.onClassesSetAside?.call();
     Haptics.tap();
     setState(() => _dismissUndo = null);
   }
@@ -3687,17 +3709,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final reduceMotion =
         s.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    // In the evening the camera already stands at the window and the
-    // armchair, the lamp in frame: the moment plays there.
+    // In the evening the glass already stands in its evening form: the moment
+    // plays over the room as it is.
     final inEvening = _eveningShown;
-    final width = MediaQuery.sizeOf(context).width;
     _classCelebrationLeaving = false;
     late final OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => ClassKeptCelebration(
         plan: plan,
         state: s,
-        fromShot: classRoomIsLayered(s) ? _classCamera.shot : null,
+        // The Doorway stands behind the moment, held as it is now.
+        backdrop: (context, stageTop, scrimHeight) => DoorwayStage(
+          day: _doorwayFor(day, now),
+          reduceMotion: true,
+          scrimHeight: scrimHeight,
+        ),
         holdFraming: inEvening,
         stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
         stageHeight: _classCamera.stage?.height,
@@ -3712,11 +3738,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           setState(() {
             _heldClass = null;
             _classCelebrationLeaving = true;
-            // A held moment that ends the day hands the room to the
-            // evening: the walk to the armchair starts from its framing.
-            if (plan.held && !inEvening && classRoomIsLayered(s)) {
-              _eveningWalkFrom = RoomShot.kept(width: width);
-            }
           });
         },
         reduceMotion: reduceMotion,
@@ -3727,7 +3748,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           setState(() {
             _heldClass = null;
             _classCelebrationLeaving = false;
-            _eveningWalkFrom = null;
           });
           // A level crossed by the mark plays the real level-up next, then
           // the streak chest, the rank-up beat and achievement toasts.

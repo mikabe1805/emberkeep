@@ -855,10 +855,18 @@ ClassCelebrationPlan planClassCelebration({
     _ => (gained, 0, null),
   };
 
+  // "Two for two." says every class there was went. It is said only when
+  // nothing was set aside with "Couldn't make it" (the day's, or any day of
+  // the week it closes); otherwise the closing is the next-class line alone.
+  final daySetAside = state.classesDismissedOn(day.dayKey).isNotEmpty;
+  final weekSetAside = [
+    for (var i = 0; i < 7; i++) monday.addDays(i),
+  ].any((date) => state.classesDismissedOn(date.toString()).isNotEmpty);
+
   // Closing lines, from what is actually next.
   final closing = <String>[];
   if (tier == ClassCelebrationTier.weekDone) {
-    if (weekKept == weekTotal && weekTotal > 0) {
+    if (weekKept == weekTotal && weekTotal > 0 && !weekSetAside) {
       closing.add(
         '${_capital(classCountWord(weekTotal))} for '
         '${classCountWord(weekTotal)}.',
@@ -872,7 +880,7 @@ ClassCelebrationPlan planClassCelebration({
     }
     closing.add(nextClassDayLine(day, dayOf));
   } else if (tier == ClassCelebrationTier.dayDone) {
-    if (completeAfter) {
+    if (completeAfter && !daySetAside) {
       closing.add(
         '${_capital(classCountWord(keys.length))} for '
         '${classCountWord(keys.length)}.',
@@ -882,7 +890,7 @@ ClassCelebrationPlan planClassCelebration({
   } else {
     // The day tier already played tonight; the mark that completes the day
     // still says so, once, and only because it is true.
-    if (completes) {
+    if (completes && !daySetAside) {
       closing.add(
         '${_capital(classCountWord(keys.length))} for '
         '${classCountWord(keys.length)}.',

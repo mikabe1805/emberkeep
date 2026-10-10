@@ -241,3 +241,14 @@ prompt, applied separately to each matching source plate:
 `tool/prepare_room_themes.py` produces all three full-size runtime WebPs and
 their 720 x 480 chooser previews. At runtime Me quantizes the shared fire loop
 to about 11 fps; Quests uses its existing lively/reduced-motion cadence.
+
+## The Doorway (2026-10-10)
+
+`assets/rooms/doorway/` holds the class-day room's painted layers: the three
+door-view lights with transparent pane cuts, the matching outdoor plates, the
+ticket faces, the week bundles and the two live beam layers (production art
+from the Doorway pass, see the codex-house doorway-prod README). The
+`rail-*.webp` atlases are not painted: each is cut from that light's own
+door-view plate (end brackets, holder unit, plaster pocket, brass front lip,
+plant mask) so the ticket rail can be drawn for any number of holders. About
+1.5 MB in all.

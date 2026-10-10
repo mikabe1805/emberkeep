@@ -109,6 +109,14 @@ final _there = find.byKey(const Key('class-there-button'));
 final _setAside = find.text(classSetAsideLabel);
 final _undoLine = find.byKey(const Key('class-dismissed-line'));
 final _undo = find.byKey(const Key('class-dismissed-undo'));
+final _more = find.byKey(const Key('class-more-later'));
+
+/// The rows of classes still to come that open their own quiet word on a tap.
+final _reveals = find.byWidgetPredicate(
+  (w) =>
+      w.key is ValueKey<String> &&
+      (w.key! as ValueKey<String>).value.startsWith('class-reveal-'),
+);
 
 String _occurrence(String code) => projectClassDay(
   _fall2026,
@@ -136,14 +144,22 @@ void main() {
     ) async {
       final board = await _mount(tester, at: _ny(6, 8, 5));
       expect(_room, findsOneWidget);
-      // Tuesday: the 10:20 lecture leads, the 2:00 lecture waits quietly.
-      expect(_setAside, findsNWidgets(2));
+      // Tuesday: the 10:20 lecture leads with its quiet word; the 2:00
+      // lecture waits quietly and shows its own only when it is tapped.
+      expect(_setAside, findsOneWidget);
+      expect(_reveals, findsOneWidget);
       expect(_undoLine, findsNothing);
+      await tester.tap(_reveals);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_setAside, findsNWidgets(2));
+      await tester.tap(_reveals);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_setAside, findsOneWidget, reason: 'a second tap puts it away');
       final xp = board.state.totalXp;
 
       await tester.tap(_setAside.first);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(board.state.classesDismissedOn('2026-10-06'), hasLength(1));
       expect(board.state.totalXp, xp, reason: 'it pays nothing');
@@ -185,31 +201,31 @@ void main() {
       expect(leader, findsOneWidget);
 
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(leader, findsNothing);
 
       await tester.tap(_undo);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(leader, findsOneWidget);
       expect(_undoLine, findsNothing);
       expect(board.state.classesDismissedOn('2026-10-06'), isEmpty);
       expect(jsonEncode(board.state.toJson()), before);
-      expect(_setAside, findsNWidgets(2));
+      expect(_setAside, findsOneWidget);
       // Nothing is left waiting to fire.
       await tester.pump(const Duration(seconds: 6));
     });
 
     testWidgets('a second one replaces the first Undo line', (tester) async {
       final board = await _mount(tester, at: _ny(8, 7, 0));
-      expect(_setAside, findsNWidgets(3));
+      expect(_setAside, findsOneWidget);
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(
         find.text('Electronics Devices is off today’s list.'),
         findsOneWidget,
       );
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(find.textContaining('is off today’s list.'), findsOneWidget);
       expect(
         find.text('Electronics Devices is off today’s list.'),
@@ -221,16 +237,14 @@ void main() {
   });
 
   group('after class: next to I WAS THERE, never louder', () {
-    testWidgets('the lamp leads; the quiet word sits beside it', (
-      tester,
-    ) async {
+    testWidgets('the lamp leads; the quiet word sits under it', (tester) async {
       final board = await _mount(tester, at: _ny(6, 11, 52));
       expect(_there, findsOneWidget);
-      expect(_setAside, findsNWidgets(2));
+      expect(_setAside, findsOneWidget);
       final lamp = tester.getRect(_there);
       final word = tester.getRect(_setAside.first);
-      expect(word.left, greaterThan(lamp.right - 1), reason: 'beside the lamp');
-      expect(word.width, lessThan(lamp.width / 2), reason: 'never as large');
+      expect(word.top, greaterThan(lamp.bottom - 1), reason: 'under the lamp');
+      expect(word.width, lessThan(lamp.width * 0.8), reason: 'never as large');
 
       // Cream, quiet: the word carries no red and no warning color.
       final style = tester.widget<Text>(_setAside.first).style!;
@@ -242,7 +256,7 @@ void main() {
       expect(find.byIcon(Icons.cancel), findsNothing);
 
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(board.state.classesKeptOn('2026-10-06'), isEmpty);
       expect(board.state.classesDismissedOn('2026-10-06'), hasLength(1));
       await tester.pump(const Duration(seconds: 6));
@@ -255,7 +269,7 @@ void main() {
       // Both 10:20 and 2:00 are over. Set the 10:20 aside.
       expect(_there, findsOneWidget);
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(board.state.classesDismissedOn('2026-10-06'), hasLength(1));
       // The card now holds one class, which leads.
       expect(_there, findsOneWidget);
@@ -265,7 +279,11 @@ void main() {
     testWidgets('a class in session is not offered it', (tester) async {
       await _mount(tester, at: _ny(6, 10, 50));
       expect(_there, findsOneWidget);
-      // The 10:20 is running; only the 2:00 can be set aside.
+      // The 10:20 is running; only the 2:00 can be set aside, once its row
+      // is opened.
+      expect(_setAside, findsNothing);
+      await tester.tap(_reveals);
+      await tester.pump(const Duration(milliseconds: 300));
       expect(_setAside, findsOneWidget);
     });
   });
@@ -276,7 +294,7 @@ void main() {
     ) async {
       await _mount(tester, at: _ny(8, 7, 0));
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       final words = _texts(tester).join(' | ').toLowerCase();
       expect(RegExp(r'\d+\s+of\s+\d+').hasMatch(words), isFalse, reason: words);
       expect(words, isNot(contains(' of 3')));
@@ -302,9 +320,9 @@ void main() {
     ) async {
       final board = await _mount(tester, at: _ny(6, 8, 5));
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(board.state.classesDismissedOn('2026-10-06'), hasLength(2));
       expect(_room, findsOneWidget, reason: 'the room holds while Undo waits');
@@ -316,12 +334,12 @@ void main() {
 
       // Undo brings the last one back and the day is a class day again.
       await tester.tap(_undo);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(_setAside, findsOneWidget);
 
       // Set it aside again and let the line go: the day is the plain board.
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pump(const Duration(seconds: 6));
       expect(_room, findsNothing);
       expect(_undoLine, findsNothing);
@@ -333,7 +351,7 @@ void main() {
     ) async {
       final board = await _mount(tester, at: _ny(7, 7, 0));
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       expect(board.state.classesDismissedOn('2026-10-07'), hasLength(1));
       expect(board.state.classesDismissedOn('2026-10-08'), isEmpty);
       await tester.pump(const Duration(seconds: 6));
@@ -369,7 +387,7 @@ void main() {
 
         // Performing it through the semantics tree sets the class aside.
         tester.semantics.tap(control);
-        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 400));
         expect(board.state.classesDismissedOn('2026-10-06'), hasLength(1));
         await tester.pump(const Duration(seconds: 6));
         handle.dispose();
@@ -382,7 +400,7 @@ void main() {
       final handle = tester.ensureSemantics();
       await _mount(tester, at: _ny(6, 8, 5));
       await tester.tap(_setAside.first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 400));
       final line = find.semantics.byLabel(
         'Computer Architecture is off today’s list.',
       );
@@ -439,14 +457,36 @@ void main() {
           );
           expect(tester.takeException(), isNull);
           expect(_room, findsOneWidget);
-          expect(_setAside, findsNWidgets(kinds.length));
+          // The first class leads with its word; the next two show as quiet
+          // rows; any more wait behind "N more later today", which opens
+          // every one.
+          expect(_setAside, findsOneWidget);
+          expect(
+            _reveals,
+            findsNWidgets(
+              kinds.length == 1
+                  ? 0
+                  : kinds.length >= 4
+                  ? 2
+                  : kinds.length - 1,
+            ),
+          );
+          if (kinds.length >= 4) {
+            expect(_more, findsOneWidget);
+            await tester.ensureVisible(_more);
+            await tester.tap(_more);
+            await tester.pump(const Duration(milliseconds: 400));
+            expect(_reveals, findsNWidgets(kinds.length - 1));
+          } else {
+            expect(_more, findsNothing);
+          }
 
           // Set the first one aside; the card still lays out.
           await tester.tap(_setAside.first);
-          await tester.pump(const Duration(milliseconds: 300));
+          await tester.pump(const Duration(milliseconds: 400));
           expect(tester.takeException(), isNull);
           expect(board.state.classesDismissedOn('2026-10-09'), hasLength(1));
-          expect(_setAside, findsNWidgets(kinds.length - 1));
+          expect(_setAside, kinds.length == 1 ? findsNothing : findsOneWidget);
           await tester.pump(const Duration(seconds: 6));
           expect(tester.takeException(), isNull);
         });
