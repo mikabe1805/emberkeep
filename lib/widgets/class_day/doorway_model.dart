@@ -219,19 +219,53 @@ String? doorwayShelfLabel(String? termName, int weeks) {
 
 // ── Tickets ───────────────────────────────────────────────────────────────
 
-/// One class by the door.
+/// What a quest ticket says: the stat's glyph in a small ring, the quest's
+/// name and its XP. A quest by the door is one of today's three on a day with
+/// no classes.
+final class DoorwayQuestFace {
+  const DoorwayQuestFace({
+    required this.id,
+    required this.name,
+    required this.glyph,
+    required this.statLabel,
+    required this.xp,
+  });
+
+  /// Stable for the day and across an undo (the quest's identity title).
+  final String id;
+
+  /// The quest as the person reads it ("Read ten pages").
+  final String name;
+
+  /// One letter for the stat's ring.
+  final String glyph;
+
+  /// The stat's own word, for a screen reader ("Mind").
+  final String statLabel;
+
+  /// What completing it is worth, or null when it is not known (a quest kept
+  /// in an earlier session shows its name alone).
+  final int? xp;
+}
+
+/// One class (or, on a day with no classes, one quest) by the door.
 final class DoorwayTicket {
   const DoorwayTicket({
-    required this.entry,
+    this.entry,
+    this.quest,
     required this.kind,
     required this.label,
     required this.state,
     this.hook,
     this.room,
-  });
+  }) : assert(entry != null || quest != null);
 
-  /// The class this ticket is for (its facts are what the engine keeps).
-  final ProjectedClass entry;
+  /// The class this ticket is for (its facts are what the engine keeps); null
+  /// for a quest ticket.
+  final ProjectedClass? entry;
+
+  /// The quest this ticket is for; null for a class ticket.
+  final DoorwayQuestFace? quest;
   final DoorwayKind kind;
 
   /// Short capitals for the ticket ([doorwayTicketLabel]).
@@ -246,14 +280,20 @@ final class DoorwayTicket {
   /// when the timetable names none.
   final String? room;
 
-  /// The timetable occurrence's key: what a mark or a dismissal names.
-  String get id => entry.occurrenceKey;
+  /// Whether this is one of today's three quests rather than a class.
+  bool get isQuest => quest != null;
 
-  ClassFacts get facts => entry.facts;
+  /// The timetable occurrence's key (a class), or the quest's own id: what a
+  /// mark or a dismissal names.
+  String get id => quest?.id ?? entry!.occurrenceKey;
 
-  /// Local start and end, minutes after midnight in the schedule's zone.
-  int get startMinute => entry.localStartMinute;
-  int get endMinute => entry.localEndMinute;
+  /// The class's plain facts. A quest ticket has none.
+  ClassFacts get facts => entry!.facts;
+
+  /// Local start and end, minutes after midnight in the schedule's zone (zero
+  /// for a quest).
+  int get startMinute => entry?.localStartMinute ?? 0;
+  int get endMinute => entry?.localEndMinute ?? 0;
 
   /// A full day waits on it (office hours do not).
   bool get counts => kind != DoorwayKind.optional;
@@ -266,7 +306,9 @@ final class DoorwayTicket {
   /// "Couldn't make it" is offered on it: a class that has not started, or is
   /// over and still open, never one he is sitting in or already kept.
   bool get canSetAside =>
-      state == DoorwayTicketState.upcoming || state == DoorwayTicketState.ready;
+      !isQuest &&
+      (state == DoorwayTicketState.upcoming ||
+          state == DoorwayTicketState.ready);
 
   bool get folded => state == DoorwayTicketState.dismissed;
 }
@@ -292,6 +334,7 @@ final class DoorwayDay {
     required this.shelfBundles,
     this.termName,
     this.weekTied = false,
+    this.emptyHolders = 0,
   });
 
   /// A day with nothing on the rail, nothing in the bowl and nothing on the
@@ -424,6 +467,10 @@ final class DoorwayDay {
   /// the bowl is empty. (Every other week's bundle joins the shelf on its own
   /// Monday; this one is tied the moment the week's last day is kept.)
   final bool weekTied;
+
+  /// How many holders stand empty on the rail when the day has no tickets
+  /// (today's three, not chosen yet: three). Zero keeps the usual one.
+  final int emptyHolders;
 
   /// How many bundles stand on the shelf: the earlier weeks, and this one once
   /// it is tied.
