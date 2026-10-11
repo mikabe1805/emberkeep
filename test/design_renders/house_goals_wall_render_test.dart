@@ -24,9 +24,12 @@ const _only = String.fromEnvironment('GOALS_WALL_ONLY');
 bool _wants(String name) =>
     _only.isEmpty || _only.split(',').map((s) => s.trim()).contains(name);
 
-const _out =
-    'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/house-goals/'
-    'design/comparisons/2026-10-11/h53-goals-wall';
+const _out = String.fromEnvironment(
+  'GOALS_WALL_OUT',
+  defaultValue:
+      'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
+      'design/comparisons/2026-10-11/h53-goals-wall',
+);
 
 final _at = DateTime(2026, 10, 6, 12, 30);
 

@@ -28,9 +28,12 @@ const _only = String.fromEnvironment('YS_ONLY');
 bool _wants(String name) =>
     _only.isEmpty || _only.split(',').map((s) => s.trim()).contains(name);
 
-const _out =
-    'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/house-me/'
-    'design/comparisons/2026-10-11/h53-your-room';
+const _out = String.fromEnvironment(
+  'YS_OUT',
+  defaultValue:
+      'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
+      'design/comparisons/2026-10-11/h53-your-room',
+);
 
 DateTime _at(int day, int hour, int minute) =>
     DateTime(2026, 10, day, hour, minute);

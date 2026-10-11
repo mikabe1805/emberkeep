@@ -9,6 +9,7 @@
 //
 // Output: design/comparisons/2026-10-11/house-merged/ in the class-day-journey
 // checkout, next to the prototype's v4 frames (the sheets are made from both).
+// MERGED_OUT=<folder> writes somewhere else (the h53 merge used h53-merged).
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/screens/quests.dart' show QuestsPage;
 import 'package:emberkeep/widgets/class_day/doorway_art.dart';
@@ -23,9 +24,12 @@ const _only = String.fromEnvironment('MERGED_ONLY');
 bool _wants(String name) =>
     _only.isEmpty || _only.split(',').map((s) => s.trim()).contains(name);
 
-const _out =
-    'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
-    'design/comparisons/2026-10-11/house-merged';
+const _out = String.fromEnvironment(
+  'MERGED_OUT',
+  defaultValue:
+      'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
+      'design/comparisons/2026-10-11/house-merged',
+);
 
 DateTime _at(int day, int hour, int minute) =>
     DateTime(2026, 10, day, hour, minute);
@@ -177,7 +181,13 @@ void main() {
           surface: 'ME',
           note: '$shot sheet',
         );
-        await _tap(tester, 'mantel-sheet-close');
+        // "Your space" is a page now, with its own BACK; the rest are sheets.
+        await _tap(
+          tester,
+          find.byKey(const Key('your-space-back')).evaluate().isNotEmpty
+              ? 'your-space-back'
+              : 'mantel-sheet-close',
+        );
       }
       await openTab(tester, RoomTab.journal);
       await tester.drag(
