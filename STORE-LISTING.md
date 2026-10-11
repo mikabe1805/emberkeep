@@ -108,11 +108,12 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 54 is an internal candidate that turns the app into one house. Every
+Build 55 is an internal candidate that turns the app into one house. Every
 tab is now a painted room with its own daytime and evening light. On class
 days your classes hang by the front door in Quests, and Couldn't make it sets
 one aside. Goals pins your goals on the workshop wall, Plans has a new week
-view, and your own room has a page of its own under Your space in Me.
+view, and your own room has a page of its own under Your space in Me. Taps
+are softer, and each class you mark rings a note higher than the last.
 
 ## What to Test
 
@@ -126,6 +127,8 @@ view, and your own room has a page of its own under Your space in Me.
   its name to open it.
 - In Plans, switch between **DAY**, **WEEK**, and **MONTH**.
 - In Me, open **YOUR SPACE** and try **CHANGE SPACE**.
+- With sound on, tap around the rooms, then mark two classes in a row. Taps
+  should sound soft, and the second class should ring higher than the first.
 - Try a few rooms with Larger Text and with Reduce Motion.
 
 Report anything that looks pasted on, feels slow, or is hard to find.

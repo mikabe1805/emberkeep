@@ -53,8 +53,8 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
-    id: '1.0.5+54',
-    versionLabel: 'VERSION 1.0.5 · BUILD 54',
+    id: '1.0.5+55',
+    versionLabel: 'VERSION 1.0.5 · BUILD 55',
     dateLabel: 'OCTOBER 2026',
     title: 'Every tab is a room now.',
     introduction:
@@ -77,11 +77,11 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
             'reward, nothing held against you, and your streak stays safe.',
       ),
       ReleaseHighlight(
-        kind: ReleaseHighlightKind.flexiblePlans,
-        title: 'THE WORKSHOP WALL',
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'A SOFTER HAND',
         body:
-            'Your goals are pinned on the wall in Goals. Tap one to bring it '
-            'to the card, and tap its name to open it.',
+            'Taps are rounder and quieter now. Each class you mark rings a '
+            'note higher than the one before it.',
       ),
       ReleaseHighlight(
         kind: ReleaseHighlightKind.spaceDiscovery,
