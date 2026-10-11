@@ -40,7 +40,6 @@ const _art = <String>[
     'assets/pages/goals-living-backdrop-v2.webp',
     'assets/pages/goals-living-backdrop-soft-v2.webp',
     'assets/pages/goals-room-retreat-v1.webp',
-    'assets/pages/goals-room-kitchen-v1.webp',
     'assets/pages/goals-threshold-room-v1.webp',
     'assets/pages/goals-threshold-plate-flat-v1.png',
     'assets/pages/goals-return-bookcloth-v1.png',

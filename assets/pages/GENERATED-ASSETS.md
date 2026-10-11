@@ -193,6 +193,9 @@ selected Goals desk and threshold directions in
 
 ### `goals-room-kitchen-v1.webp`
 
+> Removed 2026-10-11: the kitchen walk was retired and nothing draws this plate
+> any more. The preserved source below stays under `design/`.
+
 - Original generated file:
   `C:\Users\mikus\.codex\generated_images\01a0401d-5950-7b43-a217-b3ccf2007b91\exec-7215a2f9-d046-40cd-9af7-9a6d1ffbb903.png`.
 - Preserved source:

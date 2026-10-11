@@ -3291,8 +3291,8 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             state.level < 5
-                ? 'changes the light around your room · opens at level 5'
-                : 'changes your space and canvas-backed pages · Change Space replaces the room itself',
+                ? 'colors the pages you open from a room · opens at level 5'
+                : 'colors the pages you open from a room · the painted rooms stay as they are',
             style: Type.body.copyWith(
               fontSize: 11,
               fontStyle: FontStyle.italic,

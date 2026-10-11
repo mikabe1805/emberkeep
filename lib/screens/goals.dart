@@ -302,7 +302,6 @@ class _GoalsPageState extends State<GoalsPage> {
     if (_roomAssetsPrepared) return;
     _roomAssetsPrepared = true;
     precacheImage(const AssetImage(goalsRoomContinuousAsset), context);
-    precacheImage(const AssetImage(goalsRoomKitchenAsset), context);
     precacheGoalStewardAssets(context);
     precacheImage(const AssetImage(goalsThresholdPlateAsset), context);
     _scheduleRequestedOpening();

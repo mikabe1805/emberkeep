@@ -193,7 +193,6 @@ Future<void> _precachePageArt(WidgetTester tester) async {
     'assets/pages/goals-living-backdrop-v2.webp',
     'assets/pages/goals-room-retreat-v1.webp',
     'assets/pages/working-room-v1.webp',
-    'assets/pages/goals-room-kitchen-v1.webp',
     'assets/pages/goals-workshop-tavern-back-v2.webp',
     'assets/pages/goals-workshop-tavern-counter-v2.webp',
     'assets/pages/goals-workshop-steward-welcome-v2.webp',

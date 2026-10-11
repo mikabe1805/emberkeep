@@ -22,7 +22,6 @@ const goalsLivingBackdropSoftAsset =
 /// pressing the floor threshold cannot jump to a differently shaped arch.
 const goalsRoomContinuousAsset = 'assets/pages/goals-threshold-room-v1.webp';
 const goalsRoomRetreatAsset = 'assets/pages/goals-room-retreat-v1.webp';
-const goalsRoomKitchenAsset = 'assets/pages/goals-room-kitchen-v1.webp';
 const goalsRoomRestScale = 1.0;
 const goalsRoomRestTranslation = Offset.zero;
 const goalsRoomKitchenScale = 1.025;
