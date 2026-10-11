@@ -108,23 +108,27 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 52 is an internal candidate that brings the Steward's workshop to the
-front of Goals. New goals now start with the Steward, one question at a time,
-and end on a first step you can take today. The end-of-week class screen also
-adds up correctly now.
+Build 53 is an internal candidate that turns the app into one house. Every
+tab is now a painted room with its own daytime and evening light. On class
+days your classes hang by the front door in Quests, and Couldn't make it sets
+one aside. Goals pins your goals on the workshop wall, Plans has a new week
+view, and your own room has a page of its own under Your space in Me.
 
 ## What to Test
 
-- Open Goals and find **The Steward's workshop** at the top. Open it with a
-  goal and, on a fresh account if you can, with none.
-- Tap **New goal** and answer the Steward's questions. Note any question that
-  feels slow, unclear, or unnecessary.
-- At the end, tap **Take this Quest**, then find it on your Quest board.
-- In the workshop, try **Make it smaller** and **See the whole plan**.
-- Open **Talk with the Steward** from the bottom of the workshop.
-- After your last class of the week, check that **THAT'S THE WEEK.** adds up.
+- Move between all five tabs at midday, then again in the evening. Each room
+  should arrive in its own light. Report any flicker, stutter, or lag.
+- On a class day, open Quests. Tap **I WAS THERE** or drag a ticket up to its
+  hook. Try **Couldn't make it** on another class.
+- On a day with no classes, choose Today's three and keep all three. The
+  day's card should show once.
+- In Goals, tap a goal pinned on the wall to bring it to the card, then tap
+  its name to open it.
+- In Plans, switch between **DAY**, **WEEK**, and **MONTH**.
+- In Me, open **YOUR SPACE** and try **CHANGE SPACE**.
+- Try a few rooms with Larger Text and with Reduce Motion.
 
-Report anything that feels confusing, slow, or hard to find.
+Report anything that looks pasted on, feels slow, or is hard to find.
 
 ## Reviewer notes
 

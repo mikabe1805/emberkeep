@@ -53,6 +53,46 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.5+53',
+    versionLabel: 'VERSION 1.0.5 · BUILD 53',
+    dateLabel: 'OCTOBER 2026',
+    title: 'Every tab is a room now.',
+    introduction:
+        'Room of Days is one painted house now. Each tab opens a room of its '
+        'own, and the light in it follows the time of day.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.courseWork,
+        title: 'THE DOORWAY',
+        body:
+            "On class days, today's classes hang by the front door in Quests. "
+            'Mark one and it goes up on its hook. When the day is done they '
+            'go in the bowl.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: "COULDN'T MAKE IT",
+        body:
+            "Can't get to a class? Set it aside and it leaves the rail. No "
+            'reward, nothing held against you, and your streak stays safe.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'THE WORKSHOP WALL',
+        body:
+            'Your goals are pinned on the wall in Goals. Tap one to bring it '
+            'to the card, and tap its name to open it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'YOUR OWN ROOM',
+        body:
+            'The room you decorate has a page of its own now. Open Your space '
+            'from the mantel in Me.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.5+52',
     versionLabel: 'VERSION 1.0.5 · BUILD 52',
     dateLabel: 'OCTOBER 2026',
