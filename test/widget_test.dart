@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'house/me_sheet_support.dart';
 
 Future<void> pumpApp(
   WidgetTester tester, {
@@ -712,13 +713,13 @@ void main() {
     await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
     await tester.pump(const Duration(milliseconds: 500));
 
-    // Preview toolbars can sit over the far-right edge on a phone. The whole
-    // The whole Glimmers rail remains a real target when phone chrome crowds
-    // the trailing button.
+    // Change space is in the mantel's YOUR SPACE sheet. The whole Glimmers
+    // rail remains a real target when phone chrome crowds the trailing button.
+    await openMantelSheet(tester, 'space');
     await tester.scrollUntilVisible(
       find.text('0 GLIMMERS'),
       180,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: mantelSheetScrollable,
     );
     await settle(tester);
     await tester.tap(find.text('0 GLIMMERS'));
@@ -821,11 +822,13 @@ void main() {
 
     // The seal carries the milestone's NAME whether or not it is earned; the
     // padlock carries its state and the sheet behind it carries the numbers.
+    // The milestones are in the mantel's MORE sheet.
+    await openMantelSheet(tester, 'more');
     final milestone = find.text('FIRST FIVE');
     await tester.scrollUntilVisible(
       milestone,
       250,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: mantelSheetScrollable,
     );
     await tester.ensureVisible(milestone);
     await tester.pump(const Duration(milliseconds: 200));
@@ -852,7 +855,9 @@ void main() {
     await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
     await tester.pump(const Duration(milliseconds: 500));
 
-    final meList = find.byType(Scrollable).first;
+    // The switches are in the mantel's SETTINGS sheet.
+    await openMantelSheet(tester, 'settings');
+    final meList = mantelSheetScrollable;
     // NB: this must track me.dart's section heading exactly — it was renamed
     // to add the text-size control, and a stale string here makes the scroll
     // run off the end of the lazy list and fail with an opaque "No element".

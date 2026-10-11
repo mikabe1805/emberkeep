@@ -16,6 +16,8 @@ import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'house/me_sheet_support.dart';
+
 const _phoneSize = Size(320, 568);
 const _captureLargeText = bool.fromEnvironment('CAPTURE_LARGE_TEXT');
 const _captureKey = ValueKey('large-text-capture');
@@ -180,7 +182,10 @@ void main() {
     );
     expect(tester.takeException(), isNull);
 
-    final pageScroll = find.byType(Scrollable).first;
+    // My Space is in the mantel's YOUR SPACE sheet.
+    await openMantelSheet(tester, 'space');
+    expect(tester.takeException(), isNull);
+    final pageScroll = mantelSheetScrollable;
     await tester.scrollUntilVisible(
       find.text('EDIT SPACE'),
       260,
@@ -287,11 +292,12 @@ void main() {
       ),
     );
 
+    await openMantelSheet(tester, 'space');
     final open = find.byKey(const ValueKey('space-page-open-arranger'));
     await tester.scrollUntilVisible(
       open,
       260,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: mantelSheetScrollable,
     );
     await tester.ensureVisible(open);
     await tester.pump();
@@ -304,7 +310,12 @@ void main() {
     await tester.scrollUntilVisible(
       anyone,
       220,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('space-arranger')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.ensureVisible(anyone);
     await tester.pump();

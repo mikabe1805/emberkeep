@@ -12,6 +12,8 @@ import 'package:emberkeep/widgets/home_room.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'house/me_sheet_support.dart';
+
 Future<RoomPublishResult> _publishRoom(
   GameState _, {
   required String code,
@@ -110,6 +112,8 @@ void main() {
       ..collectedLoot.add('Periwinkle Frost');
     await tester.pumpWidget(_mePage(state));
     await tester.pump();
+    // The wardrobe is in the mantel's More sheet.
+    await openMantelSheet(tester, 'more');
 
     final triggerFinder = find.byKey(
       const ValueKey('wardrobe-skin-Periwinkle Frost'),
@@ -117,7 +121,7 @@ void main() {
     await tester.scrollUntilVisible(
       triggerFinder,
       420,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: mantelSheetScrollable,
     );
     final trigger = tester.widget<GestureDetector>(triggerFinder);
     trigger.onTap!();
