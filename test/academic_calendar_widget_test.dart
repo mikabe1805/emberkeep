@@ -2771,9 +2771,9 @@ void main() {
         findsOneWidget,
       );
       if (mode == AcademicCalendarMode.week) {
-        // The week is seven columns of tickets; the class is its course
-        // number at its time.
-        expect(find.text('ECE 345'), findsOneWidget);
+        // The week is seven rows of strips; the class is its course's name
+        // at its time.
+        expect(find.text('Linear Systems'), findsOneWidget);
         expect(find.text('10:20'), findsOneWidget);
       } else {
         expect(
@@ -2837,15 +2837,12 @@ void main() {
           findsOneWidget,
         );
         if (mode == AcademicCalendarMode.week) {
-          // The week strip is seven columns of tickets.
-          for (final title in const [
-            'Library closed',
-            'Project meeting',
-            'Return library book',
-            'Quest board check-in',
-          ]) {
+          // The week is seven rows of strips; a day this full shows its first
+          // plans and says how many more wait (the day opens to all of them).
+          for (final title in const ['Library closed', 'Project meeting']) {
             expect(find.text(title), findsWidgets);
           }
+          expect(find.textContaining(RegExp(r'^\+\d+$')), findsWidgets);
         } else {
           // A day's page keeps the sections in order.
           expect(find.text('Library closed'), findsWidgets);

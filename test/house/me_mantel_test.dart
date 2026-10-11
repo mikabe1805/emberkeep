@@ -150,14 +150,16 @@ void main() {
       }
     });
 
-    testWidgets('the HUD wears the same stats and a stat opens its page', (
+    testWidgets('the card opens a domain page, and the room has no HUD copy', (
       tester,
     ) async {
       _phone(tester);
       await tester.pumpWidget(_page(_state()));
       await tester.pump();
 
-      expect(find.byType(ClassDayHud), findsOneWidget);
+      // The room draws no HUD of its own (the shell's one HUD is over every
+      // room: test/house/house_hud_test.dart).
+      expect(find.byType(ClassDayHud), findsNothing);
       // Touching a domain on the glass opens that domain's page.
       await tester.tap(find.byKey(const Key('mantel-stat-intl')));
       await tester.pumpAndSettle();
@@ -165,15 +167,6 @@ void main() {
       expect(
         tester.widget<DomainDetailScreen>(find.byType(DomainDetailScreen)).stat,
         Stat.intl,
-      );
-      tester.state<NavigatorState>(find.byType(Navigator)).pop();
-      await tester.pumpAndSettle();
-      // And so does the HUD.
-      await tester.tap(find.byKey(const Key('class-day-stat-soc')));
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<DomainDetailScreen>(find.byType(DomainDetailScreen)).stat,
-        Stat.soc,
       );
     });
 

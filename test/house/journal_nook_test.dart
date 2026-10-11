@@ -272,7 +272,7 @@ void main() {
   });
 
   group('recent entries', () {
-    testWidgets('list the last three with their dates, newest first', (
+    testWidgets('list the last two with their dates, newest first', (
       tester,
     ) async {
       await _pump(tester, GameState()..setJournal(_three()));
@@ -286,17 +286,51 @@ void main() {
         find.descendant(of: recent, matching: find.text('SUN · OCT 4')),
         findsOneWidget,
       );
-      expect(
-        find.descendant(of: recent, matching: find.text('FRI · OCT 2')),
-        findsOneWidget,
-      );
+      // Two rows of 44 pt: the older pages are one tap away under ALL.
+      expect(find.text('FRI · OCT 2'), findsNothing);
       expect(find.text('Long ago'), findsNothing);
       final ys = [
-        for (final d in ['MON · OCT 5', 'SUN · OCT 4', 'FRI · OCT 2'])
+        for (final d in ['MON · OCT 5', 'SUN · OCT 4'])
           tester.getTopLeft(find.text(d)).dy,
       ];
       expect(ys[0], lessThan(ys[1]));
-      expect(ys[1], lessThan(ys[2]));
+    });
+
+    testWidgets('every touch target in the nook is at least 44 pt', (
+      tester,
+    ) async {
+      final notes = _three();
+      await _pump(tester, GameState()..setJournal(notes));
+      for (final id in [
+        'after-the-quest',
+        'a-small-win',
+        'set-it-down',
+        'a-warm-detail',
+      ]) {
+        final r = tester.getRect(
+          find.byKey(ValueKey('journal-nook-chip-hit-$id')),
+        );
+        expect(r.height, greaterThanOrEqualTo(44), reason: id);
+        expect(r.width, greaterThanOrEqualTo(44), reason: id);
+      }
+      for (final key in [
+        'journal-nook-write',
+        'journal-nook-all',
+        'journal-keepsakes-tag',
+      ]) {
+        final r = tester.getRect(find.byKey(ValueKey(key)));
+        expect(
+          r.height + (key == 'journal-keepsakes-tag' ? 16 : 0),
+          greaterThanOrEqualTo(44),
+          reason: key,
+        );
+      }
+      for (final n in [notes[2], notes[1]]) {
+        final r = tester.getRect(
+          find.byKey(ValueKey('journal-nook-entry-${n.id}')),
+        );
+        expect(r.height, greaterThanOrEqualTo(44), reason: n.text);
+      }
     });
 
     testWidgets('a row opens its page to read first', (tester) async {
@@ -466,7 +500,7 @@ void main() {
         // the page scrolls to the last row and the lenses
         await _reveal(
           tester,
-          find.byKey(ValueKey('journal-nook-entry-${notes[0].id}')),
+          find.byKey(ValueKey('journal-nook-entry-${notes[1].id}')),
         );
         expect(tester.takeException(), isNull);
         await _reveal(tester, find.text('PATTERNS'));
@@ -550,14 +584,13 @@ void main() {
         'Keepsakes',
         'Read journal entry from MON · OCT 5: After the quest',
         'Read journal entry from SUN · OCT 4: A small win',
-        'Read journal entry from FRI · OCT 2: A warm detail',
       ]) {
         expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
       }
       handle.dispose();
     });
 
-    testWidgets('the nook keeps its painted daylight, never a tint', (
+    testWidgets('at night the nook is its painted evening, never a tint', (
       tester,
     ) async {
       Clock.freeze(DateTime(2026, 10, 6, 21));
@@ -566,21 +599,23 @@ void main() {
         for (final image in tester.widgetList<Image>(find.byType(Image)))
           if (image.image is AssetImage) (image.image as AssetImage).assetName,
       ].where((a) => a.contains('plate-')).toList();
-      expect(plates, [HousePlateSets.journal.midday]);
+      expect(plates, [HousePlateSets.journal.evening]);
       expect(find.byType(ColorFiltered), findsNothing);
     });
 
-    test(
-      'an evening plate for the nook would be one line (no evening yet)',
-      () {
-        expect(HousePlateSets.journal.hasEvening, isFalse);
-        final layers = housePlateLayersAt(
-          HousePlateSets.journal,
-          DateTime(2026, 10, 6, 21),
-        );
-        expect(layers.map((l) => l.asset), [HousePlateSets.journal.midday]);
-      },
-    );
+    test('the nook has its evening: midday by day, the lamp lit at night', () {
+      expect(HousePlateSets.journal.hasEvening, isTrue);
+      final noon = housePlateLayersAt(
+        HousePlateSets.journal,
+        DateTime(2026, 10, 6, 12),
+      );
+      expect(noon.map((l) => l.asset), [HousePlateSets.journal.midday]);
+      final night = housePlateLayersAt(
+        HousePlateSets.journal,
+        DateTime(2026, 10, 6, 21),
+      );
+      expect(night.map((l) => l.asset), [HousePlateSets.journal.evening]);
+    });
   });
 
   group('the prompts', () {
@@ -593,12 +628,11 @@ void main() {
       ]);
     });
 
-    test('recent entries are the newest three', () {
+    test('recent entries are the newest two', () {
       final state = GameState()..setJournal(_three());
       expect(recentJournalEntries(state).map((n) => n.text), [
         'After the quest',
         'A small win',
-        'A warm detail',
       ]);
     });
 

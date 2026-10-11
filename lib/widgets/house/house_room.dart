@@ -98,10 +98,12 @@ abstract final class HousePlateSets {
     evening: '${_dir}plate-me-evening.webp',
   );
 
-  /// Goals, the Steward's workshop. Midday only for now: when the evening
-  /// plate is painted, add `evening: '${_dir}plate-goals-evening.webp'` here
-  /// and nothing else changes.
-  static const goals = HousePlates(midday: '${_dir}plate-goals-midday.webp');
+  /// Goals, the Steward's workshop: midday, and the same room at evening with
+  /// the work lamp lit (a relight painted to register with the midday plate).
+  static const goals = HousePlates(
+    midday: '${_dir}plate-goals-midday.webp',
+    evening: '${_dir}plate-goals-evening.webp',
+  );
 
   /// Plans, the day spread.
   static const plansDay = HousePlates(
@@ -117,11 +119,17 @@ abstract final class HousePlateSets {
     evening: '${_dir}plate-plans-day-evening.webp',
   );
 
-  /// Journal, the reading nook. Midday only for now: when the evening plate
-  /// is painted, add `evening: '${_dir}plate-journal-evening.webp'` here and
-  /// nothing else changes.
+  /// Plans, the week spread: seven painted rows on the day's book.
+  static const plansWeek = HousePlates(
+    midday: '${_dir}plate-plans-week-midday.webp',
+    evening: '${_dir}plate-plans-week-evening.webp',
+  );
+
+  /// Journal, the reading nook: midday, and the same nook at evening with the
+  /// reading lamp lit.
   static const journal = HousePlates(
     midday: '${_dir}plate-journal-midday.webp',
+    evening: '${_dir}plate-journal-evening.webp',
   );
 }
 

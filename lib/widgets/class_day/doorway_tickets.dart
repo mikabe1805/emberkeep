@@ -51,16 +51,6 @@ String doorwayTicketSemantics(DoorwayTicket ticket) {
       '${classClock(ticket.startMinute)}';
 }
 
-/// The stat's one letter on a quest ticket's ring.
-String doorwayStatGlyph(Stat stat) => switch (stat) {
-  Stat.str => 'B',
-  Stat.vit => 'A',
-  Stat.intl => 'M',
-  Stat.foc => 'C',
-  Stat.soc => 'P',
-  Stat.dis => 'H',
-};
-
 /// A quest's name as capitals for the ticket, kept to one line: a name longer
 /// than [max] letters is cut at a word and ends in an ellipsis.
 String doorwayQuestLabel(String name, {int max = 20}) {
@@ -269,7 +259,7 @@ class DoorwayTicketView extends StatelessWidget {
                 width: doorwayTicketWidth * 0.145,
                 height: doorwayTicketWidth * 0.145,
                 child: _StatGlyph(
-                  glyph: quest.glyph,
+                  stat: quest.stat,
                   attended: att,
                   opacity: wordsOpacity,
                 ),
@@ -405,15 +395,16 @@ class DoorwayTicketView extends StatelessWidget {
   }
 }
 
-/// The stat's letter in a small brass ring, on a quest ticket's left.
+/// The stat's glyph (the one the HUD wears) in a small brass ring, on a quest
+/// ticket's left, inked in the stat's own colour deepened to read on paper.
 class _StatGlyph extends StatelessWidget {
   const _StatGlyph({
-    required this.glyph,
+    required this.stat,
     required this.attended,
     this.opacity = 1,
   });
 
-  final String glyph;
+  final Stat stat;
   final bool attended;
   final double opacity;
 
@@ -429,19 +420,12 @@ class _StatGlyph extends StatelessWidget {
           width: 0.7,
         ),
       ),
-      child: Center(
-        child: MediaQuery.withNoTextScaling(
-          child: Text(
-            glyph,
-            maxLines: 1,
-            softWrap: false,
-            style: const TextStyle(
-              fontFamily: 'EBGaramond',
-              fontWeight: FontWeight.w600,
-              fontSize: 5.2,
-              height: 1,
-              color: Color(0xFF7A4A1F),
-            ),
+      child: LayoutBuilder(
+        builder: (context, box) => Center(
+          child: Icon(
+            stat.icon,
+            size: box.maxWidth * 0.66,
+            color: Color.lerp(stat.color, const Color(0xFF4A2A10), 0.52),
           ),
         ),
       ),

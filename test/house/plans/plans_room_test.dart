@@ -129,7 +129,7 @@ void main() {
       expect(field.top, closeTo(PlansCanvas.field.top * 2, 1e-9));
     });
 
-    test('each view stands on its plate; the week plate is one line away', () {
+    test('each view stands on its plate, the week on its own', () {
       expect(PlansPlates.forMode(AcademicCalendarMode.day), PlansPlates.day);
       expect(
         PlansPlates.forMode(AcademicCalendarMode.threeDay),
@@ -139,12 +139,12 @@ void main() {
         PlansPlates.forMode(AcademicCalendarMode.month),
         PlansPlates.month,
       );
-      // Until the week plate is painted it is the day plate.
-      expect(PlansPlates.week, PlansPlates.day);
-      expect(PlansPlates.weekHasOwnPlate, isFalse);
-      expect(PlansPlates.forMode(AcademicCalendarMode.week), PlansPlates.day);
+      // The week has a plate of its own: the book with seven painted rows.
+      expect(PlansPlates.week, HousePlateSets.plansWeek);
+      expect(PlansPlates.weekHasOwnPlate, isTrue);
+      expect(PlansPlates.forMode(AcademicCalendarMode.week), PlansPlates.week);
 
-      // When it lands: a plate set of its own, and the light does the rest.
+      // And the light does the rest.
       const week = HousePlates(
         midday: 'assets/rooms/house/plate-plans-week-midday.webp',
         evening: 'assets/rooms/house/plate-plans-week-evening.webp',
@@ -438,9 +438,7 @@ void main() {
   });
 
   group('the week and the month', () {
-    testWidgets('the week is seven columns; a column opens its day', (
-      tester,
-    ) async {
+    testWidgets('the week is seven rows; a row opens its day', (tester) async {
       final preferences = await _pump(tester, mode: AcademicCalendarMode.week);
       expect(find.byKey(const ValueKey('academic-week-view')), findsOneWidget);
       for (final day in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']) {

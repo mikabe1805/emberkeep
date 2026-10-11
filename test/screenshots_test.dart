@@ -1373,7 +1373,11 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
-    await tester.ensureVisible(find.text('Your Journal'));
+    // mid-screen: the top of the page is under the shell's HUD
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Your Journal')),
+      alignment: 0.5,
+    );
     await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 500));
@@ -1875,10 +1879,7 @@ void main() {
     ).pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    expect(
-      find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'),
-      findsNothing,
-    );
+    expect(find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'), findsNothing);
 
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 450));
@@ -1894,7 +1895,11 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
-    await tester.ensureVisible(find.text('Your Journal'));
+    // mid-screen: the top of the page is under the shell's HUD
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Your Journal')),
+      alignment: 0.5,
+    );
     await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 450));

@@ -98,11 +98,14 @@ void main() {
           HousePlateSets.goals,
           HousePlateSets.plansDay,
           HousePlateSets.plansMonth,
+          HousePlateSets.plansWeek,
           HousePlateSets.journal,
         ])
           ...set.all,
       };
-      expect(plates, hasLength(7));
+      // Me, Goals, Journal, the day, the week: two each; the month's evening
+      // is the day's.
+      expect(plates, hasLength(11));
       for (final asset in plates) {
         final file = File(asset);
         expect(file.existsSync(), isTrue, reason: asset);
@@ -114,11 +117,16 @@ void main() {
       }
     });
 
-    test('evening is painted for Me and Plans only, for now', () {
-      expect(HousePlateSets.me.hasEvening, isTrue);
-      expect(HousePlateSets.plansDay.hasEvening, isTrue);
-      expect(HousePlateSets.goals.hasEvening, isFalse);
-      expect(HousePlateSets.journal.hasEvening, isFalse);
+    test('evening is painted for every room but the Doorway', () {
+      for (final set in [
+        HousePlateSets.me,
+        HousePlateSets.goals,
+        HousePlateSets.plansDay,
+        HousePlateSets.plansWeek,
+        HousePlateSets.journal,
+      ]) {
+        expect(set.hasEvening, isTrue);
+      }
     });
   });
 
@@ -126,7 +134,10 @@ void main() {
     test(
       'a room with only a midday plate always shows it: nothing is tinted',
       () {
-        for (final plates in [HousePlateSets.goals, HousePlateSets.journal]) {
+        for (final plates in const [
+          HousePlates(midday: 'assets/rooms/house/plate-goals-midday.webp'),
+          HousePlates(midday: 'assets/rooms/house/plate-journal-midday.webp'),
+        ]) {
           for (final hour in [0, 3, 6, 9, 12, 15, 16, 18, 19, 21, 23]) {
             final layers = housePlateLayers(plates, _at(hour));
             expect(layers, hasLength(1), reason: 'at $hour:00');
@@ -189,6 +200,7 @@ void main() {
         HousePlateSets.me,
         HousePlateSets.goals,
         HousePlateSets.plansMonth,
+        const HousePlates(midday: 'a'),
         const HousePlates(midday: 'a', golden: 'g', evening: 'e'),
       ]) {
         for (var minute = 0; minute < 24 * 60; minute += 7) {

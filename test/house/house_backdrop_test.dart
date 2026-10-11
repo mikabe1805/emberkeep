@@ -58,7 +58,7 @@ void main() {
     }
   });
 
-  testWidgets('a room with no evening plate keeps its painted light at night', (
+  testWidgets('Goals and Journal show their painted evening at night', (
     tester,
   ) async {
     Clock.freeze(DateTime(2026, 10, 6, 22));
@@ -70,10 +70,31 @@ void main() {
       await tester.pumpWidget(
         _host(HouseRoomBackdrop(room: room, child: const SizedBox())),
       );
-      expect(_plates(tester), [plates.midday]);
+      expect(_plates(tester), [plates.evening]);
       expect(find.byType(ColorFiltered), findsNothing);
       expect(find.byType(DecoratedBox), findsNothing);
     }
+  });
+
+  testWidgets('a room with no evening plate keeps its painted light at night', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 10, 6, 22));
+    const plates = HousePlates(
+      midday: 'assets/rooms/house/plate-goals-midday.webp',
+    );
+    await tester.pumpWidget(
+      _host(
+        const HouseRoomBackdrop(
+          room: HouseRoom.goals,
+          plates: plates,
+          child: SizedBox(),
+        ),
+      ),
+    );
+    expect(_plates(tester), [plates.midday]);
+    expect(find.byType(ColorFiltered), findsNothing);
+    expect(find.byType(DecoratedBox), findsNothing);
   });
 
   testWidgets('the hour turning cross-fades the two plates', (tester) async {

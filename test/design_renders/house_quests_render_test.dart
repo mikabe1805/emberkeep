@@ -32,9 +32,12 @@ const _seed = int.fromEnvironment('QUEST_SEED', defaultValue: 20261003);
 bool _wants(String name) =>
     _only.isEmpty || _only.split(',').map((s) => s.trim()).contains(name);
 
-const _out =
-    'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
-    'design/comparisons/2026-10-10/house-rooms/quests';
+const _out = String.fromEnvironment(
+  'QUEST_OUT',
+  defaultValue:
+      'C:/Users/mikus/Downloads/experimentProject/app/.worktrees/class-day-journey/'
+      'design/comparisons/2026-10-10/house-rooms/quests',
+);
 
 final _at = DateTime(2026, 10, 10, 11, 0);
 final _schedule = mikaSchedule();

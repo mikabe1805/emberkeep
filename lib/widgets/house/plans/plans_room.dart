@@ -458,29 +458,40 @@ class _BookState extends State<_Book> {
       clipBehavior: Clip.none,
       children: [
         Positioned.fromRect(
-          rect: _l.rect(PlansCanvas.weekStrip),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PlansPageHeading(
-                eyebrow: 'WEEK OF',
-                title: plansWeekTitle(daybook.first, daybook.last),
+          // The band may reach a little above the paper on a small phone: its
+          // words keep their size and ADD its 44 pt, the band shrinks.
+          rect: () {
+            final r = _l.rect(PlansCanvas.weekHeading);
+            return Rect.fromLTRB(r.left, r.top - 14, r.right, r.bottom);
+          }(),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            // The band is painted to one height: its two lines keep the
+            // paper's size (the day opens at the system's).
+            child: MediaQuery.withNoTextScaling(
+              child: PlansPageHeading(
+                compact: true,
+                eyebrow: plansWeekTitle(
+                  daybook.first,
+                  daybook.last,
+                ).toUpperCase(),
+                title: 'Week',
                 onAdd: widget.actions.onAdd,
               ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: PlansWeekStrip(
-                  daybook: daybook,
-                  schedule: widget.schedule,
-                  selected: _selectedCivil,
-                  today: _today,
-                  onOpenDay: (day) {
-                    widget.actions.onSelectDay(day);
-                    widget.actions.onMode(AcademicCalendarMode.day);
-                  },
-                ),
-              ),
-            ],
+            ),
+          ),
+        ),
+        Positioned.fromRect(
+          rect: _l.rect(PlansCanvas.weekRows),
+          child: PlansWeekStrip(
+            daybook: daybook,
+            schedule: widget.schedule,
+            selected: _selectedCivil,
+            today: _today,
+            onOpenDay: (day) {
+              widget.actions.onSelectDay(day);
+              widget.actions.onMode(AcademicCalendarMode.day);
+            },
           ),
         ),
         _foot(),
@@ -560,7 +571,13 @@ class _BookState extends State<_Book> {
   }
 
   Widget _foot() => Positioned.fromRect(
-    rect: _l.rect(PlansCanvas.leftFoot),
+    // The week's seven rows run further down the left page than the day's
+    // tabs: its foot waits under them.
+    rect: _l.rect(
+      widget.mode == AcademicCalendarMode.week
+          ? PlansCanvas.weekFoot
+          : PlansCanvas.leftFoot,
+    ),
     child: PlansLeftFoot(
       arrows: _arrows(),
       termName: widget.termName,
@@ -568,6 +585,7 @@ class _BookState extends State<_Book> {
       loading: widget.loading,
       showToday: !_todayVisible,
       onToday: widget.actions.onToday,
+      todayFirst: widget.mode == AcademicCalendarMode.week,
     ),
   );
 

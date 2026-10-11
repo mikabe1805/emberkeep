@@ -17,6 +17,7 @@ import 'package:flutter/widgets.dart' show StringCharacters;
 import '../../academic_calendar/domain/academic_schedule.dart';
 import '../../academic_calendar/services/class_day_projection.dart';
 import '../../engine.dart';
+import '../../tokens.dart' show Stat;
 import 'class_day_model.dart';
 
 /// The hooks by the door. Five; a day with more tickets shares them.
@@ -226,7 +227,7 @@ final class DoorwayQuestFace {
   const DoorwayQuestFace({
     required this.id,
     required this.name,
-    required this.glyph,
+    required this.stat,
     required this.statLabel,
     required this.xp,
   });
@@ -237,8 +238,8 @@ final class DoorwayQuestFace {
   /// The quest as the person reads it ("Read ten pages").
   final String name;
 
-  /// One letter for the stat's ring.
-  final String glyph;
+  /// The stat, whose glyph (the HUD's own) sits in the ticket's ring.
+  final Stat stat;
 
   /// The stat's own word, for a screen reader ("Mind").
   final String statLabel;

@@ -1,9 +1,10 @@
-// The week: seven columns of glass across both pages of the spread, one for
-// each day, with that day's plans as small tickets under its name. Today is
-// marked in a dark plate; tapping a column opens that day.
+// The week: seven rows across both pages of the spread, one for each day,
+// laid on the week plate's seven painted rows (PlansPlates.week). The left
+// page names the day (and marks today); the right page holds that day's plans
+// as small smoky-glass strips, side by side. Tapping a row opens that day.
 //
-// This stands on the day plate until the week's own plate is painted (see
-// PlansPlates.week); its rectangle is PlansCanvas.weekStrip.
+// The paper's rows are painted; nothing here draws a row line. The rectangle
+// is PlansCanvas.weekRows (the heading above it is PlansCanvas.weekHeading).
 library;
 
 import 'package:flutter/material.dart';
@@ -40,14 +41,20 @@ class PlansWeekStrip extends StatelessWidget {
   final CivilDate today;
   final ValueChanged<DateTime> onOpenDay;
 
+  /// Where the strips start, as a fraction of the rows' width (the painted
+  /// gutter holds the day's name), and the margin on the right.
+  static const double gutterFraction = 0.358;
+  static const double rightMargin = 7;
+
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.textScalerOf(context).scale(11) / 11;
     final days = [
       for (var i = 0; i < 7; i++) daybook.dayOn(daybook.first.addDays(i)),
     ];
-    // Seven narrow columns are a glance, not a place to read: their words stop
-    // growing early, and the day itself opens at the system's size.
+    // Seven rows of painted paper are a glance, not a place to read: the
+    // words stop growing early (and shrink to the row past that), and the
+    // day itself opens at the system's size.
     return MediaQuery(
       data: MediaQuery.of(
         context,
@@ -55,52 +62,16 @@ class PlansWeekStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final day in days)
-                Expanded(
-                  child: _ColumnHead(
-                    day: day,
-                    selected: day.date == selected,
-                    today: day.date == today,
-                    onTap: () => _open(day.date),
-                  ),
-                ),
-            ],
-          ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Color(0x42533E2D), width: 0.6),
+          for (final day in days)
+            Expanded(
+              child: _Row(
+                day: day,
+                schedule: schedule,
+                selected: day.date == selected,
+                today: day.date == today,
+                onTap: () => _open(day.date),
               ),
             ),
-            child: SizedBox(height: 0, width: double.infinity),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              padding: const EdgeInsets.only(bottom: 40),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final day in days)
-                      Expanded(
-                        child: _Column(
-                          day: day,
-                          schedule: schedule,
-                          selected: day.date == selected,
-                          onTap: () => _open(day.date),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -112,15 +83,17 @@ class PlansWeekStrip extends StatelessWidget {
   }
 }
 
-class _ColumnHead extends StatelessWidget {
-  const _ColumnHead({
+class _Row extends StatelessWidget {
+  const _Row({
     required this.day,
+    required this.schedule,
     required this.selected,
     required this.today,
     required this.onTap,
   });
 
   final DaybookDay day;
+  final AcademicSchedule schedule;
   final bool selected;
   final bool today;
   final VoidCallback onTap;
@@ -128,7 +101,8 @@ class _ColumnHead extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = DateTime(day.date.year, day.date.month, day.date.day);
-    final count = day.entries.where((e) => !e.cancelled).length;
+    final entries = day.entries;
+    final count = entries.where((e) => !e.cancelled).length;
     final spoken =
         '${plansSpokenDate(date, today: today)}, '
         '${count == 0 ? 'nothing held' : '$count ${count == 1 ? 'plan' : 'plans'}'}';
@@ -143,48 +117,222 @@ class _ColumnHead extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(2, 4, 2, 6),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: today
-                  ? const Color(0xCC2B1F18)
-                  : selected
-                  ? const Color(0x33BF9152)
-                  : null,
-              border: today
-                  ? Border.all(color: const Color(0xCCE8AA5B), width: 0.9)
-                  : null,
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final gutter = box.maxWidth * PlansWeekStrip.gutterFraction;
+            final k = box.maxWidth / 367.7;
+            final pad = box.maxHeight * 0.08;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Today is a warm catch on the page's edge, not a fill.
+                if (today || selected)
+                  Positioned(
+                    left: 0,
+                    top: pad,
+                    bottom: pad,
+                    width: gutter - 14 * k,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            today
+                                ? const Color(0x4DE8AA5B)
+                                : const Color(0x26BF9152),
+                            const Color(0x00E8AA5B),
+                          ],
+                        ),
+                        border: today
+                            ? const Border(
+                                left: BorderSide(
+                                  color: Color(0xFFC98A3E),
+                                  width: 2.5,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  left: 17 * k,
+                  top: 0,
+                  bottom: 0,
+                  width: gutter - 22 * k,
+                  child: _DayName(date: date, today: today),
+                ),
+                Positioned(
+                  left: gutter,
+                  right: PlansWeekStrip.rightMargin * k,
+                  top: pad,
+                  bottom: pad,
+                  child: _Strips(entries: entries, schedule: schedule),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _DayName extends StatelessWidget {
+  const _DayName({required this.date, required this.today});
+
+  final DateTime date;
+  final bool today;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                plansWeekdayShort[date.weekday - 1],
+                style: const TextStyle(
+                  fontFamily: PlansInk.serif,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                  height: 1,
+                  letterSpacing: 1.6,
+                  color: PlansInk.ink,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${plansMonthLong[date.month - 1].substring(0, 3).toUpperCase()} '
+                '${date.day}',
+                style: const TextStyle(
+                  fontFamily: PlansInk.mono,
+                  fontWeight: FontWeight.w600,
+                  fontSize: Type.minLabel,
+                  height: 1.1,
+                  letterSpacing: 1.2,
+                  color: PlansInk.muted,
+                ),
+              ),
+            ],
+          ),
+          if (today) ...[
+            const SizedBox(width: 16),
+            const Text(
+              'TODAY',
+              style: TextStyle(
+                fontFamily: PlansInk.mono,
+                fontWeight: FontWeight.w600,
+                fontSize: Type.minLabel,
+                height: 1,
+                letterSpacing: 1.2,
+                color: PlansInk.brass,
+              ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    plansWeekdayShort[date.weekday - 1],
-                    style: TextStyle(
-                      fontFamily: PlansInk.serif,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      height: 1,
-                      letterSpacing: 1.0,
-                      color: today ? const Color(0xFFFFF3DE) : PlansInk.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${date.day}',
-                    style: TextStyle(
-                      fontFamily: PlansInk.serif,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 19,
-                      height: 1,
-                      color: today ? const Color(0xFFFFD79E) : PlansInk.ink,
-                    ),
-                  ),
-                ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A day's plans side by side: up to three as strips. A fuller day folds to a
+/// two-by-two of one-line chips, and past four the last chip says how many more.
+class _Strips extends StatelessWidget {
+  const _Strips({required this.entries, required this.schedule});
+
+  final List<DaybookEntry> entries;
+  final AcademicSchedule schedule;
+
+  static const int _strips = 3;
+  static const int _chips = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+    if (entries.length > _strips) return _dense();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0) const SizedBox(width: 4),
+          Expanded(
+            child: _Strip(
+              entry: entries[i],
+              schedule: schedule,
+              narrow: entries.length > 2,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _dense() {
+    final shown = entries.length <= _chips
+        ? entries
+        : entries.take(_chips - 1).toList();
+    final more = entries.length <= _chips ? 0 : entries.length - (_chips - 1);
+    final cells = <Widget>[
+      for (final e in shown) _Chip(entry: e, schedule: schedule),
+      if (more > 0) _MoreStrip(more: more),
+    ];
+    Widget row(int from) => Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: from < cells.length ? cells[from] : const SizedBox()),
+          const SizedBox(width: 4),
+          Expanded(
+            child: from + 1 < cells.length ? cells[from + 1] : const SizedBox(),
+          ),
+        ],
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [row(0), const SizedBox(height: 3), row(2)],
+    );
+  }
+}
+
+/// One plan as a single line: its name (the day page holds its time).
+class _Chip extends StatelessWidget {
+  const _Chip({required this.entry, required this.schedule});
+
+  final DaybookEntry entry;
+  final AcademicSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    final dim = entry.completed || entry.cancelled;
+    return PlansGlass(
+      radius: 5,
+      shadow: false,
+      soft: dim,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _nameOf(entry, schedule),
+              maxLines: 1,
+              style: TextStyle(
+                fontFamily: PlansInk.serif,
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                height: 1,
+                color: dim ? PlansInk.creamDim : PlansInk.cream,
+                decoration: dim ? TextDecoration.lineThrough : null,
+                decorationColor: PlansInk.creamDim,
               ),
             ),
           ),
@@ -194,73 +342,32 @@ class _ColumnHead extends StatelessWidget {
   }
 }
 
-class _Column extends StatelessWidget {
-  const _Column({
-    required this.day,
-    required this.schedule,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final DaybookDay day;
-  final AcademicSchedule schedule;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: ExcludeSemantics(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: selected ? const Color(0x1ABF9152) : null,
-            border: const Border(
-              left: BorderSide(color: Color(0x26503D2E), width: 0.6),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(2, 6, 2, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final entry in day.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: _Ticket(entry: entry, schedule: schedule),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+/// What a plan is called: a class by its course's name (the entry carries
+/// the code), everything else by its title.
+String _nameOf(DaybookEntry entry, AcademicSchedule schedule) {
+  final action = entry.action;
+  if (action is AcademicOccurrenceAction) {
+    final occurrence = schedule.occurrenceByKey(action.occurrenceKey);
+    final course = occurrence == null
+        ? null
+        : schedule.courseById(occurrence.courseId);
+    if (course != null) return course.title;
   }
+  return entry.title;
 }
 
-class _Ticket extends StatelessWidget {
-  const _Ticket({required this.entry, required this.schedule});
+class _Strip extends StatelessWidget {
+  const _Strip({
+    required this.entry,
+    required this.schedule,
+    this.narrow = false,
+  });
 
   final DaybookEntry entry;
   final AcademicSchedule schedule;
 
-  /// A class is named by its course number (the part after the last colon of
-  /// a Rutgers code: 14:332:361 is 361), which is how a column this narrow can
-  /// say it whole; everything else by its title.
-  String get _name {
-    if (entry.action is AcademicOccurrenceAction) {
-      final occurrence = schedule.occurrenceByKey(
-        (entry.action as AcademicOccurrenceAction).occurrenceKey,
-      );
-      final code = occurrence == null
-          ? null
-          : schedule.courseById(occurrence.courseId)?.code;
-      if (code != null && code.contains(':')) return code.split(':').last;
-      if (code != null) return code;
-    }
-    return entry.title;
-  }
+  /// Three side by side: the name's size gives a little so a word is not cut.
+  final bool narrow;
 
   @override
   Widget build(BuildContext context) {
@@ -277,38 +384,50 @@ class _Ticket extends StatelessWidget {
       radius: 6,
       shadow: false,
       soft: dim,
-      padding: const EdgeInsets.fromLTRB(4, 4, 3, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            time,
-            style: TextStyle(
-              fontFamily: PlansInk.mono,
-              fontWeight: FontWeight.w600,
-              fontSize: Type.minLabel,
-              height: 1.1,
-              letterSpacing: 0,
-              color: dim ? PlansInk.creamDim : PlansInk.ringDone,
+      child: LayoutBuilder(
+        builder: (context, box) => Padding(
+          padding: const EdgeInsets.fromLTRB(6, 3, 4, 3),
+          // The strip is as tall as the paper's row allows: past what fits at
+          // the system's size the words shrink with it, never overflow.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: (box.maxWidth - 10).clamp(20.0, 400.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: TextStyle(
+                      fontFamily: PlansInk.mono,
+                      fontWeight: FontWeight.w600,
+                      fontSize: Type.minLabel,
+                      height: 1.1,
+                      letterSpacing: 0,
+                      color: dim ? PlansInk.creamDim : PlansInk.ringDone,
+                    ),
+                  ),
+                  Text(
+                    _nameOf(entry, schedule),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: PlansInk.serif,
+                      fontWeight: FontWeight.w500,
+                      fontSize: narrow ? 11.5 : 12.5,
+                      height: 1.06,
+                      color: dim ? PlansInk.creamDim : PlansInk.cream,
+                      decoration: dim ? TextDecoration.lineThrough : null,
+                      decorationColor: PlansInk.creamDim,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            _name,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontFamily: PlansInk.serif,
-              fontWeight: FontWeight.w500,
-              fontSize: 12.5,
-              height: 1.08,
-              color: dim ? PlansInk.creamDim : PlansInk.cream,
-              decoration: dim ? TextDecoration.lineThrough : null,
-              decorationColor: PlansInk.creamDim,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -318,4 +437,28 @@ class _Ticket extends StatelessWidget {
     final hour = minute ~/ 60 % 12 == 0 ? 12 : minute ~/ 60 % 12;
     return '$hour:${(minute % 60).toString().padLeft(2, '0')}';
   }
+}
+
+class _MoreStrip extends StatelessWidget {
+  const _MoreStrip({required this.more});
+
+  final int more;
+
+  @override
+  Widget build(BuildContext context) => PlansGlass(
+    radius: 6,
+    shadow: false,
+    soft: true,
+    child: Center(
+      child: Text(
+        '+$more',
+        style: const TextStyle(
+          fontFamily: PlansInk.mono,
+          fontWeight: FontWeight.w600,
+          fontSize: Type.minLabel,
+          color: PlansInk.creamSoft,
+        ),
+      ),
+    ),
+  );
 }

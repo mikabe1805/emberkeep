@@ -35,6 +35,7 @@ import '../../../tokens.dart';
 import '../../class_day/class_day_room.dart' show ClassGlass, classStatusAbove;
 import '../../pressable.dart';
 import '../house_backdrop.dart';
+import '../house_hud.dart' show houseHudBottom;
 import '../house_room.dart';
 import '../house_travel_scope.dart';
 
@@ -226,7 +227,14 @@ class HouseGoalsRoom extends StatelessWidget {
   Widget _scrolling(BuildContext context, BoxConstraints box, Widget sign) {
     return ListView(
       key: const Key('goals-threshold-scroll'),
-      padding: EdgeInsets.fromLTRB(16, 18, 16, goalsDockHeight(context) + 24),
+      // The page starts under the shell's HUD, never behind it.
+      padding: EdgeInsets.fromLTRB(
+        16,
+        houseHudBottom(textScale: MediaQuery.textScalerOf(context).scale(1)) +
+            10,
+        16,
+        goalsDockHeight(context) + 24,
+      ),
       children: [
         Align(
           alignment: Alignment.centerLeft,

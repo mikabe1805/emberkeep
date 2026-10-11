@@ -47,6 +47,7 @@ import '../widgets/glass.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/house/house_backdrop.dart';
+import '../widgets/house/house_hud.dart' show HouseHudScope;
 import '../widgets/house/house_room.dart';
 import '../widgets/house/house_travel_scope.dart' show HouseRoomUi;
 import '../widgets/house/quests/quest_doorway_model.dart';
@@ -98,6 +99,7 @@ class QuestsPage extends StatefulWidget {
     required this.onRestore,
     this.onBindFlush,
     this.onBindComplete,
+    this.onBindExploreStat,
     this.onBindOpenWorkout,
     this.onNightClosed,
     this.onOpenRoomGuide,
@@ -140,6 +142,10 @@ class QuestsPage extends StatefulWidget {
 
   /// Lets the shell flush a pending deferred commit before pause-path saves.
   final void Function(VoidCallback flush)? onBindFlush;
+
+  /// Hands the shell this page's way of opening a domain page (the shell's
+  /// HUD, over every room, opens through it).
+  final void Function(void Function(Stat stat) open)? onBindExploreStat;
 
   /// Lets another kept-alive surface invoke this page's one canonical Quest
   /// completion pipeline without copying reward or persistence logic.
@@ -378,7 +384,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   VoidCallback? _afterQuestMoment;
   bool _questMomentOpen = false;
   Timer? _questMomentTimer;
-  final GlobalKey _roomHudKey = GlobalKey();
 
   /// What each of today's tickets said it was worth while it was open, so a
   /// kept ticket keeps saying it (the preview drops once the quest is done).
@@ -790,6 +795,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // bind flush so the shell can settle rewards before a pause-path save
     widget.onBindFlush?.call(_flushCommit);
     widget.onBindComplete?.call(_completeQuest);
+    widget.onBindExploreStat?.call(_exploreStat);
     widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     Haptics.reduceMotion = _state.reduceMotion;
     _acceptFocusRequest();
@@ -882,6 +888,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     if (old.onBindComplete != widget.onBindComplete) {
       widget.onBindComplete?.call(_completeQuest);
+    }
+    if (old.onBindExploreStat != widget.onBindExploreStat) {
+      widget.onBindExploreStat?.call(_exploreStat);
     }
     if (old.onBindOpenWorkout != widget.onBindOpenWorkout) {
       widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
@@ -1028,12 +1037,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   final GlobalKey _xpNumberKey = GlobalKey();
 
   Offset _xpDestination() {
-    if (_questRoomInView) {
-      final hud = _roomHudKey.currentContext?.findRenderObject();
-      if (hud is RenderBox && hud.hasSize && hud.attached) {
-        // The room's own XP line, over the Doorway's top edge.
-        return hud.localToGlobal(Offset(hud.size.width * 0.42, 14));
-      }
+    // The house's one HUD, over every room: its XP line.
+    final shellHud = HouseHudScope.maybeOf(context)?.hudKey;
+    final hud = shellHud?.currentContext?.findRenderObject();
+    if (hud is RenderBox && hud.hasSize && hud.attached) {
+      return hud.localToGlobal(Offset(hud.size.width * 0.42, 14));
     }
     final box = _xpNumberKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) {
@@ -3625,7 +3633,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         }
         setState(() => _preferredClass = row.identity);
       },
-      onExploreStat: _exploreStat,
       onUndo: undoIdentity == null ? null : _undoLast,
       undoIdentity: undoIdentity,
       onDismiss: _dismissClass,
@@ -3723,7 +3730,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       key: const Key('quest-day-room'),
       state: _state,
       read: read,
-      date: CivilDate.fromDateTime(now),
       supportFor: _questSupport,
       onComplete: _completeFromRoom,
       onSelect: (quest) {
@@ -3734,7 +3740,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       onFocus: _questFocus,
       onAdd: _quickAdd,
       onBoard: _showQuestBoard,
-      onExploreStat: _exploreStat,
       dockHeight: _dockHeight(context),
       onCloseDay: !dayRested && _state.nightDoneDay != nightDay && read.allKept
           ? () => _openNight(alreadyAcknowledged: true)
@@ -3749,7 +3754,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       lightDirection: _activeLight,
       quiet: _levelTakeover,
       onBeat: _onQuestBeat,
-      hudKey: _roomHudKey,
     );
   }
 
@@ -4350,6 +4354,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             !showFocus &&
             !lowFlame &&
             featuredQuest != null;
+        // The level, XP and six stats are the shell's one HUD over every room;
+        // the board keeps only its desk style and day strip.
+        final shellHud = HouseHudScope.maybeOf(context) != null;
         // Compact-height windows sacrifice the cinematic reveal before they
         // sacrifice the board's primary task. On normal phones the labelled
         // day rail borrows one touch-target of height from the reveal so MARK
@@ -4530,100 +4537,104 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                               onTap: _openQuestDeskStyle,
                                               compact: true,
                                             ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 5,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    SizedBox(
-                                                      width: double.infinity,
-                                                      child: Wrap(
-                                                        alignment: WrapAlignment
-                                                            .spaceBetween,
-                                                        crossAxisAlignment:
-                                                            WrapCrossAlignment
-                                                                .center,
-                                                        spacing: 16,
-                                                        children: [
-                                                          Text.rich(
-                                                            TextSpan(
-                                                              children: [
-                                                                TextSpan(
-                                                                  text:
-                                                                      shortFeatured
-                                                                      ? 'LVL '
-                                                                      : 'LEVEL ',
-                                                                  style: Type.label.copyWith(
-                                                                    fontSize:
-                                                                        12,
-                                                                    letterSpacing:
-                                                                        1,
-                                                                    color: Palette
-                                                                        .textMid,
+                                            if (!shellHud) ...[
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        right: 5,
+                                                      ),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      SizedBox(
+                                                        width: double.infinity,
+                                                        child: Wrap(
+                                                          alignment:
+                                                              WrapAlignment
+                                                                  .spaceBetween,
+                                                          crossAxisAlignment:
+                                                              WrapCrossAlignment
+                                                                  .center,
+                                                          spacing: 16,
+                                                          children: [
+                                                            Text.rich(
+                                                              TextSpan(
+                                                                children: [
+                                                                  TextSpan(
+                                                                    text:
+                                                                        shortFeatured
+                                                                        ? 'LVL '
+                                                                        : 'LEVEL ',
+                                                                    style: Type.label.copyWith(
+                                                                      fontSize:
+                                                                          12,
+                                                                      letterSpacing:
+                                                                          1,
+                                                                      color: Palette
+                                                                          .textMid,
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                                TextSpan(
-                                                                  text:
-                                                                      '${_state.level}',
+                                                                  TextSpan(
+                                                                    text:
+                                                                        '${_state.level}',
+                                                                    style: Type
+                                                                        .numerals
+                                                                        .copyWith(
+                                                                          fontSize:
+                                                                              23,
+                                                                          color:
+                                                                              Palette.textHi,
+                                                                        ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                            KeyedSubtree(
+                                                              key: _xpNumberKey,
+                                                              child: Semantics(
+                                                                label:
+                                                                    shortFeatured
+                                                                    ? '${_state.xp} of $next XP'
+                                                                    : null,
+                                                                excludeSemantics:
+                                                                    shortFeatured,
+                                                                child: RollingNumber(
+                                                                  min(
+                                                                    _state.xp,
+                                                                    next,
+                                                                  ),
+                                                                  suffix:
+                                                                      shortFeatured
+                                                                      ? '/$next'
+                                                                      : ' / $next XP',
                                                                   style: Type
                                                                       .numerals
                                                                       .copyWith(
                                                                         fontSize:
-                                                                            23,
+                                                                            15.5,
                                                                         color: Palette
-                                                                            .textHi,
+                                                                            .xp,
                                                                       ),
                                                                 ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          KeyedSubtree(
-                                                            key: _xpNumberKey,
-                                                            child: Semantics(
-                                                              label:
-                                                                  shortFeatured
-                                                                  ? '${_state.xp} of $next XP'
-                                                                  : null,
-                                                              excludeSemantics:
-                                                                  shortFeatured,
-                                                              child: RollingNumber(
-                                                                min(
-                                                                  _state.xp,
-                                                                  next,
-                                                                ),
-                                                                suffix:
-                                                                    shortFeatured
-                                                                    ? '/$next'
-                                                                    : ' / $next XP',
-                                                                style: Type
-                                                                    .numerals
-                                                                    .copyWith(
-                                                                      fontSize:
-                                                                          15.5,
-                                                                      color:
-                                                                          Palette
-                                                                              .xp,
-                                                                    ),
                                                               ),
                                                             ),
-                                                          ),
-                                                        ],
+                                                          ],
+                                                        ),
                                                       ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    _QuestXpTrack(
-                                                      progress:
-                                                          _state.xp / next,
-                                                    ),
-                                                  ],
+                                                      const SizedBox(height: 4),
+                                                      _QuestXpTrack(
+                                                        progress:
+                                                            _state.xp / next,
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                            ],
                                           ],
                                         ),
                                         if (!shortFeatured) ...[
@@ -4636,20 +4647,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                             indent: 7,
                                             endIndent: 7,
                                           ),
-                                          StatChips(
-                                            values: _state.stats,
-                                            reduceMotion: _state.reduceMotion,
-                                            onSelect: _exploreStat,
-                                            compact: true,
-                                          ),
-                                          Divider(
-                                            height: 1,
-                                            color: Palette.brass.withValues(
-                                              alpha: 0.24,
+                                          if (!shellHud) ...[
+                                            StatChips(
+                                              values: _state.stats,
+                                              reduceMotion: _state.reduceMotion,
+                                              onSelect: _exploreStat,
+                                              compact: true,
                                             ),
-                                            indent: 7,
-                                            endIndent: 7,
-                                          ),
+                                            Divider(
+                                              height: 1,
+                                              color: Palette.brass.withValues(
+                                                alpha: 0.24,
+                                              ),
+                                              indent: 7,
+                                              endIndent: 7,
+                                            ),
+                                          ],
                                           dayStrip,
                                         ],
                                       ],
@@ -5134,21 +5147,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                           ),
                                           child: Column(
                                             children: [
-                                              StatChips(
-                                                values: _state.stats,
-                                                reduceMotion:
-                                                    _state.reduceMotion,
-                                                onSelect: _exploreStat,
-                                                compact: true,
-                                              ),
-                                              Divider(
-                                                height: 1,
-                                                color: Palette.brass.withValues(
-                                                  alpha: 0.24,
+                                              if (!shellHud) ...[
+                                                StatChips(
+                                                  values: _state.stats,
+                                                  reduceMotion:
+                                                      _state.reduceMotion,
+                                                  onSelect: _exploreStat,
+                                                  compact: true,
                                                 ),
-                                                indent: 7,
-                                                endIndent: 7,
-                                              ),
+                                                Divider(
+                                                  height: 1,
+                                                  color: Palette.brass
+                                                      .withValues(alpha: 0.24),
+                                                  indent: 7,
+                                                  endIndent: 7,
+                                                ),
+                                              ],
                                               dayStrip,
                                             ],
                                           ),
@@ -6025,7 +6039,10 @@ class _TodaysThreeTracker extends StatelessWidget {
         ? (openCount > 0 ? '$openCount open · choose' : 'choose up to 3')
         : allKept
         ? 'all kept'
-        : '$kept of $chosenTotal kept';
+        // The rings show how far; the words never make it a ratio.
+        : kept == 0
+        ? 'ready when you are'
+        : '$kept kept';
     final detail = setAside > 0 ? ' · $setAside set aside' : '';
     return Pressable(
       key: const Key('daily-field-rail'),

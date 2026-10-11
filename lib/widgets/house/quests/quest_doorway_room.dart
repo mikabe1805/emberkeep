@@ -19,21 +19,20 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
-import '../../../academic_calendar/domain/academic_schedule.dart'
-    show CivilDate;
 import '../../../audio.dart' show InteractionSound, MaterialSound;
 import '../../../clock.dart';
 import '../../../engine.dart';
 import '../../../models.dart';
 import '../../../tokens.dart';
 import '../../class_day/class_day_room.dart'
-    show ClassDayHud, ClassGlass, ClassThereButton, classStatusAbove;
+    show ClassGlass, ClassThereButton, classStatusAbove;
 import '../../class_day/class_room_stage.dart' show classStatusScrimHeight;
 import '../../class_day/doorway_model.dart';
 import '../../class_day/doorway_motion.dart' show DoorwayBeat;
 import '../../class_day/doorway_stage.dart';
 import '../../pressable.dart';
 import '../../routine_ledger.dart' show LedgerType;
+import '../house_hud.dart' show houseHudBottom;
 import '../house_room.dart' show HouseRoom;
 import '../house_travel_scope.dart' show HouseRoomUi;
 import 'quest_doorway_model.dart';
@@ -61,7 +60,6 @@ class QuestDoorwayRoom extends StatefulWidget {
     super.key,
     required this.state,
     required this.read,
-    required this.date,
     required this.supportFor,
     required this.onComplete,
     required this.onSelect,
@@ -69,7 +67,6 @@ class QuestDoorwayRoom extends StatefulWidget {
     required this.onFocus,
     required this.onAdd,
     required this.onBoard,
-    required this.onExploreStat,
     required this.dockHeight,
     this.onCloseDay,
     this.onUndo,
@@ -82,12 +79,10 @@ class QuestDoorwayRoom extends StatefulWidget {
     this.lightDirection,
     this.quiet = false,
     this.onBeat,
-    this.hudKey,
   });
 
   final GameState state;
   final QuestDoorwayRead read;
-  final CivilDate date;
 
   /// The one supporting line under a quest's title (a note, its goal, a hint
   /// or the companion's line), or null for none.
@@ -106,7 +101,6 @@ class QuestDoorwayRoom extends StatefulWidget {
 
   /// Opens the full board.
   final VoidCallback onBoard;
-  final ValueChanged<Stat> onExploreStat;
 
   /// The shell's dock (88 pt plus the home indicator) sits over the page.
   final double dockHeight;
@@ -136,9 +130,6 @@ class QuestDoorwayRoom extends StatefulWidget {
 
   /// The Doorway's moves the page waits on.
   final ValueChanged<DoorwayBeat>? onBeat;
-
-  /// Keys the HUD, so a completion's XP can fly to it.
-  final GlobalKey? hudKey;
 
   @override
   State<QuestDoorwayRoom> createState() => QuestDoorwayRoomState();
@@ -207,6 +198,9 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
             above: above,
             topPad: topPad,
             invitation: cardMode == QuestCardMode.choose,
+            hudBottom: houseHudBottom(
+              textScale: MediaQuery.textScalerOf(context).scale(1),
+            ),
           ),
           children: [
             LayoutId(
@@ -233,20 +227,6 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
                       ? const EdgeInsets.fromLTRB(22, 17, 22, 12)
                       : const EdgeInsets.fromLTRB(22, 17, 22, 6),
                   child: _card(cardMode),
-                ),
-              ),
-            ),
-            LayoutId(
-              id: _Slot.hud,
-              child: _Quiet(
-                quiet: widget.quiet,
-                child: KeyedSubtree(
-                  key: widget.hudKey,
-                  child: ClassDayHud(
-                    state: widget.state,
-                    date: widget.date,
-                    onExploreStat: widget.onExploreStat,
-                  ),
                 ),
               ),
             ),
@@ -852,7 +832,7 @@ class _RingPainter extends CustomPainter {
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
-enum _Slot { stage, glass, hud }
+enum _Slot { stage, glass }
 
 class _Quiet extends StatelessWidget {
   const _Quiet({required this.quiet, required this.child});
@@ -871,31 +851,28 @@ class _Quiet extends StatelessWidget {
   );
 }
 
-/// The Doorway fills the page; the glass floats above the dock; the HUD sits
-/// over the room's top edge. The invitation (nothing chosen yet) is a smaller,
+/// The Doorway fills the page; the glass floats above the dock and keeps clear
+/// of the shell's HUD over the room's top edge. The invitation (nothing chosen yet) is a smaller,
 /// narrower pane that sits a little higher.
 class _QuestRoomDelegate extends MultiChildLayoutDelegate {
   _QuestRoomDelegate({
     required this.above,
     required this.topPad,
     required this.invitation,
+    required this.hudBottom,
   });
 
   final double above;
   final double topPad;
   final bool invitation;
 
-  static const hudTop = 8.0;
+  /// How far down the page the shell's HUD reaches.
+  final double hudBottom;
 
   @override
   void performLayout(Size size) {
     final belowGlass = invitation ? 52.0 : 14.0;
     final inset = invitation ? 40.0 : 16.0;
-    final hud = layoutChild(
-      _Slot.hud,
-      BoxConstraints.tightFor(width: size.width - 40),
-    );
-    positionChild(_Slot.hud, Offset(20, topPad + hudTop));
     final glass = layoutChild(
       _Slot.glass,
       BoxConstraints(
@@ -903,7 +880,7 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
         maxWidth: size.width - inset * 2,
         maxHeight: math.max(
           140,
-          size.height - belowGlass - (topPad + hudTop + hud.height + 56),
+          size.height - belowGlass - (topPad + hudBottom + 56),
         ),
       ),
     );
@@ -922,5 +899,6 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
   bool shouldRelayout(_QuestRoomDelegate old) =>
       old.above != above ||
       old.topPad != topPad ||
-      old.invitation != invitation;
+      old.invitation != invitation ||
+      old.hudBottom != hudBottom;
 }

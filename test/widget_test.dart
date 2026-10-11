@@ -161,9 +161,11 @@ void main() {
   testWidgets('quests page renders header and quests', (tester) async {
     await pumpApp(tester);
 
-    // The HUD is a single RichText instrument, so search its composed text
-    // rather than relying on a separate Text widget for the label span.
-    expect(find.textContaining('LEVEL', findRichText: true), findsOneWidget);
+    // The level, the XP and the six stats are the shell's one HUD, over
+    // every room (the board keeps no copy of its own).
+    expect(find.byKey(const Key('house-hud')), findsOneWidget);
+    expect(find.text('LV'), findsOneWidget);
+    expect(find.textContaining('LEVEL', findRichText: true), findsNothing);
     await revealQuest(tester, 'Do 2 push-ups');
     await revealBoardText(tester, '5 open · choose');
     expect(find.text('5 open · choose'), findsOneWidget);
@@ -811,6 +813,12 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
+    // mid-screen: the top of the page is under the shell's HUD
+    await Scrollable.ensureVisible(
+      tester.element(find.text('PATTERNS')),
+      alignment: 0.5,
+    );
+    await tester.pump();
     await tester.tap(find.text('PATTERNS'));
     await settle(tester);
 

@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models.dart';
 import '../../class_day/class_day_room.dart' show classStatusAbove;
+import '../house_hud.dart' show houseHudBottom;
 import '../house_backdrop.dart';
 import '../house_room.dart';
 import 'journal_nook.dart';
@@ -163,7 +164,7 @@ class _JournalNookPageState extends State<JournalNookPage> {
                             onAllEntries: widget.onAllEntries,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 6),
                       ],
                     ),
                   ),
@@ -188,7 +189,14 @@ class _JournalNookPageState extends State<JournalNookPage> {
                 left: 0,
                 right: 0,
                 top: -above,
-                height: above + 40,
+                // Down past the shell's HUD, so a card climbing under it
+                // dissolves instead of crossing its numbers.
+                height:
+                    above +
+                    houseHudBottom(
+                      textScale: MediaQuery.textScalerOf(context).scale(1),
+                    ) +
+                    14,
                 child: IgnorePointer(
                   child: AnimatedBuilder(
                     animation: _scroll,
@@ -212,7 +220,7 @@ class _JournalNookPageState extends State<JournalNookPage> {
               // plate and gives way as the page climbs over it.
               if (!large)
                 Positioned(
-                  top: tagTop - 6,
+                  top: tagTop - 8,
                   right: journalTagRight * sx,
                   child: AnimatedBuilder(
                     animation: _scroll,

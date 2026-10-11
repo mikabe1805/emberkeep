@@ -29,11 +29,17 @@ class HouseTravelSignals {
   /// The glint over Goals' sign, null when none is running.
   final ValueNotifier<HouseGlintFrame?> glint = ValueNotifier(null);
 
+  /// How much of the house's one HUD shows (0..1): the most of any room's UI
+  /// on stage, so it breathes through the hand-off (the departing UI lets go,
+  /// the arriving one comes up) and is whole at rest.
+  final ValueNotifier<double> hud = ValueNotifier<double>(1);
+
   void dispose() {
     for (final n in ui) {
       n.dispose();
     }
     glint.dispose();
+    hud.dispose();
   }
 }
 

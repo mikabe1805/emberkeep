@@ -12,12 +12,9 @@ library;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
-import '../../../academic_calendar/domain/academic_schedule.dart'
-    show CivilDate;
-import '../../../clock.dart';
 import '../../../engine.dart';
 import '../../../tokens.dart';
-import '../../class_day/class_day_room.dart' show ClassDayHud, classStatusAbove;
+import '../../class_day/class_day_room.dart' show classStatusAbove;
 import '../house_backdrop.dart';
 import '../house_room.dart';
 import 'mantel_glass.dart';
@@ -90,21 +87,8 @@ class MeMantel extends StatelessWidget {
                   ),
                 ),
               ),
-              // The level line and the six domains, over the room's top edge,
-              // the same HUD the Doorway wears.
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 8,
-                left: 20,
-                right: 20,
-                child: MediaQuery.withClampedTextScaling(
-                  maxScaleFactor: mantelTabTextCap,
-                  child: ClassDayHud(
-                    state: state,
-                    date: CivilDate.fromDateTime(Clock.now()),
-                    onExploreStat: onStat,
-                  ),
-                ),
-              ),
+              // The level line and the six domains over the room's top edge
+              // are the shell's one HUD (house_hud.dart).
               Positioned(
                 top: tabsTop,
                 right: 0,

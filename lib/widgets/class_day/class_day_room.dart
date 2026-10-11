@@ -26,6 +26,7 @@ import '../../tokens.dart';
 import '../count_up.dart';
 import '../pressable.dart';
 import '../quest_card.dart' show QuestCheckRing;
+import '../house/house_hud.dart' show houseHudBottom;
 import '../house/house_room.dart' show HouseRoom;
 import '../house/house_travel_scope.dart' show HouseRoomUi;
 import '../routine_ledger.dart' show LedgerType;
@@ -75,7 +76,6 @@ class ClassDayRoom extends StatefulWidget {
     required this.bottomLine,
     required this.onMark,
     required this.onSelect,
-    required this.onExploreStat,
     required this.dockHeight,
     required this.camera,
     this.onUndo,
@@ -119,7 +119,6 @@ class ClassDayRoom extends StatefulWidget {
 
   /// Brings a quiet row forward so its own "I was there" leads.
   final ValueChanged<ClassRow> onSelect;
-  final ValueChanged<Stat> onExploreStat;
 
   /// The shell's dock (88 pt plus the home indicator) sits over the page.
   final double dockHeight;
@@ -312,7 +311,13 @@ class _ClassDayRoomState extends State<ClassDayRoom>
       child: Padding(
         padding: EdgeInsets.only(bottom: widget.dockHeight),
         child: CustomMultiChildLayout(
-          delegate: _ClassDayDelegate(above: above, topPad: topPad),
+          delegate: _ClassDayDelegate(
+            above: above,
+            topPad: topPad,
+            hudBottom: houseHudBottom(
+              textScale: MediaQuery.textScalerOf(context).scale(1),
+            ),
+          ),
           children: [
             LayoutId(
               id: _Slot.stage,
@@ -371,21 +376,6 @@ class _ClassDayRoomState extends State<ClassDayRoom>
                 ),
               ),
             ),
-            LayoutId(
-              id: _Slot.hud,
-              child: _Quiet(
-                quiet: widget.quiet,
-                child: _StepBack(
-                  near: _near,
-                  depth: 0.4,
-                  child: ClassDayHud(
-                    state: widget.state,
-                    date: card.day.date,
-                    onExploreStat: widget.onExploreStat,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -393,7 +383,7 @@ class _ClassDayRoomState extends State<ClassDayRoom>
   }
 }
 
-enum _Slot { stage, glass, hud }
+enum _Slot { stage, glass }
 
 /// Steps [child] back by [depth] as the music's [near] rises.
 class _StepBack extends StatelessWidget {
@@ -436,9 +426,14 @@ class _Quiet extends StatelessWidget {
 }
 
 /// The Doorway fills the page behind everything; the glass floats above the
-/// dock with a small gap, and the HUD sits over the room's top edge.
+/// dock with a small gap. The HUD over the room's top edge is the shell's
+/// (house_hud.dart); the glass keeps clear of it.
 class _ClassDayDelegate extends MultiChildLayoutDelegate {
-  _ClassDayDelegate({required this.above, required this.topPad});
+  _ClassDayDelegate({
+    required this.above,
+    required this.topPad,
+    required this.hudBottom,
+  });
 
   /// The status bar above the page: the stage reaches up through it.
   final double above;
@@ -449,16 +444,11 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
   /// The gap between the glass and the dock.
   static const belowGlass = 14.0;
 
-  /// The HUD's top, under the page's top edge.
-  static const hudTop = 8.0;
+  /// How far down the page the shell's HUD reaches.
+  final double hudBottom;
 
   @override
   void performLayout(Size size) {
-    final hud = layoutChild(
-      _Slot.hud,
-      BoxConstraints.tightFor(width: size.width - 40),
-    );
-    positionChild(_Slot.hud, Offset(20, topPad + hudTop));
     final glass = layoutChild(
       _Slot.glass,
       BoxConstraints(
@@ -467,7 +457,7 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
         // The room keeps at least a band above the glass, even at large text.
         maxHeight: math.max(
           140,
-          size.height - belowGlass - (topPad + hudTop + hud.height + 56),
+          size.height - belowGlass - (topPad + hudBottom + 56),
         ),
       ),
     );
@@ -486,7 +476,9 @@ class _ClassDayDelegate extends MultiChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_ClassDayDelegate oldDelegate) =>
-      oldDelegate.above != above || oldDelegate.topPad != topPad;
+      oldDelegate.above != above ||
+      oldDelegate.topPad != topPad ||
+      oldDelegate.hudBottom != hudBottom;
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────
@@ -595,7 +587,8 @@ class ClassDayHud extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 4),
+        // The stat row is a full 44 pt touch target; the numerals sit where
+        // they did (the old 4 pt gap above a 36 pt row).
         Row(
           children: [
             for (final stat in Stat.values)
@@ -609,7 +602,7 @@ class ClassDayHud extends StatelessWidget {
                     behavior: HitTestBehavior.opaque,
                     onTap: () => onExploreStat(stat),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 36),
+                      constraints: const BoxConstraints(minHeight: 44),
                       child: Row(
                         mainAxisAlignment: stat == Stat.values.first
                             ? MainAxisAlignment.start

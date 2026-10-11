@@ -47,6 +47,7 @@ class HouseTravelStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
+    this.overlay,
     this.reduceMotion,
   });
 
@@ -55,6 +56,11 @@ class HouseTravelStack extends StatefulWidget {
 
   /// The five rooms, in dock order.
   final List<Widget> children;
+
+  /// Drawn over every room, in the page's own coordinates (below the status
+  /// bar), and never part of the travel: the house's one HUD. It reads the
+  /// travel's signals through [HouseTravelScope].
+  final Widget? overlay;
 
   /// Forces Reduce Motion on or off (tests); null reads the app's and the
   /// system's setting.
@@ -132,6 +138,11 @@ class _HouseTravelStackState extends State<HouseTravelStack> {
       _signals.ui[i].value = staged[i]?.ui ?? 1;
     }
     _signals.glint.value = _model.glintAt(_lastMs);
+    var most = 0.0;
+    for (final f in _model.frames) {
+      if (f.ui > most) most = f.ui;
+    }
+    _signals.hud.value = _model.frames.isEmpty ? 1 : most;
   }
 
   @override
@@ -165,6 +176,7 @@ class _HouseTravelStackState extends State<HouseTravelStack> {
               ),
             ),
           ),
+          if (widget.overlay != null) Positioned.fill(child: widget.overlay!),
         ],
       ),
     );

@@ -281,12 +281,11 @@ void main() {
       expect(find.text('I WAS THERE'), findsOneWidget);
       expect(find.text('Discrete Structures II'), findsOneWidget);
       expect(find.text('2:00 PM · PHY 001'), findsOneWidget);
-      // The HUD keeps the life RPG: level, XP and the six stats.
-      expect(find.byKey(const Key('class-day-hud')), findsOneWidget);
-      expect(find.text('LV'), findsOneWidget);
-      expect(find.text('TUE · OCT 6'), findsOneWidget);
+      // The life RPG (level, XP, the six stats) is the shell's one HUD over
+      // every room (test/house/house_hud_test.dart); the room draws none.
+      expect(find.byKey(const Key('class-day-hud')), findsNothing);
       for (final stat in Stat.values) {
-        expect(find.byKey(Key('class-day-stat-${stat.name}')), findsOneWidget);
+        expect(find.byKey(Key('class-day-stat-${stat.name}')), findsNothing);
       }
       // Today's three is one line with BOARD.
       expect(find.byKey(const Key('class-day-todays-three')), findsOneWidget);

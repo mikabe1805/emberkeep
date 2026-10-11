@@ -16,8 +16,7 @@ import '../../../academic_calendar/domain/academic_schedule.dart'
     show CivilDate;
 import '../../../models.dart';
 import '../../class_day/doorway_model.dart';
-import '../../class_day/doorway_tickets.dart'
-    show doorwayQuestLabel, doorwayStatGlyph;
+import '../../class_day/doorway_tickets.dart' show doorwayQuestLabel;
 
 /// How a quest looks on the three rings.
 enum QuestPip {
@@ -151,7 +150,7 @@ QuestDoorwayRead readQuestDoorway({
         quest: DoorwayQuestFace(
           id: questTicketId(quest),
           name: quest.displayTitle,
-          glyph: doorwayStatGlyph(quest.stat),
+          stat: quest.stat,
           statLabel: quest.stat.label,
           xp: xp(quest),
         ),

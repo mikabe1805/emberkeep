@@ -1,5 +1,5 @@
 // The reading nook's own glass: the "Write for today" card with its four ways
-// in, the last three entries, and the label on the painted box that opens
+// in, the last two entries, and the label on the painted box that opens
 // Keepsakes. The painted room (the plate) is HouseRoomBackdrop's; the page
 // that stacks these over it is journal_nook_page.dart.
 //
@@ -95,7 +95,7 @@ List<JournalPrompt> journalNookPrompts(GameState state) {
 }
 
 /// The last [count] free journal entries, newest first.
-List<Note> recentJournalEntries(GameState state, {int count = 3}) {
+List<Note> recentJournalEntries(GameState state, {int count = 2}) {
   final entries = [...state.journal]..sort((a, b) => b.at.compareTo(a.at));
   return entries.take(count).toList();
 }
@@ -116,6 +116,9 @@ TextStyle _serif(double size, Color color, {FontWeight? weight}) => TextStyle(
   height: 1.15,
   color: color,
 );
+
+/// The least a touch target is tall: every chip, row and button in the nook.
+const double _hit = 44;
 
 const _ink = Color(0xFFEFE2CB);
 const _inkSoft = Color(0xFFC6B69C);
@@ -153,22 +156,12 @@ class JournalNookCard extends StatelessWidget {
     return GlassPanel(
       blur: true,
       tint: const Color(0xCC3A2A1E),
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Column(
         key: const ValueKey('journal-nook-card'),
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            key: const ValueKey('journal-nook-date'),
-            style: Type.label.copyWith(
-              color: _inkSoft,
-              letterSpacing: 1.8,
-              height: 1.1,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
           Pressable(
             semanticLabel: 'Write for today',
             semanticHint: 'Opens a blank page',
@@ -178,36 +171,56 @@ class JournalNookCard extends StatelessWidget {
             interactionSound: InteractionSound.open,
             onTapUp: (_) => onWrite(),
             child: ExcludeSemantics(
-              child: Padding(
+              child: ConstrainedBox(
                 key: const ValueKey('journal-nook-write'),
-                padding: const EdgeInsets.only(top: 4, bottom: 2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Write for today',
-                        style: _serif(
-                          28,
-                          const Color(0xFFFFF3DE),
-                        ).copyWith(height: 1.05),
+                constraints: const BoxConstraints(minHeight: _hit),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    children: [
+                      // The date sits over the title inside the same 44 pt
+                      // target, so the card keeps the prototype's order
+                      // without a row of its own for it.
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              label,
+                              key: const ValueKey('journal-nook-date'),
+                              style: Type.label.copyWith(
+                                color: _inkSoft,
+                                letterSpacing: 1.8,
+                                height: 1.1,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'Write for today',
+                              style: _serif(
+                                28,
+                                const Color(0xFFFFF3DE),
+                              ).copyWith(height: 1.0),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 19,
-                      color: Palette.xpLight.withValues(alpha: 0.8),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 19,
+                        color: Palette.xpLight.withValues(alpha: 0.8),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
           _PromptGrid(prompts: prompts, onPrompt: onPrompt),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
           Container(height: 1, color: const Color(0x24E8C892)),
-          const SizedBox(height: 9),
           if (recent.isEmpty)
             const _FirstPage()
           else
@@ -236,7 +249,8 @@ class _PromptGrid extends StatelessWidget {
     );
     final rows = <Widget>[];
     for (var i = 0; i < prompts.length; i += 2) {
-      if (i > 0) rows.add(const SizedBox(height: 6));
+      // The chips' hit areas meet: each is 44 pt tall (the pill inside is 32),
+      // so the rows carry no gap of their own.
       rows.add(
         IntrinsicHeight(
           child: Row(
@@ -278,22 +292,29 @@ class _PromptChip extends StatelessWidget {
       interactionSound: InteractionSound.open,
       onTapUp: (_) => onTap(),
       child: ExcludeSemantics(
-        child: Container(
-          key: ValueKey('journal-nook-chip-${prompt.id}'),
-          constraints: const BoxConstraints(minHeight: 32),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0x470D0A08),
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: const Color(0x3DEFD8B3)),
-          ),
-          child: Text(
-            prompt.label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: _serif(15, const Color(0xFFE8DAC6)),
+        child: ConstrainedBox(
+          key: ValueKey('journal-nook-chip-hit-${prompt.id}'),
+          constraints: const BoxConstraints(minHeight: _hit),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Container(
+              key: ValueKey('journal-nook-chip-${prompt.id}'),
+              constraints: const BoxConstraints(minHeight: 32),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0x470D0A08),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: const Color(0x3DEFD8B3)),
+              ),
+              child: Text(
+                prompt.label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: _serif(15, const Color(0xFFE8DAC6)),
+              ),
+            ),
           ),
         ),
       ),
@@ -342,26 +363,35 @@ class _Recent extends StatelessWidget {
               interactionSound: InteractionSound.open,
               onTapUp: (_) => onAllEntries(),
               child: ExcludeSemantics(
-                child: Padding(
+                child: ConstrainedBox(
                   key: const ValueKey('journal-nook-all'),
-                  padding: const EdgeInsets.only(left: 12, top: 2, bottom: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'ALL',
-                        style: Type.label.copyWith(
-                          color: Palette.xpLight.withValues(alpha: 0.85),
-                          letterSpacing: 1.4,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  constraints: const BoxConstraints(
+                    minHeight: _hit,
+                    minWidth: _hit,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'ALL',
+                            style: Type.label.copyWith(
+                              color: Palette.xpLight.withValues(alpha: 0.85),
+                              letterSpacing: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 16,
+                            color: Palette.xpLight.withValues(alpha: 0.85),
+                          ),
+                        ],
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 16,
-                        color: Palette.xpLight.withValues(alpha: 0.85),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -421,7 +451,7 @@ class _EntryRow extends StatelessWidget {
       child: ExcludeSemantics(
         child: Container(
           key: ValueKey('journal-nook-entry-${note.id}'),
-          constraints: const BoxConstraints(minHeight: 31),
+          constraints: const BoxConstraints(minHeight: _hit),
           alignment: Alignment.centerLeft,
           padding: EdgeInsets.symmetric(vertical: stacked ? 7 : 2),
           decoration: BoxDecoration(
@@ -523,7 +553,8 @@ class JournalKeepsakesTag extends StatelessWidget {
           onTapUp: (_) => onTap(),
           child: ExcludeSemantics(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              // 28 pt of label inside a 44 pt target.
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Container(
                 key: const ValueKey('journal-keepsakes-tag'),
                 constraints: const BoxConstraints(minHeight: 28, minWidth: 83),

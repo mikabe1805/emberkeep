@@ -117,7 +117,11 @@ void main() {
         DoorwayTicketState.upcoming,
         DoorwayTicketState.upcoming,
       ]);
-      expect(tickets.map((t) => t.quest!.glyph), ['M', 'C', 'H']);
+      expect(tickets.map((t) => t.quest!.stat), [
+        Stat.intl,
+        Stat.foc,
+        Stat.dis,
+      ]);
       expect(tickets.map((t) => t.label), [
         'READ TEN PAGES',
         'REVIEW ONE PROBLEM',
@@ -130,8 +134,8 @@ void main() {
       expect(read.pips, [QuestPip.open, QuestPip.open, QuestPip.open]);
     });
 
-    test('every stat has its own glyph', () {
-      expect({for (final s in Stat.values) doorwayStatGlyph(s)}, hasLength(6));
+    test('every stat has its own glyph, the one the HUD wears', () {
+      expect({for (final s in Stat.values) s.icon}, hasLength(6));
     });
 
     test('a long name is one line of capitals ending in an ellipsis', () {

@@ -231,7 +231,12 @@ class PlansLeftFoot extends StatelessWidget {
     required this.loading,
     required this.showToday,
     required this.onToday,
+    this.todayFirst = false,
   });
+
+  /// BACK TO TODAY comes before the term and the clock (the week's foot has
+  /// less room: what a person needs is never the part that scrolls).
+  final bool todayFirst;
 
   /// The arrows that turn the page back and forward.
   final Widget arrows;
@@ -250,6 +255,44 @@ class PlansLeftFoot extends StatelessWidget {
         : (termName == null || termName!.trim().isEmpty)
         ? null
         : termName!;
+    final today = Semantics(
+      button: true,
+      label: 'Back to today',
+      excludeSemantics: true,
+      onTap: onToday,
+      child: GestureDetector(
+        key: const ValueKey('calendar-back-to-today'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Sfx.instance.playMaterial(MaterialSound.parchment);
+          onToday();
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            // It starts at the page's own margin, left of the
+            // term, so the whole of BACK TO TODAY fits a line.
+            child: Transform.translate(
+              offset: const Offset(-14, 0),
+              child: const Text(
+                'BACK TO TODAY',
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.visible,
+                style: TextStyle(
+                  fontFamily: PlansInk.mono,
+                  fontWeight: FontWeight.w700,
+                  fontSize: Type.minLabel,
+                  letterSpacing: 0.4,
+                  color: PlansInk.brass,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Column(
@@ -272,6 +315,7 @@ class PlansLeftFoot extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (showToday && todayFirst) today,
                 if (label != null)
                   Text(
                     loading ? label : label.toUpperCase(),
@@ -296,45 +340,7 @@ class PlansLeftFoot extends StatelessWidget {
                     color: PlansInk.muted,
                   ),
                 ),
-                if (showToday)
-                  Semantics(
-                    button: true,
-                    label: 'Back to today',
-                    excludeSemantics: true,
-                    onTap: onToday,
-                    child: GestureDetector(
-                      key: const ValueKey('calendar-back-to-today'),
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        Sfx.instance.playMaterial(MaterialSound.parchment);
-                        onToday();
-                      },
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 44),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          // It starts at the page's own margin, left of the
-                          // term, so the whole of BACK TO TODAY fits a line.
-                          child: Transform.translate(
-                            offset: const Offset(-14, 0),
-                            child: const Text(
-                              'BACK TO TODAY',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.visible,
-                              style: TextStyle(
-                                fontFamily: PlansInk.mono,
-                                fontWeight: FontWeight.w700,
-                                fontSize: Type.minLabel,
-                                letterSpacing: 0.4,
-                                color: PlansInk.brass,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                if (showToday && !todayFirst) today,
               ],
             ),
           ),

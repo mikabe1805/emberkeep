@@ -41,8 +41,11 @@ class HistorySky extends StatefulWidget {
   State<HistorySky> createState() => _HistorySkyState();
 }
 
+// TickerProviderStateMixin (not the single-ticker one): _sync() disposes and
+// recreates its controller as the tab's ticker mode toggles, which is a second
+// ticker over this State's life (debug builds assert on that otherwise).
 class _HistorySkyState extends State<HistorySky>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   AnimationController? _c;
   Timer? _webTimer;
   var _webFrame = 0;

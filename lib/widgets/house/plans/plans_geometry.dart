@@ -37,9 +37,15 @@ abstract final class PlansCanvas {
   /// Where the page-curl shadow sweeps: the whole right page.
   static const Rect curl = Rect.fromLTWH(132, 187, 250, 490);
 
-  /// The week strip across both pages of the spread (until the week plate
-  /// lands this stands on the day plate).
-  static const Rect weekStrip = Rect.fromLTWH(14, 216, 365, 350);
+  /// The week plate's heading band (the date range, Week, ADD) over both
+  /// pages, and its seven painted rows under it. Measured from the plate:
+  /// the rows are (37, 690, 1103, 1104) px of the 1179 x 2556 art, seven equal
+  /// ones, the heading (37, 548, 1103, 142).
+  static const Rect weekHeading = Rect.fromLTWH(12.3, 183, 367.7, 46);
+  static const Rect weekRows = Rect.fromLTWH(12.3, 230, 367.7, 368);
+
+  /// The left page's foot under the week's rows (the paper ends near 700).
+  static const Rect weekFoot = Rect.fromLTWH(8.7, 600, 116.3, 98);
 
   /// The month plate's faint printed grid, measured from the plate itself:
   /// the x of its eight vertical lines and the y of its seven horizontal ones.
@@ -97,19 +103,10 @@ abstract final class PlansPlates {
   /// The month spread: the day spread with a faint printed month grid.
   static const HousePlates month = HousePlateSets.plansMonth;
 
-  /// The week spread. The week plate is being painted; until it lands the
-  /// week stands on the day plate with a glass week strip. When the plate is
-  /// painted, drop it in assets/rooms/house/ and change this one line to
-  ///
-  ///   static const HousePlates week = HousePlates(
-  ///     midday: 'assets/rooms/house/plate-plans-week-midday.webp',
-  ///     evening: 'assets/rooms/house/plate-plans-week-evening.webp',
-  ///   );
-  ///
-  /// (the evening is optional: a plate with no evening of its own keeps its
-  /// painted light). The week strip's rectangle is [PlansCanvas.weekStrip];
-  /// retune it if the new plate puts the paper elsewhere.
-  static const HousePlates week = day;
+  /// The week spread: the day's book with seven painted rows, one per day
+  /// (blank paper; the day names and the plans are live). Its evening is the
+  /// same book under the lamp, pixel-registered with it.
+  static const HousePlates week = HousePlateSets.plansWeek;
 
   /// Whether the week has a plate of its own yet.
   static bool get weekHasOwnPlate => week != day;
