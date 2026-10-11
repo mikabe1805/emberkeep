@@ -486,6 +486,13 @@ final class DoorwayDay {
   /// so the shelf never says zero of anything.
   String? get shelfLabel => doorwayShelfLabel(termName, shelfCount);
 
+  /// How many tickets are kept today (attended). The next one kept is the
+  /// `keptCount + 1`th, which is the place the hang's chime sounds. A ticket
+  /// set aside is never attended, so it never counts.
+  int get keptCount => tickets
+      .where((ticket) => ticket.state == DoorwayTicketState.attended)
+      .length;
+
   /// The tickets still on the rail: everything but the folded-away.
   List<DoorwayTicket> get visibleTickets => [
     for (final ticket in tickets)

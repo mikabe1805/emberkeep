@@ -135,6 +135,7 @@ flutter:
     - assets/sfx/room/paired_return/e5/navigate/
     - assets/sfx/room/paired_return/e5/place/
     - assets/sfx/room/completion/
+    - assets/sfx/room/class_chime/
     - assets/sfx/room/materials/slate/select/
     - assets/sfx/room/materials/slate/navigate/
     - assets/sfx/room/materials/slate/place/

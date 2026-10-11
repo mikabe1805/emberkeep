@@ -419,6 +419,17 @@ class Sfx {
   /// ordinary walk's five variants fold onto them).
   static const _materialTakeCount = 3;
 
+  /// The class chime (assets/sfx/room/class_chime/): one master per step of the
+  /// pitch field's rising line, D5 E5 F#5 A5 B5 D6, all of the Soft hand's own
+  /// brass voice. Which step answers which moment is the caller's choice (the
+  /// Doorway plays step N for the Nth class kept today); the files carry the
+  /// level ladder and the caller carries any scale.
+  static const classChimeSteps = 6;
+  static final List<String> _chimeAssets = [
+    for (var step = 1; step <= classChimeSteps; step++)
+      'room/class_chime/$step',
+  ];
+
   static const _ordinarySuppressingEvents = <String>{
     'streak',
     'crit',
@@ -517,7 +528,9 @@ class Sfx {
 
     // Parallel loads; each pool becomes playable as soon as it lands, and
     // one failed asset never mutes the others.
-    await Future.wait([..._coreAssets, ..._materialAssets].map(_loadPool));
+    await Future.wait(
+      [..._coreAssets, ..._materialAssets, ..._chimeAssets].map(_loadPool),
+    );
     // The rare lane is only reachable after four well-paced accepted actions.
     // Warm it after the everyday set without making sixty tiny easter-egg
     // masters part of first-frame readiness.
@@ -733,6 +746,22 @@ class Sfx {
       interactionForMaterial(material),
       volumeScale: volumeScale,
       material: material,
+    );
+  }
+
+  /// Plays one step of the class chime (1 to [classChimeSteps]; anything
+  /// outside is clamped). It is its own gesture, not an ordinary tap: it does
+  /// not walk the take router, feed Paired Return or wait out a reward's
+  /// quiet, so a day's rising line never loses a note. The sound switch still
+  /// mutes it, like every other cue.
+  void playClassChime(int step, {double volumeScale = 1}) {
+    unawaited(MainRoomMusic.instance.retryAfterUserGesture());
+    if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
+    final at = step.clamp(1, classChimeSteps).toInt();
+    _playAsset(
+      'room/class_chime/$at',
+      volume: volumeScale.clamp(0.0, 1.0).toDouble(),
+      eventName: 'class_chime',
     );
   }
 

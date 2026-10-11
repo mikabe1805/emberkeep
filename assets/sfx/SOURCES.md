@@ -1,8 +1,10 @@
 # Sound-effect sources
 
-> **Current status (2026-09-06):** the production everyday family is the
-> owner-selected Refined treatment under `room/ordinary/`, derived from the
-> frozen approved X masters. The older `tap_*`, `tick*`,
+> **Current status (2026-10-11):** the production everyday family is the
+> owner-approved **Soft hand** (see "Soft hand" below), which replaced the
+> Refined treatment of 2026-09-06 under `room/ordinary/` and `room/materials/`.
+> The Refined and X sections below are kept as provenance for the files that
+> still use them (Paired Return, completion) and for the archive. The older `tap_*`, `tick*`,
 > `complete.wav`, and `hearth_room.wav` files were archived compatibility
 > assets: the user rejected their sound quality and near-static note
 > variation, and runtime no longer routed to them. On 2026-08-25 their bytes
@@ -11,7 +13,25 @@
 > Do not extend the archived recipe. `hearth.wav` stays bundled pending the
 > owner's decision on optional hearth ambience (see DESIGN-BIBLE.md).
 
-## Production Room interaction family
+## Soft hand (2026-10-11) and the class chime
+
+`room/ordinary/<open|select|navigate|place>/1..5.wav` (wood: 150, 120, 200 and
+250 ms) and `room/materials/<slate|page|glass|brass>/<verb>/1..3.wav` (the nine
+lanes) are the 47 "Soft hand" masters the owner auditioned on his phone and
+preferred ("i definitely preferred the softer hand"), copied byte-for-byte and
+pinned in `design/audits/2026-10-11/soft-hand/manifest.json`; its
+`render_taps.py` is the synthesis as it was rendered. Mono PCM 16-bit 44.1 kHz.
+They play at volume 1.0 like the page did. Everything below that describes the
+60 ms Refined `ordinary` and `materials` files is superseded for those two
+folders.
+
+`room/class_chime/1..6.wav` are the Doorway's hang chime, one step each of the
+pitch field's rising line (D5 E5 F#5 A5 B5 D6), 480 ms. Deterministic synthesis
+by `tool/author_class_chime.py` (the Soft hand's brass renderer on the shared
+world; no sample, no foreign synthesis), pinned in
+`design/audits/2026-10-11/class-chime/manifest.json`.
+
+## Production Room interaction family (Refined, 2026-09-06; superseded for ordinary and materials)
 
 `room/ordinary/<open|select|navigate|place>/1..5.wav` contains the owner's
 selected **Refined** treatment of the approved X mechanism: one complete 60 ms

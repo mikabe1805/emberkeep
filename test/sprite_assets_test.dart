@@ -61,6 +61,12 @@ void main() {
         }
       }
     }
+    for (var step = 1; step <= 6; step++) {
+      // The class chime: one master per step of the pitch field's rising line.
+      final path = 'assets/sfx/room/class_chime/$step.wav';
+      final data = await rootBundle.load(path);
+      expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+    }
     for (final name in const [
       'accepted-select-2',
       'answered-detent-natural',

@@ -165,6 +165,7 @@ class _Marking {
     required this.start,
     this.dragOff = 0,
     this.reverse = false,
+    this.position = 0,
   });
 
   /// The ticket as it stood in its holder (its words are what the card shows).
@@ -185,6 +186,10 @@ class _Marking {
 
   /// An undo: the same trip, run backwards, into the holder.
   final bool reverse;
+
+  /// How many classes are kept today with this one (the first is 1): the
+  /// place its hang takes in the chime's rising line. Zero for an undo.
+  final int position;
 }
 
 /// A ticket's flight from its hook into the bowl.
@@ -633,7 +638,12 @@ class DoorwayStageState extends State<DoorwayStage>
     var lastStart = _ms;
     var any = false;
     var step = 0;
-    for (final (was, ticket) in forward) {
+    // The hang's chime climbs with the day's kept classes: the ones kept before
+    // this update, then these in turn (a class set aside is not among them, and
+    // an undone one is no longer kept, so it takes the next free place).
+    final keptBefore = old.keptCount;
+    for (var k = 0; k < forward.length; k++) {
+      final (was, ticket) = forward[k];
       final pose = _railPoseOf(ticket.id);
       DoorwayPlacedTicket? placed;
       for (final p in _layout.placed) {
@@ -651,6 +661,7 @@ class DoorwayStageState extends State<DoorwayStage>
           fromKy: pose.ky,
           start: start,
           dragOff: _dragOff.remove(ticket.id) ?? 0,
+          position: keptBefore + k + 1,
         ),
         reduce,
       );
@@ -736,7 +747,7 @@ class DoorwayStageState extends State<DoorwayStage>
       _at(t0, tag, widget.cues.lift);
       _at(t0 + doorwayFadeMs, tag, widget.cues.stamp);
       _at(t0 + doorwayFadeMs, tag, () {
-        widget.cues.hang();
+        widget.cues.hang(m.position);
         _beat(DoorwayBeat.hung);
       });
       _at(t0 + doorwayFadeMs + 300, tag, () {
@@ -751,7 +762,7 @@ class DoorwayStageState extends State<DoorwayStage>
     _at(t0 + 60, tag, widget.cues.lift);
     _at(t0 + doorwayStampMs, tag, widget.cues.stamp);
     _at(t0 + doorwayHangMs, tag, () {
-      widget.cues.hang();
+      widget.cues.hang(m.position);
       _beat(DoorwayBeat.hung);
     });
     _at(t0 + doorwayHangMs + 1000, tag, () => _beat(DoorwayBeat.settled));

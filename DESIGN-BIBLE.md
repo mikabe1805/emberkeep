@@ -639,6 +639,12 @@ same room camera.
   slabs; parchment = travel between pages/tabs/modes and journal surfaces;
   glass = translucent switches, dialogs, and previews; brass = gold surfaces
   only; wood = everything else.
+- Superseded 2026-10-11: the everyday family and the nine material lanes are now
+  the owner-approved Soft hand (100 to 300 ms by lane; "i definitely preferred
+  the softer hand"), and the Doorway's hang is a six-step class chime that
+  climbs the pitch field. SOUND-DESIGN.md section 12 is the record; the 60 ms
+  statements in this and the next bullet describe the Refined files that remain
+  only for Paired Return and the archive.
 - X remains the ordinary anchor. The owner-selected Refined masters (2026-09-06,
   "go for refined!") preserve its complete 60 ms gesture, five close takes,
   and source-relative level while subtly adjusting body and high grain. The

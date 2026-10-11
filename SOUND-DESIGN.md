@@ -354,3 +354,95 @@ platforms — the iOS Runner bundle and the Android `emberkeep_reminders_v2`
 channel (channels bake their sound at creation, so the voice required a new
 channel id) — and is byte-locked by test. Its final gate is a real
 lock-screen delivery on the next TestFlight build.
+
+---
+
+## 12. Addendum: the Soft hand ships, and the class chime climbs (2026-10-11)
+
+**The audition.** On 2026-10-09 the owner heard a listening page on his phone:
+the tap palette in two hands (the shipped one and a softer one), softened
+event voices, a celebration phrase and music. The page's source and the
+measurements behind it are kept in `design/audits/2026-10-11/soft-hand/`. His
+verdict, verbatim: "the sound page sounded good! it'd be best if you also vary
+the keys of the class chime rather than sticking to just one note. i
+definitely preferred the softer hand although i do think some of the sound
+satisfaction isnt there (but it isnt really there with the earlier version
+either, something to come back to later maybe)".
+
+**What shipped: the Soft hand taps, and only the taps.** The everyday family
+under `assets/sfx/room/ordinary/` (wood: open 150 ms, select 120, navigate 200,
+place 250; five takes each) and the nine material lanes under
+`assets/sfx/room/materials/` (brass select and place, glass select and place,
+page open and navigate, slate select, navigate and place; three takes each)
+are now the page's "Soft hand" files, 47 in all, byte-identical to what the
+page played. They are the same world as before (the contact master softened
+with a raised-cosine kernel and a band-limited grain, the 1 / 1.498 / 2.17
+modal bank, the D-major pentatonic field, the 22 / 29 / 34 ms fingerprint),
+mono PCM 16-bit at 44.1 kHz. `design/audits/2026-10-11/soft-hand/manifest.json`
+pins every file's sha256, and `interaction_sound_quality_test.dart` pins the
+manifest's own digest, so a file cannot change without someone re-listening.
+The loader keeps its counts: five ordinary takes per verb, and three takes per
+material lane (`Sfx._materialTakeCount`), so takes 4 and 5 of a material lane,
+which the page also played, are not in the bundle. Raising the count to five
+is a one-line change if the owner wants the page's full variety back.
+
+**Level: nothing to retune.** The page's "Level: As in the app" mode (its
+default, and the one he listened in) played both sets at gain 1.0, and the app
+plays every tap lane at 1.0 (the router's rapid ladder aside); only the
+Doorway's own cues carry a scale (0.25 to 0.7). So the files carry the level he
+heard. In that mode the Soft hand peaks about 9 dB lower than the hand it
+replaces and averages about 3 dB lower in the phone band; that gap is part of
+what he preferred, so it was not raised. The Doorway's scales were left where
+they were: with the new files the paper lift and the bowl sit within 1 dB of
+where they were, and the shelf's wood sits about 3 dB lower.
+
+**Not changed, because no verdict is in:** the completion composite and its
+detent, the accepted contact, the event voices (streak, crit, loot, levelup,
+boing, stat_0 to stat_5), the music. The page's softened versions of those are
+not shipped. Paired Return (the rare D5, A5, E5, D5 phrase) is also untouched
+and is still the old, harder 60 ms hand, so its once-per-screen appearance is
+the one place an old-hand click can land among soft ones. The owner did not hear
+it on the page, so it waits for his word.
+
+**The class chime varies its note.** The Doorway's hang (the ticket reaching
+its hook) is now a soft brass chime that climbs the pitch field. The Nth class
+kept today plays step N of D5, E5, F#5, A5, B5, D6 (586.7 to 1174 Hz, the
+phone-readable body band), and the seventh starts over at D5. Counting follows
+what is kept, never what is skipped: a class set aside with "Couldn't make
+it" has no step, and an undone class kept again takes the next free place
+(undo the last one and mark it again and it sounds the same note). The stage
+reads the count from `DoorwayDay.keptCount` and only announces the place;
+`doorway_cues.dart` is the one place that chooses the sound. The sound switch
+mutes it, Reduce Motion does not, and it is its own gesture (not an ordinary
+tap), so it never walks the take router, feeds Paired Return, or waits out a
+reward's quiet: the day's line cannot lose a note. It replaces the brass click
+the hang used to play; the chime carries its own soft hang contact at the head.
+
+The six masters (`assets/sfx/room/class_chime/1..6.wav`, 480 ms) are the Soft
+hand's own brass renderer, not a new instrument. `tool/author_class_chime.py`
+carries that renderer over unchanged (`--check` re-renders a shipped Soft hand
+brass take and matches it within one 16-bit step) and drives it with a spec:
+the felt-muted dyad with a slow beat, an octave overtone strong enough to carry
+the pitch where a phone speaker rolls off below about 800 Hz, a quiet fifth, a
+small bell partial held back as the root rises, a 6 to 7 ms rise, a decay
+that is 20 dB down between 270 and 325 ms and 30 dB down between 375 and
+435 ms, no second seat.
+The twin partial beats at a fixed 3.5 Hz on every step (the brass lane's
+ratio detune would pulse 4 Hz on D5 and 8 Hz on D6, a wobble on the high
+steps). Each step is calibrated to the same phone-band average (-30.0 dBFS),
+peaks between -15.5 and -16.6 dBFS, and has no excitation-noise bed: the
+only noise is the hang's short contact grain, so the inter-partial floor sits
+about 100 dB under the note and nothing is added to the section 8 budget. Spectra
+were measured: each step's strongest partial is within 2 cents of its target
+(ten is the test's tolerance), and energy above 4 kHz is under -43 dB. The
+Doorway plays the chime at a 0.8 scale: about 1.6 dB above the brass click it
+replaces on the phone-band average, and about 1 to 2 dB under it at the peak
+(a soft tone, not a click), so a rising line can be heard without becoming a
+bell. Masters are
+byte-locked like the rest (`design/audits/2026-10-11/class-chime/manifest.json`
+plus a digest literal in the test), and the line can be regenerated.
+
+**Still open.** The owner's other remark stands: "some of the sound
+satisfaction isnt there", true of the earlier hand too, "something to come
+back to later maybe". The chime has been measured but not heard by him; whether
+it pleases is his to say, from the phone.
