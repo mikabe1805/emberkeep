@@ -87,7 +87,7 @@ Future<void> _boot(WidgetTester tester, DateTime at) async {
 
 /// The goals of the v4 prototype's wall, with real first steps; [count] of
 /// them (five makes two that the wall has no sheet for).
-void _theWall(WidgetTester tester, {int count = 3}) {
+void _theWall(WidgetTester tester, {int count = 3, bool long = false}) {
   final state = liveState(tester);
   final quests = liveQuests(tester);
   for (final goal in List<Goal>.of(state.goals)) {
@@ -101,7 +101,19 @@ void _theWall(WidgetTester tester, {int count = 3}) {
     ('Make the apartment feel calm', Stat.dis, 'Clear the kitchen counter'),
     ('Build a walking habit', Stat.vit, 'Walk after lunch'),
   ];
-  for (final (title, stat, quest) in goals.take(count)) {
+  // With [long], the middle sheet holds a name that would run under the sign.
+  final wall = long
+      ? [
+          goals[0],
+          (
+            'Make the apartment feel calm and bright',
+            Stat.dis,
+            'Clear the kitchen counter',
+          ),
+          goals[2],
+        ]
+      : goals;
+  for (final (title, stat, quest) in wall.take(count)) {
     state.addGoal(
       Goal(
         title: title,
@@ -175,6 +187,15 @@ void main() {
         surface: 'GOALS',
         note:
             'five goals at rest on ${d.name}: the +N counts what is not drawn',
+      );
+      _theWall(tester, long: true);
+      await settle(tester, total: const Duration(milliseconds: 600));
+      await sheet.shot(
+        tester,
+        'G_long_${d.name}',
+        at: _midday,
+        surface: 'GOALS',
+        note: 'a long name beside the sign ends short of it on ${d.name}',
       );
     });
   }

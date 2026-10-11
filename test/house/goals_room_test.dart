@@ -1172,6 +1172,7 @@ void main() {
 
   group('short phones: the wall draws only what is clear of the card and the '
       'sign', () {
+    // Beside the sign a long name ends in an ellipsis rather than leaving.
     // The goals of the prototype's wall, by phone: what is drawn and what the
     // "+N" tag says (null: no room for it). Measured with the room's own faces.
     final cases = <({Size size, int count, List<String> drawn, String? tag})>[
@@ -1202,26 +1203,26 @@ void main() {
       (
         size: const Size(320, 568),
         count: 3,
-        drawn: ['Room of Days'],
-        tag: '+2',
+        drawn: ['Room of Days', 'Computer Architecture'],
+        tag: null,
       ),
       (
         size: const Size(320, 568),
         count: 5,
-        drawn: ['Room of Days'],
-        tag: '+4',
+        drawn: ['Room of Days', 'Computer Architecture'],
+        tag: null,
       ),
       (
         size: const Size(320, 693),
         count: 3,
-        drawn: ['Room of Days', 'Summer 2027'],
-        tag: '+1',
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: null,
       ),
       (
         size: const Size(320, 693),
         count: 5,
-        drawn: ['Room of Days', 'Summer 2027'],
-        tag: '+3',
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: '+2',
       ),
     ];
 
@@ -1357,19 +1358,26 @@ void main() {
       );
     });
 
-    testWidgets('a label that would run under the sign is not drawn', (
+    testWidgets('a label that would run under the sign stops short of it', (
       tester,
     ) async {
       final w = _wall();
       // 320 wide: "Computer Architecture" is wider than the room between the
-      // sign and the wall's edge.
+      // sign and the wall's edge, so it ends in an ellipsis clear of the sign.
       await _pump(
         tester,
         state: w.state,
         quests: w.quests,
         size: const Size(320, 693),
       );
-      expect(_label('Computer Architecture'), findsNothing);
+      expect(_label('Computer Architecture'), findsOneWidget);
+      final narrowSign = tester.getRect(
+        find.byKey(const Key('goals-open-workshop')),
+      );
+      final narrowGlass = tester.getRect(
+        _glassOf(_label('Computer Architecture')),
+      );
+      expect(narrowGlass.left, greaterThan(narrowSign.right));
       // 375 wide it fits beside the sign, and is drawn clear of it.
       final wide = _wall();
       await _pump(
@@ -1381,6 +1389,21 @@ void main() {
       final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
       final glass = tester.getRect(_glassOf(_label('Computer Architecture')));
       expect(glass.left, greaterThan(sign.right));
+    });
+
+    testWidgets('a long name beside the sign stays on the wall', (
+      tester,
+    ) async {
+      const long = 'Make the apartment feel calm and bright';
+      final w = _wall();
+      w.state.goals.insert(1, _goal(long, Stat.dis));
+      w.quests.add(_quest('Clear the kitchen counter', Stat.dis, long));
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(_label(long), findsOneWidget);
+      final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
+      final glass = tester.getRect(_glassOf(_label(long)));
+      expect(glass.left, greaterThan(sign.right));
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('the current goal keeps a lit label on the sheet that is '
@@ -1411,7 +1434,7 @@ void main() {
       expect(_edge(tester, 'Room of Days'), _litEdge);
     });
 
-    testWidgets('a long name the sign would cover takes a sheet below it', (
+    testWidgets('a long name the sign would cover stops short of it', (
       tester,
     ) async {
       final state = GameState()..reduceMotion = true;
@@ -1422,7 +1445,7 @@ void main() {
       final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
       final glass = tester.getRect(_glassOf(_label(long)));
       expect(_overlap(glass, sign), isFalse);
-      expect(glass.top, greaterThan(sign.bottom));
+      expect(glass.left, greaterThan(sign.right));
       expect(_edge(tester, long), _litEdge);
     });
 

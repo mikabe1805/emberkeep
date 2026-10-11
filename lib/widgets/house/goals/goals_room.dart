@@ -11,10 +11,12 @@
 //                   on another makes it the current goal (the card swaps and
 //                   the lit edge moves), a tap on the lit one opens it. With
 //                   more goals than sheets a quiet "+N" tag hangs below the
-//                   lowest label and unrolls MORE at Other goals. A label
-//                   whose glass would sit under the card (or within 8 pt of its
-//                   top edge) or under the sign is not drawn, as on a short
-//                   phone; its goal stays in MORE, and the tag counts it.
+//                   lowest label and unrolls MORE at Other goals. A long
+//                   name beside the sign stops short of it with an ellipsis.
+//                   A label whose glass would sit under the card (or within
+//                   8 pt of its top edge), or that would be too short to read
+//                   beside the sign, is not drawn, as on a short phone; its
+//                   goal stays in MORE, and the tag counts it.
 //   the card        the current goal, its next thing, and its one action; or,
 //                   with no goal yet, the Steward's invitation. A quiet "more"
 //                   unrolls everything else Goals has (other and finished
@@ -162,6 +164,10 @@ List<T> goalsOnTheWall<T>(List<T> goals, {required T? current, int? capacity}) {
 /// the card, or nearer than this to the card's top edge, or to the sign.
 const double _wallClearance = 8;
 
+/// The least room a label's text gets beside the sign before its goal waits
+/// in MORE instead (points): about eight capitals, a name you can still read.
+const double _shortestWallText = 64;
+
 /// How much scroll the dissolve under the HUD takes to come up over (points):
 /// the Journal's.
 const double _hudDissolveScroll = 60;
@@ -236,6 +242,7 @@ double _signGlassHeight(BuildContext context, String detail) {
 class _WallPlan {
   const _WallPlan({
     required this.labels,
+    required this.widths,
     required this.signTop,
     required this.tagTop,
     required this.more,
@@ -243,6 +250,10 @@ class _WallPlan {
 
   /// The labels that are drawn, by the slot (sheet) each hangs on.
   final Map<int, GoalsWallEntry> labels;
+
+  /// How wide each drawn label's box may be (its text ends in an ellipsis
+  /// past that), by slot: narrower beside the sign.
+  final Map<int, double> widths;
 
   /// Where the sign hangs (points from the page's top).
   final double signTop;
@@ -389,13 +400,17 @@ class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
       signHeight,
     ).inflate(_wallClearance / 2);
 
+    // A label's box is its text plus the glass's padding (21) and the tap
+    // target's sides (12).
     final textRoom = width * 0.72 - 12 - 21;
-    Rect glass(int slot, GoalsWallEntry entry) {
+
+    // Where a label's glass sits on [slot] with its text at most [room] wide.
+    Rect glassFor(int slot, GoalsWallEntry entry, double room) {
       final text = _measureText(
         context,
         entry.title.toUpperCase(),
         _wallLabelStyle(),
-        textRoom,
+        room,
       );
       final w = 21 + text.width;
       final h = 10 + math.max<double>(14, text.height);
@@ -403,21 +418,40 @@ class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
       return Rect.fromLTWH(right - w, y(goalsWallSlots[slot].top), w, h);
     }
 
-    bool clear(Rect g) =>
-        g.bottom + _wallClearance <= cardTop && !g.overlaps(sign);
+    // The label's glass and its text room on [slot], or null when it cannot
+    // be drawn there. A long name beside the sign stops short of it and ends
+    // in an ellipsis; only a label left too short to read waits in MORE.
+    ({Rect glass, double room})? fit(int slot, GoalsWallEntry entry) {
+      var room = textRoom;
+      var g = glassFor(slot, entry, room);
+      if (g.overlaps(sign)) {
+        final right = width - goalsWallSlots[slot].right * k - 6;
+        room = math.min(textRoom, right - sign.right - 21);
+        if (room < _shortestWallText) return null;
+        g = glassFor(slot, entry, room);
+      }
+      if (g.bottom + _wallClearance > cardTop || g.overlaps(sign)) return null;
+      return (glass: g, room: room);
+    }
 
     final slots = math.min(wall.length, goalsWallSlots.length);
     final labels = <int, GoalsWallEntry>{};
+    final fits = <int, ({Rect glass, double room})>{};
     for (var i = 0; i < slots; i++) {
-      if (clear(glass(i, wall[i]))) labels[i] = wall[i];
+      final f = fit(i, wall[i]);
+      if (f == null) continue;
+      labels[i] = wall[i];
+      fits[i] = f;
     }
     // The current goal keeps a lit label if any sheet can hold it: when its
     // own is covered it takes the lowest sheet that is clear.
     final lit = wall.indexWhere((e) => e.lit);
     if (lit >= 0 && !labels.containsKey(lit)) {
       for (var j = goalsWallSlots.length - 1; j >= 0; j--) {
-        if (clear(glass(j, wall[lit]))) {
+        final f = fit(j, wall[lit]);
+        if (f != null) {
           labels[j] = wall[lit];
+          fits[j] = f;
           break;
         }
       }
@@ -427,7 +461,7 @@ class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
     double? tagTop;
     if (more > 0 && widget.onMoreGoals != null && labels.isNotEmpty) {
       final low = labels.keys.reduce(math.max);
-      final under = glass(low, labels[low]!);
+      final under = fits[low]!.glass;
       final tagText = _measureText(
         context,
         '+$more',
@@ -439,6 +473,7 @@ class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
     }
     return _WallPlan(
       labels: labels,
+      widths: {for (final e in fits.entries) e.key: e.value.room + 12 + 21},
       signTop: signTop,
       tagTop: tagTop,
       more: more,
@@ -471,7 +506,7 @@ class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
             key: ValueKey<int>(slot),
             top: y(goalsWallSlots[slot].top) - _hitPad,
             right: goalsWallSlots[slot].right * k,
-            width: width * 0.72,
+            width: plan.widths[slot] ?? width * 0.72,
             child: Align(
               alignment: Alignment.centerRight,
               child: GoalsWallLabel(entry: plan.labels[slot]!, maxLines: 1),
