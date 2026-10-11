@@ -152,15 +152,17 @@ void main() {
 
     testWidgets('the stage reads the app clock, never a tint', (tester) async {
       final day = _doorway(_fall2026, _state(), _ny(10, 6, 12, 51));
-      Clock.freeze(_ny(10, 6, 12, 51));
+      // The light follows the phone's own clock, so these are its local
+      // times, whatever zone the test machine is in.
+      Clock.freeze(DateTime(2026, 10, 6, 12, 51));
       await _mount(tester, day);
       expect(_stage(tester).lights.midday, 1);
 
-      Clock.freeze(_ny(10, 6, 17, 0));
-      await _mount(tester, day, now: _ny(10, 6, 17, 0));
+      Clock.freeze(DateTime(2026, 10, 6, 17, 0));
+      await _mount(tester, day, now: DateTime(2026, 10, 6, 17, 0));
       expect(_stage(tester).lights.golden, 1);
 
-      await _mount(tester, day, now: _ny(10, 6, 15, 30));
+      await _mount(tester, day, now: DateTime(2026, 10, 6, 15, 30));
       final blend = _stage(tester).lights;
       expect(blend.midday, closeTo(0.5, 0.01));
       expect(blend.golden, closeTo(0.5, 0.01));
@@ -478,7 +480,8 @@ void main() {
   group('the evening', () {
     testWidgets('the same Doorway under the evening light', (tester) async {
       final day = _doorway(_fall2026, _state(), _ny(10, 6, 20, 15));
-      await _mount(tester, day);
+      // The phone's own 20:15 (the light reads local time).
+      await _mount(tester, day, now: DateTime(2026, 10, 6, 20, 15));
       final lights = _stage(tester).lights;
       expect(lights.evening, 1);
       expect(lights.sun, 0, reason: 'no sun, so no beams and no sun dust');
@@ -489,7 +492,8 @@ void main() {
       tester,
     ) async {
       final day = _doorway(_fall2026, _state(), _ny(10, 7, 2, 30));
-      await _mount(tester, day);
+      // The phone's own 02:30 (the light reads local time).
+      await _mount(tester, day, now: DateTime(2026, 10, 7, 2, 30));
       expect(_stage(tester).lights.evening, 1);
     });
   });

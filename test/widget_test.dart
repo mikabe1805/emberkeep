@@ -615,7 +615,9 @@ void main() {
     await revealQuest(tester, 'Walk 10 minutes');
     final card = find.byKey(const ValueKey('undo-Walk 10 minutes'));
     expect(card, findsOneWidget);
-    await tester.ensureVisible(card);
+    // mid-screen: the top of the page is under the shell's HUD, and what sits
+    // above the card depends on the hour the test runs at
+    await Scrollable.ensureVisible(tester.element(card), alignment: 0.5);
     await tester.pump(const Duration(milliseconds: 100));
     await tester.fling(card, const Offset(-500, 0), 1500);
     await tester.pump();
