@@ -53,8 +53,8 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
-    id: '1.0.5+53',
-    versionLabel: 'VERSION 1.0.5 · BUILD 53',
+    id: '1.0.5+54',
+    versionLabel: 'VERSION 1.0.5 · BUILD 54',
     dateLabel: 'OCTOBER 2026',
     title: 'Every tab is a room now.',
     introduction:

@@ -108,7 +108,7 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 53 is an internal candidate that turns the app into one house. Every
+Build 54 is an internal candidate that turns the app into one house. Every
 tab is now a painted room with its own daytime and evening light. On class
 days your classes hang by the front door in Quests, and Couldn't make it sets
 one aside. Goals pins your goals on the workshop wall, Plans has a new week
