@@ -803,6 +803,14 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byIcon(Icons.menu_book_outlined));
     await tester.pump(const Duration(milliseconds: 500));
+    await tester.scrollUntilVisible(
+      find.text('PATTERNS'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.tap(find.text('PATTERNS'));
     await settle(tester);
 

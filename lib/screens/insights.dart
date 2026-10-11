@@ -17,12 +17,14 @@ import '../widgets/constellation.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
-import '../widgets/house/house_room.dart';
-import '../widgets/luxe_depth.dart';
+import '../widgets/house/journal/journal_nook.dart';
+import '../widgets/house/journal/journal_nook_page.dart';
+import '../widgets/house/journal/journal_writer.dart';
 import '../widgets/night_reflection_sheet.dart';
 import '../widgets/pressable.dart';
 import 'journal_entry.dart';
 import 'journal_hub.dart';
+import 'memory_cabinet.dart';
 import 'weekly_chronicle.dart';
 
 /// Picks the quiet, occasional Then & Now beat without adding another piece
@@ -96,72 +98,93 @@ class InsightsPage extends StatelessWidget {
       listenable: state,
       builder: (context, _) {
         final noteCount = _noteCount();
-        return LuxePageList(
-          room: HouseRoom.journal,
-          assetPath: 'assets/pages/journal-archive-v1.webp',
-          title: 'Journal',
-          subtitle: 'what you noticed, and what changed',
-          icon: Icons.menu_book_outlined,
+        final writer = JournalWriter(state: state, quests: quests);
+        return JournalNookPage(
+          date: Clock.now(),
+          prompts: journalNookPrompts(state),
+          recent: recentJournalEntries(state),
           parallax: parallax,
-          reduceMotion: state.reduceMotion,
-          trailing: noteCount == 0
-              ? null
-              : Semantics(
-                  label:
-                      '$noteCount journal ${noteCount == 1 ? 'entry' : 'entries'} kept',
-                  child: Text(
-                    key: const ValueKey('journal-entry-count'),
-                    '$noteCount ${noteCount == 1 ? 'ENTRY' : 'ENTRIES'}',
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                ),
-          children: [
-            LuxeGoldButton(
-              label: 'Write for today',
-              icon: Icons.edit_note_rounded,
-              onTap: () => _openJournal(context, compose: true),
-              parallax: lightDirection ?? parallax,
-            ),
-            const SizedBox(height: 14),
+          reduceMotion: state.reduceMotion ? true : null,
+          onWrite: () => writer.open(context),
+          onPrompt: (p) => writer.open(
+            context,
+            heading: p.label,
+            hint: p.hint,
+            starter: p.starter,
+          ),
+          onEntry: (note) =>
+              writer.open(context, entry: note, initiallyEditing: false),
+          onAllEntries: () => _openJournal(context),
+          onKeepsakes: () => _openKeepsakes(context),
+          // Everything the Journal tab held before the nook, under it.
+          lower: [
+            _lowerHeader(noteCount),
             _JournalLensBar(
               onEntries: () => _openJournal(context),
               onPatterns: () => _openPatterns(context),
               onChronicle: () => _openChronicle(context),
             ),
-            const SizedBox(height: 14),
-            if (thenAndNowEntry(state.journal) case final note?) ...[
+            if (thenAndNowEntry(state.journal) case final note?)
               _thenAndNow(context, note),
-              const SizedBox(height: 14),
-            ],
             _journalCard(context, noteCount),
-            const SizedBox(height: 14),
             _chronicleCard(context),
-            const SizedBox(height: 14),
             if (state.totalCompletions == 0)
               _empty()
             else ...[
               // lead with the feeling — the one true encouraging line + this
               // week's shape — then the supporting charts below it
               _heroTakeaway(),
-              const SizedBox(height: 14),
               _snapshot(),
-              const SizedBox(height: 14),
               _energyWeather(),
-              const SizedBox(height: 14),
               _domains(),
-              const SizedBox(height: 14),
               _rhythm(),
-              const SizedBox(height: 14),
               _activity(),
-              const SizedBox(height: 14),
               _sky(context),
             ],
           ],
         );
       },
+    );
+  }
+
+  /// A quiet label over the lower section, with the count of everything kept.
+  Widget _lowerHeader(int noteCount) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 14, 4, 0),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'MORE FROM YOUR JOURNAL',
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.textLo,
+              letterSpacing: 1.6,
+            ),
+          ),
+        ),
+        if (noteCount > 0)
+          Semantics(
+            label:
+                '$noteCount journal ${noteCount == 1 ? 'entry' : 'entries'} kept',
+            child: Text(
+              key: const ValueKey('journal-entry-count'),
+              '$noteCount ${noteCount == 1 ? 'ENTRY' : 'ENTRIES'}',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.textLo,
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  void _openKeepsakes(BuildContext context) {
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MemoryCabinetScreen(state: state, quests: quests),
+      ),
     );
   }
 
@@ -939,11 +962,14 @@ class InsightsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 10,
+            runSpacing: 6,
             children: [
               for (final p in parts)
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Transform.rotate(
                       angle: 0.785,
@@ -1009,75 +1035,82 @@ class InsightsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 80,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (var i = 0; i < days.length; i++)
-                  Expanded(
-                    child: Builder(
-                      builder: (_) {
-                        final d = days[i];
-                        final frac = d.$2 / maxC;
-                        final isBest = i == bestIdx;
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // a small dot crowns the strongest day
-                            if (isBest)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 3),
-                                child: Transform.rotate(
-                                  angle: 0.785,
-                                  child: Container(
-                                    width: 4,
-                                    height: 4,
-                                    color: Palette.xpLight,
+          Builder(
+            builder: (context) => SizedBox(
+              // the weekday letters grow with the text size; the bars keep
+              // their room
+              height:
+                  80 + (MediaQuery.textScalerOf(context).scale(11) - 11) * 1.5,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  for (var i = 0; i < days.length; i++)
+                    Expanded(
+                      child: Builder(
+                        builder: (_) {
+                          final d = days[i];
+                          final frac = d.$2 / maxC;
+                          final isBest = i == bestIdx;
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // a small dot crowns the strongest day
+                              if (isBest)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: Transform.rotate(
+                                    angle: 0.785,
+                                    child: Container(
+                                      width: 4,
+                                      height: 4,
+                                      color: Palette.xpLight,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            Container(
-                              height: 6 + 44 * frac,
-                              margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: facetedDecoration(
-                                color: d.$2 == 0
-                                    ? Palette.glassFill
-                                    : isBest
-                                    ? Palette.xpLight
-                                    : Palette.streak.withValues(
-                                        alpha: 0.45 + 0.45 * frac,
-                                      ),
-                                cut: 3,
-                                borderColor: Colors.transparent,
-                                shadows: isBest
-                                    ? [
-                                        BoxShadow(
-                                          color: Palette.xpLight.withValues(
-                                            alpha: 0.5,
-                                          ),
-                                          blurRadius: 6,
+                              Container(
+                                height: 6 + 44 * frac,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                decoration: facetedDecoration(
+                                  color: d.$2 == 0
+                                      ? Palette.glassFill
+                                      : isBest
+                                      ? Palette.xpLight
+                                      : Palette.streak.withValues(
+                                          alpha: 0.45 + 0.45 * frac,
                                         ),
-                                      ]
-                                    : const [],
+                                  cut: 3,
+                                  borderColor: Colors.transparent,
+                                  shadows: isBest
+                                      ? [
+                                          BoxShadow(
+                                            color: Palette.xpLight.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            blurRadius: 6,
+                                          ),
+                                        ]
+                                      : const [],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _weekdayShort[d.$1.weekday - 1],
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: isBest
-                                    ? Palette.xpLight
-                                    : Palette.textLo,
+                              const SizedBox(height: 4),
+                              Text(
+                                _weekdayShort[d.$1.weekday - 1],
+                                style: Type.label.copyWith(
+                                  fontSize: 11,
+                                  color: isBest
+                                      ? Palette.xpLight
+                                      : Palette.textLo,
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

@@ -1364,6 +1364,17 @@ void main() {
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_12_fresh_journal_1290x2796');
+    // the nook is the Journal now; the hub card waits under it
+    await tester.scrollUntilVisible(
+      find.text('Your Journal'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.ensureVisible(find.text('Your Journal'));
+    await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_13_empty_journal_hub_1290x2796');
@@ -1874,6 +1885,17 @@ void main() {
     await _storeShot(tester, '06_insights_1290x2796');
     await _playStoreShot(tester, '05_journal_1080x1920');
 
+    // the nook is the Journal now; the hub card waits under it
+    await tester.scrollUntilVisible(
+      find.text('Your Journal'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.ensureVisible(find.text('Your Journal'));
+    await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '07_journal_1290x2796');
