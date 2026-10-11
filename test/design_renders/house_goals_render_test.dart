@@ -169,7 +169,11 @@ void main() {
     await _boot(tester);
     _theWall(tester);
     await _openGoals(tester);
+    // A label makes its goal current; the card's name opens it.
     await tester.tap(find.byKey(const Key('goals-wall-computer-architecture')));
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    await tester.tap(find.byKey(const Key('goals-card-open-goal')));
     await tester.pump();
     await settle(tester, total: const Duration(milliseconds: 1400));
     await sheet.shot(
@@ -177,7 +181,8 @@ void main() {
       'G_detail',
       at: _at,
       surface: 'GOAL',
-      note: 'Computer Architecture, pushed from its label: the same plate',
+      note:
+          'Computer Architecture, pushed from the name on the card: the same plate',
     );
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -420));
     await tester.pump();

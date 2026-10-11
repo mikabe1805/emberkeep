@@ -2186,11 +2186,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('goal-folio-tend the apartment')),
+      find.byKey(const ValueKey('goals-card-face-tend the apartment')),
       findsNothing,
     );
     expect(
-      find.byKey(const ValueKey('goal-folio-read books slowly')),
+      find.byKey(const ValueKey('goals-card-face-read books slowly')),
       findsOneWidget,
     );
     expect(_goalAction('Add a Quest'), findsOneWidget);
