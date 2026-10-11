@@ -42,7 +42,8 @@ final class LocalAcademicCalendarPreferences
       final rawMode = preferences.getString(_modeKey);
       final mode = AcademicCalendarMode.values.firstWhere(
         (candidate) => candidate.name == rawMode,
-        orElse: () => AcademicCalendarMode.month,
+        // Plans opens on today's page of the daybook until a view is chosen.
+        orElse: () => AcademicCalendarMode.day,
       );
       return AcademicCalendarViewState(
         mode: mode,
@@ -50,7 +51,7 @@ final class LocalAcademicCalendarPreferences
         threeDayStartDate: preferences.getString(_threeDayStartKey),
       );
     } catch (_) {
-      return const AcademicCalendarViewState(mode: AcademicCalendarMode.month);
+      return const AcademicCalendarViewState(mode: AcademicCalendarMode.day);
     }
   }
 

@@ -501,7 +501,10 @@ void main() {
     );
     expect(tester.takeException(), isNull);
 
-    final pageScroll = find.byType(Scrollable).first;
+    final pageScroll = find.descendant(
+      of: find.byKey(const ValueKey('plans-day-list')),
+      matching: find.byType(Scrollable),
+    );
     await tester.scrollUntilVisible(
       find.text(entryText),
       260,

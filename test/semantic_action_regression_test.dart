@@ -79,7 +79,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expectTapAction(tester, 'Previous month');
+    expectTapAction(tester, 'Previous day');
 
     var enabled = false;
     await tester.pumpWidget(
