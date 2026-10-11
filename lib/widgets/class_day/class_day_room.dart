@@ -502,6 +502,10 @@ class ClassDayHud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final need = state.xpNeeded(state.level + 1);
+    // The gap between a stat's icon and its numeral follows the text size, so
+    // the bigger numerals do not crowd the icon (the numeral's own size grows
+    // and the icon's does not).
+    final hudIconGap = MediaQuery.textScalerOf(context).scale(5);
     return Column(
       key: const Key('class-day-hud'),
       mainAxisSize: MainAxisSize.min,
@@ -603,35 +607,47 @@ class ClassDayHud extends StatelessWidget {
                     onTap: () => onExploreStat(stat),
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minHeight: 44),
-                      child: Row(
-                        mainAxisAlignment: stat == Stat.values.first
-                            ? MainAxisAlignment.start
-                            : stat == Stat.values.last
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            stat.icon,
-                            size: 13,
-                            color: stat.color.withValues(alpha: 0.85),
-                            shadows: _hudShadow,
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              '${state.stats[stat] ?? 0}',
-                              maxLines: 1,
-                              softWrap: false,
-                              overflow: TextOverflow.fade,
-                              style: Type.numerals.copyWith(
-                                fontSize: 14,
-                                height: 1,
-                                color: Palette.textMid,
+                      // An icon and its numeral keep their gap as the text
+                      // grows; in a cell that is too narrow for them both
+                      // (three digits at 130% on a small phone) the pair
+                      // shrinks together instead of the numeral being cut,
+                      // and keeps a little clear of the next stat's icon.
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: stat == Stat.values.first ? 0 : 3,
+                          right: stat == Stat.values.last ? 0 : 3,
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: stat == Stat.values.first
+                              ? Alignment.centerLeft
+                              : stat == Stat.values.last
+                              ? Alignment.centerRight
+                              : Alignment.center,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                stat.icon,
+                                size: 13,
+                                color: stat.color.withValues(alpha: 0.85),
                                 shadows: _hudShadow,
                               ),
-                            ),
+                              SizedBox(width: hudIconGap),
+                              Text(
+                                '${state.stats[stat] ?? 0}',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: Type.numerals.copyWith(
+                                  fontSize: 14,
+                                  height: 1,
+                                  color: Palette.textMid,
+                                  shadows: _hudShadow,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

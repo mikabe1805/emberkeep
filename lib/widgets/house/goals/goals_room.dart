@@ -11,7 +11,10 @@
 //                   on another makes it the current goal (the card swaps and
 //                   the lit edge moves), a tap on the lit one opens it. With
 //                   more goals than sheets a quiet "+N" tag hangs below the
-//                   lowest label and unrolls MORE at Other goals.
+//                   lowest label and unrolls MORE at Other goals. A label
+//                   whose glass would sit under the card (or within 8 pt of its
+//                   top edge) or under the sign is not drawn, as on a short
+//                   phone; its goal stays in MORE, and the tag counts it.
 //   the card        the current goal, its next thing, and its one action; or,
 //                   with no goal yet, the Steward's invitation. A quiet "more"
 //                   unrolls everything else Goals has (other and finished
@@ -29,6 +32,7 @@
 // the unrolling; it keeps every control.
 library;
 
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
@@ -154,8 +158,104 @@ List<T> goalsOnTheWall<T>(List<T> goals, {required T? current, int? capacity}) {
 
 // ── The room ─────────────────────────────────────────────────────────────
 
+/// A wall label (or the "+N" tag) is not drawn when its glass would sit under
+/// the card, or nearer than this to the card's top edge, or to the sign.
+const double _wallClearance = 8;
+
+/// How much scroll the dissolve under the HUD takes to come up over (points):
+/// the Journal's.
+const double _hudDissolveScroll = 60;
+
+TextStyle _wallLabelStyle() => _mono(11, color: const Color(0xFFF1E4CD));
+
+TextStyle _wallTagStyle() =>
+    _mono(11, color: const Color(0xFFD9C9A8), spacing: 0.6);
+
+TextStyle _signTitleStyle() => _serif(15.5);
+
+TextStyle _signDetailStyle() => _mono(
+  10.5,
+  color: const Color(0xFFC9B99F),
+  spacing: 0,
+  weight: FontWeight.w400,
+  height: 1.35,
+);
+
+/// The size [text] takes where a Text widget lays it out in [style]: at the
+/// reader's text size, no wider than [maxWidth], on one line when [oneLine]
+/// (the rest is cut with an ellipsis).
+Size _measureText(
+  BuildContext context,
+  String text,
+  TextStyle style,
+  double maxWidth, {
+  bool oneLine = true,
+  TextAlign align = TextAlign.start,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: DefaultTextStyle.of(context).style.merge(style),
+    ),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    textAlign: align,
+    maxLines: oneLine ? 1 : null,
+    ellipsis: oneLine ? '…' : null,
+  )..layout(maxWidth: maxWidth);
+  final size = painter.size;
+  painter.dispose();
+  return size;
+}
+
+/// The height of the sign's glass at the reader's text size.
+double _signGlassHeight(BuildContext context, String detail) {
+  const inner = goalsSignWidth - 16;
+  final title = _measureText(
+    context,
+    'The Steward’s workshop',
+    _signTitleStyle(),
+    inner,
+    oneLine: false,
+    align: TextAlign.center,
+  );
+  final body = _measureText(
+    context,
+    _keepEnd(detail),
+    _signDetailStyle(),
+    inner,
+    oneLine: false,
+    align: TextAlign.center,
+  );
+  return 20 + title.height + 5 + body.height;
+}
+
+/// What the calibrated wall draws at one size: the labels that are clear of the
+/// card and the sign, the sign's own place, and the "+N" tag when there is
+/// room for it.
+class _WallPlan {
+  const _WallPlan({
+    required this.labels,
+    required this.signTop,
+    required this.tagTop,
+    required this.more,
+  });
+
+  /// The labels that are drawn, by the slot (sheet) each hangs on.
+  final Map<int, GoalsWallEntry> labels;
+
+  /// Where the sign hangs (points from the page's top).
+  final double signTop;
+
+  /// Where the "+N" tag's glass starts, or null when it is not drawn.
+  final double? tagTop;
+
+  /// The goals that are not on the wall: what the tag counts.
+  final int more;
+}
+
 /// The Goals room: the plate with the sign, the wall and the card over it.
-class HouseGoalsRoom extends StatelessWidget {
+class HouseGoalsRoom extends StatefulWidget {
   const HouseGoalsRoom({
     super.key,
     required this.signDetail,
@@ -177,8 +277,9 @@ class HouseGoalsRoom extends StatelessWidget {
   /// The glass card (built by [GoalsFocusCard] or [GoalsEmptyCard]).
   final Widget card;
 
-  /// How many goals have no sheet on the wall. When more than none, a "+N"
-  /// tag hangs below the lowest label and [onMoreGoals] answers it.
+  /// How many goals have no sheet on the wall. With these, and any whose label
+  /// would sit under the card or the sign, a "+N" tag hangs below the lowest
+  /// label that is drawn and [onMoreGoals] answers it.
   final int moreGoals;
   final VoidCallback? onMoreGoals;
 
@@ -189,13 +290,33 @@ class HouseGoalsRoom extends StatelessWidget {
   final bool reduceMotion;
 
   @override
+  State<HouseGoalsRoom> createState() => _HouseGoalsRoomState();
+}
+
+class _HouseGoalsRoomState extends State<HouseGoalsRoom> {
+  /// The page's scroll at large text (the dissolve under the HUD follows it).
+  final ScrollController _scroll = ScrollController();
+
+  /// Where the card's top was at rest, and the room's size then: the wall is
+  /// laid out by the card as it rests, so unrolling MORE does not take labels
+  /// off the wall.
+  Size? _restSize;
+  double? _restCardTop;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final still = goalsStill(context, reduceMotion);
+    final still = goalsStill(context, widget.reduceMotion);
     final large = goalsLargeText(context);
-    final sign = GoalsRoomSign(detail: signDetail, onTap: onSign);
+    final sign = GoalsRoomSign(detail: widget.signDetail, onTap: widget.onSign);
     return HouseRoomBackdrop(
       room: HouseRoom.goals,
-      parallax: parallax,
+      parallax: widget.parallax,
       reduceMotion: still,
       // The calibrated room needs no veil: its text is on glass. The scrolling
       // layout puts glass over the whole painting, so it gets a soft dark.
@@ -209,110 +330,253 @@ class HouseGoalsRoom extends StatelessWidget {
     );
   }
 
-  bool get _showsTag => moreGoals > 0 && onMoreGoals != null && wall.isNotEmpty;
-
-  /// The slot of the lowest label on the wall.
-  int get _lowest =>
-      (wall.length < goalsWallSlots.length
-          ? wall.length
-          : goalsWallSlots.length) -
-      1;
-
   Widget _calibrated(BuildContext context, BoxConstraints box, Widget sign) {
-    final above = classStatusAbove(context);
-    final k = box.maxWidth / houseCanvasWidth;
-    double y(double canvas) => canvas * k - above;
-    return Stack(
-      clipBehavior: Clip.none,
+    final dock = goalsDockHeight(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Positioned(
-          left: goalsSignLeft * k,
-          top: y(goalsSignTop),
-          width: goalsSignWidth,
-          child: HouseGlintSweep(child: sign),
+        // The wall has what is left above the card, so it knows exactly where
+        // the card's top is and draws only what is clear of it.
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, space) {
+              final size = Size(box.maxWidth, box.maxHeight);
+              if (!widget.moreOpen ||
+                  _restSize != size ||
+                  _restCardTop == null) {
+                _restSize = size;
+                _restCardTop = space.maxHeight;
+              }
+              final plan = _plan(context, box.maxWidth, _restCardTop!);
+              return _wallLayer(context, box.maxWidth, plan, sign);
+            },
+          ),
         ),
-        for (var i = 0; i < wall.length && i < goalsWallSlots.length; i++)
-          Positioned(
-            top: y(goalsWallSlots[i].top) - _hitPad,
-            right: goalsWallSlots[i].right * k,
-            width: box.maxWidth * 0.72,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: GoalsWallLabel(entry: wall[i], maxLines: 1),
-            ),
-          ),
-        if (_showsTag)
-          // Just below the lowest label's glass.
-          Positioned(
-            top:
-                y(goalsWallSlots[_lowest].top) +
-                goalsLabelGlassHeight(context) +
-                _tagGap,
-            right: goalsWallSlots[_lowest].right * k,
-            child: GoalsWallMoreTag(
-              count: moreGoals,
-              onTap: onMoreGoals!,
-              hidden: moreOpen,
-              reduceMotion: goalsStill(context, reduceMotion),
-            ),
-          ),
-        Positioned(
-          left: 24,
-          right: 24,
-          bottom: goalsDockHeight(context) + goalsCardGap,
+        Padding(
+          padding: EdgeInsets.fromLTRB(24, 0, 24, dock + goalsCardGap),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxHeight: (box.maxHeight - goalsDockHeight(context)) * 0.52,
+              maxHeight: (box.maxHeight - dock) * 0.52,
             ),
-            child: card,
+            child: widget.card,
           ),
         ),
       ],
     );
   }
 
-  Widget _scrolling(BuildContext context, BoxConstraints box, Widget sign) {
-    return ListView(
-      key: const Key('goals-threshold-scroll'),
-      // The page starts under the shell's HUD, never behind it.
-      padding: EdgeInsets.fromLTRB(
-        16,
-        houseHudBottom(textScale: MediaQuery.textScalerOf(context).scale(1)) +
-            10,
-        16,
-        goalsDockHeight(context) + 24,
-      ),
+  /// Which labels the wall can draw above a card whose top is [cardTop], where
+  /// the sign hangs, and whether the "+N" tag has room.
+  _WallPlan _plan(BuildContext context, double width, double cardTop) {
+    final wall = widget.wall;
+    final k = width / houseCanvasWidth;
+    final above = classStatusAbove(context);
+    double y(double canvas) => canvas * k - above;
+
+    // The sign hangs where the plate was painted for it, a little higher when
+    // the card would otherwise sit on its lower edge.
+    final signHeight = _signGlassHeight(context, widget.signDetail);
+    final hud = houseHudBottom(
+      textScale: MediaQuery.textScalerOf(context).scale(1),
+    );
+    var signTop = y(goalsSignTop);
+    final highest = cardTop - _wallClearance - signHeight;
+    if (signTop > highest) signTop = math.max(highest, hud + 4);
+    final sign = Rect.fromLTWH(
+      goalsSignLeft * k,
+      signTop,
+      goalsSignWidth,
+      signHeight,
+    ).inflate(_wallClearance / 2);
+
+    final textRoom = width * 0.72 - 12 - 21;
+    Rect glass(int slot, GoalsWallEntry entry) {
+      final text = _measureText(
+        context,
+        entry.title.toUpperCase(),
+        _wallLabelStyle(),
+        textRoom,
+      );
+      final w = 21 + text.width;
+      final h = 10 + math.max<double>(14, text.height);
+      final right = width - goalsWallSlots[slot].right * k - 6;
+      return Rect.fromLTWH(right - w, y(goalsWallSlots[slot].top), w, h);
+    }
+
+    bool clear(Rect g) =>
+        g.bottom + _wallClearance <= cardTop && !g.overlaps(sign);
+
+    final slots = math.min(wall.length, goalsWallSlots.length);
+    final labels = <int, GoalsWallEntry>{};
+    for (var i = 0; i < slots; i++) {
+      if (clear(glass(i, wall[i]))) labels[i] = wall[i];
+    }
+    // The current goal keeps a lit label if any sheet can hold it: when its
+    // own is covered it takes the lowest sheet that is clear.
+    final lit = wall.indexWhere((e) => e.lit);
+    if (lit >= 0 && !labels.containsKey(lit)) {
+      for (var j = goalsWallSlots.length - 1; j >= 0; j--) {
+        if (clear(glass(j, wall[lit]))) {
+          labels[j] = wall[lit];
+          break;
+        }
+      }
+    }
+
+    final more = widget.moreGoals + wall.length - labels.length;
+    double? tagTop;
+    if (more > 0 && widget.onMoreGoals != null && labels.isNotEmpty) {
+      final low = labels.keys.reduce(math.max);
+      final under = glass(low, labels[low]!);
+      final tagText = _measureText(
+        context,
+        '+$more',
+        _wallTagStyle(),
+        double.infinity,
+      );
+      final top = under.bottom + _tagGap;
+      if (top + tagText.height + 5 + _wallClearance <= cardTop) tagTop = top;
+    }
+    return _WallPlan(
+      labels: labels,
+      signTop: signTop,
+      tagTop: tagTop,
+      more: more,
+    );
+  }
+
+  Widget _wallLayer(
+    BuildContext context,
+    double width,
+    _WallPlan plan,
+    Widget sign,
+  ) {
+    final k = width / houseCanvasWidth;
+    final above = classStatusAbove(context);
+    double y(double canvas) => canvas * k - above;
+    final lowest = plan.labels.isEmpty
+        ? null
+        : plan.labels.keys.reduce(math.max);
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 320),
-            child: HouseGlintSweep(child: sign),
+        Positioned(
+          left: goalsSignLeft * k,
+          top: plan.signTop,
+          width: goalsSignWidth,
+          child: HouseGlintSweep(child: sign),
+        ),
+        for (final slot in plan.labels.keys)
+          Positioned(
+            key: ValueKey<int>(slot),
+            top: y(goalsWallSlots[slot].top) - _hitPad,
+            right: goalsWallSlots[slot].right * k,
+            width: width * 0.72,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: GoalsWallLabel(entry: plan.labels[slot]!, maxLines: 1),
+            ),
+          ),
+        if (plan.tagTop != null && lowest != null)
+          // Just below the lowest label's glass.
+          Positioned(
+            top: plan.tagTop,
+            right: goalsWallSlots[lowest].right * k,
+            child: GoalsWallMoreTag(
+              count: plan.more,
+              onTap: widget.onMoreGoals!,
+              hidden: widget.moreOpen,
+              reduceMotion: goalsStill(context, widget.reduceMotion),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _scrolling(BuildContext context, BoxConstraints box, Widget sign) {
+    final above = classStatusAbove(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final wall = widget.wall;
+    final showsTag =
+        widget.moreGoals > 0 && widget.onMoreGoals != null && wall.isNotEmpty;
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.expand,
+      children: [
+        ListView(
+          key: const Key('goals-threshold-scroll'),
+          controller: _scroll,
+          // The page starts under the shell's HUD, never behind it.
+          padding: EdgeInsets.fromLTRB(
+            16,
+            houseHudBottom(textScale: textScale) + 10,
+            16,
+            goalsDockHeight(context) + 24,
+          ),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: HouseGlintSweep(child: sign),
+              ),
+            ),
+            if (wall.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              for (final entry in wall)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: GoalsWallLabel(entry: entry, maxLines: 3),
+                  ),
+                ),
+              if (showsTag)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GoalsWallMoreTag(
+                    count: widget.moreGoals,
+                    onTap: widget.onMoreGoals!,
+                    hidden: widget.moreOpen,
+                    reduceMotion: goalsStill(context, widget.reduceMotion),
+                  ),
+                ),
+            ],
+            SizedBox(height: showsTag ? 0 : 14),
+            widget.card,
+          ],
+        ),
+        // A card climbing under the HUD dissolves below its numbers instead of
+        // crossing them: the Journal's dissolve, down past the HUD and up under
+        // the status bar, coming up over the first points of scroll.
+        Positioned(
+          key: const Key('goals-hud-dissolve'),
+          left: 0,
+          right: 0,
+          top: -above,
+          height: above + houseHudBottom(textScale: textScale) + 14,
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _scroll,
+              builder: (context, _) => Opacity(
+                opacity:
+                    ((_scroll.hasClients ? _scroll.offset : 0) /
+                            _hudDissolveScroll)
+                        .clamp(0.0, 1.0),
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF17100D), Color(0x0017100D)],
+                      stops: [0.84, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-        if (wall.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          for (final entry in wall)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: GoalsWallLabel(entry: entry, maxLines: 3),
-              ),
-            ),
-          if (_showsTag)
-            Align(
-              alignment: Alignment.centerRight,
-              child: GoalsWallMoreTag(
-                count: moreGoals,
-                onTap: onMoreGoals!,
-                hidden: moreOpen,
-                reduceMotion: goalsStill(context, reduceMotion),
-              ),
-            ),
-        ],
-        SizedBox(height: _showsTag ? 0 : 14),
-        card,
       ],
     );
   }
@@ -323,11 +587,6 @@ const double _hitPad = 10.25;
 
 /// The space between the lowest label's glass and the "+N" tag's.
 const double _tagGap = 3;
-
-/// The height of a label's glass for one line of its caps (the text's own
-/// size at the reader's text scale, plus the label's padding).
-double goalsLabelGlassHeight(BuildContext context) =>
-    10 + MediaQuery.textScalerOf(context).scale(11) * 1.25;
 
 // ── The sign ─────────────────────────────────────────────────────────────
 
@@ -368,19 +627,13 @@ class GoalsRoomSign extends StatelessWidget {
                 Text(
                   'The Steward’s workshop',
                   textAlign: TextAlign.center,
-                  style: _serif(15.5),
+                  style: _signTitleStyle(),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   _keepEnd(detail),
                   textAlign: TextAlign.center,
-                  style: _mono(
-                    10.5,
-                    color: const Color(0xFFC9B99F),
-                    spacing: 0,
-                    weight: FontWeight.w400,
-                    height: 1.35,
-                  ),
+                  style: _signDetailStyle(),
                 ),
               ],
             ),
@@ -476,7 +729,7 @@ class GoalsWallLabel extends StatelessWidget {
                     maxLines: maxLines,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
-                    style: _mono(11, color: const Color(0xFFF1E4CD)),
+                    style: _wallLabelStyle(),
                   ),
                 ),
               ),
@@ -604,11 +857,7 @@ class GoalsWallMoreTag extends StatelessWidget {
                     '+$count',
                     maxLines: 1,
                     textAlign: TextAlign.center,
-                    style: _mono(
-                      11,
-                      color: const Color(0xFFD9C9A8),
-                      spacing: 0.6,
-                    ),
+                    style: _wallTagStyle(),
                   ),
                 ),
               ),

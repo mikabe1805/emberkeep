@@ -11,6 +11,8 @@ import 'package:emberkeep/widgets/house/house_travel_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/room_fonts.dart';
+
 const _frame = Duration(microseconds: 16667);
 
 class _Room extends StatelessWidget {
@@ -103,6 +105,9 @@ double _opacityOfHud(WidgetTester tester) {
 }
 
 void main() {
+  // The HUD is measured in its own faces, not the stand-in a test paints with.
+  setUpAll(loadHudFonts);
+
   group('one HUD over every room', () {
     testWidgets('the level, the XP, the date and the six stats', (
       tester,
@@ -183,6 +188,94 @@ void main() {
         expect(bottom, lessThan(852 / 9));
         expect(tester.takeException(), isNull);
       }
+    });
+
+    testWidgets('an icon keeps its gap to its numeral at every text size', (
+      tester,
+    ) async {
+      for (final (scale, size) in const [
+        (1.0, Size(393, 852)),
+        (1.3, Size(393, 852)),
+        (2.0, Size(393, 852)),
+        (1.0, Size(320, 568)),
+        (1.3, Size(320, 568)),
+        (2.0, Size(320, 568)),
+      ]) {
+        await _pump(tester, opened: [], text: scale, size: size);
+        Rect? previousNumeral;
+        for (final stat in Stat.values) {
+          final cell = find.byKey(Key('class-day-stat-${stat.name}'));
+          final icon = tester.getRect(
+            find.descendant(of: cell, matching: find.byType(Icon)),
+          );
+          final numeral = tester.getRect(
+            find.descendant(of: cell, matching: find.byType(Text)),
+          );
+          final where = '$stat at $scale on ${size.width.round()}';
+          // The numeral starts after the icon with room to breathe: 5 pt at
+          // 100% (4 pt before), growing with the text to 6.5 pt at 130% and
+          // its cap. Only a cell too narrow for the pair (three digits at 130%
+          // on a 320 wide phone) takes it down, and then no lower than before.
+          final gap = numeral.left - icon.right;
+          expect(
+            gap,
+            greaterThanOrEqualTo(size.width > 350 ? 5 : 4.5),
+            reason: where,
+          );
+          // At 100% the row moved by no more than 2 pt (the gap was 4).
+          if (scale == 1 && size.width > 350) {
+            expect(gap, lessThanOrEqualTo(6), reason: where);
+          }
+          // The pair is whole in its cell: nothing is cut off.
+          final box = tester.getRect(cell);
+          expect(
+            numeral.right,
+            lessThanOrEqualTo(box.right + 0.5),
+            reason: where,
+          );
+          expect(
+            icon.left,
+            greaterThanOrEqualTo(box.left - 0.5),
+            reason: where,
+          );
+          expect(box.height, greaterThanOrEqualTo(44), reason: where);
+          expect(box.width, greaterThanOrEqualTo(44), reason: where);
+          // A numeral keeps clear of the next stat's icon.
+          if (previousNumeral != null) {
+            expect(
+              icon.left - previousNumeral.right,
+              greaterThanOrEqualTo(5),
+              reason: '$where, from the stat before',
+            );
+          }
+          previousNumeral = numeral;
+        }
+        expect(tester.takeException(), isNull);
+      }
+    });
+
+    testWidgets('the gap grows with the text and stops at the cap', (
+      tester,
+    ) async {
+      double gapAt(double scale) {
+        final cell = find.byKey(const Key('class-day-stat-str'));
+        final icon = tester.getRect(
+          find.descendant(of: cell, matching: find.byType(Icon)),
+        );
+        final numeral = tester.getRect(
+          find.descendant(of: cell, matching: find.byType(Text)),
+        );
+        return numeral.left - icon.right;
+      }
+
+      await _pump(tester, opened: [], text: 1);
+      final at100 = gapAt(1);
+      await _pump(tester, opened: [], text: 1.3);
+      final at130 = gapAt(1.3);
+      await _pump(tester, opened: [], text: 2.0);
+      final at200 = gapAt(2);
+      expect(at130, greaterThan(at100));
+      expect(at200, closeTo(at130, 0.01));
     });
 
     testWidgets('it follows the text size up to 130% and no further', (

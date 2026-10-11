@@ -13,6 +13,7 @@ import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/goal_world.dart';
 import 'package:emberkeep/widgets/house/goals/goals_room.dart';
 import 'package:emberkeep/widgets/house/house_backdrop.dart';
+import 'package:emberkeep/widgets/house/house_hud.dart' show houseHudBottom;
 import 'package:emberkeep/widgets/house/house_room.dart';
 import 'package:emberkeep/widgets/house/house_travel_scope.dart';
 import 'package:emberkeep/widgets/pressable.dart';
@@ -21,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../support/goals_room_support.dart';
+import '../support/room_fonts.dart';
 
 Goal _goal(String title, Stat stat, {bool complete = false}) => Goal(
   title: title,
@@ -175,7 +177,10 @@ void _expectTagClear(
 }
 
 void main() {
-  setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+  setUpAll(() async {
+    GoogleFonts.config.allowRuntimeFetching = false;
+    await loadGoalsRoomFonts();
+  });
   setUp(() => Sfx.instance.soundEnabled = false);
   tearDown(() {
     Sfx.instance.soundEnabled = true;
@@ -852,17 +857,17 @@ void main() {
       final card = tester.getRect(_card);
       // The card, the next row and the buttons are where they were: the name's
       // 44 pt area shares the caps line's row and the gap below the name.
-      expect(card.height, 236);
-      expect(tester.getRect(find.byKey(const Key('goals-card-next'))).top, 637);
+      expect(card.height, 210.5);
+      expect(tester.getRect(find.byKey(const Key('goals-card-next'))).top, 648);
       expect(
         tester
             .getRect(find.byKey(const Key('goals-return-primary-action')))
             .top,
-        681,
+        692,
       );
       expect(
         tester.getRect(find.byKey(const Key('goals-card-name'))).top,
-        card.top + 46,
+        card.top + 46.5,
       );
     });
 
@@ -1162,6 +1167,385 @@ void main() {
         tester.getRect(find.byKey(const Key('other-goals-section'))).top,
         lessThan(card.top + 120),
       );
+    });
+  });
+
+  group('short phones: the wall draws only what is clear of the card and the '
+      'sign', () {
+    // The goals of the prototype's wall, by phone: what is drawn and what the
+    // "+N" tag says (null: no room for it). Measured with the room's own faces.
+    final cases = <({Size size, int count, List<String> drawn, String? tag})>[
+      (
+        size: const Size(393, 852),
+        count: 3,
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: null,
+      ),
+      (
+        size: const Size(393, 852),
+        count: 5,
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: '+2',
+      ),
+      (
+        size: const Size(375, 667),
+        count: 3,
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: null,
+      ),
+      (
+        size: const Size(375, 667),
+        count: 5,
+        drawn: ['Room of Days', 'Computer Architecture', 'Summer 2027'],
+        tag: null,
+      ),
+      (
+        size: const Size(320, 568),
+        count: 3,
+        drawn: ['Room of Days'],
+        tag: '+2',
+      ),
+      (
+        size: const Size(320, 568),
+        count: 5,
+        drawn: ['Room of Days'],
+        tag: '+4',
+      ),
+      (
+        size: const Size(320, 693),
+        count: 3,
+        drawn: ['Room of Days', 'Summer 2027'],
+        tag: '+1',
+      ),
+      (
+        size: const Size(320, 693),
+        count: 5,
+        drawn: ['Room of Days', 'Summer 2027'],
+        tag: '+3',
+      ),
+    ];
+
+    for (final c in cases) {
+      final name =
+          '${c.size.width.round()} x ${c.size.height.round()} with '
+          '${c.count} goals';
+      testWidgets('$name: what is drawn, and the count', (tester) async {
+        final w = _wall(count: c.count);
+        await _pump(tester, state: w.state, quests: w.quests, size: c.size);
+        for (final goal in w.state.goals) {
+          expect(
+            _label(goal.title),
+            c.drawn.contains(goal.title) ? findsOneWidget : findsNothing,
+            reason: goal.title,
+          );
+        }
+        if (c.tag == null) {
+          expect(_moreTag, findsNothing);
+        } else {
+          expect(
+            find.descendant(of: _moreTag, matching: find.text(c.tag!)),
+            findsOne,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('$name: nothing touches the card or the sign', (
+        tester,
+      ) async {
+        final w = _wall(count: c.count);
+        await _pump(tester, state: w.state, quests: w.quests, size: c.size);
+        final card = tester.getRect(_card);
+        final sign = tester.getRect(
+          find.byKey(const Key('goals-open-workshop')),
+        );
+        // The sign is clear of the card, and under the HUD's rows.
+        expect(sign.bottom, lessThanOrEqualTo(card.top + 0.5), reason: 'sign');
+        expect(sign.top, greaterThan(houseHudBottom()), reason: 'sign');
+        final glasses = <String, Rect>{
+          for (final goal in w.state.goals)
+            if (_label(goal.title).evaluate().isNotEmpty)
+              goal.title: tester.getRect(_glassOf(_label(goal.title))),
+          if (_moreTag.evaluate().isNotEmpty)
+            '+N': tester.getRect(_glassOf(_moreTag)),
+        };
+        for (final MapEntry(:key, :value) in glasses.entries) {
+          // Not under the card, and not within 8 pt of its top edge.
+          expect(
+            value.bottom + 8,
+            lessThanOrEqualTo(card.top + 0.5),
+            reason: '$key and the card',
+          );
+          expect(_overlap(value, sign), isFalse, reason: '$key and the sign');
+          expect(value.left, greaterThanOrEqualTo(0), reason: key);
+          expect(value.right, lessThanOrEqualTo(c.size.width), reason: key);
+        }
+        for (final a in glasses.entries) {
+          for (final b in glasses.entries) {
+            if (a.key.compareTo(b.key) >= 0) continue;
+            expect(
+              _overlap(a.value, b.value),
+              isFalse,
+              reason: '${a.key} and ${b.key}',
+            );
+          }
+        }
+      });
+
+      testWidgets('$name: every goal that is not drawn is in MORE', (
+        tester,
+      ) async {
+        final w = _wall(count: c.count);
+        await _pump(tester, state: w.state, quests: w.quests, size: c.size);
+        final hidden = [
+          for (final goal in w.state.goals)
+            if (_label(goal.title).evaluate().isEmpty) goal.title,
+        ];
+        // The tag, when there is room for it, says how many.
+        if (_moreTag.evaluate().isNotEmpty) {
+          expect(
+            find.descendant(
+              of: _moreTag,
+              matching: find.text('+${hidden.length}'),
+            ),
+            findsOne,
+          );
+        }
+        // Other goals lists them all (the current goal is the card).
+        final disclosure = find.byKey(const Key('other-goals-disclosure'));
+        if (hidden.isEmpty) return;
+        await revealOnGoalsPage(tester, disclosure);
+        await tester.tap(disclosure);
+        await tester.pumpAndSettle();
+        for (final title in hidden) {
+          expect(
+            find.byKey(Key('active-goal-${title.toLowerCase()}')),
+            findsOneWidget,
+            reason: title,
+          );
+        }
+      });
+    }
+
+    testWidgets('the sign\'s place and size are what the wall measured', (
+      tester,
+    ) async {
+      // 393 x 852: the sign hangs where the plate was painted for it.
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
+      expect(sign.top, closeTo(goalsSignTop, 0.01));
+      expect(sign.height, closeTo(87, 0.5));
+      // 320 x 568: the card would sit on its lower edge, so it hangs a little
+      // higher, 8 pt clear of the card.
+      final small = _wall();
+      await _pump(
+        tester,
+        state: small.state,
+        quests: small.quests,
+        size: const Size(320, 568),
+      );
+      final higher = tester.getRect(
+        find.byKey(const Key('goals-open-workshop')),
+      );
+      expect(higher.height, closeTo(87, 0.5));
+      expect(higher.top, lessThan(goalsSignTop * 320 / 393));
+      expect(
+        higher.bottom,
+        closeTo(tester.getRect(_card).top - 8, 0.5),
+        reason: '8 pt clear of the card',
+      );
+    });
+
+    testWidgets('a label that would run under the sign is not drawn', (
+      tester,
+    ) async {
+      final w = _wall();
+      // 320 wide: "Computer Architecture" is wider than the room between the
+      // sign and the wall's edge.
+      await _pump(
+        tester,
+        state: w.state,
+        quests: w.quests,
+        size: const Size(320, 693),
+      );
+      expect(_label('Computer Architecture'), findsNothing);
+      // 375 wide it fits beside the sign, and is drawn clear of it.
+      final wide = _wall();
+      await _pump(
+        tester,
+        state: wide.state,
+        quests: wide.quests,
+        size: const Size(375, 667),
+      );
+      final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
+      final glass = tester.getRect(_glassOf(_label('Computer Architecture')));
+      expect(glass.left, greaterThan(sign.right));
+    });
+
+    testWidgets('the current goal keeps a lit label on the sheet that is '
+        'clear', (tester) async {
+      final w = _wall();
+      w.state.featuredGoalTitles
+        ..clear()
+        ..add('Summer 2027');
+      await _pump(
+        tester,
+        state: w.state,
+        quests: w.quests,
+        size: const Size(320, 568),
+      );
+      // Its own sheet is under the card; it takes the lowest one that is clear.
+      expect(_label('Summer 2027'), findsOneWidget);
+      expect(_edge(tester, 'Summer 2027'), _litEdge);
+      expect(_nameOf(tester), 'Summer 2027');
+      final glass = tester.getRect(_glassOf(_label('Summer 2027')));
+      final card = tester.getRect(_card);
+      expect(glass.bottom + 8, lessThanOrEqualTo(card.top + 0.5));
+      // Room of Days has its own sheet and is still on the wall.
+      expect(_label('Room of Days'), findsOneWidget);
+      // Tapping it makes it current, and the light moves.
+      await tester.tap(_label('Room of Days'));
+      await tester.pumpAndSettle();
+      expect(_nameOf(tester), 'Room of Days');
+      expect(_edge(tester, 'Room of Days'), _litEdge);
+    });
+
+    testWidgets('a long name the sign would cover takes a sheet below it', (
+      tester,
+    ) async {
+      final state = GameState()..reduceMotion = true;
+      const long =
+          'Learn to sketch buildings from memory before the spring semester';
+      state.goals.add(_goal(long, Stat.foc));
+      await _pump(tester, state: state, quests: []);
+      final sign = tester.getRect(find.byKey(const Key('goals-open-workshop')));
+      final glass = tester.getRect(_glassOf(_label(long)));
+      expect(_overlap(glass, sign), isFalse);
+      expect(glass.top, greaterThan(sign.bottom));
+      expect(_edge(tester, long), _litEdge);
+    });
+
+    testWidgets('unrolling MORE does not take labels off the wall', (
+      tester,
+    ) async {
+      for (final size in const [Size(393, 852), Size(375, 667)]) {
+        final w = _wall(count: 5);
+        await _pump(tester, state: w.state, quests: w.quests, size: size);
+        final before = [
+          for (final goal in w.state.goals)
+            if (_label(goal.title).evaluate().isNotEmpty) goal.title,
+        ];
+        expect(before, hasLength(3));
+        await openGoalsMore(tester);
+        for (final title in before) {
+          expect(_label(title), findsOneWidget, reason: '$size $title');
+        }
+        await tester.tap(goalsRoomMore);
+        await tester.pumpAndSettle();
+        for (final title in before) {
+          expect(_label(title), findsOneWidget, reason: '$size $title');
+        }
+      }
+    });
+  });
+
+  group('large text: a card climbing under the HUD dissolves below its '
+      'numbers', () {
+    Finder dissolve() => find.byKey(const Key('goals-hud-dissolve'));
+    double opacity(WidgetTester tester) => tester
+        .widget<Opacity>(
+          find.descendant(of: dissolve(), matching: find.byType(Opacity)),
+        )
+        .opacity;
+
+    testWidgets('the calibrated room has no scroll and needs none', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(dissolve(), findsNothing);
+    });
+
+    for (final scale in [1.3, 2.0]) {
+      for (final size in const [Size(393, 852), Size(320, 568)]) {
+        testWidgets('at ${(scale * 100).round()}% on ${size.width.round()} '
+            'wide it is there when the page is scrolled', (tester) async {
+          final w = _wall();
+          await _pump(
+            tester,
+            state: w.state,
+            quests: w.quests,
+            size: size,
+            textScale: scale,
+          );
+          final area = tester.getRect(dissolve());
+          // From the top of the page down past the HUD's rows, and a little
+          // more: the stat numerals are under it, never crossed by a card.
+          expect(area.top, lessThanOrEqualTo(0));
+          expect(
+            area.bottom,
+            greaterThanOrEqualTo(houseHudBottom(textScale: scale) + 14 - 0.5),
+          );
+          expect(area.width, size.width);
+          // It lets touches through.
+          expect(
+            tester
+                .widget<IgnorePointer>(
+                  find
+                      .descendant(
+                        of: dissolve(),
+                        matching: find.byType(IgnorePointer),
+                      )
+                      .first,
+                )
+                .ignoring,
+            isTrue,
+          );
+          // At rest the page starts under the HUD and the dissolve is not
+          // drawn; it comes up as the page climbs (where the page is long
+          // enough to scroll at all).
+          expect(opacity(tester), 0);
+          final position = tester
+              .state<ScrollableState>(
+                find.descendant(
+                  of: find.byKey(const Key('goals-threshold-scroll')),
+                  matching: find.byType(Scrollable),
+                ),
+              )
+              .position;
+          if (position.maxScrollExtent > 90) {
+            position.jumpTo(30);
+            await tester.pump();
+            expect(opacity(tester), inExclusiveRange(0, 1));
+            position.jumpTo(position.maxScrollExtent);
+            await tester.pumpAndSettle();
+            expect(position.pixels, greaterThan(60));
+            expect(opacity(tester), 1);
+          }
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+
+    testWidgets('it comes up over 60 points of scroll', (tester) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests, textScale: 2.0);
+      final scroll = find.byKey(const Key('goals-threshold-scroll'));
+      final position = tester
+          .state<ScrollableState>(
+            find.descendant(of: scroll, matching: find.byType(Scrollable)),
+          )
+          .position;
+      position.jumpTo(30);
+      await tester.pump();
+      expect(opacity(tester), closeTo(0.5, 1e-9));
+      position.jumpTo(60);
+      await tester.pump();
+      expect(opacity(tester), 1);
+      position.jumpTo(0);
+      await tester.pump();
+      expect(opacity(tester), 0);
     });
   });
 
