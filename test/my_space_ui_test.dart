@@ -58,10 +58,38 @@ Widget _mePage(
   ),
 );
 
+/// The scroll that is on top: the arranger's once it is open, else the open
+/// mantel sheet's (the page behind keeps its own, so `find.byType(Scrollable)
+/// .first` would not be either).
+Finder get _sheetScrollable {
+  final arranger = find.byKey(const ValueKey('space-arranger'));
+  return find
+      .descendant(
+        of: arranger.evaluate().isNotEmpty
+            ? arranger
+            : find.byKey(const Key('mantel-sheet-scroll')),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+}
+
+/// Opens a mantel sheet by its tab (`settings`, `save`, `space`, `more`) or the
+/// trophy tag (`trophy`).
+Future<void> _openSheet(WidgetTester tester, String sheet) async {
+  await tester.tap(
+    find.byKey(
+      Key(sheet == 'trophy' ? 'mantel-tag-trophy' : 'mantel-tab-$sheet'),
+    ),
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 Future<void> _pumpMe(
   WidgetTester tester,
   GameState state,
   VoidCallback onPersist, {
+  String? sheet,
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
   Future<String?> Function() onReset = _resetSuccessfully,
   bool visitorPhotoSharingEnabled = false,
@@ -99,15 +127,12 @@ Future<void> _pumpMe(
     ),
   );
   await tester.pump();
+  if (sheet != null) await _openSheet(tester, sheet);
 }
 
 Future<void> _openArranger(WidgetTester tester) async {
   final open = find.byKey(const ValueKey('space-page-open-arranger'));
-  await tester.scrollUntilVisible(
-    open,
-    320,
-    scrollable: find.byType(Scrollable).first,
-  );
+  await tester.scrollUntilVisible(open, 320, scrollable: _sheetScrollable);
   // scrollUntilVisible stops at partial visibility; the button's centre can
   // still sit below the fold, so bring it fully on-screen before tapping.
   await tester.ensureVisible(open);
@@ -174,6 +199,8 @@ void main() {
     var persists = 0;
 
     await _pumpMe(
+      sheet: 'space',
+
       tester,
       state,
       () => persists++,
@@ -227,7 +254,7 @@ void main() {
   ) async {
     final state = GameState()..reduceMotion = true;
 
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'space', tester, state, () {});
     await _openArranger(tester);
 
     final toggle = find.byKey(const ValueKey('room-photo-share-toggle'));
@@ -253,7 +280,7 @@ void main() {
           'shared_rooms/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/ABC234/room/ABCDEFGHIJKLMNOPQRSTUV';
     var persists = 0;
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(sheet: 'space', tester, state, () => persists++);
     await _openArranger(tester);
 
     final toggle = find.byKey(const ValueKey('room-photo-share-toggle'));
@@ -293,7 +320,7 @@ void main() {
   ) async {
     final state = GameState()..reduceMotion = true;
 
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'space', tester, state, () {});
 
     expect(find.text('ABOUT'), findsOneWidget);
     expect(find.text('RIGHT NOW'), findsOneWidget);
@@ -309,6 +336,8 @@ void main() {
     var opened = 0;
 
     await _pumpMe(
+      sheet: 'space',
+
       tester,
       state,
       () {},
@@ -319,11 +348,7 @@ void main() {
     expect(state.roomCode, isNull);
     expect(state.roomDiscoverable, isFalse);
     final manage = find.byKey(const ValueKey('space-page-manage-discovery'));
-    await tester.scrollUntilVisible(
-      manage,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.scrollUntilVisible(manage, 300, scrollable: _sheetScrollable);
     await tester.ensureVisible(manage);
     await tester.pump();
     expect(manage, findsOneWidget);
@@ -342,7 +367,13 @@ void main() {
       ..reduceMotion = true
       ..roomDiscoverable = true;
 
-    await _pumpMe(tester, state, () {}, spaceDiscoveryEnabled: true);
+    await _pumpMe(
+      sheet: 'space',
+      tester,
+      state,
+      () {},
+      spaceDiscoveryEnabled: true,
+    );
 
     final status = find.byKey(
       const ValueKey('space-profile-visibility-status'),
@@ -360,13 +391,9 @@ void main() {
       ..reduceMotion = true
       ..level = 5;
 
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'settings', tester, state, () {});
     final sea = find.text('Sea Cave');
-    await tester.scrollUntilVisible(
-      sea,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.scrollUntilVisible(sea, 420, scrollable: _sheetScrollable);
     await tester.ensureVisible(sea);
     await tester.pump();
 
@@ -400,9 +427,9 @@ void main() {
     );
     expect(backdrop.room, HouseRoom.me);
     // The painted mantel stands where the player's own room used to be the
-    // hero; the page's own cards are over it.
+    // hero; the YOUR BUILD glass is over it (more in test/house/me_mantel_test).
     expect(find.byKey(const Key('me-room')), findsNothing);
-    expect(find.byKey(const ValueKey('me-level-summary')), findsOneWidget);
+    expect(find.byKey(const Key('mantel-build-card')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -410,14 +437,16 @@ void main() {
     tester,
   ) async {
     final state = GameState()..level = 5;
-    await _pumpMe(tester, state, () {}, systemReduceMotion: true);
+    await _pumpMe(
+      sheet: 'settings',
+      tester,
+      state,
+      () {},
+      systemReduceMotion: true,
+    );
 
     final sea = find.text('Sea Cave');
-    await tester.scrollUntilVisible(
-      sea,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.scrollUntilVisible(sea, 420, scrollable: _sheetScrollable);
     await tester.ensureVisible(sea);
     await tester.pump();
     await tester.tap(sea);
@@ -439,7 +468,13 @@ void main() {
         ..setRoomDiscoverable(true)
         ..markRoomDiscoveryRemovalPending('ABC234');
 
-      await _pumpMe(tester, state, () {}, spaceDiscoveryEnabled: true);
+      await _pumpMe(
+        sheet: 'space',
+        tester,
+        state,
+        () {},
+        spaceDiscoveryEnabled: true,
+      );
 
       expect(find.text('Closing Discover · ABC234'), findsOneWidget);
       expect(find.textContaining('Discoverable ·'), findsNothing);
@@ -471,7 +506,7 @@ void main() {
       shareProfile: false,
     );
 
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'space', tester, state, () {});
 
     final season = find.text('THIS SEASON');
     final rightNow = find.text('RIGHT NOW');
@@ -502,7 +537,7 @@ void main() {
     var notifications = 0;
     state.addListener(() => notifications++);
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(sheet: 'space', tester, state, () => persists++);
     await _openArranger(tester);
     await _collapseAbout(tester);
 
@@ -514,7 +549,7 @@ void main() {
     await tester.scrollUntilVisible(
       sharePinned,
       180,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _sheetScrollable,
     );
     await tester.drag(find.byType(ReorderableListView), const Offset(0, -120));
     await tester.pump();
@@ -542,7 +577,7 @@ void main() {
     var notifications = 0;
     state.addListener(() => notifications++);
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(sheet: 'space', tester, state, () => persists++);
     await _openArranger(tester);
 
     final intro = find.descendant(
@@ -562,7 +597,7 @@ void main() {
     await tester.scrollUntilVisible(
       mutualPinned,
       180,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _sheetScrollable,
     );
     await tester.drag(find.byType(ReorderableListView), const Offset(0, -120));
     await tester.pump();
@@ -599,7 +634,7 @@ void main() {
     final state = GameState()..reduceMotion = true;
     var persists = 0;
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(sheet: 'space', tester, state, () => persists++);
     await _openArranger(tester);
 
     for (final audience in SpaceAudience.values) {
@@ -654,7 +689,7 @@ void main() {
       ..journal = [photo];
     var persists = 0;
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(sheet: 'space', tester, state, () => persists++);
     await _openArranger(tester);
 
     expect(
@@ -695,6 +730,8 @@ void main() {
     var persists = 0;
 
     await _pumpMe(
+      sheet: 'space',
+
       tester,
       state,
       () => persists++,
@@ -743,6 +780,8 @@ void main() {
       state.addListener(() => notifications++);
 
       await _pumpMe(
+        sheet: 'space',
+
         tester,
         state,
         () => persists++,
@@ -801,6 +840,8 @@ void main() {
       state.addListener(() => notifications++);
 
       await _pumpMe(
+        sheet: 'space',
+
         tester,
         state,
         () => persists++,
@@ -859,6 +900,8 @@ void main() {
     var persists = 0;
 
     await _pumpMe(
+      sheet: 'space',
+
       tester,
       state,
       () => persists++,
@@ -875,7 +918,7 @@ void main() {
     await tester.scrollUntilVisible(
       rightNowToggle,
       180,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _sheetScrollable,
     );
     await tester.pump();
     await tester.tap(rightNowToggle);
@@ -903,6 +946,8 @@ void main() {
     var persists = 0;
 
     await _pumpMe(
+      sheet: 'more',
+
       tester,
       state,
       () => persists++,
@@ -921,7 +966,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byTooltip('Change your name'),
       250,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _sheetScrollable,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Change your name'));
@@ -966,6 +1011,8 @@ void main() {
       var attempts = 0;
 
       await _pumpMe(
+        sheet: 'save',
+
         tester,
         state,
         () {},
@@ -979,7 +1026,7 @@ void main() {
       await tester.scrollUntilVisible(
         startOver,
         420,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _sheetScrollable,
       );
       await tester.ensureVisible(startOver);
       await tester.pumpAndSettle();
@@ -1020,14 +1067,10 @@ void main() {
     final state = GameState()
       ..onboarded = true
       ..reduceMotion = true;
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'settings', tester, state, () {});
 
     final guide = find.text('ROOM GUIDE');
-    await tester.scrollUntilVisible(
-      guide,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.scrollUntilVisible(guide, 420, scrollable: _sheetScrollable);
     await tester.ensureVisible(guide);
     await tester.pump();
     await tester.tap(guide);
@@ -1043,13 +1086,13 @@ void main() {
     final state = GameState()
       ..onboarded = true
       ..reduceMotion = true;
-    await _pumpMe(tester, state, () {});
+    await _pumpMe(sheet: 'save', tester, state, () {});
 
     final whatsNew = find.text("WHAT'S NEW");
     await tester.scrollUntilVisible(
       whatsNew,
       420,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _sheetScrollable,
     );
     await tester.ensureVisible(whatsNew);
     await tester.pump();

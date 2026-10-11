@@ -73,6 +73,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'house/me_sheet_support.dart';
+
 Widget _stage(
   Widget child, {
   Color bg = const Color(0xFF241A20),
@@ -1308,6 +1310,8 @@ void main() {
     _activateDock(tester, Icons.emoji_emotions_outlined);
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_10_fresh_me_1290x2796');
+    // The way into the rooms is the mantel's YOUR SPACE sheet.
+    await openMantelSheet(tester, 'space');
     await tester.tap(find.text('0 GLIMMERS'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_11_space_themes_1290x2796');
@@ -1354,6 +1358,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     Navigator.of(tester.element(find.text('Change your space'))).pop();
     await tester.pump(const Duration(milliseconds: 500));
+    await closeMantelSheet(tester);
 
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 500));
@@ -1777,6 +1782,7 @@ void main() {
     await _storeShot(tester, '02_keep_1290x2796');
     await _playStoreShot(tester, '03_my_space_1080x1920');
 
+    await openMantelSheet(tester, 'space');
     await tester.tap(find.text('CHANGE SPACE'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '03_shop_1290x2796');
@@ -1801,6 +1807,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pump(const Duration(milliseconds: 700));
+    await closeMantelSheet(tester);
 
     _activateDock(tester, Icons.explore_outlined);
     await tester.pump(const Duration(milliseconds: 450));
@@ -2531,11 +2538,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
 
-    final pageScroll = find.byType(Scrollable).first;
+    // My Space is the mantel's YOUR SPACE sheet; the Room Guide is in SETTINGS.
+    await openMantelSheet(tester, 'space');
     await tester.scrollUntilVisible(
       find.text('MY SPACE'),
       360,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14_my_space_cards_1290x2796');
@@ -2543,23 +2551,27 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('THIS SEASON'),
       300,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14b_my_space_season_1290x2796');
+    await closeMantelSheet(tester);
 
+    await openMantelSheet(tester, 'settings');
     await tester.scrollUntilVisible(
       find.text('ROOM GUIDE'),
       520,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14d_room_guide_entry_1290x2796');
+    await closeMantelSheet(tester);
 
+    await openMantelSheet(tester, 'space');
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('space-page-open-arranger')),
-      -360,
-      scrollable: pageScroll,
+      360,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.byKey(const ValueKey('space-page-open-arranger')));

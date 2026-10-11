@@ -8,6 +8,8 @@ import 'package:emberkeep/daybook/services/place_search_identity_removal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'house/me_sheet_support.dart';
+
 final class _FakeCloudAccountView extends ChangeNotifier
     implements CloudAccountView {
   _FakeCloudAccountView({
@@ -79,12 +81,33 @@ Widget _page({
   );
 }
 
+/// Pumps the page and opens the mantel's More sheet, where the account and
+/// the private-service controls live.
+Future<void> _pumpMore(WidgetTester tester, Widget page) async {
+  if (find.byKey(const Key('mantel-sheet')).evaluate().isNotEmpty) {
+    // (a snackbar may be over CLOSE; the route pops all the same)
+    Navigator.of(tester.element(find.byKey(const Key('mantel-sheet')))).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+  // A phone, so the sheet has room (the default test view is tiny).
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = const Size(430, 932);
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  await tester.pumpWidget(page);
+  await tester.pump();
+  await openMantelSheet(tester, 'more');
+}
+
 Future<void> _showRemovalControl(WidgetTester tester) async {
   final control = find.byKey(const ValueKey('remove-private-service-identity'));
   await tester.scrollUntilVisible(
     control,
     360,
-    scrollable: find.byType(Scrollable).first,
+    scrollable: mantelSheetScrollable,
   );
   await tester.pump();
   expect(control, findsOneWidget);
@@ -108,7 +131,8 @@ void main() {
         ),
       ]) {
         var withdrawals = 0;
-        await tester.pumpWidget(
+        await _pumpMore(
+          tester,
           _page(
             account: account,
             removeIdentity: () async => null,
@@ -125,9 +149,9 @@ void main() {
         await tester.scrollUntilVisible(
           control,
           360,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: mantelSheetScrollable,
         );
-        await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
+        await tester.drag(mantelSheetScrollable, const Offset(0, -220));
         await tester.pumpAndSettle();
         expect(control, findsOneWidget);
         expect(tester.getSize(control).height, greaterThanOrEqualTo(44));
@@ -143,7 +167,8 @@ void main() {
   );
 
   testWidgets('default-off build hides consent withdrawal', (tester) async {
-    await tester.pumpWidget(
+    await _pumpMore(
+      tester,
       _page(
         account: _FakeCloudAccountView(),
         removeIdentity: () async => null,
@@ -164,7 +189,8 @@ void main() {
     'private identity control is visible only for anonymous backup-off service state',
     (tester) async {
       final anonymous = _FakeCloudAccountView();
-      await tester.pumpWidget(
+      await _pumpMore(
+        tester,
         _page(
           account: anonymous,
           removeIdentity: () async => null,
@@ -180,7 +206,8 @@ void main() {
         optedIn: true,
         canDeleteAnonymousServiceIdentity: false,
       );
-      await tester.pumpWidget(
+      await _pumpMore(
+        tester,
         _page(
           account: linked,
           removeIdentity: () async => null,
@@ -198,7 +225,8 @@ void main() {
         optedIn: true,
         canDeleteAnonymousServiceIdentity: false,
       );
-      await tester.pumpWidget(
+      await _pumpMore(
+        tester,
         _page(
           account: backup,
           removeIdentity: () async => null,
@@ -216,7 +244,8 @@ void main() {
   testWidgets(
     'web capability hides identity removal but keeps consent withdrawal',
     (tester) async {
-      await tester.pumpWidget(
+      await _pumpMore(
+        tester,
         _page(
           account: _FakeCloudAccountView(),
           removeIdentity: () async => null,
@@ -236,7 +265,7 @@ void main() {
       await tester.scrollUntilVisible(
         withdrawal,
         360,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: mantelSheetScrollable,
       );
       expect(withdrawal, findsOneWidget);
     },
@@ -247,7 +276,8 @@ void main() {
   ) async {
     final account = _FakeCloudAccountView();
     var calls = 0;
-    await tester.pumpWidget(
+    await _pumpMore(
+      tester,
       _page(
         account: account,
         removeIdentity: () async {
@@ -285,7 +315,8 @@ void main() {
   ) async {
     final account = _FakeCloudAccountView();
     var calls = 0;
-    await tester.pumpWidget(
+    await _pumpMore(
+      tester,
       _page(
         account: account,
         removeIdentity: () async {
@@ -327,7 +358,8 @@ void main() {
     'destructive work cannot be dismissed and errors use a live region',
     (tester) async {
       final gate = Completer<String?>();
-      await tester.pumpWidget(
+      await _pumpMore(
+        tester,
         _page(
           account: _FakeCloudAccountView(),
           removeIdentity: () => gate.future,
@@ -361,7 +393,8 @@ void main() {
     tester,
   ) async {
     var calls = 0;
-    await tester.pumpWidget(
+    await _pumpMore(
+      tester,
       _page(
         account: _FakeCloudAccountView(),
         removeIdentity: () async {
