@@ -22,6 +22,10 @@ const _inkQuiet = Color(0xFF6B5036);
 /// classes show their start, a class that has begun shows when it ends; an
 /// optional meeting says so on a second line.
 String doorwayTicketText(DoorwayTicket ticket) {
+  final quest = ticket.quest;
+  if (quest != null) {
+    return quest.xp == null ? ticket.label : '${ticket.label}\n+${quest.xp} XP';
+  }
   final minute = ticket.state == DoorwayTicketState.upcoming
       ? ticket.startMinute
       : ticket.endMinute;
@@ -31,9 +35,42 @@ String doorwayTicketText(DoorwayTicket ticket) {
 }
 
 /// What a screen reader says for a ticket (the stage itself is a painting).
-String doorwayTicketSemantics(DoorwayTicket ticket) =>
-    '${classBriefTitle(ticket.entry.title)}, '
-    '${classClock(ticket.startMinute)}';
+String doorwayTicketSemantics(DoorwayTicket ticket) {
+  final quest = ticket.quest;
+  if (quest != null) {
+    final where = switch (ticket.state) {
+      DoorwayTicketState.attended => 'kept',
+      DoorwayTicketState.ready => 'up next',
+      DoorwayTicketState.settled => 'resting for today',
+      _ => 'waiting',
+    };
+    final xp = quest.xp == null ? '' : ', +${quest.xp} XP';
+    return '${quest.name}, ${quest.statLabel}$xp, $where';
+  }
+  return '${classBriefTitle(ticket.entry!.title)}, '
+      '${classClock(ticket.startMinute)}';
+}
+
+/// The stat's one letter on a quest ticket's ring.
+String doorwayStatGlyph(Stat stat) => switch (stat) {
+  Stat.str => 'B',
+  Stat.vit => 'A',
+  Stat.intl => 'M',
+  Stat.foc => 'C',
+  Stat.soc => 'P',
+  Stat.dis => 'H',
+};
+
+/// A quest's name as capitals for the ticket, kept to one line: a name longer
+/// than [max] letters is cut at a word and ends in an ellipsis.
+String doorwayQuestLabel(String name, {int max = 20}) {
+  final text = name.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
+  if (text.characters.length <= max) return text;
+  final cut = text.characters.take(max - 1).toString();
+  final space = cut.lastIndexOf(' ');
+  final base = space >= max ~/ 2 ? cut.substring(0, space) : cut;
+  return '${base.trimRight()}…';
+}
 
 /// A color matrix for [brightness] and [saturation] (1 leaves each alone).
 ColorFilter doorwayTone({double brightness = 1, double saturation = 1}) {
@@ -225,37 +262,86 @@ class DoorwayTicketView extends StatelessWidget {
                   ),
                 ),
               ),
-            Positioned(
-              left: width * 0.074,
-              top: 0,
-              bottom: 0,
-              width: doorwayTicketWidth * 0.69,
-              child: Opacity(
-                opacity: wordsOpacity,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    doorwayTicketText(ticket),
-                    maxLines: 2,
-                    softWrap: false,
-                    overflow: TextOverflow.clip,
-                    style: Type.label.copyWith(
-                      fontSize: 5.1,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.05,
-                      height: ticket.counts ? 1 : 1.3,
-                      color: ticket.counts ? _ink : _inkQuiet,
-                      shadows: const [
-                        Shadow(
-                          offset: Offset(0, 0.45),
-                          color: Color(0x99FFFAEC),
+            if (ticket.quest case final quest?) ...[
+              Positioned(
+                left: width * 0.068,
+                top: height * 0.5 - doorwayTicketWidth * 0.145 / 2,
+                width: doorwayTicketWidth * 0.145,
+                height: doorwayTicketWidth * 0.145,
+                child: _StatGlyph(
+                  glyph: quest.glyph,
+                  attended: att,
+                  opacity: wordsOpacity,
+                ),
+              ),
+              Positioned(
+                left: width * 0.24,
+                top: 0,
+                bottom: 0,
+                width: doorwayTicketWidth * 0.53,
+                child: Opacity(
+                  opacity: wordsOpacity,
+                  // The ticket is a painting: its words keep the painting's
+                  // size at any text setting (the glass card and the screen
+                  // reader carry the same words at the reader's size).
+                  child: MediaQuery.withNoTextScaling(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        doorwayTicketText(ticket),
+                        maxLines: 2,
+                        softWrap: false,
+                        overflow: TextOverflow.clip,
+                        style: Type.label.copyWith(
+                          fontSize: 4.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0,
+                          height: 1.5,
+                          color: _ink,
+                          shadows: const [
+                            Shadow(
+                              offset: Offset(0, 0.45),
+                              color: Color(0x99FFFAEC),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            ] else
+              Positioned(
+                left: width * 0.074,
+                top: 0,
+                bottom: 0,
+                width: doorwayTicketWidth * 0.69,
+                child: Opacity(
+                  opacity: wordsOpacity,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      doorwayTicketText(ticket),
+                      maxLines: 2,
+                      softWrap: false,
+                      overflow: TextOverflow.clip,
+                      style: Type.label.copyWith(
+                        fontSize: 5.1,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.05,
+                        height: ticket.counts ? 1 : 1.3,
+                        color: ticket.counts ? _ink : _inkQuiet,
+                        shadows: const [
+                          Shadow(
+                            offset: Offset(0, 0.45),
+                            color: Color(0x99FFFAEC),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
           if (stamp != null) _stampOver(stamp!, width, height),
           if (inRail) ...[
@@ -317,6 +403,50 @@ class DoorwayTicketView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The stat's letter in a small brass ring, on a quest ticket's left.
+class _StatGlyph extends StatelessWidget {
+  const _StatGlyph({
+    required this.glyph,
+    required this.attended,
+    this.opacity = 1,
+  });
+
+  final String glyph;
+  final bool attended;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: opacity,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0x59FFF6DE),
+        border: Border.all(
+          color: attended ? const Color(0xFFA67330) : const Color(0xFF9A622C),
+          width: 0.7,
+        ),
+      ),
+      child: Center(
+        child: MediaQuery.withNoTextScaling(
+          child: Text(
+            glyph,
+            maxLines: 1,
+            softWrap: false,
+            style: const TextStyle(
+              fontFamily: 'EBGaramond',
+              fontWeight: FontWeight.w600,
+              fontSize: 5.2,
+              height: 1,
+              color: Color(0xFF7A4A1F),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// The stamp landing on a ticket's attended face: a round patch of blank

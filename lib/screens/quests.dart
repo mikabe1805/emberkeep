@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:math' show cos, min, pi, sin;
 
-import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +16,7 @@ import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
 import '../content/day_planning.dart';
+import '../content/quest_companion_copy.dart';
 import '../content/embers.dart';
 import '../content/evidence.dart';
 import '../content/ladders.dart';
@@ -47,6 +49,8 @@ import '../widgets/honey_button.dart';
 import '../widgets/house/house_backdrop.dart';
 import '../widgets/house/house_room.dart';
 import '../widgets/house/house_travel_scope.dart' show HouseRoomUi;
+import '../widgets/house/quests/quest_doorway_model.dart';
+import '../widgets/house/quests/quest_doorway_room.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
 import '../widgets/share_moment_card.dart';
@@ -211,6 +215,13 @@ class QuestsPage extends StatefulWidget {
   /// so the shell's dock can step back with the glass. Optional.
   final ValueNotifier<bool>? dockQuiet;
 
+  /// Tests of the board's own behaviour keep the board as the whole page on a
+  /// day with no classes (in the app the Doorway room leads and BOARD opens
+  /// it). Set for every test in test/flutter_test_config.dart; the room's
+  /// tests turn it off. Never set outside tests.
+  @visibleForTesting
+  static bool debugLegacyBoard = false;
+
   @override
   State<QuestsPage> createState() => _QuestsPageState();
 }
@@ -277,7 +288,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// that does it, and only when it is actually behind the rail. Nothing moves
   /// when the action is already in the clear.
   void _clearFeaturedOfRewardRail() {
-    if (!mounted) return;
+    // The Doorway room has no featured card to lift: its glass is fixed.
+    if (!mounted || _questRoomInView) return;
     final anchor = _featuredAnchor.currentContext;
     if (anchor == null) return;
     final box = anchor.findRenderObject();
@@ -347,6 +359,30 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// A Goals or workout hand-off asks for the board itself.
   bool _boardRequested = false;
+
+  // ── a day without classes (the Doorway holds today's three) ──
+
+  /// The night-owned day whose full board is showing (BOARD) on a day with no
+  /// classes; null: the room leads.
+  String? _questBoardDay;
+
+  /// The quest he brought forward by tapping its ticket (its identity title).
+  String? _questPick;
+
+  /// The no-class room is the frame (set each build).
+  bool _questRoomInView = false;
+
+  /// While a completion that keeps the last of today's three plays out in the
+  /// Doorway (the tickets dropping into the bowl), the level-up chain waits
+  /// for it: the full-screen moment never covers the scene's own.
+  VoidCallback? _afterQuestMoment;
+  bool _questMomentOpen = false;
+  Timer? _questMomentTimer;
+  final GlobalKey _roomHudKey = GlobalKey();
+
+  /// What each of today's tickets said it was worth while it was open, so a
+  /// kept ticket keeps saying it (the preview drops once the quest is done).
+  final Map<String, int> _questXpShown = {};
 
   /// A quiet row the person brought forward, and a just-marked row held in
   /// place while its ring closes under the celebration.
@@ -828,6 +864,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _undoSlot = null;
       _heldClass = null;
       _clearMoment();
+      _questMomentOpen = false;
+      _afterQuestMoment = null;
+      _questMomentTimer?.cancel();
       _preferredClass = null;
       _lastClassMarkAt = null;
       _dismissUndoTimer?.cancel();
@@ -951,6 +990,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _classBoundaryTimer?.cancel();
+    _questMomentTimer?.cancel();
     _dismissUndoTimer?.cancel();
     _momentTimer?.cancel();
     _heldTimer?.cancel();
@@ -988,6 +1028,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   final GlobalKey _xpNumberKey = GlobalKey();
 
   Offset _xpDestination() {
+    if (_questRoomInView) {
+      final hud = _roomHudKey.currentContext?.findRenderObject();
+      if (hud is RenderBox && hud.hasSize && hud.attached) {
+        // The room's own XP line, over the Doorway's top edge.
+        return hud.localToGlobal(Offset(hud.size.width * 0.42, 14));
+      }
+    }
     final box = _xpNumberKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) {
       return Offset(MediaQuery.sizeOf(context).width * 0.5, 96);
@@ -1280,6 +1327,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       verified ? 1 : 0,
     ]);
     setState(() {}); // card done-state + quests-left counter
+    _openQuestMomentIfCleared(q);
     // back-to-back clears build a combo (pure warmth, no penalty for pausing)
     final nowT = Clock.now();
     _combo =
@@ -1368,6 +1416,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         _afterReceipt(s, q, bundle);
         return;
       }
+      if (_questRoomInView && !_worthAReceipt(bundle)) {
+        // In the Doorway an ordinary completion is the scene's own: the
+        // ticket hangs, the XP flies to the HUD and rolls. The chain goes on
+        // once the reward has committed.
+        Future.delayed(const Duration(milliseconds: 520), () {
+          if (mounted) _afterReceipt(s, q, bundle);
+        });
+        return;
+      }
       _activeReceipts++;
       _showBoardLayer(
         overlay,
@@ -1404,6 +1461,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _pendingTitle = q.title;
     _commitTimer = Timer(const Duration(milliseconds: 520), _flushCommit);
   }
+
+  /// A completion that rolled something worth stopping for (a crit, loot, a
+  /// freeze, a mastery step or a rung climbed) keeps its receipt in the
+  /// Doorway room; an ordinary one does not.
+  bool _worthAReceipt(RewardBundle bundle) =>
+      bundle.critMult != null ||
+      bundle.loot != null ||
+      bundle.freezesUsed > 0 ||
+      bundle.freezeEarned ||
+      bundle.masteryTierReached != null ||
+      bundle.risenToTitle != null;
 
   /// Inserts one passing reward layer into the root Overlay. The layer calls
   /// `finish` when it has played out; the ledger can also finish it early.
@@ -1445,7 +1513,40 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// A completion chain reached its level-up step.
   void _endCompletionChain(GameState s) {
     _dropCompletionChain();
+    if (_questMomentOpen) {
+      // The Doorway is still dropping today's tickets into the bowl: the
+      // level-up (full screen) follows it, never over it.
+      _afterQuestMoment = () => _resolveLevelUps(s);
+      return;
+    }
     _resolveLevelUps(s);
+  }
+
+  /// A completion that keeps the last of today's three in the Doorway starts a
+  /// moment the level-up chain waits on (the tickets into the bowl).
+  void _openQuestMomentIfCleared(Quest q) {
+    if (!_questRoomInView) return;
+    final read = _questRead(Clock.now());
+    if (!read.allKept || read.questFor(questTicketId(q)) == null) return;
+    _questMomentOpen = true;
+    _questMomentTimer?.cancel();
+    _questMomentTimer = Timer(const Duration(seconds: 10), _endQuestMoment);
+  }
+
+  void _endQuestMoment() {
+    _questMomentTimer?.cancel();
+    _questMomentOpen = false;
+    final run = _afterQuestMoment;
+    _afterQuestMoment = null;
+    if (mounted) run?.call();
+  }
+
+  /// The Doorway reached a move the Quests room waits on.
+  void _onQuestBeat(DoorwayBeat beat) {
+    if (!mounted) return;
+    if (beat == DoorwayBeat.dayDone || beat == DoorwayBeat.weekDone) {
+      _endQuestMoment();
+    }
   }
 
   /// Arms the just-completed card so it can be swiped left to undo a misfire;
@@ -2207,7 +2308,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     late final OverlayEntry takeover;
     // Only the class-day room steps its words back behind the takeover. The
     // board keeps the no-setState path above.
-    final roomQuiet = _roomInView;
+    final roomQuiet = _roomInView || _questRoomInView;
     if (roomQuiet) setState(() => _levelTakeover = true);
     void stepForward() {
       if (roomQuiet && mounted) setState(() => _levelTakeover = false);
@@ -2323,6 +2424,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// ember wash sweeps the board + a flourish haptic (once per day). It lands
   /// after the per-quest celebration so the two don't collide.
   void _celebrateDayClearedIfDone(Quest justDone) {
+    // In the Doorway the day's last ticket going into the bowl is the
+    // celebration; nothing is washed over the scene.
+    if (_questRoomInView) return;
     // all-day lines confirm at night, so clearing the tappable board still
     // counts even if an all-day reminder remains; but don't fire ON an all-day
     // "completion" (it isn't really one until the night check).
@@ -3312,17 +3416,54 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final classDay = _todayClasses();
     if (classDay == null) {
       _roomInView = false;
-      // A hand-off on a day without classes is the board already; it never
-      // carries over to the next class day.
-      _boardRequested = false;
       _classBoundaryTimer?.cancel();
       _classBoundaryTimer = null;
       _classBoundaryAt = null;
       _eveningShown = false;
       _settleEveningMusic(null, false);
       _syncDockQuiet();
-      return _buildBoard(context);
+      final reduceMotion =
+          _state.reduceMotion ||
+          (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+      // Gentle Mode keeps its own sheltered board.
+      if (_state.lowFlameActive || QuestsPage.debugLegacyBoard) {
+        _questRoomInView = false;
+        _boardRequested = false;
+        return _buildBoard(context);
+      }
+      // A Goals or workout hand-off asks for the board itself.
+      final day = Days.nightKey(now);
+      if (_boardRequested) {
+        _boardRequested = false;
+        _questBoardDay = day;
+      }
+      final showBoard = _questBoardDay == day;
+      _questRoomInView = !showBoard;
+      return _ClassDaySwitch(
+        showBoard: showBoard,
+        reduceMotion: reduceMotion,
+        room: (context) => _questRoom(context, now, reduceMotion),
+        board: (context) => Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildBoard(context, withRoomLine: true),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _dockHeight(context),
+              child: _QuestBoardRoomLine(
+                quests: widget.quests,
+                now: now,
+                reduceMotion: reduceMotion,
+                onChoose: _chooseToday,
+                onRoom: _showRoom,
+              ),
+            ),
+          ],
+        ),
+      );
     }
+    _questRoomInView = false;
     _armClassBoundary(classDay, now);
     if (_boardRequested) {
       _boardRequested = false;
@@ -3396,7 +3537,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     setState(() {
       _boardOpenDay = null;
       _boardOpenUntil = null;
+      _questBoardDay = null;
     });
+  }
+
+  /// BOARD on a day with no classes: the full board, with nothing removed.
+  void _showQuestBoard() {
+    Haptics.tap();
+    setState(() => _questBoardDay = Days.nightKey(Clock.now()));
+  }
+
+  /// FOCUS on the Doorway card: focus mode on, on the board.
+  void _questFocus() {
+    if (!_state.focusMode) {
+      _state.setFocusMode(true);
+      widget.onPersist();
+    }
+    _showQuestBoard();
   }
 
   void _hideAddClasses() {
@@ -3486,6 +3643,122 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         onBoard: () => _showBoard(day),
       ),
     );
+  }
+
+  /// Today's three at the Doorway, read for [now]: the rail's quest tickets,
+  /// the day's pair in the bowl once all three are kept, and (with a
+  /// timetable) the term's shelf and the week's pairs.
+  QuestDoorwayRead _questRead(DateTime now) {
+    final date = CivilDate.fromDateTime(now);
+    final hasField = hasDateScopedDailyField(widget.quests, now);
+    final field = hasField
+        ? selectedDailyFieldForDay(widget.quests, now)
+        : const <Quest>[];
+    DoorwayDay? base;
+    var weekFinished = false;
+    final today = _classDayAt(now, day: date);
+    if (today != null) {
+      base = DoorwayDay.build(
+        day: today,
+        state: _state,
+        now: now,
+        dayOf: (d) => _classDayAt(now, day: d) ?? today,
+        term: widget.classTerm?.call(today.date),
+      );
+      final monday = date.addDays(-(date.weekday - 1));
+      weekFinished = true;
+      for (var i = 0; i < 7; i++) {
+        final d = monday.addDays(i);
+        if (d.compareTo(date) <= 0) continue;
+        if (_classDayAt(now, day: d)?.isClassDay ?? false) {
+          weekFinished = false;
+          break;
+        }
+      }
+    }
+    return readQuestDoorway(
+      quests: widget.quests,
+      now: now,
+      date: date,
+      field: field,
+      hasField: hasField,
+      xp: (q) => q.doneFor(now)
+          ? _questXpShown[q.title]
+          : (_questXpShown[q.title] = _state.xpPreview(q)),
+      preferredTitle: _questPick,
+      base: base,
+      weekFinished: weekFinished,
+    );
+  }
+
+  /// One supporting line under the leading quest's title: his own note, its
+  /// goal, a route hint, or the day's companion line (the featured card's
+  /// order).
+  String? _questSupport(Quest quest) {
+    final note = quest.latestNote;
+    if (note != null && note.text.trim().isNotEmpty) {
+      return '${note.text.trim()} · ${relativeWhen(note.at)}';
+    }
+    final goal = quest.goalTitle?.trim();
+    if (goal != null && goal.isNotEmpty) return 'Toward $goal.';
+    final hint = quest.ladderHint?.replaceAll('📈', '').trim();
+    if (hint != null && hint.isNotEmpty) return hint;
+    return questCompanionCopy(quest: quest, day: Clock.now());
+  }
+
+  Widget _questRoom(BuildContext context, DateTime now, bool reduceMotion) {
+    final read = _questRead(now);
+    final slot = _undoSlot;
+    final undoable =
+        slot != null &&
+        slot.kind == RewardUndoKind.quest &&
+        slot.canRestore(_state);
+    final nightDay = Days.nightKey(now);
+    final fieldTitles = {for (final q in read.field) q.title};
+    final sideOpen = planningQuestsForDay(widget.quests, now)
+        .where((q) => !q.allDay && !q.isEvent && !fieldTitles.contains(q.title))
+        .length;
+    final dayRested = _state.dayRestingNow;
+    return QuestDoorwayRoom(
+      key: const Key('quest-day-room'),
+      state: _state,
+      read: read,
+      date: CivilDate.fromDateTime(now),
+      supportFor: _questSupport,
+      onComplete: _completeFromRoom,
+      onSelect: (quest) {
+        Haptics.tap();
+        setState(() => _questPick = quest.title);
+      },
+      onChoose: () => unawaited(_chooseToday()),
+      onFocus: _questFocus,
+      onAdd: _quickAdd,
+      onBoard: _showQuestBoard,
+      onExploreStat: _exploreStat,
+      dockHeight: _dockHeight(context),
+      onCloseDay: !dayRested && _state.nightDoneDay != nightDay && read.allKept
+          ? () => _openNight(alreadyAcknowledged: true)
+          : null,
+      onUndo: undoable ? _undoLast : null,
+      undoLabel: undoable ? slot.label : null,
+      dayRested: dayRested,
+      sideOpen: sideOpen,
+      dayHeld: _remainingToday() == 0,
+      reduceMotion: reduceMotion,
+      parallax: _activeParallax,
+      lightDirection: _activeLight,
+      quiet: _levelTakeover,
+      onBeat: _onQuestBeat,
+      hudKey: _roomHudKey,
+    );
+  }
+
+  /// MARK COMPLETE on the card, or a ticket lifted up the wall: the board's
+  /// one completion path, so the rewards, crits, loot and undo are the same.
+  void _completeFromRoom(Quest quest, Offset anchor) {
+    // The quest he marks leads from here; a pick he made no longer holds.
+    if (_questPick != null) setState(() => _questPick = null);
+    _completeQuest(quest, anchor);
   }
 
   /// The Doorway's reading of [day]: its tickets, hooks, bowl and shelf.
@@ -3860,7 +4133,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// The Quest board: every day without classes, and on a class day once
   /// BOARD brings it back. [classDay] is set on a class day, where the board
   /// keeps one line above the dock that returns to the room.
-  Widget _buildBoard(BuildContext context, {ClassDay? classDay}) {
+  Widget _buildBoard(
+    BuildContext context, {
+    ClassDay? classDay,
+    bool withRoomLine = false,
+  }) {
     final now = Clock.now();
     final reduceMotion =
         _state.reduceMotion ||
@@ -4473,7 +4750,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               12,
                               3,
                               12,
-                              classDay == null ? 130 : 182,
+                              classDay == null && !withRoomLine ? 130 : 182,
                             ),
                             itemCount: listItemCount + 1,
                             separatorBuilder: (_, _) =>
@@ -7675,6 +7952,53 @@ class _BoardRoomLine extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// On a day with no classes the full board keeps one line above the dock that
+/// lets it back down to the room: today's three, and ROOM.
+class _QuestBoardRoomLine extends StatelessWidget {
+  const _QuestBoardRoomLine({
+    required this.quests,
+    required this.now,
+    required this.reduceMotion,
+    required this.onChoose,
+    required this.onRoom,
+  });
+
+  final List<Quest> quests;
+  final DateTime now;
+  final bool reduceMotion;
+  final VoidCallback onChoose;
+  final VoidCallback onRoom;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: const Key('quest-day-board-room-line'),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x0017120F), Color(0xF017120F), Color(0xFF17120F)],
+          stops: [0, 0.38, 1],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 2),
+        child: ClassDayBottomLine(
+          boardLabel: 'ROOM',
+          boardIcon: Icons.keyboard_arrow_down_rounded,
+          onBoard: onRoom,
+          three: _ClassDayThreeLine(
+            quests: quests,
+            now: now,
+            reduceMotion: reduceMotion,
+            onChoose: onChoose,
           ),
         ),
       ),
