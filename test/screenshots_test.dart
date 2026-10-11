@@ -186,7 +186,7 @@ Future<void> _precachePageArt(WidgetTester tester) async {
   const assets = <String>[
     'assets/pages/goals-desk-v2.webp',
     'assets/rooms/wall_walnut-fireless-v3.webp',
-    'assets/pages/plans-conservatory-v2.webp',
+    'assets/rooms/house/plate-plans-day-midday.webp',
     'assets/pages/journal-archive-v1.webp',
     'assets/pages/journal-desk-v3.webp',
     'assets/pages/journal-page-edge-v1.webp',

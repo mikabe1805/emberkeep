@@ -26,6 +26,10 @@ readable text, live data, or generative extension beyond the native frame.
 
 ### `plans-conservatory-v2.webp`
 
+> Removed 2026-10-11: Plans stands on the house's painted daybook plates
+> (`assets/rooms/house/plate-plans-*`), so this plate was no longer drawn.
+> The record below is kept as provenance; the PNG source stays in `design/`.
+
 - Selected destination board:
   `C:\Users\mikus\.codex\generated_images\01a02708-e1c7-72c0-87ba-f006c16a4513\exec-2469b7d3-64dc-4985-82fa-e027deaf8d2f.png`
 - First production plate, rejected for ambiguous lamp/glass geometry:
@@ -113,6 +117,9 @@ history cue without asking `BoxFit.cover` to find the page edge inside a full
   readable text; generous parallax overscan.
 
 ## `plans-desk-v2.webp`
+
+> Removed 2026-10-11, with `plans-desk-v3.webp`: the house's daybook plates
+> replaced both. Provenance only.
 
 - Source target: `design/visual-targets/2026-07-30/plans.png`
 - Original generated file:

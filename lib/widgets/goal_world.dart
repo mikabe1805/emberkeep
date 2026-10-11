@@ -61,23 +61,6 @@ const goalsDetailScrim = LinearGradient(
   stops: [0, 0.18, 0.38, 0.62, 0.82, 1],
 );
 
-/// The kitchen is the payoff of the room journey, so its light stays present
-/// behind the first detail frame. The heavier reading veil still arrives near
-/// the bottom where longer goal content needs it.
-const goalsKitchenDetailScrim = LinearGradient(
-  begin: Alignment.topCenter,
-  end: Alignment.bottomCenter,
-  colors: [
-    Color(0x1C080503),
-    Color(0x00000000),
-    Color(0x20120B07),
-    Color(0x64120B07),
-    Color(0xC8100D0B),
-    Color(0xF4100D0B),
-  ],
-  stops: [0, 0.2, 0.42, 0.68, 0.86, 1],
-);
-
 /// The workshop keeps the steward, card drawers, and amber lamp readable above
 /// the bench, then settles into a quiet lower field for live route controls.
 const goalsWorkshopDetailScrim = LinearGradient(

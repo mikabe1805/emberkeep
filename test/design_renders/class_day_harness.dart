@@ -708,7 +708,9 @@ abstract final class RoomArt {
     'assets/routine/priority-ribbon-umber-v2.webp',
   ];
 
-  static const plans = <String>['assets/pages/plans-conservatory-v2.webp'];
+  static const plans = <String>[
+    'assets/rooms/house/plate-plans-day-midday.webp',
+  ];
 
   static const journal = <String>[
     'assets/pages/journal-archive-v1.webp',

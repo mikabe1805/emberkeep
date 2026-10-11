@@ -42,6 +42,7 @@ import '../widgets/glass.dart' show OverlaySurface, WarmBackground;
 import '../widgets/home_room.dart'
     show preloadHearthFireFrames, preloadSpaceTheme;
 import '../widgets/house/house_backdrop.dart';
+import '../widgets/house/house_dock_fade.dart';
 import '../widgets/house/house_hud.dart';
 import '../widgets/house/house_room.dart';
 import '../widgets/house/house_travel.dart';
@@ -248,6 +249,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// The class-day evening's music steps the Quests room back; the dock
   /// steps back with it while Quests is the tab.
   final ValueNotifier<bool> _dockQuiet = ValueNotifier<bool>(false);
+
+  /// The fade above the dock shows only while a room's scroll is carrying
+  /// content under it; at rest the rooms' glass and plates are not dimmed.
+  final HouseDockFadeController _dockFade = HouseDockFadeController();
   late final AcademicScheduleRepository _academicScheduleRepository;
   late final WidgetSnapshotWriter _widgetSnapshotWriter;
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
@@ -392,6 +397,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dockQuiet.dispose();
+    _dockFade.dispose();
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
     widget.classDayLinks?.removeListener(_onIncomingClassDayLink);
     _boardSeam.boardMarksClasses.removeListener(_onBoardMarksChanged);
@@ -2538,36 +2544,26 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                       sourceRoute: soundRootRoute,
                                       child: TickerMode(
                                         enabled: _tab == i,
-                                        child: page,
+                                        child: HouseDockFadeListener(
+                                          controller: _dockFade,
+                                          tab: i,
+                                          child: page,
+                                        ),
                                       ),
                                     ),
                                 ],
                               ),
                             ),
                           ),
-                          // Content passes UNDER the dock, so without this it was
-                          // guillotined mid-glyph on every page long enough to scroll —
-                          // a section header sliced in half at the dock's hard top
-                          // edge. A short warm fade turns that cut into depth.
-                          Positioned(
-                            left: 0,
-                            right: 0,
+                          // Content that scrolls UNDER the dock was guillotined
+                          // mid-glyph at its hard top edge; a short warm fade turns
+                          // that cut into depth. It rises only while a room is
+                          // carrying content under the dock, never over a room at
+                          // rest (see house_dock_fade.dart).
+                          HouseDockFade(
+                            controller: _dockFade,
+                            tab: _tab,
                             bottom: 88 + MediaQuery.paddingOf(context).bottom,
-                            height: 34,
-                            child: const IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0x0017120F),
-                                      Color(0xE617120F),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
                           ),
                           // The board owns the scene; navigation is one anchored dark
                           // rail, not another floating glass object competing with it.

@@ -385,51 +385,98 @@ class _Strip extends StatelessWidget {
       shadow: false,
       soft: dim,
       child: LayoutBuilder(
-        builder: (context, box) => Padding(
-          padding: const EdgeInsets.fromLTRB(6, 3, 4, 3),
-          // The strip is as tall as the paper's row allows: past what fits at
-          // the system's size the words shrink with it, never overflow.
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: (box.maxWidth - 10).clamp(20.0, 400.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    time,
-                    style: TextStyle(
-                      fontFamily: PlansInk.mono,
-                      fontWeight: FontWeight.w600,
-                      fontSize: Type.minLabel,
-                      height: 1.1,
-                      letterSpacing: 0,
-                      color: dim ? PlansInk.creamDim : PlansInk.ringDone,
+        builder: (context, box) {
+          final width = (box.maxWidth - 10).clamp(20.0, 400.0);
+          final name = _nameOf(entry, schedule);
+          final size = _sizeForLongestWord(
+            context,
+            name,
+            narrow ? 11.5 : 12.5,
+            width,
+          );
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(6, 3, 4, 3),
+            // The strip is as tall as the paper's row allows: past what fits
+            // at the system's size the words shrink with it, never overflow.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: width,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      time,
+                      style: TextStyle(
+                        fontFamily: PlansInk.mono,
+                        fontWeight: FontWeight.w600,
+                        fontSize: Type.minLabel,
+                        height: 1.1,
+                        letterSpacing: 0,
+                        color: dim ? PlansInk.creamDim : PlansInk.ringDone,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _nameOf(entry, schedule),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: PlansInk.serif,
-                      fontWeight: FontWeight.w500,
-                      fontSize: narrow ? 11.5 : 12.5,
-                      height: 1.06,
-                      color: dim ? PlansInk.creamDim : PlansInk.cream,
-                      decoration: dim ? TextDecoration.lineThrough : null,
-                      decorationColor: PlansInk.creamDim,
+                    // Two lines at most, ending in an ellipsis; a long name
+                    // never breaks in the middle of a word (see below).
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: PlansInk.serif,
+                        fontWeight: FontWeight.w500,
+                        fontSize: size,
+                        height: 1.06,
+                        color: dim ? PlansInk.creamDim : PlansInk.cream,
+                        decoration: dim ? TextDecoration.lineThrough : null,
+                        decorationColor: PlansInk.creamDim,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// The name's size: [base], or smaller (never below 72% of it) when its
+  /// longest word would not fit the strip, so "Introduction" is set small
+  /// rather than broken into "Introducti / on" at large text.
+  static double _sizeForLongestWord(
+    BuildContext context,
+    String name,
+    double base,
+    double width,
+  ) {
+    final inherited = DefaultTextStyle.of(context).style;
+    final scaler = MediaQuery.textScalerOf(context);
+    var longest = 0.0;
+    for (final word in name.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final painter = TextPainter(
+        text: TextSpan(
+          text: word,
+          style: inherited.merge(
+            TextStyle(
+              fontFamily: PlansInk.serif,
+              fontWeight: FontWeight.w500,
+              fontSize: base,
             ),
           ),
         ),
-      ),
-    );
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      if (painter.width > longest) longest = painter.width;
+      painter.dispose();
+    }
+    if (longest <= width || longest == 0) return base;
+    return (base * width / longest * 0.97).clamp(base * 0.72, base);
   }
 
   /// "10:20", "2:00": the hour and minute, the day page says AM or PM.
