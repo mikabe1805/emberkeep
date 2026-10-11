@@ -1233,12 +1233,8 @@ void main() {
     await tester.tap(find.byIcon(Icons.calendar_month_outlined));
     await tester.pump(const Duration(milliseconds: 500));
 
-    await tester.scrollUntilVisible(
-      find.text('PLAN QUEST'),
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump(const Duration(milliseconds: 120));
+    // Plans opens on today's page of the daybook: PLAN QUEST is on it.
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(find.text('PLAN QUEST'));
     await tester.pump(const Duration(milliseconds: 400));
 

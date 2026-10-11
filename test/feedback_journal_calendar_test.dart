@@ -140,7 +140,10 @@ void main() {
       await tester.scrollUntilVisible(
         find.text(entryText),
         240,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('plans-day-list')),
+          matching: find.byType(Scrollable),
+        ),
       );
       await tester.pump();
 
@@ -227,7 +230,10 @@ void main() {
     await tester.scrollUntilVisible(
       card,
       220,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('plans-day-list')),
+        matching: find.byType(Scrollable),
+      ),
     );
     // scrollUntilVisible stops at partial visibility; bring the card fully
     // on-screen so the tap lands on it.

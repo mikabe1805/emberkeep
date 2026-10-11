@@ -19,7 +19,6 @@ const _pendingCeilings = <String, int>{
   'lib/engine.dart': 4,
   'lib/storage.dart': 3,
   'lib/widgets/routine_flows.dart': 4,
-  'lib/screens/calendar.dart': 1,
   'lib/academic_calendar/import/academic_schedule_ics_import.dart': 1,
   // The workout rungs are saved, not only shown: Quest.ladder keeps them, and
   // a goal plan step keeps its template's displayTitle as actionTitle and

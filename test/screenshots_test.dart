@@ -1854,18 +1854,18 @@ void main() {
     await tester.tap(planAction);
     await tester.pump(const Duration(milliseconds: 350));
     expect(
-      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
+      find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'),
       findsOneWidget,
       reason: 'The planner-shapes capture must show the Plan creation surface.',
     );
     await _storeShot(tester, '05b_planner_shapes_1290x2796');
     Navigator.of(
-      tester.element(find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN')),
+      tester.element(find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN')),
     ).pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
     expect(
-      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
+      find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'),
       findsNothing,
     );
 

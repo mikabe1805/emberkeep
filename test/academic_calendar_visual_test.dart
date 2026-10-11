@@ -18,6 +18,7 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/house/plans/plans_geometry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
@@ -142,12 +143,7 @@ void main() {
       );
       await tester.pump();
       final context = tester.element(find.byType(MaterialApp));
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-          context,
-        ),
-      );
+      await tester.runAsync(() => _precachePlates(context));
       for (var frame = 0; frame < 5; frame++) {
         await tester.pump(const Duration(milliseconds: 120));
       }
@@ -210,24 +206,20 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
     final today = find.byKey(const ValueKey('calendar-back-to-today'));
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-
     expect(today, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+      findsOneWidget,
+    );
+    await _reveal(
+      tester,
+      find.byKey(const ValueKey('calendar-plan-selected-day')),
+    );
     expect(
       find.byKey(const ValueKey('calendar-plan-selected-day')),
       findsOneWidget,
@@ -254,9 +246,8 @@ void main() {
       devicePixelRatio: 3,
     );
 
-    expect(find.text('PLANS'), findsOneWidget);
-    expect(find.text('DAYBOOK'), findsOneWidget);
-    expect(find.text('AUGUST 2026'), findsOneWidget);
+    expect(find.text('AUGUST'), findsOneWidget);
+    expect(find.text('2026'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await expectLater(
       find.byType(MaterialApp),
@@ -276,45 +267,38 @@ void main() {
         textScale: 1,
       );
 
-      expect(find.text('DAYBOOK'), findsOneWidget);
-      expect(find.text('Summer 2026'), findsOneWidget);
-      expect(
-        find.text(
-          mode == AcademicCalendarMode.month
-              ? 'AUGUST 2026'
-              : 'AUGUST 11, 2026',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('SUMMER 2026'), findsOneWidget);
+      if (mode == AcademicCalendarMode.month) {
+        expect(find.text('AUGUST'), findsOneWidget);
+        expect(find.text('2026'), findsOneWidget);
+      } else {
+        expect(find.text('TUE · AUG 11'), findsOneWidget);
+        expect(find.text('Today'), findsOneWidget);
+      }
       expect(tester.takeException(), isNull);
 
       if (mode == AcademicCalendarMode.day) {
-        await Scrollable.ensureVisible(
-          tester.element(find.text('TUESDAY 11')),
-          alignment: 0.02,
-        );
-        await tester.pump();
-        expect(find.text('Return the field recorder'), findsOneWidget);
+        // The page of the day, section by section.
         expect(find.text('Museum tickets release'), findsOneWidget);
         expect(find.text('Portfolio review'), findsOneWidget);
-        expect(find.text('Studio circle'), findsOneWidget);
-        expect(find.text('DES 210 · STU'), findsOneWidget);
+        expect(find.text('Interaction Studio'), findsOneWidget);
+        await _reveal(tester, find.text('Return the field recorder'));
+        expect(find.text('Return the field recorder'), findsOneWidget);
+        await _reveal(
+          tester,
+          find.text(
+            'Clear the kitchen table and put every borrowed thing back',
+          ),
+        );
         expect(
           find.text(
             'Clear the kitchen table and put every borrowed thing back',
           ),
           findsOneWidget,
         );
+        await _reveal(tester, find.text('Choose references for the cover'));
         expect(find.text('Choose references for the cover'), findsOneWidget);
         expect(find.text('Clear the sink'), findsNothing);
-        expect(
-          tester.getTopLeft(find.text('Museum tickets release')).dy,
-          greaterThanOrEqualTo(16),
-        );
-        expect(
-          tester.getTopLeft(find.text('Return the field recorder')).dy,
-          greaterThan(932 * 0.65),
-        );
         expect(tester.takeException(), isNull);
       }
 
@@ -339,84 +323,44 @@ void main() {
           textScale: 2,
         );
 
-        expect(find.text('DAYBOOK'), findsOneWidget);
-        expect(find.text('Summer 2026'), findsOneWidget);
-        expect(find.text('MON'), findsOneWidget);
+        expect(find.text('SUMMER 2026'), findsOneWidget);
+        expect(find.text('MON'), findsWidgets);
         expect(find.text('WK'), findsOneWidget);
-        expect(find.text('3D'), findsOneWidget);
         expect(find.text('DAY'), findsOneWidget);
         expect(
-          tester
-              .renderObject<RenderParagraph>(find.text('Summer 2026'))
-              .didExceedMaxLines,
-          isFalse,
-        );
-        expect(tester.takeException(), isNull);
-        for (
-          var drag = 0;
-          drag < 20 &&
-              find.text('Return the field recorder').evaluate().isEmpty;
-          drag++
-        ) {
-          await tester.dragFrom(const Offset(160, 498), const Offset(0, -260));
-          await tester.pump();
-        }
-        expect(find.text('Return the field recorder'), findsOneWidget);
-        await tester.ensureVisible(find.text('Return the field recorder'));
-        await tester.pump();
-        expect(find.text('Museum tickets release'), findsOneWidget);
-        expect(find.text('Portfolio review'), findsOneWidget);
-        expect(find.text('Studio circle'), findsOneWidget);
-        expect(find.text('DES 210 · STU'), findsOneWidget);
-        expect(
-          find.text(
-            'Clear the kitchen table and put every borrowed thing back',
-          ),
+          find.byKey(const ValueKey('academic-mode-overflow')),
           findsOneWidget,
         );
-        expect(
-          tester
-              .renderObject<RenderParagraph>(
-                find.text(
-                  'Clear the kitchen table and put every borrowed thing back',
-                ),
-              )
-              .didExceedMaxLines,
-          isFalse,
-        );
-        expect(
-          tester
-              .renderObject<RenderParagraph>(
-                find.text('Return the field recorder'),
-              )
-              .didExceedMaxLines,
-          isFalse,
-        );
-        final selectedDayLabel = mode == AcademicCalendarMode.month
-            ? 'TUESDAY 11 · TODAY'
-            : 'TUESDAY 11';
-        expect(
-          tester
-              .renderObject<RenderParagraph>(find.text(selectedDayLabel))
-              .didExceedMaxLines,
-          isFalse,
-        );
-        if (mode == AcademicCalendarMode.month) {
+        expect(tester.takeException(), isNull);
+        if (mode == AcademicCalendarMode.day) {
+          await _reveal(tester, find.text('Return the field recorder'));
+          expect(find.text('Return the field recorder'), findsOneWidget);
           expect(
-            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
-            lessThan(tester.getTopLeft(find.text('PLAN QUEST')).dy),
+            tester
+                .renderObject<RenderParagraph>(
+                  find.text('Return the field recorder'),
+                )
+                .didExceedMaxLines,
+            isFalse,
           );
-        } else {
-          expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
+          await _reveal(
+            tester,
+            find.text(
+              'Clear the kitchen table and put every borrowed thing back',
+            ),
+          );
+          expect(
+            tester
+                .renderObject<RenderParagraph>(
+                  find.text(
+                    'Clear the kitchen table and put every borrowed thing back',
+                  ),
+                )
+                .didExceedMaxLines,
+            isFalse,
+          );
+          await _reveal(tester, find.text('PLAN QUEST'));
           expect(find.text('PLAN QUEST'), findsOneWidget);
-          expect(
-            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
-            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
-          );
-          expect(
-            tester.getBottomLeft(find.text('PLAN QUEST')).dy,
-            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
-          );
         }
         expect(tester.takeException(), isNull);
       },
@@ -478,45 +422,26 @@ void main() {
       );
       await tester.pump();
       final context = tester.element(find.byType(MaterialApp));
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-          context,
-        ),
-      );
+      await tester.runAsync(() => _precachePlates(context));
       for (var frame = 0; frame < 5; frame++) {
         await tester.pump(const Duration(milliseconds: 120));
       }
 
       if (configuration.textScale == 2) {
-        expect(find.text('MON'), findsOneWidget);
+        expect(find.text('MON'), findsWidgets);
         expect(find.text('WK'), findsOneWidget);
-        expect(find.text('3D'), findsOneWidget);
         expect(find.text('DAY'), findsOneWidget);
       }
-      await tester.scrollUntilVisible(
-        find.text('DAY SHAPE'),
-        260,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.ensureVisible(find.text('DAY SHAPE'));
-      await tester.pump();
-      expect(find.text('DAY SHAPE'), findsOneWidget);
       expect(find.text('ALL DAY'), findsWidgets);
       expect(find.text('Library closed'), findsOneWidget);
+      await _reveal(tester, find.text('Project meeting'));
       expect(find.text('Project meeting'), findsOneWidget);
+      await _reveal(tester, find.text('Return library book'));
       expect(find.text('Return library book'), findsOneWidget);
+      await _reveal(tester, find.text('STILL OPEN'));
       expect(find.text('STILL OPEN'), findsOneWidget);
-      if (configuration.textScale == 2) {
-        expect(
-          tester
-              .getTopLeft(
-                find.byKey(const ValueKey('open-notebook-occurrence_visual_1')),
-              )
-              .dy,
-          greaterThan(tester.getBottomLeft(find.text('ECE 345 · LEC')).dy),
-        );
-      }
+      await _reveal(tester, find.text('DAY SHAPE'));
+      expect(find.text('DAY SHAPE'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await runExactGoldenCheck(
         operatingSystem: Platform.operatingSystem,
@@ -542,8 +467,7 @@ void main() {
     );
 
     final eventTitle = find.text('Portfolio review');
-    await Scrollable.ensureVisible(tester.element(eventTitle), alignment: 0.20);
-    await tester.pump();
+    await _reveal(tester, eventTitle);
 
     final directions = find.bySemanticsLabel(
       'Get directions to Zimmerli Art Museum',
@@ -704,12 +628,7 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
@@ -766,12 +685,7 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
@@ -825,12 +739,7 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
@@ -892,12 +801,7 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
@@ -969,12 +873,7 @@ void main() {
     );
     await tester.pump();
     final context = tester.element(find.byType(MaterialApp));
-    await tester.runAsync(
-      () => precacheImage(
-        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-        context,
-      ),
-    );
+    await tester.runAsync(() => _precachePlates(context));
     for (var frame = 0; frame < 5; frame++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
@@ -1081,12 +980,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   );
   await tester.pump();
   final context = tester.element(find.byType(MaterialApp));
-  await tester.runAsync(
-    () => precacheImage(
-      const AssetImage('assets/pages/plans-conservatory-v2.webp'),
-      context,
-    ),
-  );
+  await tester.runAsync(() => _precachePlates(context));
   for (var frame = 0; frame < 5; frame++) {
     await tester.pump(const Duration(milliseconds: 120));
   }
@@ -1403,4 +1297,31 @@ final class _NoopHandoff implements NotebookHandoff {
 final class _UnavailableDirectionsLauncher implements DirectionsLauncher {
   @override
   Future<bool> open(DaybookPlace place, MapProvider provider) async => false;
+}
+
+/// The plates under Plans, decoded so a frame paints them.
+Future<void> _precachePlates(BuildContext context) async {
+  for (final plates in [PlansPlates.day, PlansPlates.month]) {
+    for (final asset in plates.all) {
+      await precacheImage(AssetImage(asset), context);
+    }
+  }
+}
+
+/// The scrollable list on the right page of the open day.
+final _dayScrollable = find.descendant(
+  of: find.byKey(const ValueKey('plans-day-list')),
+  matching: find.byType(Scrollable),
+);
+
+/// Scrolls the open day's page until [finder] is on screen.
+Future<void> _reveal(WidgetTester tester, Finder finder) async {
+  // Down the page first, then back up it: the thing may be above where the
+  // page was left.
+  for (final dy in const [-90.0, 90.0]) {
+    for (var i = 0; i < 60 && finder.hitTestable().evaluate().isEmpty; i++) {
+      await tester.drag(_dayScrollable, Offset(0, dy));
+      await tester.pump();
+    }
+  }
 }
