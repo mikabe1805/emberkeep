@@ -490,6 +490,134 @@ class MantelLeaderPainter extends CustomPainter {
       old.start != start || old.corner != corner || old.end != end;
 }
 
+/// A glass's heading: the small caps eyebrow over the serif title. The
+/// sheets and the "Your space" page share it.
+class MantelHeading extends StatelessWidget {
+  const MantelHeading({
+    super.key,
+    required this.eyebrow,
+    required this.title,
+    this.subtitle,
+  });
+
+  final String eyebrow;
+  final String title;
+
+  /// A quiet line under the title (the room's name on its page).
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: MantelEyebrow(eyebrow),
+      ),
+      const SizedBox(height: 7),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Semantics(header: true, child: Text(title, style: _serif(25))),
+      ),
+      if (subtitle case final line?)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+          child: Text(
+            line,
+            style: Type.body.copyWith(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: _inkQuiet,
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+/// BACK: a small flat pill of smoke glass flush to the left edge, over a room
+/// that runs up under the status bar. The same material as the quiet tabs,
+/// a little denser because content passes under it when the page scrolls. It
+/// keeps 44 points to touch whatever the text size.
+class MantelBackPill extends StatelessWidget {
+  const MantelBackPill({super.key, required this.onTap, this.spoken});
+
+  final VoidCallback onTap;
+  final String? spoken;
+
+  @override
+  Widget build(BuildContext context) {
+    const edge = Color(0x3DF6E2BF);
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: mantelTabTextCap,
+      child: Semantics(
+        button: true,
+        label: spoken ?? 'Back',
+        onTap: onTap,
+        excludeSemantics: true,
+        child: GestureDetector(
+          key: const Key('your-space-back'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: MantelFrame.hit,
+              minWidth: MantelFrame.hit,
+            ),
+            child: Center(
+              heightFactor: 1,
+              widthFactor: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xE61C1511),
+                  borderRadius: const BorderRadius.horizontal(
+                    right: Radius.circular(9),
+                  ),
+                  border: const Border(
+                    top: BorderSide(color: edge),
+                    bottom: BorderSide(color: edge),
+                    right: BorderSide(color: edge),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x4D0A0502),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(9, 8, 13, 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.chevron_left_rounded,
+                        size: 18,
+                        color: Color(0xFFE8DAC6),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        'BACK',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: _mono(
+                          Type.minLabel,
+                          color: const Color(0xFFF1E4CD),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Sheets ───────────────────────────────────────────────────────────────
 
 /// Opens a sheet of the same glass over the dimmed room: a title, the content
@@ -637,18 +765,7 @@ class MantelSheet extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: MantelEyebrow(eyebrow),
-                      ),
-                      const SizedBox(height: 7),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Semantics(
-                          header: true,
-                          child: Text(title, style: _serif(25)),
-                        ),
-                      ),
+                      MantelHeading(eyebrow: eyebrow, title: title),
                       Flexible(
                         child: listen == null
                             ? Builder(builder: body)

@@ -6,7 +6,8 @@
 // SPACE / MORE on the left), the TROPHY CASE tag with its leader to the shelf,
 // and the YOUR BUILD glass above the dock. Everything the old Me page held
 // that is not on that first frame is one touch away, in a sheet of the same
-// glass (see me.dart for what each opens).
+// glass or, for YOUR SPACE, on a page of its own where the player's room is the
+// hero (your_space_page.dart; see me.dart for what each opens).
 library;
 
 import 'package:flutter/foundation.dart' show ValueListenable;

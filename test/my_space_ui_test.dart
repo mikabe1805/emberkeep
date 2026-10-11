@@ -14,6 +14,8 @@ import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'house/me_sheet_support.dart';
+
 // Tall enough that the cards under the room (the Me page now opens on the
 // painted mantel, with its glass below) are all built without scrolling.
 const _phoneSize = Size(430, 2200);
@@ -58,32 +60,19 @@ Widget _mePage(
   ),
 );
 
-/// The scroll that is on top: the arranger's once it is open, else the open
-/// mantel sheet's (the page behind keeps its own, so `find.byType(Scrollable)
-/// .first` would not be either).
+/// The scroll that is on top: the arranger's once it is open, else the
+/// "Your space" page's or the open mantel sheet's (the mantel behind keeps
+/// none of its own).
 Finder get _sheetScrollable {
   final arranger = find.byKey(const ValueKey('space-arranger'));
-  return find
-      .descendant(
-        of: arranger.evaluate().isNotEmpty
-            ? arranger
-            : find.byKey(const Key('mantel-sheet-scroll')),
-        matching: find.byType(Scrollable),
-      )
-      .first;
+  if (arranger.evaluate().isEmpty) return mantelSheetScrollable;
+  return find.descendant(of: arranger, matching: find.byType(Scrollable)).first;
 }
 
-/// Opens a mantel sheet by its tab (`settings`, `save`, `space`, `more`) or the
-/// trophy tag (`trophy`).
-Future<void> _openSheet(WidgetTester tester, String sheet) async {
-  await tester.tap(
-    find.byKey(
-      Key(sheet == 'trophy' ? 'mantel-tag-trophy' : 'mantel-tab-$sheet'),
-    ),
-  );
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-}
+/// Opens a mantel sheet by its tab (`settings`, `save`, `more`), the trophy
+/// tag (`trophy`), or the "Your space" page (`space`).
+Future<void> _openSheet(WidgetTester tester, String sheet) =>
+    openMantelSheet(tester, sheet);
 
 Future<void> _pumpMe(
   WidgetTester tester,

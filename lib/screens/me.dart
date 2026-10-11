@@ -40,6 +40,7 @@ import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/house/me/mantel_glass.dart';
 import '../widgets/house/me/me_mantel.dart';
+import '../widgets/house/me/your_space_page.dart';
 import '../widgets/morrow_tapestry_glyph.dart';
 import '../widgets/pressable.dart';
 import '../widgets/radar.dart';
@@ -2372,12 +2373,7 @@ class MePage extends StatelessWidget {
           title: 'Save',
           content: _saveSheet,
         ),
-        onYourSpace: () => _openSheet(
-          context,
-          eyebrow: 'YOUR OWN ROOM',
-          title: 'Your space',
-          content: _spaceSheet,
-        ),
+        onYourSpace: () => _openYourSpace(context),
         onMore: () => _openSheet(
           context,
           eyebrow: 'THE MANTEL',
@@ -2400,6 +2396,27 @@ class MePage extends StatelessWidget {
           quests: quests,
           onPersist: onPersist,
           onAddQuest: onAddQuest,
+        ),
+      ),
+    );
+  }
+
+  /// YOUR SPACE: the player's own room on its own page, behind a door of the
+  /// mantel. An ordinary pushed page (the app's own route: the platform slide
+  /// and edge swipe on iOS, a short fade and rise elsewhere, a plain fade under
+  /// Reduce Motion), so it covers the dock and the HUD and back returns to the
+  /// mantel.
+  void _openYourSpace(BuildContext context) {
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Haptics.tap();
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'your-space'),
+        builder: (_) => YourSpacePage(
+          state: state,
+          quests: quests,
+          parallax: parallax,
+          content: _spaceControls,
         ),
       ),
     );
@@ -2684,9 +2701,9 @@ class MePage extends StatelessWidget {
     ],
   );
 
-  /// Your own room and the ways to share it: change space, the room photo,
-  /// the public preview, sharing, Discover, and the page's cards.
-  Widget _spaceSheet(BuildContext context) => Column(
+  /// What the "Your space" page holds under the room: change space, the room
+  /// photo, the public preview, sharing, Discover, and the page's cards.
+  Widget _spaceControls(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _SpaceRail(
@@ -5947,7 +5964,9 @@ class _SpaceRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
+    // At 130% the balance and the button no longer share a row (the balance
+    // used to break mid-word, "640 GL / IMMERS").
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.2;
     final balance = Row(
       children: [
         const Icon(Icons.auto_awesome_rounded, color: Palette.xp, size: 17),
