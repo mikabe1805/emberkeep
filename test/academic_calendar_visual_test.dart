@@ -38,6 +38,17 @@ const _captureOccurrenceAdjust = bool.fromEnvironment(
   'CAPTURE_ACADEMIC_OCCURRENCE_ADJUST',
 );
 
+/// How many lines a paragraph is set in.
+int _lineCount(RenderParagraph paragraph) {
+  final boxes = paragraph.getBoxesForSelection(
+    TextSelection(
+      baseOffset: 0,
+      extentOffset: paragraph.text.toPlainText().length,
+    ),
+  );
+  return {for (final box in boxes) box.top.round()}.length;
+}
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -335,13 +346,15 @@ void main() {
         if (mode == AcademicCalendarMode.day) {
           await _reveal(tester, find.text('Return the field recorder'));
           expect(find.text('Return the field recorder'), findsOneWidget);
+          // A card's title is two lines at most, at any text size; the whole
+          // name stays in the text (and in the card's spoken label).
           expect(
-            tester
-                .renderObject<RenderParagraph>(
-                  find.text('Return the field recorder'),
-                )
-                .didExceedMaxLines,
-            isFalse,
+            _lineCount(
+              tester.renderObject<RenderParagraph>(
+                find.text('Return the field recorder'),
+              ),
+            ),
+            lessThanOrEqualTo(2),
           );
           await _reveal(
             tester,
@@ -350,14 +363,14 @@ void main() {
             ),
           );
           expect(
-            tester
-                .renderObject<RenderParagraph>(
-                  find.text(
-                    'Clear the kitchen table and put every borrowed thing back',
-                  ),
-                )
-                .didExceedMaxLines,
-            isFalse,
+            _lineCount(
+              tester.renderObject<RenderParagraph>(
+                find.text(
+                  'Clear the kitchen table and put every borrowed thing back',
+                ),
+              ),
+            ),
+            lessThanOrEqualTo(2),
           );
           await _reveal(tester, find.text('PLAN QUEST'));
           expect(find.text('PLAN QUEST'), findsOneWidget);

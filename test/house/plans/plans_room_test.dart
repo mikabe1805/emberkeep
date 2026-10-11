@@ -20,9 +20,11 @@ import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/widgets/house/house_backdrop.dart';
 import 'package:emberkeep/widgets/house/house_light.dart';
 import 'package:emberkeep/widgets/house/house_room.dart';
+import 'package:emberkeep/widgets/house/plans/plans_cards.dart';
 import 'package:emberkeep/widgets/house/plans/plans_geometry.dart';
 import 'package:emberkeep/widgets/house/plans/plans_page_turn.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/rutgers_fall_2026_ics_fixture.dart';
@@ -90,6 +92,17 @@ Future<InMemoryAcademicCalendarPreferences> _pump(
 Future<void> _turned(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 700));
   await tester.pump(const Duration(milliseconds: 700));
+}
+
+/// How many lines a paragraph is set in.
+int _lineCount(RenderParagraph paragraph) {
+  final boxes = paragraph.getBoxesForSelection(
+    TextSelection(
+      baseOffset: 0,
+      extentOffset: paragraph.text.toPlainText().length,
+    ),
+  );
+  return {for (final box in boxes) box.top.round()}.length;
 }
 
 Finder _curl() => find.byWidgetPredicate(
@@ -567,6 +580,133 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  });
+
+  group('a card title that is set to fit', () {
+    // Test text is one em wide a letter, so a 150-point column takes ten
+    // letters of 14.5 and nine of 15.5 or 16.5.
+    Future<TextStyle> pumpTitle(
+      WidgetTester tester,
+      String title, {
+      double textScale = 1,
+    }) async {
+      tester.platformDispatcher.textScaleFactorTestValue = textScale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 150,
+              child: PlansCardTitle(title: title, dim: false),
+            ),
+          ),
+        ),
+      );
+      return tester.widget<Text>(find.text(title)).style!;
+    }
+
+    testWidgets('a name that fits two lines is never cut', (tester) async {
+      final style = await pumpTitle(tester, 'abcdefghij klmnopqrs');
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text('abcdefghij klmnopqrs'),
+      );
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(style.fontSize, 14.5, reason: 'a point or two smaller to fit');
+    });
+
+    testWidgets('a name that fits at full size keeps it', (tester) async {
+      final style = await pumpTitle(tester, 'abcdefgh ijklmnop');
+      expect(style.fontSize, 16.5);
+    });
+
+    testWidgets('a longer one ends in an ellipsis, at the smallest size', (
+      tester,
+    ) async {
+      final style = await pumpTitle(tester, 'abcdefghij klmnopqrs tuvwxyz');
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text('abcdefghij klmnopqrs tuvwxyz'),
+      );
+      expect(paragraph.didExceedMaxLines, isTrue);
+      expect(style.fontSize, 14.5);
+      expect(_lineCount(paragraph), lessThanOrEqualTo(2));
+    });
+
+    testWidgets('at large text the size is the one the person chose', (
+      tester,
+    ) async {
+      final style = await pumpTitle(
+        tester,
+        'abcdefghij klmnopqrs',
+        textScale: 1.3,
+      );
+      expect(style.fontSize, 16.5);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text('abcdefghij klmnopqrs'),
+      );
+      expect(_lineCount(paragraph), lessThanOrEqualTo(2));
+    });
+  });
+
+  group('long names', () {
+    const longName = 'Computer Architecture & Assembly Language';
+
+    for (final scale in const [1.0, 1.3, 2.0]) {
+      testWidgets(
+        'a long class name is two lines at most at ${(scale * 100).round()}%',
+        (tester) async {
+          final semantics = tester.ensureSemantics();
+          await _pump(tester, textScale: scale);
+
+          final title = find.text(longName);
+          expect(title, findsOneWidget);
+          final paragraph = tester.renderObject<RenderParagraph>(title);
+          expect(_lineCount(paragraph), lessThanOrEqualTo(2));
+          expect(paragraph.didExceedMaxLines, isTrue);
+          expect(tester.widget<Text>(title).maxLines, 2);
+          expect(tester.widget<Text>(title).overflow, TextOverflow.ellipsis);
+
+          // The whole name is still said aloud, by the card's text node.
+          expect(find.bySemanticsLabel(longName), findsWidgets);
+          expect(tester.takeException(), isNull);
+          semantics.dispose();
+        },
+      );
+    }
+
+    testWidgets('the "..." menu names the class in full', (tester) async {
+      await _pump(tester);
+      final menu = find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey &&
+            (w.key! as ValueKey).value.toString().startsWith(
+              'academic-card-menu-',
+            ),
+      );
+      await tester.tap(menu.first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      // The card's own words, and the menu's heading.
+      expect(find.text(longName), findsNWidgets(2));
+    });
+
+    for (final scale in const [1.0, 1.3, 2.0]) {
+      testWidgets(
+        'the week keeps a long name to its strip at ${(scale * 100).round()}%',
+        (tester) async {
+          await _pump(
+            tester,
+            mode: AcademicCalendarMode.week,
+            textScale: scale,
+          );
+          expect(tester.takeException(), isNull);
+          for (final strip in find.textContaining('Assembly').evaluate()) {
+            final box = strip.renderObject as RenderParagraph;
+            expect(_lineCount(box), lessThanOrEqualTo(2));
+          }
+        },
+      );
+    }
   });
 
   group('large text', () {

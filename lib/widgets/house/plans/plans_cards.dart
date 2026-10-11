@@ -202,25 +202,7 @@ class PlansEntryCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: PlansInk.serif,
-            fontWeight: FontWeight.w500,
-            fontSize: 16.5,
-            height: 1.12,
-            color: dim ? PlansInk.creamDim : PlansInk.cream,
-            decoration: dim ? TextDecoration.lineThrough : null,
-            decorationColor: PlansInk.creamDim,
-            shadows: const [
-              Shadow(
-                color: Color(0x990A0502),
-                blurRadius: 1.5,
-                offset: Offset(0, 0.5),
-              ),
-            ],
-          ),
-        ),
+        PlansCardTitle(title: title, dim: dim),
         const SizedBox(height: 4),
         Wrap(
           spacing: 7,
@@ -638,6 +620,80 @@ class PlansEntryCard extends StatelessWidget {
         .where((candidate) => candidate.workId == action.workId)
         .firstOrNull;
     if (item != null) await actions.onOpenStudyPlanner(item);
+  }
+}
+
+/// A card's title, two lines at most at any text size.
+///
+/// A long course name is set whole when it can be: at the system's usual text
+/// size it steps down a point or two (never below 14.5) to fit two lines before
+/// it gives up a word, so "Computer Architecture & Assembly Language" is not
+/// cut to "Computer Architecture & Ass…". When it still does not fit, and at
+/// large text, it ends in an ellipsis. The full name stays in the card's spoken
+/// label and in its "..." menu, which names the class in full.
+class PlansCardTitle extends StatelessWidget {
+  const PlansCardTitle({super.key, required this.title, required this.dim});
+
+  final String title;
+  final bool dim;
+
+  static const _sizes = [16.5, 15.5, 14.5];
+
+  TextStyle _style(double size) => TextStyle(
+    fontFamily: PlansInk.serif,
+    fontWeight: FontWeight.w500,
+    fontSize: size,
+    height: 1.12,
+    color: dim ? PlansInk.creamDim : PlansInk.cream,
+    decoration: dim ? TextDecoration.lineThrough : null,
+    decorationColor: PlansInk.creamDim,
+    shadows: const [
+      Shadow(color: Color(0x990A0502), blurRadius: 1.5, offset: Offset(0, 0.5)),
+    ],
+  );
+
+  bool _fits(
+    TextStyle inherited,
+    double size,
+    double width,
+    TextScaler scaler,
+  ) {
+    // Measured the way Text will set it, with what it inherits (the theme's
+    // letter spacing, say), so the measure and the words agree.
+    final painter = TextPainter(
+      text: TextSpan(text: title, style: inherited.merge(_style(size))),
+      maxLines: 2,
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout(maxWidth: width);
+    final fits = !painter.didExceedMaxLines;
+    painter.dispose();
+    return fits;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // At large text the words keep the size the person chose.
+    final steps = plansTextScale(context) <= 1.15 ? _sizes : [_sizes.first];
+    return LayoutBuilder(
+      builder: (context, box) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final inherited = DefaultTextStyle.of(context).style;
+        var size = steps.first;
+        if (box.maxWidth.isFinite) {
+          for (final candidate in steps) {
+            size = candidate;
+            if (_fits(inherited, candidate, box.maxWidth, scaler)) break;
+          }
+        }
+        return Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: _style(size),
+        );
+      },
+    );
   }
 }
 
