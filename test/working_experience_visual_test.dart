@@ -200,16 +200,11 @@ void main() {
         ),
       );
       await _precacheWorkingArt(tester);
-      // Goals keeps Today as one compact doorway beside the current Quest;
-      // at large text it moves to the 44px header target, while the detailed
-      // field remains in the picker instead of repeating as a card here.
-      final todayDoor = view.$3 > 1
-          ? find.byKey(const Key('goals-today-field-header'))
-          : find.byKey(const Key('goals-today-field-action'));
+      // The Goals card keeps Today as one of its two buttons beside the
+      // current Quest; the detailed field stays in the picker.
+      final todayDoor = find.byKey(const Key('goals-today-field-action'));
       expect(todayDoor, findsOneWidget);
-      if (view.$3 == 1) {
-        expect(find.text('Plan today’s three · 2'), findsOneWidget);
-      }
+      expect(find.text('TODAY’S THREE · 2'), findsOneWidget);
       await tester.runAsync(() => _writeFixture(fixture));
       if (_capture) {
         await expectLater(

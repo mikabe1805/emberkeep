@@ -17,13 +17,12 @@ import '../widgets/day_picker.dart';
 import '../widgets/detail_route.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/honey_button.dart';
-import '../widgets/house/house_backdrop.dart';
-import '../widgets/house/house_room.dart';
+import '../widgets/house/goals/goal_detail_route.dart';
+import '../widgets/house/goals/goals_room.dart';
 import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/goal_primary_button.dart';
-import '../widgets/goal_steward.dart';
 import '../widgets/goal_room_route.dart';
 import '../widgets/goal_world.dart';
 import '../widgets/pressable.dart';
@@ -105,11 +104,6 @@ final _goalCategories = <_GoalCategory>[
 ];
 
 String _questTitleKey(String title) => title.trim().toLowerCase();
-
-const _goalsRoomTextShadows = <Shadow>[
-  Shadow(color: Color(0xD8100906), blurRadius: 10, offset: Offset(0, 2)),
-  Shadow(color: Color(0x86100906), blurRadius: 3, offset: Offset(0, 1)),
-];
 
 List<Quest> _questsForGoal(Goal goal, List<Quest> quests) => quests
     .where(
@@ -281,7 +275,7 @@ class GoalsPage extends StatefulWidget {
 
 class _GoalsPageState extends State<GoalsPage> {
   String? _selectedGoalTitle;
-  String? _arrivingGoalTitle;
+  bool _moreOpen = false;
   String? _handledOpeningRequestTitle;
   bool _roomAssetsPrepared = false;
 
@@ -339,7 +333,6 @@ class _GoalsPageState extends State<GoalsPage> {
       final requestedGoal = goal;
       setState(() {
         _selectedGoalTitle = requestedGoal.title;
-        _arrivingGoalTitle = requestedGoal.title;
       });
       await _openGoalOpening(context, requestedGoal);
       if (mounted) widget.onOpeningRequestHandled?.call();
@@ -355,7 +348,6 @@ class _GoalsPageState extends State<GoalsPage> {
     bool startNewGoal = false,
     Goal? shapeGoal,
   }) async {
-    _arrivingGoalTitle = null;
     await Navigator.of(context).push<void>(
       goalRoomRoute<void>(
         context: context,
@@ -458,7 +450,6 @@ class _GoalsPageState extends State<GoalsPage> {
     onPersist();
     setState(() {
       _selectedGoalTitle = goal.title;
-      _arrivingGoalTitle = goal.title;
     });
     await _openGoalOpening(this.context, goal);
   }
@@ -781,7 +772,6 @@ class _GoalsPageState extends State<GoalsPage> {
     if (!state.addGoal(goal)) return;
     setState(() {
       _selectedGoalTitle = title;
-      _arrivingGoalTitle = title;
     });
     onPersist();
     Sfx.instance.playAfterContact('levelup');
@@ -811,7 +801,6 @@ class _GoalsPageState extends State<GoalsPage> {
     Goal goal, {
     String? defaultTitle,
   }) async {
-    _arrivingGoalTitle = null;
     Sfx.instance.playMaterial(MaterialSound.glass);
     final quest = await showEmberSheet(
       context,
@@ -854,7 +843,6 @@ class _GoalsPageState extends State<GoalsPage> {
     Goal goal,
     String fallback,
   ) {
-    _arrivingGoalTitle = null;
     final now = Clock.now();
     final todayKey = Days.key(now);
     final fallbackKey = _questTitleKey(fallback);
@@ -968,7 +956,6 @@ class _GoalsPageState extends State<GoalsPage> {
     HapticFeedback.selectionClick();
     setState(() {
       _selectedGoalTitle = goal.title;
-      _arrivingGoalTitle = null;
     });
   }
 
@@ -991,7 +978,6 @@ class _GoalsPageState extends State<GoalsPage> {
   }
 
   void _openUnstick(BuildContext context, Goal? goal) {
-    _arrivingGoalTitle = null;
     showMomentumKitLauncher(
       context,
       kind: MomentumKitKind.unstick,
@@ -1102,7 +1088,6 @@ class _GoalsPageState extends State<GoalsPage> {
     onPersist();
     setState(() {
       _selectedGoalTitle = goal.title;
-      _arrivingGoalTitle = null;
     });
     onBeforeQuestHandoff?.call();
     onOpenQuest(result.replacement!);
@@ -1133,7 +1118,6 @@ class _GoalsPageState extends State<GoalsPage> {
     if (!mounted) return;
     setState(() {
       _selectedGoalTitle = goal.title;
-      _arrivingGoalTitle = goal.title;
     });
     await _openGoalOpening(
       context,
@@ -1214,7 +1198,6 @@ class _GoalsPageState extends State<GoalsPage> {
       HapticFeedback.mediumImpact();
       setState(() {
         _selectedGoalTitle = goal.title;
-        _arrivingGoalTitle = goal.title;
       });
       Navigator.of(context).pop();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1273,6 +1256,47 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
 
+  /// Opens a goal's own page (its route, progress and proof), or its one-time
+  /// opening when the first step has not been taken yet. The page stands in
+  /// the same house plate as this room.
+  void _openGoalDetail(BuildContext context, Goal goal) {
+    if (!goal.openingSeen) {
+      _openGoalOpening(context, goal);
+      return;
+    }
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    // The room is at rest when the goal's page is left again.
+    if (_moreOpen) setState(() => _moreOpen = false);
+    Navigator.of(context).push(
+      houseGoalDetailRoute<void>(
+        context: context,
+        reduceMotion: state.reduceMotion,
+        settings: const RouteSettings(name: '/goals/detail'),
+        builder: (_) => GoalDetailScreen(
+          goal: goal,
+          state: state,
+          quests: quests,
+          onRemoveGoal: onRemoveGoal,
+          onPersist: onPersist,
+          onAddQuest: onAdd,
+          onOpenQuest: onOpenQuest,
+          onOpenWorkshop: () =>
+              _openGoalOpening(this.context, goal, startInWorkshop: true),
+          onStartFallback: (fallback) {
+            final quest = _prepareGoalFallback(this.context, goal, fallback);
+            if (quest != null) onOpenQuest(quest);
+          },
+          onAdjustPlan: goal.plan == null
+              ? () => _buildGoalPlan(this.context, goal)
+              : () => _adjustGoalPlan(this.context, goal),
+          light: lightDirection ?? parallax,
+        ),
+      ),
+    );
+  }
+
+  void _toggleMore() => setState(() => _moreOpen = !_moreOpen);
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -1288,140 +1312,129 @@ class _GoalsPageState extends State<GoalsPage> {
         final otherGoals = activeGoals
             .where((goal) => !identical(goal, focus))
             .toList(growable: false);
-        final todayField = _TodayFieldFolio(
+
+        _YourGoals goalList(
+          List<Goal> goals,
+          String label, {
+          ValueChanged<Goal>? onSelect,
+        }) => _YourGoals(
+          state: state,
+          goals: goals,
+          sectionLabel: label,
+          onRemoveGoal: onRemoveGoal,
+          onPersist: onPersist,
+          onAddQuest: onAdd,
           quests: quests,
-          day: Clock.now(),
-          onChoose: () => _chooseToday(context),
           onOpenQuest: onOpenQuest,
-          onOpenQuests: widget.onOpenQuests,
+          onSelectGoal: onSelect,
+          collapsed: true,
         );
-        final todayFieldCount = selectedDailyFieldForDay(
-          quests,
-          Clock.now(),
-        ).length;
+
+        // What the card unrolls besides the current goal's own rows. Nothing
+        // Goals has ever offered is missing: other and finished goals, the
+        // smaller start and Guided Workouts, the Steward's starting points.
+        final support = _GoalSupportTray(
+          initiallyExpanded: false,
+          reduceMotion: state.reduceMotion,
+          hasGoalContext: focus != null,
+          embedded: true,
+          onUnstick: () => _openUnstick(context, focus),
+          onWorkout: _openGuidedWorkout,
+        );
+        final completed = arrivals.isEmpty
+            ? null
+            : goalList(arrivals, 'COMPLETED');
+
+        final wallGoals = goalsOnTheWall<Goal>(activeGoals, current: focus);
+        final wall = [
+          for (final goal in wallGoals)
+            GoalsWallEntry(
+              id: _questTitleKey(goal.title).replaceAll(' ', '-'),
+              title: goal.title,
+              lit: identical(goal, focus),
+              onTap: () => _openGoalDetail(context, goal),
+            ),
+        ];
+
+        final Widget card;
         if (focus != null) {
-          final focusScene = _LivingGoalFocus(
+          card = _LivingGoalFocus(
             key: ValueKey<String>('goal-folio-${_questTitleKey(focus.title)}'),
             state: state,
             goal: focus,
             quests: quests,
-            onRemoveGoal: onRemoveGoal,
-            onPersist: onPersist,
             onAddQuest: onAdd,
             onOpenQuest: onOpenQuest,
             onOpenOpening: () => _openGoalOpening(context, focus),
             onOpenWorkshopGoal: () =>
                 _openGoalOpening(context, focus, startInWorkshop: true),
-            light: lightDirection ?? parallax,
-            arriving:
-                _arrivingGoalTitle != null &&
-                _questTitleKey(_arrivingGoalTitle!) ==
-                    _questTitleKey(focus.title),
+            onOpenDetail: () => _openGoalDetail(context, focus),
             onAddAction: (defaultTitle) =>
                 _addAction(context, focus, defaultTitle: defaultTitle),
             onPrepareFallback: (fallback) =>
                 _prepareGoalFallback(context, focus, fallback),
             onRecoverToday: () => _recoverGoalToday(context, focus),
-            onAdjustPlan: () => _adjustGoalPlan(context, focus),
-            onBuildPlan: () => _buildGoalPlan(context, focus),
-            onNewGoal: () => _openQuickCreate(context),
             onChooseToday: () => _chooseToday(context),
+            moreOpen: _moreOpen,
+            onToggleMore: _toggleMore,
+            moreBelow: [
+              if (otherGoals.isNotEmpty)
+                goalList(otherGoals, 'OTHER GOALS', onSelect: _selectGoal),
+              ?completed,
+              const GoalsRoomGroup('ANOTHER WAY IN'),
+              support,
+              const GoalsRoomGroup('A NEW GOAL'),
+              GoalsRoomDoor(
+                key: const Key('goals-new-goal'),
+                icon: Icons.add_rounded,
+                title: 'New goal',
+                detail: 'The Steward asks a few questions.',
+                semanticHint:
+                    'Start a goal. The Steward asks a few questions and drafts a plan.',
+                onTap: () => _openQuickCreate(context),
+              ),
+              GoalsRoomDoor(
+                key: const Key('goals-browse-starting-points'),
+                icon: Icons.auto_awesome_outlined,
+                title: 'Starting points',
+                detail: 'Borrow a shape. Change anything.',
+                semanticHint: 'Open ready-made goal ideas.',
+                onTap: () => _openStartingPoints(context),
+              ),
+            ],
           );
-          return _GoalsThresholdPage(
-            activeRoom: true,
-            parallax: parallax,
-            heading: _GoalsHeading(
-              focus: null,
-              hasGoals: true,
-              onNewGoal: () => _openQuickCreate(context),
-              onWorkshop: () => _openWorkshop(context, initialGoal: focus),
-              onChooseToday: () => _chooseToday(context),
-              todayFieldCount: todayFieldCount,
-            ),
+        } else {
+          card = GoalsEmptyCard(
+            afterArrivals: arrivals.isNotEmpty,
+            onCreate: () => _openQuickCreate(context),
+            onBrowse: () => _openStartingPoints(context),
+            moreOpen: _moreOpen,
+            onToggleMore: _toggleMore,
             reduceMotion: state.reduceMotion,
-            focus: focusScene,
-            support: _GoalSupportTray(
-              initiallyExpanded: false,
-              reduceMotion: state.reduceMotion,
-              hasGoalContext: true,
-              embedded: true,
-              onUnstick: () => _openUnstick(context, focus),
-              onWorkout: _openGuidedWorkout,
-            ),
-            otherGoals: otherGoals.isEmpty
-                ? null
-                : _YourGoals(
-                    state: state,
-                    goals: otherGoals,
-                    sectionLabel: 'OTHER GOALS',
-                    onRemoveGoal: onRemoveGoal,
-                    onPersist: onPersist,
-                    onAddQuest: onAdd,
-                    quests: quests,
-                    onOpenQuest: onOpenQuest,
-                    onSelectGoal: _selectGoal,
-                    collapsed: true,
-                  ),
-            arrivals: arrivals.isEmpty
-                ? null
-                : _YourGoals(
-                    state: state,
-                    goals: arrivals,
-                    sectionLabel: 'COMPLETED',
-                    onRemoveGoal: onRemoveGoal,
-                    onPersist: onPersist,
-                    onAddQuest: onAdd,
-                    quests: quests,
-                    onOpenQuest: onOpenQuest,
-                    collapsed: true,
-                  ),
+            more: [
+              _TodayFieldFolio(
+                quests: quests,
+                day: Clock.now(),
+                onChoose: () => _chooseToday(context),
+                onOpenQuest: onOpenQuest,
+                onOpenQuests: widget.onOpenQuests,
+              ),
+              ?completed,
+              const GoalsRoomGroup('ANOTHER WAY IN'),
+              support,
+            ],
           );
         }
-        final focusOrEmpty = KeyedSubtree(
-          key: const ValueKey<String>('goals-empty-folio'),
-          child: _GoalsEmptyBoard(
-            hasArrivals: arrivals.isNotEmpty,
-            onStart: () => _openQuickCreate(context),
-            onBrowse: () => _openStartingPoints(context),
-            light: lightDirection ?? parallax,
-            reduceMotion: state.reduceMotion,
-          ),
-        );
-        return _GoalsThresholdPage(
+
+        return HouseGoalsRoom(
+          signDetail: state.goals.isEmpty
+              ? 'Start a goal with help'
+              : 'Turn a goal into a first step',
+          onSign: () => _openWorkshop(context, initialGoal: focus),
+          wall: wall,
+          card: card,
           parallax: parallax,
-          heading: _GoalsHeading(
-            focus: null,
-            hasGoals: state.goals.isNotEmpty,
-            onWorkshop: () => _openWorkshop(context),
-            onChooseToday: () => _chooseToday(context),
-            todayFieldCount: todayFieldCount,
-            onNewGoal: state.goals.isEmpty
-                ? null
-                : () => _openQuickCreate(context),
-          ),
           reduceMotion: state.reduceMotion,
-          todayField: todayField,
-          focus: WorkingSurface(child: focusOrEmpty),
-          support: _GoalSupportTray(
-            initiallyExpanded: false,
-            reduceMotion: state.reduceMotion,
-            hasGoalContext: false,
-            onUnstick: () => _openUnstick(context, null),
-            onWorkout: _openGuidedWorkout,
-          ),
-          arrivals: arrivals.isEmpty
-              ? null
-              : _YourGoals(
-                  state: state,
-                  goals: arrivals,
-                  sectionLabel: 'COMPLETED',
-                  onRemoveGoal: onRemoveGoal,
-                  onPersist: onPersist,
-                  onAddQuest: onAdd,
-                  quests: quests,
-                  onOpenQuest: onOpenQuest,
-                  collapsed: true,
-                ),
         );
       },
     );
@@ -1483,400 +1496,6 @@ class _GoalsPageState extends State<GoalsPage> {
       }
     }
     return widgets;
-  }
-}
-
-class _GoalsHeading extends StatelessWidget {
-  const _GoalsHeading({
-    required this.focus,
-    required this.hasGoals,
-    required this.onNewGoal,
-    required this.onWorkshop,
-    this.onChooseToday,
-    this.todayFieldCount = 0,
-  });
-
-  final Goal? focus;
-  final bool hasGoals;
-  final VoidCallback? onNewGoal;
-  final VoidCallback onWorkshop;
-  final VoidCallback? onChooseToday;
-  final int todayFieldCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final goal = focus;
-    final accent = goal?.stat.color ?? Palette.xpLight;
-    final title = Row(
-      children: [
-        FacetMedallion(
-          size: 32,
-          accent: accent,
-          child: Icon(
-            goal?.stat.icon ?? Icons.route_outlined,
-            size: 17,
-            color: accent.withValues(alpha: 0.92),
-          ),
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Text(
-            goal == null ? 'Goals' : 'Your focus',
-            style:
-                const TextStyle(
-                  fontFamily: 'EBGaramond',
-                  fontSize: 34,
-                  height: 1.05,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 0.12,
-                ).copyWith(
-                  color: goal == null
-                      ? Palette.textHi
-                      : accent.withValues(alpha: 0.92),
-                  shadows: _goalsRoomTextShadows,
-                ),
-          ),
-        ),
-      ],
-    );
-    // The Steward's workshop is the way into Goals: it names him and what he
-    // does, and wears his portrait, so it reads as a person to go and see
-    // rather than a storefront.
-    final workshop = _GoalsHeaderOpportunity(
-      controlKey: const Key('goals-open-workshop'),
-      icon: Icons.storefront_outlined,
-      leading: const GoalStewardPortrait(size: 46),
-      title: 'The Steward’s workshop',
-      detail: hasGoals
-          ? 'Turn a goal into a first step'
-          : 'Start a goal with help',
-      semanticHint: hasGoals
-          ? 'Open the Steward’s workshop to turn a goal into a plan and a first step.'
-          : 'Open the Steward’s workshop and have him help you start a goal.',
-      prominent: true,
-      onTap: onWorkshop,
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stacked =
-            constraints.maxWidth < 300 ||
-            MediaQuery.textScalerOf(context).scale(1) > 1.2;
-        final todayLabel = todayFieldCount == 0
-            ? 'Choose today’s three'
-            : 'Today’s three · $todayFieldCount';
-        final compactToday = Pressable(
-          key: const Key('goals-today-field-header'),
-          material: MaterialSound.glass,
-          interactionSound: InteractionSound.select,
-          pressDepth: 1,
-          edgeColor: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          semanticLabel: todayFieldCount == 0
-              ? todayLabel
-              : 'Review today’s three, $todayFieldCount selected',
-          semanticHint:
-              'Choose up to three quests to carry. Everything else stays optional.',
-          onTapUp: (_) => onChooseToday?.call(),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.today_outlined,
-                    size: 18,
-                    color: Palette.xpLight,
-                  ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      todayLabel,
-                      softWrap: true,
-                      style: Type.body.copyWith(
-                        fontSize: 12.5,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        if (stacked) {
-          // Every door keeps its name at large text. The old shared toolbar
-          // reduced these different opportunities to unexplained icons.
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              title,
-              const SizedBox(height: 10),
-              workshop,
-              if (onNewGoal case final create?) ...[
-                const SizedBox(height: 8),
-                _NewGoalButton(onTap: create, stacked: true),
-              ],
-              if (onChooseToday != null) ...[
-                const SizedBox(height: 4),
-                Align(alignment: Alignment.centerLeft, child: compactToday),
-              ],
-            ],
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            title,
-            const SizedBox(height: 13),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: workshop),
-                  if (onNewGoal case final create?) ...[
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 86,
-                      child: _NewGoalButton(onTap: create, stacked: false),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Phones under 396 pt wide have always had today's three here.
-            if (onChooseToday != null && constraints.maxWidth < 360) ...[
-              const SizedBox(height: 4),
-              Align(alignment: Alignment.centerLeft, child: compactToday),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// A new goal also starts with the Steward, so this sits beside his door as
-/// the short way to the same place: his first question.
-class _NewGoalButton extends StatelessWidget {
-  const _NewGoalButton({required this.onTap, required this.stacked});
-
-  final VoidCallback onTap;
-  final bool stacked;
-
-  @override
-  Widget build(BuildContext context) => stacked
-      ? _GoalsHeaderOpportunity(
-          controlKey: const Key('goals-new-goal'),
-          icon: Icons.add_rounded,
-          title: 'New goal',
-          detail: 'The Steward asks a few questions',
-          semanticHint:
-              'Start a goal. The Steward asks a few questions and drafts a plan.',
-          onTap: onTap,
-        )
-      : Pressable(
-          key: const Key('goals-new-goal'),
-          material: MaterialSound.parchment,
-          interactionSound: InteractionSound.navigate,
-          pressDepth: 1.5,
-          borderRadius: BorderRadius.circular(10),
-          edgeColor: Colors.transparent,
-          guardRapidReentry: true,
-          semanticLabel: 'New goal. The Steward asks a few questions',
-          semanticHint:
-              'Start a goal. The Steward asks a few questions and drafts a plan.',
-          onTapUp: (_) => onTap(),
-          stateBuilder: (context, child, pressed, focused, hovered) =>
-              AnimatedContainer(
-                duration: pressed ? Duration.zero : Motion.ack,
-                constraints: const BoxConstraints(minHeight: 76),
-                decoration: BoxDecoration(
-                  color: pressed
-                      ? const Color(0xE3453526)
-                      : focused || hovered
-                      ? const Color(0xE232271E)
-                      : const Color(0xD21A1512),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: focused ? Palette.textHi : const Color(0x79554539),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x42080503),
-                      blurRadius: 11,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: child,
-              ),
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.add_rounded,
-                    size: 22,
-                    color: Palette.brassLit,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'New goal',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'EBGaramond',
-                      fontSize: 16,
-                      height: 1.05,
-                      fontWeight: FontWeight.w600,
-                      color: Palette.textHi,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-}
-
-/// The two header doors have different jobs, so they each have their own
-/// physical edge, name and touch surface. The active Quest remains the page's
-/// one luminous action.
-class _GoalsHeaderOpportunity extends StatelessWidget {
-  const _GoalsHeaderOpportunity({
-    required this.controlKey,
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.semanticHint,
-    required this.onTap,
-    this.leading,
-    this.prominent = false,
-  });
-
-  final Key controlKey;
-  final IconData icon;
-  final String title;
-  final String detail;
-  final String semanticHint;
-  final VoidCallback onTap;
-
-  /// Replaces the icon plate (the Steward's portrait on his own door).
-  final Widget? leading;
-
-  /// The main way in: warmer glass, a brass edge, and its line always shown.
-  final bool prominent;
-
-  @override
-  Widget build(BuildContext context) {
-    final compact =
-        MediaQuery.sizeOf(context).width < 360 ||
-        MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    final accent = prominent ? Palette.brassLit : Palette.textMid;
-    final showDetail = prominent || !compact;
-    return Pressable(
-      key: controlKey,
-      material: prominent ? MaterialSound.parchment : MaterialSound.glass,
-      interactionSound: InteractionSound.navigate,
-      pressDepth: 1.5,
-      borderRadius: BorderRadius.circular(10),
-      edgeColor: Colors.transparent,
-      guardRapidReentry: true,
-      semanticLabel: '$title. $detail',
-      semanticHint: semanticHint,
-      onTapUp: (_) => onTap(),
-      stateBuilder: (context, child, pressed, focused, hovered) =>
-          AnimatedContainer(
-            duration: pressed ? Duration.zero : Motion.ack,
-            constraints: BoxConstraints(
-              minHeight: leading != null ? 76 : (compact ? 52 : 76),
-            ),
-            decoration: BoxDecoration(
-              color: pressed
-                  ? const Color(0xE3453526)
-                  : focused || hovered
-                  ? const Color(0xE232271E)
-                  : prominent
-                  ? const Color(0xDB2F231A)
-                  : const Color(0xD21A1512),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: focused
-                    ? Palette.textHi
-                    : prominent
-                    ? const Color(0xB0A57A4E)
-                    : const Color(0x79554539),
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x42080503),
-                  blurRadius: 11,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: child,
-          ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: leading != null ? 10 : (compact ? 12 : 11),
-          vertical: leading != null ? 10 : (compact ? 8 : 10),
-        ),
-        child: Row(
-          children: [
-            leading ??
-                Container(
-                  width: 31,
-                  height: 31,
-                  decoration: BoxDecoration(
-                    color: const Color(0x33433930),
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: const Color(0x7053473E)),
-                  ),
-                  child: Icon(icon, size: 18, color: accent),
-                ),
-            SizedBox(width: leading != null ? 12 : 8),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'EBGaramond',
-                      fontSize: prominent ? 19.5 : (compact ? 18 : 17.5),
-                      height: 1.05,
-                      fontWeight: FontWeight.w600,
-                      color: Palette.textHi,
-                    ),
-                  ),
-                  if (showDetail) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      detail,
-                      style: Type.body.copyWith(
-                        fontSize: 12,
-                        height: 1.2,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (leading == null)
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 17,
-                color: accent.withValues(alpha: 0.82),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -2257,120 +1876,6 @@ class _ReadyMadeGoalsScreen extends StatelessWidget {
   }
 }
 
-class _GoalsThresholdPage extends StatelessWidget {
-  const _GoalsThresholdPage({
-    required this.heading,
-    required this.reduceMotion,
-    required this.focus,
-    required this.support,
-    this.activeRoom = false,
-    this.todayField,
-    this.otherGoals,
-    this.arrivals,
-    this.parallax,
-  });
-  final bool reduceMotion;
-
-  /// The shell's tilt source for the room's plate.
-  final ValueListenable<Offset>? parallax;
-  final bool activeRoom;
-  final Widget heading, focus, support;
-  final Widget? todayField, otherGoals, arrivals;
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) =>
-        _buildPage(context, constraints.maxHeight),
-  );
-
-  Widget _buildPage(BuildContext context, double availableHeight) {
-    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    final still =
-        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    final height = availableHeight.isFinite
-        ? availableHeight
-        : MediaQuery.sizeOf(context).height;
-    // The first visit and the return share the same room camera. On short or
-    // enlarged-text screens the room yields space to the live commitment. Use
-    // the page's actual height: the app shell's bottom navigation occupies
-    // space that MediaQuery still includes in the whole-screen height.
-    final roomReveal = !activeRoom || compact
-        ? 0.0
-        : (height * 0.4 - 160).clamp(72.0, 224.0);
-    final page = Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          key: const Key('goals-threshold-scroll'),
-          padding: EdgeInsets.fromLTRB(18, compact ? 36 : 62, 18, 132),
-          children: [
-            heading,
-            SizedBox(
-              height: activeRoom
-                  ? roomReveal
-                  : compact
-                  ? 14
-                  : 24,
-            ),
-            if (!activeRoom && !compact) ...[
-              Text(
-                'THE NEXT THING',
-                style: Type.label.copyWith(
-                  color: Palette.xpLight,
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (activeRoom)
-              _GoalReturnFolioSurface(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    focus,
-                    if (todayField != null) ...[
-                      const WorkingRule(),
-                      todayField!,
-                    ],
-                    if (otherGoals != null) ...[
-                      const WorkingRule(),
-                      otherGoals!,
-                    ],
-                    const WorkingRule(),
-                    support,
-                    if (arrivals != null) ...[const WorkingRule(), arrivals!],
-                  ],
-                ),
-              )
-            else ...[
-              focus,
-              if (todayField != null) ...[
-                const SizedBox(height: 24),
-                todayField!,
-              ],
-              if (otherGoals != null) ...[
-                const SizedBox(height: 18),
-                otherGoals!,
-              ],
-              const SizedBox(height: 24),
-              support,
-              if (arrivals != null) ...[const SizedBox(height: 20), arrivals!],
-            ],
-          ],
-        ),
-      ),
-    );
-    // Goals is the Steward's workshop: the house's room for what he is
-    // working toward. Its plate is the room; the page is over it for now.
-    return HouseRoomBackdrop(
-      room: HouseRoom.goals,
-      parallax: parallax,
-      reduceMotion: still,
-      veilFrom: activeRoom ? HouseRoom.goals.contentTop - 60 : 110,
-      child: page,
-    );
-  }
-}
-
 /// A useful, ordinary-day control that deliberately sits below the room. The
 /// painted threshold remains the place for a goal and its exact Quest; this
 /// folio gives a crowded board a shape without pretending every open Quest is
@@ -2660,185 +2165,52 @@ class _TodayFieldAction extends StatelessWidget {
   }
 }
 
-/// The return commitment rests on the room's working plane. Its single dark
-/// cloth-and-glass leaf keeps live copy readable while the opening and return
-/// share the same painted camera and light direction.
-class _GoalReturnFolioSurface extends StatelessWidget {
-  const _GoalReturnFolioSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final contrast = MediaQuery.highContrastOf(context);
-    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    const radius = BorderRadius.all(Radius.circular(12));
-    return Container(
-      key: const Key('goals-return-folio'),
-      decoration: const BoxDecoration(
-        borderRadius: radius,
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xC4070403),
-            blurRadius: 27,
-            offset: Offset(0, 17),
-          ),
-          BoxShadow(
-            color: Color(0x7A090604),
-            blurRadius: 3,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: Stack(
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: contrast
-                      ? const [Color(0xFF2B211B), Color(0xFF120E0C)]
-                      : const [
-                          Color(0xF02E211A),
-                          Color(0xF51D1511),
-                          Color(0xFC130F0D),
-                        ],
-                ),
-                image: contrast
-                    ? null
-                    : const DecorationImage(
-                        image: AssetImage(
-                          'assets/pages/goals-return-bookcloth-v1.png',
-                        ),
-                        fit: BoxFit.cover,
-                        opacity: .18,
-                      ),
-                border: Border.all(color: const Color(0x9EBB8B56), width: 1.1),
-                borderRadius: radius,
-              ),
-              child: Padding(
-                padding: compact
-                    ? const EdgeInsets.fromLTRB(16, 18, 16, 17)
-                    : const EdgeInsets.fromLTRB(22, 22, 20, 19),
-                child: child,
-              ),
-            ),
-            const Positioned(
-              left: 17,
-              right: 18,
-              top: 1,
-              height: 2,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0x00F0C588),
-                        Color(0xA6E4B879),
-                        Color(0x35E4B879),
-                        Color(0x00F0C588),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const Positioned(
-              left: 0,
-              top: 12,
-              bottom: 12,
-              width: 3,
-              child: IgnorePointer(child: ColoredBox(color: Color(0x835E3A20))),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
+/// The current goal's card in the Steward's workshop: its name, the next thing
+/// and its one action, with everything else about it one word away. All of
+/// the choosing (which action, which Quest, how to open it) is here; how it
+/// looks is the room's ([GoalsFocusCard]).
 class _LivingGoalFocus extends StatelessWidget {
   const _LivingGoalFocus({
     super.key,
     required this.state,
     required this.goal,
     required this.quests,
-    required this.onRemoveGoal,
-    required this.onPersist,
     required this.onAddQuest,
     required this.onOpenQuest,
     required this.onOpenOpening,
     required this.onOpenWorkshopGoal,
+    required this.onOpenDetail,
     required this.onAddAction,
     required this.onPrepareFallback,
     required this.onRecoverToday,
-    required this.onAdjustPlan,
-    required this.onBuildPlan,
-    required this.onNewGoal,
     required this.onChooseToday,
-    required this.light,
-    required this.arriving,
+    required this.moreOpen,
+    required this.onToggleMore,
+    required this.moreBelow,
   });
 
   final GameState state;
   final Goal goal;
   final List<Quest> quests;
-  final void Function(Goal goal) onRemoveGoal;
-  final VoidCallback onPersist;
   final bool Function(Quest quest) onAddQuest;
   final void Function(Quest quest) onOpenQuest;
   final VoidCallback onOpenOpening;
   final VoidCallback onOpenWorkshopGoal;
+  final VoidCallback onOpenDetail;
   final ValueChanged<String?> onAddAction;
   final Quest? Function(String fallback) onPrepareFallback;
   final VoidCallback onRecoverToday;
-  final VoidCallback onAdjustPlan;
-  final VoidCallback onBuildPlan;
-  final VoidCallback onNewGoal;
   final VoidCallback onChooseToday;
-  final ValueListenable<Offset> light;
-  final bool arriving;
+  final bool moreOpen;
+  final VoidCallback onToggleMore;
+
+  /// What unrolls after this goal's own rows: other and finished goals, a
+  /// smaller start, the Steward's starting points.
+  final List<Widget> moreBelow;
 
   static String? _kept(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
-  }
-
-  void _openDetail(BuildContext context, {bool playSound = true}) {
-    if (!goal.openingSeen) {
-      onOpenOpening();
-      return;
-    }
-    if (playSound) Sfx.instance.playMaterial(MaterialSound.parchment);
-    Navigator.of(context).push(
-      // The goal's own room is the kitchen beyond the arch, reached on foot.
-      // The walk carries no text: the next step is read on the folio before
-      // you go and on the goal's page once you have arrived.
-      goalKitchenWalkRoute<void>(
-        context: context,
-        reduceMotion: state.reduceMotion,
-        settings: const RouteSettings(name: '/goals/detail'),
-        builder: (_) => GoalDetailScreen(
-          goal: goal,
-          state: state,
-          quests: quests,
-          onRemoveGoal: onRemoveGoal,
-          onPersist: onPersist,
-          onAddQuest: onAddQuest,
-          onOpenQuest: onOpenQuest,
-          onOpenWorkshop: onOpenWorkshopGoal,
-          onStartFallback: (fallback) {
-            final quest = onPrepareFallback(fallback);
-            if (quest != null) onOpenQuest(quest);
-          },
-          onAdjustPlan: goal.plan == null ? onBuildPlan : onAdjustPlan,
-          light: light,
-        ),
-      ),
-    );
   }
 
   void _openCurrentQuestThroughRoom(BuildContext context, Quest quest) {
@@ -2924,10 +2296,6 @@ class _LivingGoalFocus extends StatelessWidget {
     final todayField = selectedDailyFieldForDay(quests, Clock.now());
     final fallback = _kept(goal.fallbackAction);
     final fallbackCue = _kept(goal.fallbackCue);
-    final still =
-        state.reduceMotion ||
-        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    final compactType = MediaQuery.textScalerOf(context).scale(1) > 1.2;
 
     final actionTitle =
         decision?.actionTitle ??
@@ -2941,9 +2309,6 @@ class _LivingGoalFocus extends StatelessWidget {
               ? 'Bring inside'
               : 'Open Quest'
         : (next != null || fallback != null ? 'Open Quest' : 'Add a Quest');
-    final actionIcon = decision != null || next != null || fallback != null
-        ? Icons.arrow_forward_rounded
-        : Icons.add;
     final action = decision != null
         ? () {
             if (decision.quest == null) {
@@ -2962,425 +2327,63 @@ class _LivingGoalFocus extends StatelessWidget {
           }
         : () => onAddAction(null);
 
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'THE NEXT THING',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            color: Palette.xpLight,
-          ),
+    final more = <Widget>[
+      const GoalsRoomGroup('THIS GOAL'),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(
+          [
+            _goalProgressCopy(goal),
+            if (decision != null) decision.routePosition,
+          ].join(' · '),
+          style: Type.body.copyWith(fontSize: 13, height: 1.4),
         ),
-        const SizedBox(height: 11),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: compactType ? 6 : 4),
-              child: Icon(goal.stat.icon, color: Palette.xpLight, size: 20),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Text(
-                goal.title,
-                style: WorkingType.title.copyWith(
-                  fontSize: compactType ? 23 : 27,
-                  height: 1.12,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 9),
-        Wrap(
-          spacing: 12,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(
-              _goalProgressCopy(goal),
-              style: Type.body.copyWith(fontSize: 13),
-            ),
-            if (decision != null)
-              Text(
-                decision.routePosition,
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  color: Palette.xpLight,
-                ),
-              ),
-          ],
-        ),
-        const WorkingRule(),
-        Text(
-          next == null ? 'READY TO SHAPE' : 'CURRENT QUEST',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            color: Palette.xpLight,
-          ),
-        ),
-        const SizedBox(height: 9),
-        Text(
-          actionTitle,
-          style: WorkingType.title.copyWith(
-            fontSize: compactType ? 20 : 23,
-            height: 1.2,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
+      ),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Text(
           decision?.whyThisOne ?? _cueFor(next, fallbackCue),
-          style: Type.body.copyWith(fontSize: 13, height: 1.5),
-        ),
-        const SizedBox(height: 17),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: compactType ? 164 : 184,
-              maxWidth: compactType ? 220 : 240,
-            ),
-            child: GoalPrimaryButton(
-              key: const Key('goals-return-primary-action'),
-              label: actionLabel,
-              icon: actionIcon,
-              onTap: action,
-              glow: false,
-              reduceMotion: still,
-              light: light,
-              treatment: GoalPrimaryButtonTreatment.returnClasp,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Divider(height: 1, thickness: .7, color: Color(0x756F5133)),
-        const SizedBox(height: 13),
-        Text(
-          'OTHER WAYS FORWARD',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            color: Palette.textLo,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!compactType)
-              _GoalSecondaryOpportunity(
-                key: const Key('goals-today-field-action'),
-                icon: Icons.today_outlined,
-                title: todayField.isEmpty
-                    ? 'Plan today’s three'
-                    : 'Plan today’s three · ${todayField.length}',
-                outcome: 'Choose up to three Quests.',
-                semanticHint:
-                    'Choose up to three Quests to carry. Everything else stays optional.',
-                onTap: onChooseToday,
-              ),
-            if (!compactType) const SizedBox(height: 7),
-            _GoalSecondaryOpportunity(
-              key: const Key('goals-review-goal'),
-              icon: Icons.route_outlined,
-              title: 'Review this goal',
-              outcome: 'Route and progress.',
-              semanticHint: 'Open this goal’s route, progress, and proof.',
-              onTap: () => _openDetail(context),
-            ),
-            if (decision?.quest != null) ...[
-              const SizedBox(height: 7),
-              _GoalSecondaryOpportunity(
-                key: const Key('goals-recover-today'),
-                icon: Icons.tune_rounded,
-                title: 'Find an easier step',
-                outcome: 'Rework today’s Quest.',
-                semanticHint:
-                    'Open choices to make today’s Quest smaller or prepare a return.',
-                onTap: onRecoverToday,
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-
-    if (!arriving) return content;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: still ? Motion.ack : Motion.settle,
-      curve: Motion.respond,
-      child: content,
-      builder: (context, t, child) => Opacity(
-        opacity: 0.72 + (0.28 * t),
-        child: Transform.scale(
-          scale: still ? 1 : 0.985 + (0.015 * t),
-          alignment: Alignment.topCenter,
-          child: child,
+          style: Type.body.copyWith(fontSize: 13, height: 1.45),
         ),
       ),
-    );
-  }
-}
-
-/// The current Quest gets the one luminous clasp. These lead to different
-/// planning spaces, so they stay quieter while each keeps an unmistakable
-/// physical edge, name, and outcome.
-class _GoalSecondaryOpportunity extends StatelessWidget {
-  const _GoalSecondaryOpportunity({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.outcome,
-    required this.semanticHint,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String outcome;
-  final String semanticHint;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final compact = MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    return Pressable(
-      material: MaterialSound.parchment,
-      interactionSound: InteractionSound.navigate,
-      pressDepth: 1,
-      borderRadius: BorderRadius.circular(9),
-      edgeColor: Colors.transparent,
-      semanticLabel: title,
-      semanticHint: semanticHint,
-      onTapUp: (_) => onTap(),
-      stateBuilder: (context, child, pressed, focused, hovered) =>
-          AnimatedContainer(
-            duration: pressed ? Duration.zero : Motion.ack,
-            curve: Motion.respond,
-            decoration: BoxDecoration(
-              color: pressed
-                  ? const Color(0xE33B2A1D)
-                  : focused || hovered
-                  ? const Color(0xC92E241B)
-                  : const Color(0xB51E1713),
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(
-                color: focused
-                    ? Palette.textHi
-                    : hovered
-                    ? const Color(0xA17E6040)
-                    : const Color(0x71564538),
-              ),
-            ),
-            child: child,
-          ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 56),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(11, compact ? 9 : 8, 9, compact ? 9 : 8),
-          child: Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: const Color(0x3544342A),
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(color: const Color(0x705C4838)),
-                ),
-                child: Icon(icon, size: 17, color: Palette.xpLight),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: WorkingType.title.copyWith(
-                        fontSize: compact ? 18 : 17,
-                        height: 1.08,
-                        fontWeight: FontWeight.w500,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      outcome,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                        fontSize: compact ? 12.5 : 12,
-                        height: 1.18,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                Icons.chevron_right_rounded,
-                size: 19,
-                color: Palette.xpLight,
-              ),
-            ],
-          ),
-        ),
+      GoalsRoomDoor(
+        key: const Key('goals-review-goal'),
+        icon: Icons.route_outlined,
+        title: 'Review this goal',
+        detail: 'Route and progress.',
+        semanticHint: 'Open this goal’s route, progress, and proof.',
+        onTap: onOpenDetail,
       ),
-    );
-  }
-}
-
-class _GoalsEmptyBoard extends StatelessWidget {
-  const _GoalsEmptyBoard({
-    required this.hasArrivals,
-    required this.onStart,
-    required this.onBrowse,
-    required this.light,
-    required this.reduceMotion,
-  });
-
-  final bool hasArrivals;
-  final VoidCallback onStart;
-  final VoidCallback onBrowse;
-  final ValueListenable<Offset> light;
-  final bool reduceMotion;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(3, 4, 3, 2),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              width: 2,
-              margin: const EdgeInsets.only(right: 15),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Palette.xpLight.withValues(alpha: 0.8),
-                    Palette.brass.withValues(alpha: 0.14),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    hasArrivals
-                        ? 'A new direction'
-                        : 'Make room for a direction',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      letterSpacing: 0.45,
-                      color: Palette.xpLight,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    hasArrivals
-                        ? 'What would you like to make different now?'
-                        : 'What would you like to make different?',
-                    style: Type.display.copyWith(fontSize: 25, height: 1.06),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'A name is enough to begin. You can add one small action now, or leave the space open until the next step is clear.',
-                    style: Type.body.copyWith(
-                      fontSize: 13.5,
-                      height: 1.42,
-                      color: Palette.textMid,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  WorkingAction(
-                    key: const Key('goals-create-first'),
-                    label: 'Create a goal',
-                    icon: Icons.add_rounded,
-                    onTap: onStart,
-                    primary: true,
-                  ),
-                  const SizedBox(height: 6),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Pressable(
-                      key: const Key('goals-browse-starting-points'),
-                      material: MaterialSound.parchment,
-                      soundEnabled: false,
-                      pressDepth: 1.5,
-                      edgeColor: Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                      guardRapidReentry: true,
-                      semanticLabel: 'Browse starting points',
-                      semanticHint: 'Open ready-made goal ideas.',
-                      onTapUp: (_) => onBrowse(),
-                      stateBuilder:
-                          (context, child, pressed, focused, hovered) =>
-                              AnimatedContainer(
-                                duration: pressed ? Duration.zero : Motion.ack,
-                                decoration: BoxDecoration(
-                                  color: pressed
-                                      ? Palette.xpLight.withValues(alpha: 0.08)
-                                      : focused || hovered
-                                      ? Palette.xpLight.withValues(alpha: 0.04)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: child,
-                              ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            const Icon(
-                              Icons.auto_awesome_outlined,
-                              size: 15,
-                              color: Palette.textLo,
-                            ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: Text(
-                                'Browse starting points',
-                                style: Type.body.copyWith(
-                                  fontSize: 12.5,
-                                  color: Palette.textLo,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 15,
-                              color: Palette.textLo,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      if (decision?.quest != null)
+        GoalsRoomDoor(
+          key: const Key('goals-recover-today'),
+          icon: Icons.tune_rounded,
+          title: 'Find an easier step',
+          detail: 'Rework today’s Quest.',
+          semanticHint:
+              'Open choices to make today’s Quest smaller or prepare a return.',
+          onTap: onRecoverToday,
         ),
-      ),
+      ...moreBelow,
+    ];
+
+    return GoalsFocusCard(
+      goalId: _questTitleKey(goal.title),
+      goalName: goal.title,
+      nextCaption: next == null
+          ? 'THE NEXT THING · READY TO SHAPE'
+          : 'THE NEXT THING · CURRENT QUEST',
+      nextTitle: actionTitle,
+      primaryLabel: actionLabel,
+      onPrimary: action,
+      chooseTodayLabel: todayField.isEmpty
+          ? 'Choose today’s three'
+          : 'Today’s three · ${todayField.length}',
+      onChooseToday: onChooseToday,
+      more: more,
+      moreOpen: moreOpen,
+      onToggleMore: onToggleMore,
+      reduceMotion: state.reduceMotion,
     );
   }
 }
@@ -3504,7 +2507,7 @@ class _YourGoals extends StatelessWidget {
   void _openDetail(BuildContext context, Goal goal) {
     Sfx.instance.playMaterial(MaterialSound.parchment);
     Navigator.of(context).push(
-      goalKitchenWalkRoute<void>(
+      houseGoalDetailRoute<void>(
         context: context,
         reduceMotion: state.reduceMotion,
         builder: (_) => GoalDetailScreen(

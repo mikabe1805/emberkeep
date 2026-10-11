@@ -15,9 +15,9 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/goal_action_card.dart';
 import '../widgets/goal_route_panel.dart';
-import '../widgets/goal_threshold_walk.dart' show GoalsKitchenFrame;
 import '../widgets/goal_world.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/house/house_room.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/notes_sheet.dart';
 import '../widgets/pressable.dart';
@@ -32,6 +32,57 @@ const _goalRoomTextShadows = <Shadow>[
 String? _keptGoalText(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+/// What the goal's page keeps under its cards: the workshop's own dark, deep
+/// enough that plain lines of type stay legible over the painting, fading up
+/// into the room at its top so the first card floats on it.
+class _GoalDetailSheet extends StatelessWidget {
+  const _GoalDetailSheet({required this.children});
+
+  final List<Widget> children;
+
+  static const Color _ink = Color(0xFF100D0B);
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Positioned(
+        left: -16,
+        right: -16,
+        top: 0,
+        height: 150,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  _ink.withValues(alpha: 0),
+                  _ink.withValues(alpha: 0.9),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      Positioned(
+        left: -16,
+        right: -16,
+        top: 150,
+        bottom: -130,
+        child: IgnorePointer(
+          child: ColoredBox(color: _ink.withValues(alpha: 0.9)),
+        ),
+      ),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    ],
+  );
 }
 
 class _GoalDetailHeading extends StatelessWidget {
@@ -270,125 +321,117 @@ class GoalDetailScreen extends StatelessWidget {
     final decision = GoalPlanner.decide(goal, related, now);
     final next =
         decision?.quest ?? (actionable.isEmpty ? null : actionable.first);
-    final surface = MediaQuery.sizeOf(context);
-    final compactWorld =
-        surface.width < 360 ||
-        surface.height < 700 ||
-        MediaQuery.textScalerOf(context).scale(1) > 1.2;
-    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.2;
     final lightField =
         light ?? const AlwaysStoppedAnimation<Offset>(Offset.zero);
-    // The kitchen is painted from inside the arch, so its own jambs sit at the
-    // plate's edges. The Goals walk has already carried you through the arch,
-    // so the page frames the room beyond them; the walk lands on this framing.
-    final kitchenFrame = GoalsKitchenFrame.forBox(
-      GoalsKitchenFrame.heroBox(surface, compact: compactWorld),
-    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF100D0B),
       body: LuxePageList(
-        assetPath: goalsRoomKitchenAsset,
+        // The goal's page stands in the Steward's workshop, the same painted
+        // room the Goals tab is, so the push never changes the room.
+        room: HouseRoom.goals,
+        assetPath: '',
         title: '',
         subtitle: '',
         icon: Icons.explore_outlined,
         parallax: lightField,
         reduceMotion: state.reduceMotion,
-        heroHeight: surface.height + (compactWorld ? 0 : 28),
-        headingTop: compactWorld ? 10 : 16,
-        heroAlignment: Alignment.center,
-        heroScale: kitchenFrame.scale,
-        heroTranslation: kitchenFrame.translation,
-        heroScrim: goalsKitchenDetailScrim,
-        contentSafeArea: true,
-        bodyTextureAsset: 'assets/room/wall_grain.png',
         heading: _GoalDetailHeading(
           goal: goal,
           accent: _accent,
           onBack: () => Navigator.of(context).pop(),
         ),
         children: [
-          SizedBox(height: largeText ? 150 : (compactWorld ? 72 : 224)),
-          _currentAction(context, next, related, decision),
-          if (goal.plan != null && onAdjustPlan != null) ...[
-            const SizedBox(height: 22),
-            GoalRoutePanel(goal: goal, onAdjust: onAdjustPlan!),
-          ] else if (onAdjustPlan != null) ...[
-            const SizedBox(height: 22),
-            GoalRouteBuilderPrompt(
-              accent: goal.stat.color,
-              onBuild: onAdjustPlan!,
-            ),
-          ],
-          const SizedBox(height: 26),
-          _livingEvidence(
-            context,
-            related.length,
-            doneToday,
-            activeToday.length,
-            days,
-          ),
-          const SizedBox(height: 24),
-          _GoalSupportPanel(
-            goal: goal,
-            state: state,
-            accent: _accent,
-            onPersist: onPersist,
-          ),
-          const SizedBox(height: 22),
-          JournalPanel(
-            title: goal.title,
-            accent: _accent,
-            subtitle: 'proof and moments you want to keep',
-            emptyPreview:
-                'Keep one concrete moment, change, or thing you learned here.',
-            emptyHint:
-                'No proof notes yet. Keep one concrete moment, change, or thing you learned here.',
-            read: () => goal.notes,
-            onAdd: (text) {
-              final mark = goal.complete
-                  ? 'done'
-                  : goal.kind == GoalKind.achieve
-                  ? '${goal.progress}/${goal.target}'
-                  : goal.milestones == 0
-                  ? 'starting out'
-                  : 'milestone ${goal.milestones}';
-              goal.notes = goal.notes.withNote(
-                text,
-                Clock.now(),
-                context: mark,
-              );
-              onPersist();
-            },
-            onDelete: (n) {
-              goal.notes = goal.notes.without(n);
-              onPersist();
-            },
-            onEdit: (orig, text) {
-              goal.notes = goal.notes.replacing(
-                orig.copyWith(text: text, editedAt: Clock.now()),
-              );
-              onPersist();
-            },
-            onMakeQuest: (text) async {
-              final q = await showEmberSheet(
-                context,
-                EmberSheetConfig(
-                  surface: EmberSurface.goal,
-                  defaultTitle: text,
-                  defaultStat: goal.stat,
-                  lockStat: true,
-                  goalTitle: goal.title,
-                  accent: _accent,
+          _GoalDetailSheet(
+            children: [
+              _currentAction(context, next, related, decision),
+              if (goal.plan != null && onAdjustPlan != null) ...[
+                const SizedBox(height: 22),
+                GoalRoutePanel(goal: goal, onAdjust: onAdjustPlan!),
+              ] else if (onAdjustPlan != null) ...[
+                const SizedBox(height: 22),
+                GoalRouteBuilderPrompt(
+                  accent: goal.stat.color,
+                  onBuild: onAdjustPlan!,
                 ),
-              );
-              if (q != null) onAddQuest(q);
-            },
+              ],
+              const SizedBox(height: 26),
+              _livingEvidence(
+                context,
+                related.length,
+                doneToday,
+                activeToday.length,
+                days,
+              ),
+              const SizedBox(height: 24),
+              _GoalSupportPanel(
+                goal: goal,
+                state: state,
+                accent: _accent,
+                onPersist: onPersist,
+              ),
+              const SizedBox(height: 22),
+              JournalPanel(
+                title: goal.title,
+                accent: _accent,
+                subtitle: 'proof and moments you want to keep',
+                emptyPreview:
+                    'Keep one concrete moment, change, or thing you learned here.',
+                emptyHint:
+                    'No proof notes yet. Keep one concrete moment, change, or thing you learned here.',
+                read: () => goal.notes,
+                onAdd: (text) {
+                  final mark = goal.complete
+                      ? 'done'
+                      : goal.kind == GoalKind.achieve
+                      ? '${goal.progress}/${goal.target}'
+                      : goal.milestones == 0
+                      ? 'starting out'
+                      : 'milestone ${goal.milestones}';
+                  goal.notes = goal.notes.withNote(
+                    text,
+                    Clock.now(),
+                    context: mark,
+                  );
+                  onPersist();
+                },
+                onDelete: (n) {
+                  goal.notes = goal.notes.without(n);
+                  onPersist();
+                },
+                onEdit: (orig, text) {
+                  goal.notes = goal.notes.replacing(
+                    orig.copyWith(text: text, editedAt: Clock.now()),
+                  );
+                  onPersist();
+                },
+                onMakeQuest: (text) async {
+                  final q = await showEmberSheet(
+                    context,
+                    EmberSheetConfig(
+                      surface: EmberSurface.goal,
+                      defaultTitle: text,
+                      defaultStat: goal.stat,
+                      lockStat: true,
+                      goalTitle: goal.title,
+                      accent: _accent,
+                    ),
+                  );
+                  if (q != null) onAddQuest(q);
+                },
+              ),
+              const SizedBox(height: 18),
+              _relatedPanel(
+                context,
+                related,
+                now,
+                doneToday,
+                activeToday.length,
+              ),
+              const SizedBox(height: 24),
+              _abandonLink(context),
+            ],
           ),
-          const SizedBox(height: 18),
-          _relatedPanel(context, related, now, doneToday, activeToday.length),
-          const SizedBox(height: 24),
-          _abandonLink(context),
         ],
       ),
     );

@@ -11,6 +11,8 @@ import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'support/goals_room_support.dart';
+
 const _capture = bool.fromEnvironment('CAPTURE_GOLDENS');
 
 Future<void> _showSelectedField(
@@ -97,16 +99,8 @@ Future<void> _showSelectedField(
     ),
   );
   await tester.pump(const Duration(milliseconds: 300));
-  await tester.scrollUntilVisible(
-    find.text('Today’s three'),
-    180,
-    scrollable: find
-        .descendant(
-          of: find.byKey(const Key('goals-threshold-scroll')),
-          matching: find.byType(Scrollable),
-        )
-        .first,
-  );
+  await openGoalsMore(tester);
+  await revealOnGoalsPage(tester, find.text('Today’s three'));
   await Scrollable.ensureVisible(
     tester.element(find.text('Today’s three')),
     alignment: 0.08,

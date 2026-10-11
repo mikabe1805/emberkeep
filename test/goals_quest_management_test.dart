@@ -15,16 +15,18 @@ import 'package:emberkeep/widgets/house/house_backdrop.dart';
 import 'package:emberkeep/widgets/house/house_room.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:emberkeep/tokens.dart';
-import 'package:emberkeep/widgets/goal_primary_button.dart';
 import 'package:emberkeep/widgets/workout_flow.dart';
 import 'package:emberkeep/widgets/goal_steward.dart';
 import 'package:emberkeep/widgets/goal_world.dart';
 import 'package:emberkeep/widgets/honey_button.dart';
 import 'package:emberkeep/widgets/pressable.dart';
+import 'package:emberkeep/widgets/house/goals/goals_room.dart';
 import 'package:emberkeep/widgets/working_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'support/goals_room_support.dart';
 
 String _key(String title) => title.trim().toLowerCase();
 
@@ -34,8 +36,6 @@ Finder get _adjustmentReviewScrollable => find
       matching: find.byType(Scrollable),
     )
     .first;
-
-Finder get _goalsScroll => find.byKey(const Key('goals-threshold-scroll'));
 
 Finder _goalAction(String label) => switch (label) {
   'Open Quest' ||
@@ -50,27 +50,8 @@ Finder _goalAction(String label) => switch (label) {
 Future<void> _revealOnGoalsPage(
   WidgetTester tester,
   Finder target, {
-  int maxScrolls = 12,
-}) async {
-  if (target.evaluate().isEmpty) {
-    final scrollable = find
-        .descendant(of: _goalsScroll, matching: find.byType(Scrollable))
-        .first;
-    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
-    await tester.pumpAndSettle();
-  }
-  for (
-    var attempt = 0;
-    target.evaluate().isEmpty && attempt < maxScrolls;
-    attempt++
-  ) {
-    await tester.drag(_goalsScroll, const Offset(0, -260));
-    await tester.pumpAndSettle();
-  }
-  expect(target, findsOneWidget);
-  await tester.ensureVisible(target);
-  await tester.pump();
-}
+  int maxScrolls = 14,
+}) => revealOnGoalsPage(tester, target, maxScrolls: maxScrolls);
 
 Future<void> _tapGoalAction(WidgetTester tester, String label) async {
   final action = _goalAction(label);
@@ -126,7 +107,9 @@ Future<void> _pumpGoals(
 }
 
 Future<void> _openStartingPoints(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('goals-new-goal')));
+  final newGoal = find.byKey(const Key('goals-new-goal'));
+  await _revealOnGoalsPage(tester, newGoal);
+  await tester.tap(newGoal);
   await tester.pumpAndSettle();
   final browse = find.byKey(const Key('steward-ask-browse'));
   await tester.ensureVisible(browse);
@@ -1268,7 +1251,7 @@ void main() {
       onOpenQuest: (quest) => opened = quest,
     );
 
-    expect(find.text('Open Quest'), findsOneWidget);
+    expect(find.text('OPEN QUEST'), findsOneWidget);
     await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
 
@@ -1296,6 +1279,7 @@ void main() {
     );
 
     final recover = find.byKey(const Key('goals-recover-today'));
+    await _revealOnGoalsPage(tester, recover);
     expect(recover, findsOneWidget);
     await tester.ensureVisible(recover);
     await tester.pump();
@@ -1362,6 +1346,7 @@ void main() {
     );
 
     final recover = find.byKey(const Key('goals-recover-today'));
+    await _revealOnGoalsPage(tester, recover);
     await tester.ensureVisible(recover);
     await tester.pump();
     await tester.tap(recover);
@@ -1443,6 +1428,7 @@ void main() {
     );
 
     final recover = find.byKey(const Key('goals-recover-today'));
+    await _revealOnGoalsPage(tester, recover);
     await tester.ensureVisible(recover);
     await tester.pump();
     await tester.tap(recover);
@@ -1603,7 +1589,7 @@ void main() {
     state.goals.add(Goal(title: 'Read more', stat: Stat.foc, target: 25));
     await _pumpGoals(tester, state: state, quests: []);
 
-    expect(find.text('Add a Quest'), findsOneWidget);
+    expect(find.text('ADD A QUEST'), findsOneWidget);
     await _tapGoalAction(tester, 'Add a Quest');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ember-title')), findsOneWidget);
@@ -2158,6 +2144,8 @@ void main() {
     expect(find.byKey(const Key('goals-unstick-me')), findsOneWidget);
     expect(find.byKey(const Key('goals-guided-workouts')), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('goals-unstick-me')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('goals-unstick-me')));
     await tester.pumpAndSettle();
     expect(find.text('Unstick Me'), findsWidgets);
@@ -2165,6 +2153,8 @@ void main() {
     Navigator.of(tester.element(find.byType(BottomSheet))).pop();
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const Key('goals-guided-workouts')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('goals-guided-workouts')));
     await tester.pumpAndSettle();
     expect(quests.where((quest) => quest.workout), hasLength(1));
@@ -2233,7 +2223,7 @@ void main() {
     await _pumpGoals(tester, state: state, quests: quests);
 
     expect(find.textContaining('clear one'), findsOneWidget);
-    expect(find.text('Open Quest'), findsOneWidget);
+    expect(find.text('OPEN QUEST'), findsOneWidget);
     expect(quests, hasLength(1));
     await _tapGoalAction(tester, 'Open Quest');
     await tester.pumpAndSettle();
@@ -2281,7 +2271,7 @@ void main() {
         onOpenQuest: (value) => opened = value,
       );
 
-      expect(find.text('Open Quest'), findsOneWidget);
+      expect(find.text('OPEN QUEST'), findsOneWidget);
       await _tapGoalAction(tester, 'Open Quest');
       await tester.pumpAndSettle();
 
@@ -2806,7 +2796,7 @@ void main() {
     // The compact layout keeps the action in the scrollable folio. Invoke the
     // same production callback after the layout/overflow check; hit testing
     // remains covered by the existing 430px journey tests.
-    tester.widget<GoalPrimaryButton>(action).onTap();
+    tester.widget<GoalsRoomButton>(action).onTap();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1640));
     await tester.pump(const Duration(milliseconds: 1));

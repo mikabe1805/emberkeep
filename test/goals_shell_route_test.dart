@@ -57,6 +57,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
+      // Today's three is behind the card's MORE.
+      await tester.tap(find.byKey(const Key('goals-room-more')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Today’s three'), findsOneWidget);
       final liveQuests = tester
           .widget<GoalsPage>(find.byType(GoalsPage))
