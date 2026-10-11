@@ -208,7 +208,7 @@ class _JournalNookPageState extends State<JournalNookPage> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [Color(0xFF17100D), Color(0x0017100D)],
-                            stops: [0.55, 1],
+                            stops: [0.84, 1],
                           ),
                         ),
                       ),
