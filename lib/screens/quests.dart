@@ -1636,10 +1636,26 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         state: s,
         // The Doorway stands behind the card, held as it is now: the three
         // tickets in the bowl.
-        backdrop: (context, stageTop, scrimHeight) => DoorwayStage(
-          day: read.day,
-          reduceMotion: true,
-          scrimHeight: scrimHeight,
+        // The painting ends where the dock begins; under the card there is
+        // no dock to meet, so its last stretch lets go into the ground
+        // instead of ending on a line.
+        backdrop: (context, stageTop, scrimHeight) => ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (rect) => LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: const [
+              Color(0xFFFFFFFF),
+              Color(0xFFFFFFFF),
+              Color(0x00FFFFFF),
+            ],
+            stops: [0, (1 - 96 / rect.height).clamp(0.0, 1.0), 1],
+          ).createShader(rect),
+          child: DoorwayStage(
+            day: read.day,
+            reduceMotion: true,
+            scrimHeight: scrimHeight,
+          ),
         ),
         stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
         stageHeight: _classCamera.stage?.height,

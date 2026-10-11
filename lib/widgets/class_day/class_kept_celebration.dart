@@ -379,7 +379,7 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                               base: widget.plan.xpRail ? 0 : 0.34,
                               wordsFrom: widget.plan.xpRail
                                   ? stageTop + imageBottom * 0.52
-                                  : stageTop + plateHeight * 0.72,
+                                  : stageTop + plateHeight * 0.9,
                             ),
                           ),
                         ],
