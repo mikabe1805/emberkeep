@@ -1119,7 +1119,7 @@ Future<void> _pumpImportedDay(
   final context = tester.element(find.byType(MaterialApp));
   await tester.runAsync(
     () => precacheImage(
-      const AssetImage('assets/pages/plans-desk-v2.webp'),
+      const AssetImage('assets/rooms/house/plate-plans-day-midday.webp'),
       context,
     ),
   );
