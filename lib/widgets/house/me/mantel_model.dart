@@ -204,3 +204,78 @@ class MantelFrame {
     );
   }
 }
+
+/// Where the pieces of the "Your space" page go: the player's own room as a
+/// large hero at the top (edge to edge, up under the status bar), the glass
+/// with the controls rising over its foot.
+///
+/// The room is a landscape painting; the hero is a tall slice of it. The
+/// camera keeps the hearth (and the room photo over it) in the slice, so what
+/// is cropped is the far side of the room, never the fire.
+class YourSpaceFrame {
+  const YourSpaceFrame._();
+
+  /// The hero's share of the screen's height on a phone.
+  static const heroFraction = 0.57;
+
+  /// The hero is never taller than this many widths (a tall tablet or a test
+  /// surface would otherwise stretch the room into a sliver).
+  static const heroMaxWidths = 1.25;
+
+  /// The glass rises this far over the hero's foot, so the room runs on under
+  /// the glass instead of ending in a seam.
+  static const glassLift = 36.0;
+
+  /// The side margin of the glass (the mantel sheets' margin).
+  static const glassInset = 12.0;
+
+  /// The back pill sits this far under the status bar.
+  static const backGap = 6.0;
+
+  /// How far, at most, the hero's picture slides up as the page scrolls.
+  static const heroTravel = 240.0;
+
+  /// The hero's height on a screen of this size, status bar included.
+  static double heroHeight(Size screen) => (screen.height * heroFraction)
+      .clamp(0.0, screen.width * heroMaxWidths)
+      .toDouble();
+
+  /// Where the camera sits on the room, as a cover-fit alignment x (-1 the
+  /// room's left edge, 1 its right).
+  ///
+  /// [hero] is the slice, [roomAspect] the painting's width over its height,
+  /// [hearthX] where its fire stands across it (0..1). The window of the room
+  /// that shows is placed so the hearth lands about [hearthAt] of the way
+  /// across the slice; [edge] (a fraction of the room's width) keeps the
+  /// room's own cut corners outside the slice.
+  static double cameraX({
+    required Size hero,
+    required double roomAspect,
+    required double hearthX,
+    double hearthAt = 0.8,
+    double edge = 0.015,
+  }) {
+    final shown = (hero.width / hero.height) / roomAspect;
+    if (shown >= 1) return 0;
+    final lo = edge;
+    final hi = 1 - shown - edge;
+    if (hi <= lo) return 0;
+    final left = (hearthX - hearthAt * shown).clamp(lo, hi).toDouble();
+    return (left / (1 - shown)) * 2 - 1;
+  }
+
+  /// The same for the other axis: a slice wider than the room (a tablet) shows
+  /// only a band of its height, so the camera keeps the fire's height in it.
+  /// A portrait slice shows the room's whole height and needs none (0).
+  static double cameraY({
+    required Size hero,
+    required double roomAspect,
+    required double hearthY,
+    double hearthAt = 0.62,
+  }) {
+    final shown = (hero.height / hero.width) * roomAspect;
+    if (shown >= 1) return 0;
+    final top = (hearthY - hearthAt * shown).clamp(0.0, 1 - shown).toDouble();
+    return (top / (1 - shown)) * 2 - 1;
+  }
+}

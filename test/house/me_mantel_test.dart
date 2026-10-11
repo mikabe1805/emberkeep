@@ -1,7 +1,8 @@
 // Me, the mantel room: the YOUR BUILD card reads the engine, the quiet tabs
-// open sheets that hold the page's own sections, every older feature of Me is
-// still reachable, and the room holds up at large text, with Reduce Motion
-// and for VoiceOver.
+// open sheets that hold the page's own sections (YOUR SPACE opens a page of its
+// own, see your_space_page_test.dart), every older feature of Me is still
+// reachable, and the room holds up at large text, with Reduce Motion and for
+// VoiceOver.
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/cloud.dart';
