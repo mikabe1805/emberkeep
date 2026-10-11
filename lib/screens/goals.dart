@@ -19,6 +19,7 @@ import '../widgets/ember_sheet.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/house/goals/goal_detail_route.dart';
 import '../widgets/house/goals/goals_room.dart';
+import '../widgets/house/house_hud.dart' show houseHudBottom;
 import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -276,6 +277,12 @@ class GoalsPage extends StatefulWidget {
 class _GoalsPageState extends State<GoalsPage> {
   String? _selectedGoalTitle;
   bool _moreOpen = false;
+
+  /// "+N" on the wall asked for Other goals: the list comes up open, and the
+  /// epoch makes a list that was already unrolled (and closed) start over open.
+  bool _otherGoalsOpen = false;
+  int _otherGoalsEpoch = 0;
+  final GlobalKey _otherGoalsKey = GlobalKey();
   String? _handledOpeningRequestTitle;
   bool _roomAssetsPrepared = false;
 
@@ -1266,7 +1273,12 @@ class _GoalsPageState extends State<GoalsPage> {
     }
     Sfx.instance.playMaterial(MaterialSound.parchment);
     // The room is at rest when the goal's page is left again.
-    if (_moreOpen) setState(() => _moreOpen = false);
+    if (_moreOpen) {
+      setState(() {
+        _moreOpen = false;
+        _otherGoalsOpen = false;
+      });
+    }
     Navigator.of(context).push(
       houseGoalDetailRoute<void>(
         context: context,
@@ -1295,7 +1307,53 @@ class _GoalsPageState extends State<GoalsPage> {
     );
   }
 
-  void _toggleMore() => setState(() => _moreOpen = !_moreOpen);
+  void _toggleMore() => setState(() {
+    _moreOpen = !_moreOpen;
+    if (!_moreOpen) _otherGoalsOpen = false;
+  });
+
+  /// A label on the wall: another goal becomes the current one (the same
+  /// choosing as Other goals in MORE, with its sound and its feel); the
+  /// current goal's own label opens its page.
+  void _tapWallLabel(BuildContext context, Goal goal, {required bool lit}) {
+    if (lit) {
+      _openGoalDetail(context, goal);
+    } else {
+      _selectGoal(goal);
+    }
+  }
+
+  /// "+N" on the wall: unrolls MORE with Other goals open and scrolled to.
+  void _showOtherGoals() {
+    setState(() {
+      _moreOpen = true;
+      _otherGoalsOpen = true;
+      _otherGoalsEpoch++;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final target = _otherGoalsKey.currentContext;
+      if (target == null || !target.mounted) return;
+      final still =
+          state.reduceMotion ||
+          (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+      final screen = MediaQuery.sizeOf(context).height;
+      Scrollable.ensureVisible(
+        target,
+        // The card scrolls inside itself: the section starts at its top. At
+        // large text the page scrolls: it starts just under the HUD.
+        alignment: goalsLargeText(context)
+            ? (houseHudBottom(
+                        textScale: MediaQuery.textScalerOf(context).scale(1),
+                      ) +
+                      16) /
+                  screen
+            : 0,
+        duration: still ? Duration.zero : const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1317,7 +1375,11 @@ class _GoalsPageState extends State<GoalsPage> {
           List<Goal> goals,
           String label, {
           ValueChanged<Goal>? onSelect,
+          Key? key,
+          bool initiallyExpanded = false,
         }) => _YourGoals(
+          key: key,
+          initiallyExpanded: initiallyExpanded,
           state: state,
           goals: goals,
           sectionLabel: label,
@@ -1352,14 +1414,14 @@ class _GoalsPageState extends State<GoalsPage> {
               id: _questTitleKey(goal.title).replaceAll(' ', '-'),
               title: goal.title,
               lit: identical(goal, focus),
-              onTap: () => _openGoalDetail(context, goal),
+              onTap: () =>
+                  _tapWallLabel(context, goal, lit: identical(goal, focus)),
             ),
         ];
 
         final Widget card;
         if (focus != null) {
           card = _LivingGoalFocus(
-            key: ValueKey<String>('goal-folio-${_questTitleKey(focus.title)}'),
             state: state,
             goal: focus,
             quests: quests,
@@ -1379,7 +1441,20 @@ class _GoalsPageState extends State<GoalsPage> {
             onToggleMore: _toggleMore,
             moreBelow: [
               if (otherGoals.isNotEmpty)
-                goalList(otherGoals, 'OTHER GOALS', onSelect: _selectGoal),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Where "+N" scrolls to: the top of the section.
+                    SizedBox(key: _otherGoalsKey, height: 0),
+                    goalList(
+                      otherGoals,
+                      'OTHER GOALS',
+                      onSelect: _selectGoal,
+                      key: ValueKey<int>(_otherGoalsEpoch),
+                      initiallyExpanded: _otherGoalsOpen,
+                    ),
+                  ],
+                ),
               ?completed,
               const GoalsRoomGroup('ANOTHER WAY IN'),
               support,
@@ -1432,6 +1507,9 @@ class _GoalsPageState extends State<GoalsPage> {
               : 'Turn a goal into a first step',
           onSign: () => _openWorkshop(context, initialGoal: focus),
           wall: wall,
+          moreGoals: activeGoals.length - wallGoals.length,
+          onMoreGoals: focus == null ? null : _showOtherGoals,
+          moreOpen: _moreOpen,
           card: card,
           parallax: parallax,
           reduceMotion: state.reduceMotion,
@@ -2171,7 +2249,6 @@ class _TodayFieldAction extends StatelessWidget {
 /// looks is the room's ([GoalsFocusCard]).
 class _LivingGoalFocus extends StatelessWidget {
   const _LivingGoalFocus({
-    super.key,
     required this.state,
     required this.goal,
     required this.quests,
@@ -2370,6 +2447,7 @@ class _LivingGoalFocus extends StatelessWidget {
     return GoalsFocusCard(
       goalId: _questTitleKey(goal.title),
       goalName: goal.title,
+      onOpenGoal: onOpenDetail,
       nextCaption: next == null
           ? 'THE NEXT THING · READY TO SHAPE'
           : 'THE NEXT THING · CURRENT QUEST',
@@ -2481,6 +2559,8 @@ class _CategoryHeader extends StatelessWidget {
 /// decoration never pretends to personalize a goal it cannot actually depict.
 class _YourGoals extends StatelessWidget {
   const _YourGoals({
+    super.key,
+    this.initiallyExpanded = false,
     required this.state,
     required this.goals,
     required this.sectionLabel,
@@ -2503,6 +2583,9 @@ class _YourGoals extends StatelessWidget {
   final void Function(Quest quest) onOpenQuest;
   final ValueChanged<Goal>? onSelectGoal;
   final bool collapsed;
+
+  /// The list comes up open (when it is a collapsed section).
+  final bool initiallyExpanded;
 
   void _openDetail(BuildContext context, Goal goal) {
     Sfx.instance.playMaterial(MaterialSound.parchment);
@@ -2600,7 +2683,7 @@ class _YourGoals extends StatelessWidget {
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             key: disclosureKey,
-            initiallyExpanded: false,
+            initiallyExpanded: initiallyExpanded,
             tilePadding: const EdgeInsets.symmetric(horizontal: 2),
             childrenPadding: const EdgeInsets.only(top: 5),
             collapsedIconColor: Palette.textLo,

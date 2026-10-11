@@ -7,7 +7,11 @@
 //                   the way in (a new goal, or turning one into a first step)
 //                   and the one thing the lamp's glint crosses on arrival.
 //   the wall        the player's goals as small glass labels pinned on the
-//                   sheets on the wall. The lit one is the current goal.
+//                   sheets on the wall. The lit one is the current goal; a tap
+//                   on another makes it the current goal (the card swaps and
+//                   the lit edge moves), a tap on the lit one opens it. With
+//                   more goals than sheets a quiet "+N" tag hangs below the
+//                   lowest label and unrolls MORE at Other goals.
 //   the card        the current goal, its next thing, and its one action; or,
 //                   with no goal yet, the Steward's invitation. A quiet "more"
 //                   unrolls everything else Goals has (other and finished
@@ -102,6 +106,10 @@ String _keepEnd(String text) {
   return at < 0 ? text : '${text.substring(0, at)} ${text.substring(at + 1)}';
 }
 
+/// How long the card's content and the wall's lit edge take to change hands
+/// when another goal becomes the current one.
+const Duration goalsSwapDuration = Duration(milliseconds: 220);
+
 bool goalsLargeText(BuildContext context) =>
     MediaQuery.textScalerOf(context).scale(1) > goalsRoomLargeText;
 
@@ -125,6 +133,9 @@ class GoalsWallEntry {
 
   /// The current goal.
   final bool lit;
+
+  /// What a tap does: the page decides (another goal becomes the current one,
+  /// the current one opens its page).
   final VoidCallback onTap;
 }
 
@@ -151,6 +162,9 @@ class HouseGoalsRoom extends StatelessWidget {
     required this.onSign,
     required this.wall,
     required this.card,
+    this.moreGoals = 0,
+    this.onMoreGoals,
+    this.moreOpen = false,
     this.parallax,
     this.reduceMotion = false,
   });
@@ -162,6 +176,15 @@ class HouseGoalsRoom extends StatelessWidget {
 
   /// The glass card (built by [GoalsFocusCard] or [GoalsEmptyCard]).
   final Widget card;
+
+  /// How many goals have no sheet on the wall. When more than none, a "+N"
+  /// tag hangs below the lowest label and [onMoreGoals] answers it.
+  final int moreGoals;
+  final VoidCallback? onMoreGoals;
+
+  /// MORE is unrolled: the "+N" has done its work and fades away (the unrolled
+  /// card would cover half of it).
+  final bool moreOpen;
   final ValueListenable<Offset>? parallax;
   final bool reduceMotion;
 
@@ -186,6 +209,15 @@ class HouseGoalsRoom extends StatelessWidget {
     );
   }
 
+  bool get _showsTag => moreGoals > 0 && onMoreGoals != null && wall.isNotEmpty;
+
+  /// The slot of the lowest label on the wall.
+  int get _lowest =>
+      (wall.length < goalsWallSlots.length
+          ? wall.length
+          : goalsWallSlots.length) -
+      1;
+
   Widget _calibrated(BuildContext context, BoxConstraints box, Widget sign) {
     final above = classStatusAbove(context);
     final k = box.maxWidth / houseCanvasWidth;
@@ -207,6 +239,21 @@ class HouseGoalsRoom extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerRight,
               child: GoalsWallLabel(entry: wall[i], maxLines: 1),
+            ),
+          ),
+        if (_showsTag)
+          // Just below the lowest label's glass.
+          Positioned(
+            top:
+                y(goalsWallSlots[_lowest].top) +
+                goalsLabelGlassHeight(context) +
+                _tagGap,
+            right: goalsWallSlots[_lowest].right * k,
+            child: GoalsWallMoreTag(
+              count: moreGoals,
+              onTap: onMoreGoals!,
+              hidden: moreOpen,
+              reduceMotion: goalsStill(context, reduceMotion),
             ),
           ),
         Positioned(
@@ -253,8 +300,18 @@ class HouseGoalsRoom extends StatelessWidget {
                 child: GoalsWallLabel(entry: entry, maxLines: 3),
               ),
             ),
+          if (_showsTag)
+            Align(
+              alignment: Alignment.centerRight,
+              child: GoalsWallMoreTag(
+                count: moreGoals,
+                onTap: onMoreGoals!,
+                hidden: moreOpen,
+                reduceMotion: goalsStill(context, reduceMotion),
+              ),
+            ),
         ],
-        const SizedBox(height: 14),
+        SizedBox(height: _showsTag ? 0 : 14),
         card,
       ],
     );
@@ -262,7 +319,15 @@ class HouseGoalsRoom extends StatelessWidget {
 }
 
 /// A label's tap target reaches this far above and below its glass.
-const double _hitPad = 10;
+const double _hitPad = 10.25;
+
+/// The space between the lowest label's glass and the "+N" tag's.
+const double _tagGap = 3;
+
+/// The height of a label's glass for one line of its caps (the text's own
+/// size at the reader's text scale, plus the label's padding).
+double goalsLabelGlassHeight(BuildContext context) =>
+    10 + MediaQuery.textScalerOf(context).scale(11) * 1.25;
 
 // ── The sign ─────────────────────────────────────────────────────────────
 
@@ -345,7 +410,8 @@ class GoalsRoomSign extends StatelessWidget {
 // ── The wall ─────────────────────────────────────────────────────────────
 
 /// One goal's glass label, pinned to a sheet on the wall. Its brass pin is at
-/// its left end; the current goal's edge is lit.
+/// its left end; the current goal's edge is lit, and the light moves from one
+/// label to another over [goalsSwapDuration] when the current goal changes.
 class GoalsWallLabel extends StatelessWidget {
   const GoalsWallLabel({super.key, required this.entry, this.maxLines = 1});
 
@@ -362,28 +428,44 @@ class GoalsWallLabel extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: pressed
-                    ? const Color(0xD1462F22)
-                    : const Color(0xC21E1611),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: focused
-                      ? Palette.textHi
-                      : lit
-                      ? const Color(0xE6EEC076)
-                      : const Color(0x42F6E2BF),
-                ),
-                boxShadow: [
-                  if (lit)
-                    const BoxShadow(color: Color(0x57E8B464), blurRadius: 9),
-                  const BoxShadow(
-                    color: Color(0x4D0A0502),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+            // The lit edge fades in on the label that becomes current and
+            // out on the one that stops being so: colour, not movement, so it
+            // is the same under Reduce Motion.
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: lit ? 1 : 0),
+              duration: goalsSwapDuration,
+              curve: Curves.easeOut,
+              builder: (context, glow, child) => DecoratedBox(
+                decoration: BoxDecoration(
+                  color: pressed
+                      ? const Color(0xD1462F22)
+                      : const Color(0xC21E1611),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: focused
+                        ? Palette.textHi
+                        : Color.lerp(
+                            const Color(0x42F6E2BF),
+                            const Color(0xE6EEC076),
+                            glow,
+                          )!,
                   ),
-                ],
+                  boxShadow: [
+                    if (glow > 0)
+                      BoxShadow(
+                        color: const Color(
+                          0x57E8B464,
+                        ).withValues(alpha: 0x57 / 255 * glow),
+                        blurRadius: 9,
+                      ),
+                    const BoxShadow(
+                      color: Color(0x4D0A0502),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: child,
               ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 5, 9, 5),
@@ -433,6 +515,9 @@ class GoalsWallLabel extends StatelessWidget {
       key: Key('goals-wall-${entry.id}'),
       material: MaterialSound.parchment,
       interactionSound: InteractionSound.navigate,
+      // The page voices the tap itself (the parchment flick of choosing a
+      // goal, or of opening one), so the label does not sound a second time.
+      soundEnabled: false,
       pressDepth: 1,
       edgeColor: Colors.transparent,
       borderRadius: BorderRadius.circular(8),
@@ -440,7 +525,7 @@ class GoalsWallLabel extends StatelessWidget {
       semanticLabel: lit
           ? '${entry.title}, your current goal'
           : '${entry.title}, a goal',
-      semanticHint: 'Open this goal.',
+      semanticHint: lit ? 'Open this goal.' : 'Make this your current goal.',
       onTapUp: (_) => entry.onTap(),
       stateBuilder: (context, child, pressed, focused, hovered) =>
           ExcludeSemantics(
@@ -462,10 +547,125 @@ class GoalsWallLabel extends StatelessWidget {
   }
 }
 
+/// The quiet "+N" that hangs below the lowest label when there are more goals
+/// than sheets on the wall. It says that more exist and, pressed, unrolls MORE
+/// at Other goals. Its glass is small and dimmer than a label's, so it never
+/// reads as a fourth goal and leaves the painting under it be; its tap area
+/// (44 pt) reaches down and left from the glass. It is drawn after the label
+/// above it, so where the two areas meet the tag is the one pressed.
+class GoalsWallMoreTag extends StatelessWidget {
+  const GoalsWallMoreTag({
+    super.key,
+    required this.count,
+    required this.onTap,
+    this.hidden = false,
+    this.reduceMotion = false,
+  });
+
+  final int count;
+  final VoidCallback onTap;
+
+  /// Faded out, out of reach and out of the screen reader's.
+  final bool hidden;
+  final bool reduceMotion;
+
+  @override
+  Widget build(BuildContext context) {
+    // The glass is small and sits at the top right of its 44 pt area; the
+    // area reaches down and to the left of it.
+    Widget face(bool pressed, bool focused) => ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      child: Align(
+        alignment: Alignment.topRight,
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 6),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: pressed
+                      ? const Color(0xB8462F22)
+                      : const Color(0x991E1611),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: focused ? Palette.textHi : const Color(0x33F6E2BF),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2.5,
+                  ),
+                  child: Text(
+                    '+$count',
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: _mono(
+                      11,
+                      color: const Color(0xFFD9C9A8),
+                      spacing: 0.6,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final tag = Pressable(
+      key: const Key('goals-wall-more'),
+      material: MaterialSound.glass,
+      interactionSound: InteractionSound.select,
+      enabled: !hidden,
+      pressDepth: 1,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      guardRapidReentry: true,
+      semanticLabel: '$count more ${count == 1 ? 'goal' : 'goals'}',
+      semanticHint: 'Show your other goals.',
+      onTapUp: (_) => onTap(),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          ExcludeSemantics(child: face(pressed, focused)),
+      child: ExcludeSemantics(child: face(false, false)),
+    );
+    return IgnorePointer(
+      ignoring: hidden,
+      child: ExcludeSemantics(
+        excluding: hidden,
+        child: AnimatedOpacity(
+          opacity: hidden ? 0 : 1,
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
+          child: tag,
+        ),
+      ),
+    );
+  }
+}
+
 // ── The card ─────────────────────────────────────────────────────────────
 
+/// The height of the card's top row (the caps line and MORE, whose tap area is
+/// 44 pt).
+const double _topRow = 44;
+
+/// How far the current goal's name reaches up into that row: its 44 pt tap area
+/// is its 27.5 pt line plus this much above and below. The caps line is short
+/// and sits at the row's left, so the name's area can share the row's lower
+/// edge; this is what keeps the card the height it was before the name opened
+/// the goal.
+const double _nameReach = 8.25;
+
 /// The glass the card is made of, with its unrolling "more". [children] is
-/// the card's own face (always shown); [more] is what unrolls.
+/// the card's own face (always shown); [more] is what unrolls. [nameReach]
+/// lets the first child's tap area reach up under the top row (the current
+/// goal's name does); the top row is drawn above it, so MORE keeps its corner.
 class GoalsRoomGlass extends StatelessWidget {
   const GoalsRoomGlass({
     super.key,
@@ -476,6 +676,7 @@ class GoalsRoomGlass extends StatelessWidget {
     required this.onToggleMore,
     required this.reduceMotion,
     this.moreLabel = 'MORE',
+    this.nameReach = 0,
   });
 
   /// The card's caps line ("CURRENT GOAL"); the unrolling "more" is on its
@@ -487,18 +688,22 @@ class GoalsRoomGlass extends StatelessWidget {
   final VoidCallback onToggleMore;
   final bool reduceMotion;
   final String moreLabel;
+  final double nameReach;
 
   @override
   Widget build(BuildContext context) {
     final still = goalsStill(context, reduceMotion);
     final large = goalsLargeText(context);
-    final body = <Widget>[
-      Row(
-        children: [
-          Expanded(child: GoalsRoomEyebrow(eyebrow)),
-          _MoreHandle(open: moreOpen, label: moreLabel, onTap: onToggleMore),
-        ],
-      ),
+    final topRow = Row(
+      children: [
+        Expanded(child: GoalsRoomEyebrow(eyebrow)),
+        _MoreHandle(open: moreOpen, label: moreLabel, onTap: onToggleMore),
+      ],
+    );
+    // At large text the caps line may take two lines of its own row, so
+    // nothing reaches up under it there.
+    final reach = large ? 0.0 : nameReach;
+    final rest = <Widget>[
       ...children,
       if (moreOpen)
         // The card takes its height at once; what unrolls comes up in light.
@@ -514,20 +719,38 @@ class GoalsRoomGlass extends StatelessWidget {
           ),
         ),
     ];
-    // In the scrolling layout the page scrolls and the card is its full
-    // height; in the calibrated one the card keeps to its room and scrolls
-    // inside when what it holds is longer.
-    final inner = large
-        ? Column(
+    final Widget body;
+    if (reach > 0) {
+      body = Stack(
+        children: [
+          Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: body,
-          )
-        : ListView(
+            children: [
+              SizedBox(height: _topRow - reach),
+              ...rest,
+            ],
+          ),
+          Positioned(top: 0, left: 0, right: 0, child: topRow),
+        ],
+      );
+    } else {
+      body = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [topRow, ...rest],
+      );
+    }
+    // In the scrolling layout the page scrolls and the card is its full
+    // height; in the calibrated one the card keeps to its room and scrolls
+    // inside when what it holds is longer. (Everything is built, so a "scroll
+    // to" can find any row.)
+    final inner = large
+        ? body
+        : SingleChildScrollView(
             key: const Key('goals-card-scroll'),
-            shrinkWrap: true,
             padding: EdgeInsets.zero,
-            children: body,
+            child: body,
           );
     return ClassGlass(
       padding: const EdgeInsets.fromLTRB(20, 2, 14, 8),
@@ -720,13 +943,17 @@ class GoalsRoomButtonRow extends StatelessWidget {
   }
 }
 
-/// The current goal's card face: "CURRENT GOAL", its name, the next thing and
-/// its two buttons. Everything else is in [more].
+/// The current goal's card face: "CURRENT GOAL", its name (the way to open the
+/// goal), the next thing and its two buttons. Everything else is in [more].
+/// When another goal becomes the current one the face fades through to the new
+/// goal's over [goalsSwapDuration] while the card eases to its height (the fade
+/// alone under Reduce Motion).
 class GoalsFocusCard extends StatelessWidget {
   const GoalsFocusCard({
     super.key,
     required this.goalId,
     required this.goalName,
+    required this.onOpenGoal,
     required this.nextTitle,
     required this.primaryLabel,
     required this.onPrimary,
@@ -741,6 +968,9 @@ class GoalsFocusCard extends StatelessWidget {
 
   final String goalId;
   final String goalName;
+
+  /// Opens the goal's own page (the name is its door).
+  final VoidCallback onOpenGoal;
   final String nextTitle;
   final String nextCaption;
   final String primaryLabel;
@@ -761,17 +991,9 @@ class GoalsFocusCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Semantics(
-          header: true,
-          child: Text(
-            goalName,
-            key: const Key('goals-card-name'),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: _serif(large ? 23 : 25, height: 1.1),
-          ),
-        ),
-        const SizedBox(height: 11),
+        _CardName(name: goalName, size: large ? 23 : 25, onTap: onOpenGoal),
+        // The name's tap area has taken part of the gap below it.
+        SizedBox(height: large ? 4 : 11 - _nameReach),
         _NextRow(caption: nextCaption, title: nextTitle, onTap: onPrimary),
         const SizedBox(height: 12),
         GoalsRoomButtonRow(
@@ -792,6 +1014,39 @@ class GoalsFocusCard extends StatelessWidget {
         ),
       ],
     );
+    // The old face leaves in the first half, the new one comes up in the
+    // second, so two goals' words are never on top of each other. The old one
+    // is out of the layout (the card eases to the new height), out of reach
+    // and out of the screen reader's.
+    final Widget switcher = AnimatedSwitcher(
+      duration: goalsSwapDuration,
+      switchInCurve: const Interval(0.35, 1, curve: Curves.easeOut),
+      switchOutCurve: const Interval(0.55, 1),
+      transitionBuilder: (child, animation) => AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final leaving = animation.status == AnimationStatus.reverse;
+          return IgnorePointer(
+            ignoring: leaving,
+            child: ExcludeSemantics(
+              excluding: leaving,
+              child: FadeTransition(opacity: animation, child: child),
+            ),
+          );
+        },
+        child: child,
+      ),
+      layoutBuilder: (current, previous) => Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          for (final leaving in previous)
+            Positioned(top: 0, left: 0, right: 0, child: leaving),
+          ?current,
+        ],
+      ),
+      child: face,
+    );
     return GoalsRoomGlass(
       key: const Key('goals-room-card'),
       eyebrow: 'CURRENT GOAL',
@@ -799,18 +1054,87 @@ class GoalsFocusCard extends StatelessWidget {
       moreOpen: moreOpen,
       onToggleMore: onToggleMore,
       more: more,
+      nameReach: _nameReach,
       children: [
-        AnimatedSwitcher(
-          duration: still ? Duration.zero : const Duration(milliseconds: 170),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          layoutBuilder: (current, previous) => Stack(
-            alignment: Alignment.topCenter,
-            children: [...previous, ?current],
-          ),
-          child: face,
-        ),
+        still
+            ? switcher
+            : AnimatedSize(
+                duration: goalsSwapDuration,
+                curve: Curves.easeOut,
+                alignment: Alignment.topCenter,
+                child: switcher,
+              ),
       ],
+    );
+  }
+}
+
+/// The current goal's name, in the card's own serif, with a small quiet chevron
+/// after it: pressing it opens the goal. Its tap area is at least 44 pt tall.
+class _CardName extends StatelessWidget {
+  const _CardName({
+    required this.name,
+    required this.size,
+    required this.onTap,
+  });
+
+  final String name;
+  final double size;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget face(bool pressed, bool focused) => ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: _nameReach),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Flexible(
+              child: Text(
+                name,
+                key: const Key('goals-card-name'),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: _serif(
+                  size,
+                  color: pressed ? const Color(0xFFD8C8AA) : _ink,
+                  height: 1.1,
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.only(left: pressed ? 5 : 3, bottom: 1.5),
+              child: const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Color(0xA6B8A784),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Pressable(
+        key: const Key('goals-card-open-goal'),
+        material: MaterialSound.parchment,
+        // The page voices opening a goal itself.
+        soundEnabled: false,
+        pressDepth: 0.5,
+        edgeColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        guardRapidReentry: true,
+        semanticLabel: 'Open goal, $name',
+        semanticHint: 'Open this goal’s route, progress and proof.',
+        onTapUp: (_) => onTap(),
+        stateBuilder: (context, child, pressed, focused, hovered) =>
+            ExcludeSemantics(child: face(pressed, focused)),
+        child: ExcludeSemantics(child: face(false, false)),
+      ),
     );
   }
 }

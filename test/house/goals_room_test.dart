@@ -15,6 +15,7 @@ import 'package:emberkeep/widgets/house/goals/goals_room.dart';
 import 'package:emberkeep/widgets/house/house_backdrop.dart';
 import 'package:emberkeep/widgets/house/house_room.dart';
 import 'package:emberkeep/widgets/house/house_travel_scope.dart';
+import 'package:emberkeep/widgets/pressable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -75,8 +76,11 @@ Future<void> _pump(
 }
 
 /// Mika's three goals of the prototype's wall, each with a first step.
-({GameState state, List<Quest> quests}) _wall({int count = 3}) {
-  final state = GameState()..reduceMotion = true;
+({GameState state, List<Quest> quests}) _wall({
+  int count = 3,
+  bool reduceMotion = true,
+}) {
+  final state = GameState()..reduceMotion = reduceMotion;
   final quests = <Quest>[];
   const goals = <(String, Stat, String)>[
     ('Room of Days', Stat.foc, 'Open the app'),
@@ -96,6 +100,79 @@ Future<void> _pump(
 Finder _label(String title) => find.byKey(
   Key('goals-wall-${title.trim().toLowerCase().replaceAll(' ', '-')}'),
 );
+
+final Finder _card = find.byKey(const Key('goals-room-card'));
+final Finder _moreTag = find.byKey(const Key('goals-wall-more'));
+Key _face(String id) => ValueKey<String>('goals-card-face-$id');
+
+String? _nameOf(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('goals-card-name'))).data;
+
+/// The edge of a label's glass.
+const Color _litEdge = Color(0xE6EEC076);
+const Color _quietEdge = Color(0x42F6E2BF);
+
+/// The glass of a label or tag: the box under its blur.
+Finder _glassOf(Finder control) => find
+    .descendant(
+      of: find.descendant(of: control, matching: find.byType(BackdropFilter)),
+      matching: find.byType(DecoratedBox),
+    )
+    .first;
+
+Color _edge(WidgetTester tester, String title) {
+  final deco = tester.widget<DecoratedBox>(_glassOf(_label(title))).decoration;
+  return ((deco as BoxDecoration).border! as Border).top.color;
+}
+
+/// How visible a goal's card face is (its fade).
+double _opacity(WidgetTester tester, String id) {
+  final fade = find
+      .ancestor(
+        of: find.byKey(_face(id)),
+        matching: find.byType(FadeTransition),
+      )
+      .first;
+  return tester.widget<FadeTransition>(fade).opacity.value;
+}
+
+bool _overlap(Rect a, Rect b) => a.deflate(0.6).overlaps(b.deflate(0.6));
+
+/// The "+N" tag touches no label, the sign or the card, and is on screen.
+void _expectTagClear(
+  WidgetTester tester,
+  GameState state, {
+  double width = 393,
+  bool card = true,
+}) {
+  final tag = tester.getRect(_moreTag);
+  final tagGlass = tester.getRect(_glassOf(_moreTag));
+  expect(tag.left, greaterThanOrEqualTo(0));
+  expect(tag.right, lessThanOrEqualTo(width + 0.5));
+  // The tag's glass is clear of every label's glass. (Its 44 pt area may share
+  // a few points with the lowest label's, below that label's glass: the tag is
+  // drawn after the label and is the one pressed there.)
+  for (final goal in state.goals) {
+    final label = _label(goal.title);
+    if (label.evaluate().isEmpty) continue;
+    expect(
+      _overlap(tagGlass, tester.getRect(_glassOf(label))),
+      isFalse,
+      reason: 'the tag and ${goal.title}',
+    );
+  }
+  final sign = find.byKey(const Key('goals-open-workshop'));
+  if (sign.evaluate().isNotEmpty) {
+    expect(_overlap(tag, tester.getRect(sign)), isFalse, reason: 'the sign');
+  }
+  // The tag's glass (its tap area reaches 20 pt below it) is clear of the card.
+  if (!card) return;
+  expect(
+    _overlap(tagGlass, tester.getRect(_card)),
+    isFalse,
+    reason: 'the card',
+  );
+}
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -321,22 +398,155 @@ void main() {
       semantics.dispose();
     });
 
-    testWidgets('tapping another goal\'s label opens that goal', (
+    testWidgets('tapping another goal\'s label makes it the current goal', (
       tester,
     ) async {
       final w = _wall();
       await _pump(tester, state: w.state, quests: w.quests);
       await tester.tap(_label('Computer Architecture'));
       await tester.pumpAndSettle();
-      final detail = tester.widget<GoalDetailScreen>(
-        find.byType(GoalDetailScreen),
+      // The goal's page does not open: the card changes to that goal.
+      expect(find.byType(GoalDetailScreen), findsNothing);
+      expect(_nameOf(tester), 'Computer Architecture');
+      expect(
+        tester.widget<Text>(find.byKey(const Key('goals-card-next'))).data,
+        'Review one problem',
       );
-      expect(detail.goal.title, 'Computer Architecture');
+      expect(find.byKey(_face('computer architecture')), findsOneWidget);
+      expect(find.byKey(_face('room of days')), findsNothing);
+      expect(tester.takeException(), isNull);
     });
 
-    testWidgets('tapping the current goal\'s label opens it too', (
+    testWidgets('the lit edge moves to the label that was tapped', (
       tester,
     ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(_edge(tester, 'Room of Days'), _litEdge);
+      expect(_edge(tester, 'Computer Architecture'), _quietEdge);
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pumpAndSettle();
+      expect(_edge(tester, 'Computer Architecture'), _litEdge);
+      expect(_edge(tester, 'Room of Days'), _quietEdge);
+      final semantics = tester.ensureSemantics();
+      expect(
+        find.bySemanticsLabel('Computer Architecture, your current goal'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Room of Days, a goal'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('the light crosses between the two edges, it does not jump', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 110));
+      expect(_edge(tester, 'Computer Architecture'), isNot(_litEdge));
+      expect(_edge(tester, 'Computer Architecture'), isNot(_quietEdge));
+      expect(_edge(tester, 'Room of Days'), isNot(_litEdge));
+      expect(_edge(tester, 'Room of Days'), isNot(_quietEdge));
+      await tester.pumpAndSettle();
+      expect(_edge(tester, 'Computer Architecture'), _litEdge);
+    });
+
+    testWidgets('it is the choosing Other goals in MORE does: the same goal '
+        'is current, the others are the list', (tester) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_label('Summer 2027'));
+      await tester.pumpAndSettle();
+      expect(_nameOf(tester), 'Summer 2027');
+      final disclosure = find.byKey(const Key('other-goals-disclosure'));
+      await revealOnGoalsPage(tester, disclosure);
+      await tester.tap(disclosure);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('active-goal-room of days')), findsOneWidget);
+      expect(
+        find.byKey(const Key('active-goal-computer architecture')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('active-goal-summer 2027')), findsNothing);
+    });
+
+    testWidgets('a label is voiced once, by the choosing or the opening', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final label = tester.widget<Pressable>(_label('Summer 2027'));
+      // The page plays the parchment flick (page/open) for both taps; the
+      // label itself stays quiet so one tap is one sound.
+      expect(label.material, MaterialSound.parchment);
+      expect(label.soundEnabled, isFalse);
+    });
+
+    testWidgets('the card fades through to the new goal and eases its height', (
+      tester,
+    ) async {
+      final w = _wall(reduceMotion: false);
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(
+        find.descendant(of: _card, matching: find.byType(AnimatedSize)),
+        findsOneWidget,
+      );
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 45));
+      // Both goals' faces are on the card, the old one on its way out.
+      final out = _opacity(tester, 'room of days');
+      final inn = _opacity(tester, 'computer architecture');
+      expect(out, inExclusiveRange(0.0, 1.0));
+      expect(inn, lessThan(0.05));
+      // The leaving face cannot be touched and is not read out.
+      expect(
+        find.ancestor(
+          of: find.byKey(_face('room of days')),
+          matching: find.byWidgetPredicate(
+            (w) => w is IgnorePointer && w.ignoring,
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 80));
+      expect(_opacity(tester, 'room of days'), lessThan(0.01));
+      expect(
+        _opacity(tester, 'computer architecture'),
+        inExclusiveRange(0.0, 1.0),
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_face('room of days')), findsNothing);
+      expect(_opacity(tester, 'computer architecture'), 1);
+    });
+
+    testWidgets('the swap takes about 220 ms', (tester) async {
+      expect(goalsSwapDuration, const Duration(milliseconds: 220));
+      final w = _wall(reduceMotion: false);
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.byKey(_face('room of days')), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 40));
+      expect(find.byKey(_face('room of days')), findsNothing);
+    });
+
+    testWidgets('the same goal\'s card is not remade when it rebuilds', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final before = tester.element(find.byKey(_face('room of days')));
+      await tester.tap(goalsRoomMore);
+      await tester.pumpAndSettle();
+      expect(tester.element(find.byKey(_face('room of days'))), same(before));
+    });
+
+    testWidgets('the current goal\'s label opens its page', (tester) async {
       final w = _wall();
       await _pump(tester, state: w.state, quests: w.quests);
       await tester.tap(_label('Room of Days'));
@@ -345,6 +555,45 @@ void main() {
         tester.widget<GoalDetailScreen>(find.byType(GoalDetailScreen)).goal,
         w.state.goals.first,
       );
+    });
+
+    testWidgets('after a swap the new current goal\'s label opens its page', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_label('Summer 2027'));
+      await tester.pumpAndSettle();
+      expect(find.byType(GoalDetailScreen), findsNothing);
+      await tester.tap(_label('Summer 2027'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<GoalDetailScreen>(find.byType(GoalDetailScreen)).goal,
+        w.state.goals[2],
+      );
+    });
+
+    testWidgets('a label says what a tap does', (tester) async {
+      final w = _wall();
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final current = find.bySemanticsLabel('Room of Days, your current goal');
+      expect(tester.getSemantics(current).hint, 'Open this goal.');
+      final other = find.bySemanticsLabel('Computer Architecture, a goal');
+      expect(tester.getSemantics(other).hint, 'Make this your current goal.');
+      semantics.dispose();
+    });
+
+    testWidgets('every label is a 44 pt target', (tester) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      for (final goal in w.state.goals) {
+        expect(
+          tester.getSize(_label(goal.title)).height,
+          greaterThanOrEqualTo(44),
+          reason: goal.title,
+        );
+      }
     });
 
     testWidgets('holds three goals; the current one is always among them', (
@@ -531,6 +780,391 @@ void main() {
     });
   });
 
+  group('the card\'s name opens the goal', () {
+    testWidgets('a small chevron follows the name and it is a 44 pt target', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final name = find.byKey(const Key('goals-card-open-goal'));
+      expect(
+        find.descendant(
+          of: name,
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+        findsOneWidget,
+      );
+      final box = tester.getRect(name);
+      expect(box.height, greaterThanOrEqualTo(44));
+      expect(box.width, greaterThanOrEqualTo(44));
+      // The chevron comes after the name, on its line.
+      final text = tester.getRect(find.byKey(const Key('goals-card-name')));
+      final chevron = tester.getRect(
+        find.descendant(
+          of: name,
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+      );
+      expect(chevron.left, greaterThanOrEqualTo(text.right));
+      expect(chevron.left - text.right, lessThan(12));
+      expect(chevron.width, lessThanOrEqualTo(20));
+    });
+
+    testWidgets('pressing the name opens that goal\'s page', (tester) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(find.byKey(const Key('goals-card-open-goal')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<GoalDetailScreen>(find.byType(GoalDetailScreen)).goal,
+        w.state.goals.first,
+      );
+    });
+
+    testWidgets('after a swap it opens the new goal', (tester) async {
+      final w = _wall();
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('goals-card-open-goal')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<GoalDetailScreen>(find.byType(GoalDetailScreen)).goal,
+        w.state.goals[1],
+      );
+    });
+
+    testWidgets('VoiceOver hears "Open goal, <name>"', (tester) async {
+      final w = _wall();
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(find.bySemanticsLabel('Open goal, Room of Days'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('the card is the height it was before the name opened the '
+        'goal', (tester) async {
+      final state = GameState()..reduceMotion = true;
+      state.goals.add(_goal('Cooking', Stat.dis));
+      final quests = [_quest('Open the app', Stat.dis, 'Cooking')];
+      state.featuredGoalTitles.add('Cooking');
+      await _pump(tester, state: state, quests: quests);
+      final card = tester.getRect(_card);
+      // The card, the next row and the buttons are where they were: the name's
+      // 44 pt area shares the caps line's row and the gap below the name.
+      expect(card.height, 236);
+      expect(tester.getRect(find.byKey(const Key('goals-card-next'))).top, 637);
+      expect(
+        tester
+            .getRect(find.byKey(const Key('goals-return-primary-action')))
+            .top,
+        681,
+      );
+      expect(
+        tester.getRect(find.byKey(const Key('goals-card-name'))).top,
+        card.top + 46,
+      );
+    });
+
+    testWidgets('MORE keeps its corner under a long name', (tester) async {
+      final state = GameState()..reduceMotion = true;
+      const long = 'Learn to sketch buildings from memory before the spring';
+      state.goals.add(_goal(long, Stat.foc));
+      await _pump(tester, state: state, quests: []);
+      final more = tester.getRect(goalsRoomMore);
+      // The name's area runs under MORE's lower edge; MORE wins there.
+      await tester.tapAt(Offset(more.center.dx, more.bottom - 2));
+      await tester.pumpAndSettle();
+      expect(find.byType(GoalDetailScreen), findsNothing);
+      expect(goalsRoomUnrolled, findsOneWidget);
+    });
+
+    testWidgets('at large text it is still a 44 pt target and nothing '
+        'overflows', (tester) async {
+      for (final scale in [1.3, 2.0]) {
+        final w = _wall();
+        await _pump(
+          tester,
+          state: w.state,
+          quests: w.quests,
+          size: const Size(320, 568),
+          textScale: scale,
+        );
+        final name = find.byKey(const Key('goals-card-open-goal'));
+        await revealOnGoalsPage(tester, name);
+        final box = tester.getRect(name);
+        expect(box.height, greaterThanOrEqualTo(44), reason: '$scale');
+        expect(box.right, lessThanOrEqualTo(320), reason: '$scale');
+        expect(tester.takeException(), isNull);
+      }
+    });
+  });
+
+  group('more goals than the wall has sheets', () {
+    testWidgets('a "+N" shows only with four goals or more', (tester) async {
+      for (final count in [0, 1, 2, 3]) {
+        final w = _wall(count: count);
+        await _pump(tester, state: w.state, quests: w.quests);
+        expect(_moreTag, findsNothing, reason: '$count goals');
+      }
+      final four = _wall(count: 4);
+      await _pump(tester, state: four.state, quests: four.quests);
+      expect(_moreTag, findsOneWidget);
+      expect(
+        find.descendant(of: _moreTag, matching: find.text('+1')),
+        findsOne,
+      );
+      final five = _wall(count: 5);
+      await _pump(tester, state: five.state, quests: five.quests);
+      expect(
+        find.descendant(of: _moreTag, matching: find.text('+2')),
+        findsOne,
+      );
+    });
+
+    testWidgets('finished goals are not counted', (tester) async {
+      final w = _wall(count: 3);
+      w.state.goals.add(
+        _goal('Finish the portfolio', Stat.foc, complete: true),
+      );
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(_moreTag, findsNothing);
+    });
+
+    testWidgets('it hangs just below the lowest label, at its right edge, and '
+        'touches nothing', (tester) async {
+      final w = _wall(count: 5);
+      await _pump(tester, state: w.state, quests: w.quests);
+      _expectTagClear(tester, w.state);
+      final label = tester.getRect(_glassOf(_label('Summer 2027')));
+      final glass = tester.getRect(_glassOf(_moreTag));
+      expect(glass.top - label.bottom, closeTo(3, 0.5));
+      expect(glass.right, closeTo(label.right, 0.5));
+      // Small and quiet: smaller than a label's glass.
+      expect(glass.height, lessThan(label.height));
+      expect(glass.width, lessThan(40));
+      // Its 44 pt area starts at its glass and reaches down and to the left.
+      final area = tester.getRect(_moreTag);
+      expect(area.top, closeTo(glass.top, 0.5));
+      expect(area.right, closeTo(glass.right + 6, 0.5));
+      expect(area.height, greaterThanOrEqualTo(44));
+    });
+
+    testWidgets('it is a 44 pt target and speaks plainly', (tester) async {
+      final w = _wall(count: 5);
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, state: w.state, quests: w.quests);
+      final box = tester.getRect(_moreTag);
+      expect(box.height, greaterThanOrEqualTo(44));
+      expect(box.width, greaterThanOrEqualTo(44));
+      expect(find.bySemanticsLabel('2 more goals'), findsOneWidget);
+      final four = _wall(count: 4);
+      await _pump(tester, state: four.state, quests: four.quests);
+      expect(find.bySemanticsLabel('1 more goal'), findsOneWidget);
+      semantics.dispose();
+    });
+
+    testWidgets('it stays clear of the labels, the sign and the card at 100% '
+        'on 393 and 320 wide', (tester) async {
+      for (final size in const [Size(393, 852), Size(320, 693)]) {
+        final w = _wall(count: 5);
+        await _pump(tester, state: w.state, quests: w.quests, size: size);
+        // At 320 wide the card is taller (its words wrap), so only the wall
+        // is checked there; the card's own reach is a separate limit.
+        _expectTagClear(
+          tester,
+          w.state,
+          width: size.width,
+          card: size.width > 350,
+        );
+        expect(tester.takeException(), isNull);
+      }
+    });
+
+    for (final scale in [1.3, 2.0]) {
+      testWidgets('it stays clear of every label at ${(scale * 100).round()}% '
+          'text', (tester) async {
+        for (final size in const [Size(393, 852), Size(320, 568)]) {
+          final w = _wall(count: 5);
+          await _pump(
+            tester,
+            state: w.state,
+            quests: w.quests,
+            size: size,
+            textScale: scale,
+          );
+          await revealOnGoalsPage(tester, _moreTag);
+          _expectTagClear(tester, w.state, width: size.width);
+          final tag = tester.getRect(_moreTag);
+          expect(tag.height, greaterThanOrEqualTo(44));
+          // It follows the last label in the page's flow, before the card.
+          final card = tester.getRect(_card);
+          expect(tag.bottom, lessThanOrEqualTo(card.top + 0.5));
+          expect(tester.takeException(), isNull);
+        }
+      });
+    }
+
+    testWidgets('pressing it unrolls MORE at Other goals', (tester) async {
+      final w = _wall(count: 5);
+      await _pump(tester, state: w.state, quests: w.quests);
+      expect(goalsRoomUnrolled, findsNothing);
+      await tester.tap(_moreTag);
+      await tester.pumpAndSettle();
+      expect(goalsRoomUnrolled, findsOneWidget);
+      // Other goals is open and is where the card has scrolled to.
+      final card = tester.getRect(find.byKey(const Key('goals-card-scroll')));
+      final section = tester.getRect(
+        find.byKey(const Key('other-goals-section')),
+      );
+      expect(section.top, greaterThanOrEqualTo(card.top));
+      expect(section.top, lessThan(card.top + 120));
+      // Its rows are there; the first is in view (the card scrolls for the
+      // rest).
+      for (final title in const [
+        'computer architecture',
+        'summer 2027',
+        'make the apartment feel calm',
+        'build a walking habit',
+      ]) {
+        expect(find.byKey(Key('active-goal-$title')), findsOneWidget);
+      }
+      final first = tester.getRect(
+        find.byKey(const Key('active-goal-computer architecture')),
+      );
+      expect(first.top, greaterThanOrEqualTo(card.top));
+      expect(first.bottom, lessThanOrEqualTo(card.bottom + 0.5));
+      expect(
+        tester
+            .state<ScrollableState>(
+              find.descendant(
+                of: find.byKey(const Key('goals-card-scroll')),
+                matching: find.byType(Scrollable),
+              ),
+            )
+            .position
+            .pixels,
+        greaterThan(0),
+      );
+    });
+
+    testWidgets('it fades away while MORE is open and returns when MORE '
+        'rolls up', (tester) async {
+      final w = _wall(count: 5);
+      final semantics = tester.ensureSemantics();
+      await _pump(tester, state: w.state, quests: w.quests);
+      double opacity() => tester
+          .widget<AnimatedOpacity>(
+            find
+                .ancestor(of: _moreTag, matching: find.byType(AnimatedOpacity))
+                .first,
+          )
+          .opacity;
+      expect(opacity(), 1);
+      expect(find.semantics.byLabel('2 more goals'), findsOneWidget);
+      await openGoalsMore(tester);
+      // The unrolled card would cover half of it: it has done its work.
+      expect(opacity(), 0);
+      expect(find.semantics.byLabel('2 more goals'), findsNothing);
+      expect(
+        tester.widget<Pressable>(_moreTag).enabled,
+        isFalse,
+        reason: 'not reachable by touch or keyboard while hidden',
+      );
+      await tester.tap(goalsRoomMore);
+      await tester.pumpAndSettle();
+      expect(opacity(), 1);
+      expect(find.semantics.byLabel('2 more goals'), findsOneWidget);
+      expect(tester.widget<Pressable>(_moreTag).enabled, isTrue);
+      semantics.dispose();
+    });
+
+    testWidgets('a goal chosen from that list becomes the current goal', (
+      tester,
+    ) async {
+      final w = _wall(count: 5);
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_moreTag);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('active-goal-build a walking habit')),
+      );
+      await tester.pumpAndSettle();
+      expect(_nameOf(tester), 'Build a walking habit');
+      // It has taken the last sheet, and the count still says two more.
+      expect(_label('Build a walking habit'), findsOneWidget);
+      expect(_label('Summer 2027'), findsNothing);
+      expect(
+        find.descendant(of: _moreTag, matching: find.text('+2')),
+        findsOne,
+      );
+    });
+
+    testWidgets('rolling MORE up and unrolling it again starts with Other '
+        'goals closed', (tester) async {
+      final w = _wall(count: 5);
+      await _pump(tester, state: w.state, quests: w.quests);
+      await tester.tap(_moreTag);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('active-goal-summer 2027')), findsOneWidget);
+      // The card has scrolled down to Other goals; MORE is at its top.
+      await tester.ensureVisible(goalsRoomMore);
+      await tester.pumpAndSettle();
+      await tester.tap(goalsRoomMore);
+      await tester.pumpAndSettle();
+      expect(goalsRoomUnrolled, findsNothing);
+      await tester.tap(goalsRoomMore);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('active-goal-summer 2027')), findsNothing);
+    });
+
+    for (final scale in [1.3, 2.0]) {
+      testWidgets('at ${(scale * 100).round()}% it brings Other goals into '
+          'view', (tester) async {
+        final w = _wall(count: 5);
+        await _pump(
+          tester,
+          state: w.state,
+          quests: w.quests,
+          size: const Size(320, 568),
+          textScale: scale,
+        );
+        await revealOnGoalsPage(tester, _moreTag);
+        await tester.tap(_moreTag);
+        await tester.pumpAndSettle();
+        final section = tester.getRect(
+          find.byKey(const Key('other-goals-section')),
+        );
+        expect(section.top, greaterThanOrEqualTo(0));
+        expect(section.top, lessThan(568 * 0.6));
+        expect(
+          find.byKey(const Key('active-goal-summer 2027')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('under Reduce Motion it goes straight there', (tester) async {
+      final w = _wall(count: 5);
+      await _pump(
+        tester,
+        state: w.state,
+        quests: w.quests,
+        disableAnimations: true,
+      );
+      await tester.tap(_moreTag);
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const Key('active-goal-summer 2027')), findsOneWidget);
+      final card = tester.getRect(find.byKey(const Key('goals-card-scroll')));
+      expect(
+        tester.getRect(find.byKey(const Key('other-goals-section'))).top,
+        lessThan(card.top + 120),
+      );
+    });
+  });
+
   group('large text', () {
     for (final scale in [1.3, 2.0]) {
       for (final size in const [Size(393, 852), Size(320, 568)]) {
@@ -606,9 +1240,7 @@ void main() {
   });
 
   group('Reduce Motion', () {
-    testWidgets('MORE opens at once and the card swaps without a fade', (
-      tester,
-    ) async {
+    testWidgets('MORE opens at once', (tester) async {
       final w = _wall();
       await _pump(
         tester,
@@ -625,6 +1257,30 @@ void main() {
       expect(fade.opacity, 1);
     });
 
+    testWidgets('the swap is a fade only: the card does not ease its height', (
+      tester,
+    ) async {
+      final w = _wall();
+      await _pump(
+        tester,
+        state: w.state,
+        quests: w.quests,
+        disableAnimations: true,
+      );
+      expect(
+        find.descendant(of: _card, matching: find.byType(AnimatedSize)),
+        findsNothing,
+      );
+      await tester.tap(_label('Computer Architecture'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 45));
+      expect(_opacity(tester, 'room of days'), inExclusiveRange(0.0, 1.0));
+      expect(_opacity(tester, 'computer architecture'), lessThan(0.05));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_face('room of days')), findsNothing);
+      expect(_nameOf(tester), 'Computer Architecture');
+    });
+
     testWidgets('the goal page arrives with a short fade', (tester) async {
       final w = _wall();
       await _pump(
@@ -633,7 +1289,7 @@ void main() {
         quests: w.quests,
         disableAnimations: true,
       );
-      await tester.tap(_label('Computer Architecture'));
+      await tester.tap(_label('Room of Days'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
       expect(find.byType(GoalDetailScreen), findsOneWidget);
@@ -655,6 +1311,7 @@ void main() {
       );
       expect(find.bySemanticsLabel('Open Quest. Open the app'), findsOneWidget);
       expect(find.bySemanticsLabel('MORE. Collapsed.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Open goal, Room of Days'), findsOneWidget);
       await tester.tap(goalsRoomMore);
       await tester.pumpAndSettle();
       expect(find.bySemanticsLabel('MORE. Open. Collapse.'), findsOneWidget);
@@ -668,7 +1325,7 @@ void main() {
     ) async {
       final w = _wall();
       await _pump(tester, state: w.state, quests: w.quests);
-      await tester.tap(_label('Computer Architecture'));
+      await tester.tap(_label('Room of Days'));
       await tester.pumpAndSettle();
       final backdrop = find.descendant(
         of: find.byType(GoalDetailScreen),
