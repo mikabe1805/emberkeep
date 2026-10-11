@@ -54,6 +54,20 @@ seconds and the same interaction ducking. Normal music remains optional;
 Focus retains its distinct meditation track. All music is deferred from the
 web first-frame cache and remains available for offline warming.
 
+## Class-day score (`class_day/`)
+
+On a class day the room's music is not the rotation but the class-day score:
+`bed_between.m4a` and `bed_evening.m4a` (one 16-bar pass of the 72 BPM
+umbrella-brush form each, with a 6.5 s tail, -36.0 dBFS phone-band RMS like
+every take above) and `swell_00.m4a` to `swell_31.m4a` (two bars of bass and
+night bells cut at each strong beat of the form, -38.2 dBFS over their held
+bars). A class kept starts the swell cut at the next strong beat. Native only.
+Source: `tool/author_class_day_score.py`; manifest, sizes and levels:
+`design/audits/2026-10-11/class-day-score/manifest.json`; pinned in
+`test/class_day_score_assets_test.dart`; how it plays: `SOUND-DESIGN.md` section
+13. Owner evidence: "also changing the music after you marked a class was super
+cool".
+
 ## Focus music — peaceful meditation loop
 
 `focus-meditation.m4a` is the 112-second Steward-supper master that Build 40

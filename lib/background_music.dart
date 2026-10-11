@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
+import 'class_day_score.dart';
 import 'clock.dart';
 import 'main_room_music.dart';
 import 'platform/audio_support_stub.dart'
     if (dart.library.js_interop) 'platform/audio_support_web.dart';
 
-/// The two intentionally different long-form music roles.
-enum RoomMusicRole { main, focus }
+/// The long-form music roles. [main] and [focus] are intentionally different
+/// pieces of music; [classDay] is the class-day score, which stands in for
+/// [main] on a class day only (see [BackgroundMusicController.setClassDay]).
+enum RoomMusicRole { main, focus, classDay }
 
 /// Transport for the single peaceful Focus loop. The normal room uses
 /// [MainRoomMusicPlayback], whose approved dry rotation has different
@@ -79,6 +82,12 @@ class AudioplayersBackgroundMusicTransport implements BackgroundMusicTransport {
 ///   preference.
 /// - Leaving Focus restores the main rotation only when the global preference
 ///   is still on.
+/// - On a class day the class-day score is the room's music instead of the
+///   rotation, for as long as music is wanted (the saved setting or tonight's
+///   choice): the Between bed by day, the Evening bed once the glass has
+///   turned to the evening, and a two-bar swell when a class is kept. Focus
+///   still wins over it, and every other day keeps the rotation. It is native
+///   only; the web build keeps the rotation.
 class BackgroundMusicController {
   static int _latestSharedMainLease = 0;
 
@@ -87,17 +96,36 @@ class BackgroundMusicController {
   BackgroundMusicController({
     BackgroundMusicTransport? transport,
     MainRoomMusicPlayback? mainMusic,
+    ClassDayScorePlayback? classDayScore,
     this.focusAsset = 'music/focus-meditation.m4a',
     // The meditation master is -24 LUFS. This gain keeps it below speech and
     // the approved interaction cues while remaining audible when chosen.
     this.focusVolume = 0.35,
   }) : _focusTransport = transport ?? AudioplayersBackgroundMusicTransport(),
        _mainMusic = mainMusic ?? MainRoomMusic.instance,
+       _score =
+           classDayScore ??
+           ClassDayScore(
+             transport: const AudioplayersScoreTransport(),
+             // The same duck the rotation sits under when sounds play.
+             duckGain: mainMusic == null
+                 ? () => MainRoomMusic.instance.ducker.gainAt(DateTime.now())
+                 : null,
+           ),
        _ownsMainMusic = mainMusic != null,
-       _sharedMainLease = mainMusic == null ? _claimSharedMainLease() : null;
+       _sharedMainLease = mainMusic == null ? _claimSharedMainLease() : null {
+    _mainMusic.nowPlaying.addListener(_syncNowPlaying);
+    _score.nowPlaying.addListener(_syncNowPlaying);
+    _syncNowPlaying();
+  }
 
   final BackgroundMusicTransport _focusTransport;
   final MainRoomMusicPlayback _mainMusic;
+  final ClassDayScorePlayback _score;
+  final ValueNotifier<String?> _nowPlaying = ValueNotifier<String?>(null);
+
+  /// The class-day score is native only: the web build keeps the rotation.
+  static bool get _scoreAvailable => !kIsWeb;
   // The production instance is shared with Sfx for gesture retries and
   // ducking. An AppShell can be recreated in the same process, so disposing
   // that singleton here would make every later shell permanently silent.
@@ -132,6 +160,16 @@ class BackgroundMusicController {
     return _roomChoice;
   }
 
+  /// Today is a class day (the Quests page says so) and whether the glass has
+  /// turned to the evening. Both are the page's reading, relayed; this class
+  /// holds no day logic of its own.
+  bool _classDay = false;
+  bool _classDayEvening = false;
+
+  /// The evening door's press asked for Lamp left on while the score is the
+  /// room's music: the score plays it first, as an opener.
+  bool _openerPending = false;
+
   final ValueNotifier<bool> _mainWanted = ValueNotifier<bool>(false);
   bool _sessionActive = false;
   bool _sessionEnabled = false;
@@ -152,8 +190,15 @@ class BackgroundMusicController {
   /// any fade.
   ValueListenable<bool> get mainWanted => _mainWanted;
 
-  /// The main rotation's take sounding now (an asset path), or null.
-  ValueListenable<String?> get nowPlaying => _mainMusic.nowPlaying;
+  /// The file sounding now (an asset path) in the room's music, the
+  /// rotation's take or the class-day score's, or null.
+  ValueListenable<String?> get nowPlaying => _nowPlaying;
+
+  void _syncNowPlaying() {
+    final next = _score.nowPlaying.value ?? _mainMusic.nowPlaying.value;
+    if (_nowPlaying.value != next) _nowPlaying.value = next;
+  }
+
   bool get sessionActive => _sessionActive;
   bool get sessionEnabled => _sessionEnabled;
   bool get sessionMuted => _sessionMuted;
@@ -162,6 +207,7 @@ class BackgroundMusicController {
   bool get isPlaying => switch (_currentRole) {
     RoomMusicRole.main => _mainMusic.isPlaying,
     RoomMusicRole.focus => _focusPlaying,
+    RoomMusicRole.classDay => _score.isPlaying,
     null => false,
   };
 
@@ -171,7 +217,10 @@ class BackgroundMusicController {
       final focusWanted = (_enabled || _sessionEnabled) && !_sessionMuted;
       return focusWanted ? RoomMusicRole.focus : null;
     }
-    return (_activeChoice ?? _enabled) ? RoomMusicRole.main : null;
+    if (!(_activeChoice ?? _enabled)) return null;
+    return _classDay && _scoreAvailable
+        ? RoomMusicRole.classDay
+        : RoomMusicRole.main;
   }
 
   /// Whether the main rotation would play outside Focus: the saved setting,
@@ -211,12 +260,48 @@ class BackgroundMusicController {
     if (_disposed) return Future<void>.value();
     _roomChoice = listening;
     _roomChoiceUntil = listening == null ? null : until;
+    if (listening != true) _openerPending = false;
     if (listening == true &&
         startWithTake != null &&
-        _currentRole != RoomMusicRole.main) {
-      _mainMusic.preferNextTake(startWithTake);
+        _currentRole != RoomMusicRole.main &&
+        _currentRole != RoomMusicRole.classDay) {
+      if (_classDay && _scoreAvailable) {
+        // The score is the room's music today: Lamp left on opens it, and the
+        // rotation is not told, or it would open with Lamp left on some other
+        // day.
+        if (startWithTake == MainRoomMusic.lampLeftOnTake) {
+          _openerPending = true;
+        }
+      } else {
+        _mainMusic.preferNextTake(startWithTake);
+      }
     }
     return _schedule();
+  }
+
+  /// The Quests page's reading of today: a class day or not, and whether the
+  /// glass has turned to the evening. On a class day the score replaces the
+  /// rotation while music is wanted; the change of phase is applied at the
+  /// score's next pass boundary. Says nothing about whether music is wanted,
+  /// and never starts music by itself.
+  Future<void> setClassDay(bool active, {bool evening = false}) {
+    if (_disposed) return Future<void>.value();
+    final phase = active && evening;
+    if (_classDay == active && _classDayEvening == phase) {
+      return Future<void>.value();
+    }
+    _classDay = active;
+    _classDayEvening = phase;
+    if (!active) _openerPending = false;
+    return _schedule();
+  }
+
+  /// A class was kept. The score answers with a two-bar swell on the next
+  /// strong beat after [after] (how long the chime takes to sound), when it is
+  /// the room's music and the Between bed is sounding; otherwise nothing.
+  void classKept({required Duration after}) {
+    if (_disposed || _currentRole != RoomMusicRole.classDay) return;
+    _score.classKept(after: after);
   }
 
   /// Marks the TimerOverlay boundary. A globally enabled room moves from the
@@ -262,6 +347,12 @@ class BackgroundMusicController {
       if (_disposed || _desiredRole == null) return;
       if (_desiredRole == RoomMusicRole.main) {
         await _mainMusic.retryAfterUserGesture();
+      } else if (_desiredRole == RoomMusicRole.classDay) {
+        // Native only, so no browser gesture is waited for; but a score that
+        // failed to start is retried on the next press.
+        if (_currentRole != RoomMusicRole.classDay || !_score.isPlaying) {
+          await _startScore();
+        }
       } else if (!_focusPlaying || _focusFadeNeedsRetry) {
         await _startFocus();
       }
@@ -271,10 +362,13 @@ class BackgroundMusicController {
 
   Future<void> _schedule() {
     if (_disposed) return Future<void>.value();
-    _mainWanted.value = _desiredRole == RoomMusicRole.main;
+    _mainWanted.value =
+        _desiredRole == RoomMusicRole.main ||
+        _desiredRole == RoomMusicRole.classDay;
     _tail = _tail.catchError((Object _) {}).then<void>((_) async {
       if (_disposed) return;
       await _mainMusic.setForeground(_foreground);
+      await _score.setForeground(_foreground);
       final desired = _desiredRole;
 
       if (_currentRole == desired) {
@@ -282,6 +376,12 @@ class BackgroundMusicController {
           await _mainMusic.setEnabled(true);
         } else if (desired == RoomMusicRole.focus && !_focusPlaying) {
           await _startFocus();
+        } else if (desired == RoomMusicRole.classDay) {
+          if (_score.isPlaying) {
+            await _score.setEvening(_classDayEvening);
+          } else {
+            await _startScore();
+          }
         }
         return;
       }
@@ -289,6 +389,9 @@ class BackgroundMusicController {
       _fadeEpoch++;
       if (_currentRole == RoomMusicRole.main || desired != RoomMusicRole.main) {
         await _mainMusic.setEnabled(false);
+      }
+      if (_currentRole == RoomMusicRole.classDay) {
+        await _score.stop();
       }
       if (_currentRole == RoomMusicRole.focus) {
         try {
@@ -309,9 +412,30 @@ class BackgroundMusicController {
         _currentRole = RoomMusicRole.main;
       } else if (desired == RoomMusicRole.focus) {
         await _startFocus();
+      } else if (desired == RoomMusicRole.classDay) {
+        await _startScore();
       }
     });
     return _tail;
+  }
+
+  Future<void> _startScore() async {
+    final opener = _openerPending && _classDayEvening;
+    _openerPending = false;
+    try {
+      await _mainMusic.setEnabled(false);
+      await _score.start(evening: _classDayEvening, opener: opener);
+      if (_disposed || _desiredRole != RoomMusicRole.classDay) {
+        await _score.stop();
+        _currentRole = null;
+        return;
+      }
+      _currentRole = RoomMusicRole.classDay;
+    } catch (_) {
+      // Continuing silent, like the rotation: the next change of state tries
+      // again.
+      _currentRole = null;
+    }
   }
 
   Future<void> _startFocus() async {
@@ -373,7 +497,10 @@ class BackgroundMusicController {
     if (_disposed) return _tail;
     _disposed = true;
     _fadeEpoch++;
+    _mainMusic.nowPlaying.removeListener(_syncNowPlaying);
+    _score.nowPlaying.removeListener(_syncNowPlaying);
     _tail = _tail.catchError((Object _) {}).then<void>((_) async {
+      await _score.dispose();
       if (_ownsMainMusic) {
         await _mainMusic.setEnabled(false);
         await _mainMusic.setForeground(false);

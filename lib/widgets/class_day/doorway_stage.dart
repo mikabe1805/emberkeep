@@ -650,7 +650,7 @@ class DoorwayStageState extends State<DoorwayStage>
         if (p.ticket.id == ticket.id) placed = p;
       }
       if (placed == null || pose == null) continue;
-      final start = _ms + step * 180;
+      final start = _ms + step * doorwayShortcutStepMs;
       step++;
       _startMark(
         _Marking(

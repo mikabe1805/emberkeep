@@ -327,6 +327,10 @@ bool _cacheable(String relative) {
       relative.startsWith('introduction/')) {
     return false;
   }
+  // The class-day score is native only (it stands on a measured beat clock the
+  // browser's audio does not give); the web build keeps the dry rotation, so
+  // nothing in its folder is ever fetched and none of it is cached.
+  if (relative.startsWith('assets/assets/music/class_day/')) return false;
   if (relative.startsWith('canvaskit/')) {
     return _canvasKitRuntime.contains(relative) ||
         _skwasmRuntime.contains(relative);

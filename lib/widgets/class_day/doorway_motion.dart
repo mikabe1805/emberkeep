@@ -81,6 +81,24 @@ const double doorwayWeekCardMs = 1100;
 /// A Reduce Motion move: a cross-fade.
 const double doorwayFadeMs = 260;
 
+/// A shortcut that keeps several classes starts each ticket's mark this long
+/// after the one before it.
+const double doorwayShortcutStepMs = 180;
+
+/// How long after a mark gesture the last class chime has finished hanging:
+/// the earliest moment the room's music may answer without landing on it. The
+/// hang is at [doorwayHangMs] (a cross-fade's [doorwayFadeMs] under Reduce
+/// Motion), the shortcut's later tickets hang [doorwayShortcutStepMs] apart,
+/// and 50 ms is left clear of the chime's attack.
+Duration doorwayChimeDoneAfter({required bool reduceMotion, int tickets = 1}) =>
+    Duration(
+      milliseconds:
+          ((reduceMotion ? doorwayFadeMs : doorwayHangMs) +
+                  50 +
+                  doorwayShortcutStepMs * (tickets < 1 ? 0 : tickets - 1))
+              .round(),
+    );
+
 // ── Ease ─────────────────────────────────────────────────────────────────
 
 /// Where a ticket is at one moment of a trip. Every number is in the stage's
