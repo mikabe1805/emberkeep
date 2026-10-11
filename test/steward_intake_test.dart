@@ -7,10 +7,11 @@ import 'package:emberkeep/screens/goal_workshop.dart';
 import 'package:emberkeep/screens/goals.dart';
 import 'package:emberkeep/screens/quick_goal_composer.dart';
 import 'package:emberkeep/tokens.dart';
-import 'package:emberkeep/widgets/goal_steward.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'support/goals_room_support.dart';
 
 GoalPlan _plan(String title, Stat stat) => GoalPlanner.draft(
   GoalPlanInput(
@@ -459,15 +460,12 @@ void main() {
         ),
         findsOneWidget,
       );
+      // The sign binds its last two words so a line never ends on one word.
       expect(
         find.descendant(
           of: door,
-          matching: find.text('Turn a goal into a first step'),
+          matching: find.text('Turn a goal into a first step'),
         ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: door, matching: find.byType(GoalStewardPortrait)),
         findsOneWidget,
       );
       expect(find.text('Review & reshape'), findsNothing);
@@ -486,7 +484,7 @@ void main() {
       expect(
         find.descendant(
           of: door,
-          matching: find.text('Start a goal with help'),
+          matching: find.text('Start a goal with help'),
         ),
         findsOneWidget,
       );
@@ -498,6 +496,7 @@ void main() {
       final state = GameState()..reduceMotion = true;
       state.goals.add(_goal('Finish the portfolio', Stat.foc));
       await pumpGoals(tester, state, []);
+      await revealOnGoalsPage(tester, find.byKey(const Key('goals-new-goal')));
       await tester.tap(find.byKey(const Key('goals-new-goal')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('steward-intake')), findsOneWidget);

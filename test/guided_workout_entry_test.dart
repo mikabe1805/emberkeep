@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'support/goals_room_support.dart';
+
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
   setUp(() => Sfx.instance.soundEnabled = false);
@@ -60,21 +62,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       final support = find.byKey(const ValueKey('goals-support-toggle'));
-      await tester.scrollUntilVisible(
-        support,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.ensureVisible(support);
-      await tester.pumpAndSettle();
+      await revealOnGoalsPage(tester, support);
       await tester.tap(support);
       await tester.pump(const Duration(milliseconds: 200));
       final card = find.byKey(const ValueKey('goals-guided-workouts'));
-      await tester.scrollUntilVisible(
-        card,
-        180,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await revealOnGoalsPage(tester, card);
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(card);
       await tester.pump();

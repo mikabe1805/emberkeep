@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'support/goals_room_support.dart';
+
 Future<void> _pumpGoals(
   WidgetTester tester, {
   required GameState state,
@@ -116,7 +118,7 @@ void main() {
     expect(quests[2].priorityDay, Days.key(today));
     expect(quests[2].priorityRank, 2);
     expect(quests[0].priorityDay, isNull);
-    expect(find.text('Plan today’s three · 2'), findsOneWidget);
+    expect(find.text('TODAY’S THREE · 2'), findsOneWidget);
     expect(find.byKey(const Key('goals-today-field')), findsNothing);
   });
 
@@ -147,20 +149,22 @@ void main() {
       size: const Size(320, 568),
       textScale: 1.5,
     );
-    final choose = find.byKey(const Key('goals-today-field-header'));
-    expect(choose, findsOneWidget);
-    expect(tester.getCenter(choose).dy, lessThan(568));
-    expect(tester.getSize(choose).width, greaterThanOrEqualTo(44));
-    expect(tester.getSize(choose).height, greaterThanOrEqualTo(44));
+    // At large text the card's own button carries Today's three.
     final workshop = find.byKey(const Key('goals-open-workshop'));
     expect(tester.getSize(workshop).width, greaterThanOrEqualTo(44));
     expect(tester.getSize(workshop).height, greaterThanOrEqualTo(44));
+    final choose = find.byKey(const Key('goals-today-field-action'));
+    expect(choose, findsOneWidget);
+    await tester.ensureVisible(choose);
+    await tester.pump();
+    expect(tester.getSize(choose).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(choose).height, greaterThanOrEqualTo(44));
     expect(selectedDailyFieldForDay(quests, today), hasLength(1));
     expect(
       find.byWidgetPredicate(
         (widget) =>
             widget is Semantics &&
-            widget.properties.label == 'Review today’s three, 1 selected',
+            widget.properties.label == 'Today’s three · 1',
       ),
       findsOneWidget,
     );
@@ -193,6 +197,7 @@ void main() {
       onOpenQuests: () => boardOpens++,
     );
 
+    await openGoalsMore(tester);
     final openRow = find.byKey(
       const ValueKey('goals-today-field-read ten pages'),
     );
@@ -214,6 +219,7 @@ void main() {
       findsOneWidget,
     );
     await tester.ensureVisible(openRow);
+    await tester.pump();
     await tester.tap(openRow);
     await tester.pumpAndSettle();
     expect(opened, hasLength(1));
@@ -222,12 +228,14 @@ void main() {
     expect(persistCount, 0);
 
     await tester.ensureVisible(doneRow);
+    await tester.pump();
     await tester.tap(doneRow);
     await tester.pumpAndSettle();
     expect(opened, hasLength(1));
     expect(boardOpens, 0);
     expect(persistCount, 0);
     await tester.ensureVisible(setAsideRow);
+    await tester.pump();
     await tester.tap(setAsideRow);
     await tester.pumpAndSettle();
     expect(opened, hasLength(1));

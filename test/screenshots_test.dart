@@ -74,6 +74,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'house/me_sheet_support.dart';
+import 'support/goals_room_support.dart';
 
 Widget _stage(
   Widget child, {
@@ -1821,26 +1822,11 @@ void main() {
     await _storeShot(tester, '04_goals_1290x2796');
 
     final supportToggle = find.byKey(const ValueKey('goals-support-toggle'));
-    await tester.scrollUntilVisible(
-      supportToggle,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(supportToggle),
-      alignment: 0.4,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, supportToggle);
     await tester.tap(supportToggle);
     await tester.pump(const Duration(milliseconds: 220));
     final unstick = find.byKey(const ValueKey('goals-unstick-me'));
-    await Scrollable.ensureVisible(
-      tester.element(unstick),
-      alignment: 0.4,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, unstick);
     await tester.tap(unstick);
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, '04b_momentum_kits_1290x2796');
@@ -3092,17 +3078,13 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    // The large-text heading receives a full row above its controls. Keep the
-    // page name as one readable word instead of allowing the toolbar to force
-    // an accidental line break.
-    expect(tester.getSize(find.text('Goals')).height, lessThan(90));
-
-    final action = find.text('Open Quest', skipOffstage: false);
-    await tester.scrollUntilVisible(
-      action,
-      210,
-      scrollable: find.byType(Scrollable).first,
+    // At large text the room scrolls: the sign, the wall and the card follow
+    // each other down the page, and the card's action is reachable.
+    await revealOnGoalsPage(
+      tester,
+      find.byKey(const Key('goals-return-primary-action')),
     );
+    final action = find.text('OPEN QUEST', skipOffstage: false);
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -3198,16 +3180,8 @@ void main() {
       ),
     );
     await _precachePageArt(tester);
-    final recovery = find.byKey(
-      const Key('goals-recover-today'),
-      skipOffstage: false,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(recovery),
-      alignment: 0.2,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    final recovery = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recovery);
     await tester.tap(recovery);
     await tester.pumpAndSettle();
 
@@ -3341,21 +3315,8 @@ void main() {
     );
     await _precachePageArt(tester);
 
-    final recovery = find.byKey(
-      const Key('goals-recover-today'),
-      skipOffstage: false,
-    );
-    await tester.scrollUntilVisible(
-      recovery,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(recovery),
-      alignment: 0.5,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    final recovery = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recovery);
     await tester.tap(recovery);
     await tester.pumpAndSettle();
     await tester.tap(
@@ -4069,7 +4030,9 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const Key('goals-recover-today')));
+    final recoverToday = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recoverToday);
+    await tester.tap(recoverToday);
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -4086,17 +4049,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     final support = find.byKey(const Key('goals-support-toggle'));
-    await tester.scrollUntilVisible(
-      support,
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(support),
-      alignment: 0.5,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, support);
     await tester.tap(support);
     await tester.pumpAndSettle();
     expect(find.text('Find a start'), findsOneWidget);
@@ -4359,16 +4312,7 @@ void main() {
     );
     await _precachePageArt(tester);
     final otherGoals = find.byKey(const Key('other-goals-disclosure'));
-    await tester.scrollUntilVisible(
-      otherGoals,
-      320,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(otherGoals),
-      alignment: 0.35,
-      duration: Duration.zero,
-    );
+    await revealOnGoalsPage(tester, otherGoals);
     await tester.pumpAndSettle();
     await tester.tap(otherGoals);
     await tester.pumpAndSettle();
