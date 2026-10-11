@@ -522,7 +522,18 @@ void main() {
         }
         expect(titleText(tester), 'Enough for today');
         expect(find.text('What you chose for today is kept.'), findsOneWidget);
-        await pumpFor(tester, 4000);
+        // The day's card ("SATURDAY, DONE.") holds the screen once the
+        // tickets have landed; a tap closes it onto the room (its own tests
+        // are in quest_day_card_test.dart).
+        final dayCard = find.byKey(const Key('class-kept-celebration'));
+        for (var w = 0; w < 80 && dayCard.evaluate().isEmpty; w++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(dayCard, findsOneWidget);
+        await pumpFor(tester, 2600);
+        await tester.tapAt(const Offset(196, 420));
+        await pumpFor(tester, 800);
+        expect(dayCard, findsNothing);
         expect(stage(tester).bowlShown, 1);
         // Closing the day is the one lamp.
         expect(find.text('CLOSE THE DAY'), findsOneWidget);

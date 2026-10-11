@@ -121,6 +121,19 @@ Future<void> _mark(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// Keeps Today's three and waits for the day card to settle.
+Future<void> _keepThree(WidgetTester tester) async {
+  for (var i = 0; i < 3; i++) {
+    await _mark(tester);
+    await _pump(tester, i == 2 ? 100 : 3600);
+  }
+  final card = find.byKey(const Key('class-kept-celebration'));
+  for (var t = 0; t < 12000 && card.evaluate().isEmpty; t += 100) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await _pump(tester, 2800);
+}
+
 class _Seeded extends MikaAccount {
   _Seeded(MikaAccount from, this.records)
     : super(from.state, from.quests, lastActive: from.lastActive);
@@ -215,13 +228,92 @@ void main() {
       surface: 'QUESTS',
       note: 'the tickets drop into the bowl',
     );
-    await _pump(tester, 3600);
+    // The tickets have landed in the bowl; the day's card follows (about
+    // 500 ms after the landing) and holds for a tap.
+    await _pump(tester, 800);
     await sheet.shot(
       tester,
-      'Q5c_all_kept',
+      'Q5c_day_card_in',
       at: _at,
       surface: 'QUESTS',
-      note: 'the day is enough',
+      note: 'the day card arrives over the Doorway',
+    );
+    await _pump(tester, 900);
+    await sheet.shot(
+      tester,
+      'Q5d_day_card_mid',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'the day card, 1.2 s in',
+    );
+    await _pump(tester, 1700);
+    await sheet.shot(
+      tester,
+      'Q5e_day_card',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'SATURDAY, DONE. settled, held for a tap',
+    );
+    await tester.tapAt(const Offset(196, 426));
+    await _pump(tester, 900);
+    await sheet.shot(
+      tester,
+      'Q5f_all_kept',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'closed: the day is enough, CLOSE THE DAY',
+    );
+  });
+
+  roomRenderTest('Saturday, the day card at larger text', skip: !_renders, (
+    tester,
+  ) async {
+    if (!_wants('cardtext')) return;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _boot(tester);
+    await _keepThree(tester);
+    await sheet.shot(
+      tester,
+      'Q10_day_card_130',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'the day card at 130% text',
+    );
+  });
+
+  roomRenderTest('Saturday, the day card at 200% text', skip: !_renders, (
+    tester,
+  ) async {
+    if (!_wants('cardtext200')) return;
+    tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _boot(tester);
+    await _keepThree(tester);
+    await sheet.shot(
+      tester,
+      'Q11_day_card_200',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'the day card at 200% text',
+    );
+  });
+
+  roomRenderTest('Saturday, the day card with Reduce Motion', skip: !_renders, (
+    tester,
+  ) async {
+    if (!_wants('cardreduce')) return;
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await _boot(tester);
+    await _keepThree(tester);
+    await sheet.shot(
+      tester,
+      'Q12_day_card_reduce',
+      at: _at,
+      surface: 'QUESTS',
+      note: 'the day card with Reduce Motion (a fade, no slam)',
     );
   });
 

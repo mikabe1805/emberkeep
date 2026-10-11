@@ -241,6 +241,8 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
         key: const Key('class-kept-celebration'),
         button: true,
         liveRegion: true,
+        // One label, read once: the words drawn on it are in the label.
+        excludeSemantics: true,
         label: plan.semanticsLabel,
         hint: 'Tap to continue',
         onTap: _dismiss,
@@ -370,7 +372,14 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
                             painter: _WalnutDim(
                               lamp: lamp,
                               dim: dim,
-                              wordsFrom: stageTop + imageBottom * 0.52,
+                              // The class cards' words rest low; the quest
+                              // day's stand over the door, so the floor
+                              // below them stays in sight, dimmed.
+                              reach: widget.plan.xpRail ? 1.0 : 1.3,
+                              base: widget.plan.xpRail ? 0 : 0.34,
+                              wordsFrom: widget.plan.xpRail
+                                  ? stageTop + imageBottom * 0.52
+                                  : stageTop + plateHeight * 0.72,
                             ),
                           ),
                         ],
@@ -486,8 +495,11 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
       ],
       SizedBox(height: plan.rows.isEmpty ? 16 : 12),
       // The quick tier lands its count by about 500 ms, so its last 0.9 s
-      // is still and the new count can be read.
-      if (quick)
+      // is still and the new count can be read. The quest day's card has no
+      // XP of its own to count (its quests paid when they were kept).
+      if (!plan.xpRail)
+        const SizedBox.shrink()
+      else if (quick)
         _XpToRail(
           plan: plan,
           width: width,
@@ -509,11 +521,12 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
         const SizedBox(height: 10),
         _rise(_iv(760, 1000), _streak(line)),
       ],
-      const SizedBox(height: 14),
+      SizedBox(height: plan.xpRail ? 14 : 12),
       _rise(
-        // The quick tier's closing line arrives with its headline.
+        // The quick tier's closing line arrives with its headline. With no XP
+        // row to wait for, the held card's closes on its words.
         _held
-            ? _iv(1500, 1850)
+            ? (plan.xpRail ? _iv(1500, 1850) : _iv(900, 1250))
             : quick
             ? _iv(140, 500)
             : _iv(900, 1250),
@@ -532,11 +545,15 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
           ),
         ),
       ),
+      if (!plan.xpRail && plan.pillXp > 0) ...[
+        const SizedBox(height: 18),
+        _rise(_iv(1150, 1450), _bonusPill(plan.pillXp)),
+      ],
       const SizedBox(height: 22),
       Opacity(
         opacity:
             (_held
-                ? _iv(1800, 2200)
+                ? (plan.xpRail ? _iv(1800, 2200) : _iv(1500, 1900))
                 : quick
                 ? _iv(500, 700)
                 : _iv(1300, 1500)) *
@@ -545,8 +562,38 @@ class _ClassKeptCelebrationState extends State<ClassKeptCelebration>
       ),
       const SizedBox(height: 18),
     ];
-    return Column(mainAxisAlignment: MainAxisAlignment.end, children: children);
+    // The class cards rest on the floor of the room (their rows and XP rail
+    // fill it); the quest day's has only its words, so it stands where the
+    // prototype's tier card does, over the door, not alone at the bottom.
+    return Column(
+      mainAxisAlignment: plan.xpRail
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.center,
+      children: children,
+    );
   }
+
+  /// The one small pill under the closing line: a real full-day bonus, shown
+  /// only when the engine paid one.
+  Widget _bonusPill(int xp) => DecoratedBox(
+    key: const Key('class-celebration-pill'),
+    decoration: BoxDecoration(
+      color: const Color(0x47785C2C),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0x8CDCB36C)),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+      child: Text(
+        '+$xp XP',
+        style: Type.label.copyWith(
+          fontSize: 15,
+          letterSpacing: 2.0,
+          color: Palette.xpLight,
+        ),
+      ),
+    ),
+  );
 
   Widget _rise(double t, Widget child, {double distance = 12}) => Opacity(
     opacity: t.clamp(0.0, 1.0),
@@ -1165,10 +1212,25 @@ class _RailPainter extends CustomPainter {
 /// room stays visible where the lamp reaches and falls to near-black where
 /// the words sit. No blur.
 class _WalnutDim extends CustomPainter {
-  _WalnutDim({required this.lamp, required this.dim, required this.wordsFrom});
+  _WalnutDim({
+    required this.lamp,
+    required this.dim,
+    required this.wordsFrom,
+    this.reach = 1.0,
+    this.base = 0,
+  });
 
   final Offset lamp;
   final double dim;
+
+  /// How far the lamp's pool of light reaches (1: the class cards', whose
+  /// words sit in the dark below; larger: the quest day's, whose words stand
+  /// over the door and leave the floor in dim sight).
+  final double reach;
+
+  /// A still, even darkening under the pool of light (0: none), so a card
+  /// whose words stand over the room can still be read there.
+  final double base;
 
   /// Below this line the words sit in walnut night.
   final double wordsFrom;
@@ -1177,6 +1239,12 @@ class _WalnutDim extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (dim <= 0) return;
     final rect = Offset.zero & size;
+    if (base > 0) {
+      canvas.drawRect(
+        rect,
+        Paint()..color = const Color(0xFF110905).withValues(alpha: base * dim),
+      );
+    }
     final centre = lamp.translate(70, 40);
     final align = Alignment(
       (centre.dx / size.width) * 2 - 1,
@@ -1187,7 +1255,7 @@ class _WalnutDim extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           center: align,
-          radius: 1.32,
+          radius: 1.32 * reach,
           colors: [
             const Color(0xFF3B2514).withValues(alpha: 0.10 * dim),
             const Color(0xFF22150B).withValues(alpha: 0.66 * dim),
@@ -1219,7 +1287,11 @@ class _WalnutDim extends CustomPainter {
 
   @override
   bool shouldRepaint(_WalnutDim old) =>
-      old.dim != dim || old.lamp != lamp || old.wordsFrom != wordsFrom;
+      old.dim != dim ||
+      old.lamp != lamp ||
+      old.wordsFrom != wordsFrom ||
+      old.reach != reach ||
+      old.base != base;
 }
 
 /// Round honey motes that rise from the lamp-lit desk for the day and week
