@@ -108,30 +108,23 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 51 is an internal candidate built around class days. Marking a class
-earns XP and keeps your streak, and the evening room takes over after your
-last one. The main buttons are now lit like the room's lamp, page changes no
-longer blur, and opening a goal's review walks you through the kitchen doorway.
+Build 52 is an internal candidate that brings the Steward's workshop to the
+front of Goals. New goals now start with the Steward, one question at a time,
+and end on a first step you can take today. The end-of-week class screen also
+adds up correctly now.
 
 ## What to Test
 
-- On a class day, open Quests. Tap **I WAS THERE** on a class that has ended
-  and watch the celebration through to the end. Mark a second class and check
-  the shorter version plays.
-- After your last class, return to the app. The room should turn to the
-  window and armchair for the evening. Try the music and **Write a line**.
-- Mark a class from the Day Ledger widget on your home screen.
-- Swipe a marked class to undo it, then mark it again.
-- In Plans, open **Add your classes** and try a calendar file or link, or type
-  a class in.
-- Switch between tabs and open and close a few pages. Report anything that
-  feels rushed, blurry, or slow to respond.
-- In Goals, open a goal's review and watch the walk through the doorway.
-  Back out halfway once.
-- Look at the lamp-lit buttons (I WAS THERE, MARK COMPLETE, CLOSE THE DAY) at
-  normal and Larger Text, and with Reduce Motion.
+- Open Goals and find **The Steward's workshop** at the top. Open it with a
+  goal and, on a fresh account if you can, with none.
+- Tap **New goal** and answer the Steward's questions. Note any question that
+  feels slow, unclear, or unnecessary.
+- At the end, tap **Take this Quest**, then find it on your Quest board.
+- In the workshop, try **Make it smaller** and **See the whole plan**.
+- Open **Talk with the Steward** from the bottom of the workshop.
+- After your last class of the week, check that **THAT'S THE WEEK.** adds up.
 
-Report anything that feels flat, fake, cramped, slow, or unclear.
+Report anything that feels confusing, slow, or hard to find.
 
 ## Reviewer notes
 
