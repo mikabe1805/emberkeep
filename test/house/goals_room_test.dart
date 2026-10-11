@@ -857,17 +857,22 @@ void main() {
       final card = tester.getRect(_card);
       // The card, the next row and the buttons are where they were: the name's
       // 44 pt area shares the caps line's row and the gap below the name.
-      expect(card.height, 210.5);
-      expect(tester.getRect(find.byKey(const Key('goals-card-next'))).top, 648);
+      // Within a point: the same face measures a hair differently on a Mac
+      // (210.5 here, 211.0 on CI).
+      expect(card.height, closeTo(210.5, 1));
+      expect(
+        tester.getRect(find.byKey(const Key('goals-card-next'))).top,
+        closeTo(648, 1),
+      );
       expect(
         tester
             .getRect(find.byKey(const Key('goals-return-primary-action')))
             .top,
-        692,
+        closeTo(692, 1),
       );
       expect(
         tester.getRect(find.byKey(const Key('goals-card-name'))).top,
-        card.top + 46.5,
+        closeTo(card.top + 46.5, 1),
       );
     });
 
