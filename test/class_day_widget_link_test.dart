@@ -17,7 +17,7 @@ import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/screens/shell.dart';
 import 'package:emberkeep/screens/whats_new.dart';
 import 'package:emberkeep/storage.dart';
-import 'package:emberkeep/widgets/room_travel.dart';
+import 'package:emberkeep/widgets/house/house_travel.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -238,7 +238,7 @@ void main() {
 
       expect(inbox.isNotEmpty, isFalse);
       expect(
-        tester.widget<RoomTravelStack>(find.byType(RoomTravelStack)).index,
+        tester.widget<HouseTravelStack>(find.byType(HouseTravelStack)).index,
         1,
       );
       final request = seam.debugReceived.single;

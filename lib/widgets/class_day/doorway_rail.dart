@@ -168,6 +168,15 @@ final class DoorwayRailLayout {
   /// class that was set aside has no holder.
   factory DoorwayRailLayout.of(DoorwayDay day) {
     final visible = day.visibleTickets;
+    if (visible.isEmpty && day.emptyHolders > 0) {
+      return DoorwayRailLayout.forSlots(
+        List<DoorwayTicket?>.filled(
+          math.min(day.emptyHolders, doorwayRailSlots),
+          null,
+        ),
+        const [],
+      );
+    }
     final byDay = visible.length <= doorwayRailSlots;
     final waiting = [
       for (final ticket in visible)

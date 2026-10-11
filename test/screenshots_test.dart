@@ -17,6 +17,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:emberkeep/widgets/house/house_backdrop.dart';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/cloud.dart';
@@ -71,6 +72,9 @@ import 'package:flutter/services.dart'
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'house/me_sheet_support.dart';
+import 'support/goals_room_support.dart';
 
 Widget _stage(
   Widget child, {
@@ -1307,6 +1311,8 @@ void main() {
     _activateDock(tester, Icons.emoji_emotions_outlined);
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_10_fresh_me_1290x2796');
+    // The way into the rooms is the mantel's YOUR SPACE sheet.
+    await openMantelSheet(tester, 'space');
     await tester.tap(find.text('0 GLIMMERS'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_11_space_themes_1290x2796');
@@ -1353,10 +1359,26 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     Navigator.of(tester.element(find.text('Change your space'))).pop();
     await tester.pump(const Duration(milliseconds: 500));
+    await closeMantelSheet(tester);
 
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_12_fresh_journal_1290x2796');
+    // the nook is the Journal now; the hub card waits under it
+    await tester.scrollUntilVisible(
+      find.text('Your Journal'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    // mid-screen: the top of the page is under the shell's HUD
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Your Journal')),
+      alignment: 0.5,
+    );
+    await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_13_empty_journal_hub_1290x2796');
@@ -1776,6 +1798,7 @@ void main() {
     await _storeShot(tester, '02_keep_1290x2796');
     await _playStoreShot(tester, '03_my_space_1080x1920');
 
+    await openMantelSheet(tester, 'space');
     await tester.tap(find.text('CHANGE SPACE'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '03_shop_1290x2796');
@@ -1800,6 +1823,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pump(const Duration(milliseconds: 700));
+    await closeMantelSheet(tester);
 
     _activateDock(tester, Icons.explore_outlined);
     await tester.pump(const Duration(milliseconds: 450));
@@ -1813,26 +1837,11 @@ void main() {
     await _storeShot(tester, '04_goals_1290x2796');
 
     final supportToggle = find.byKey(const ValueKey('goals-support-toggle'));
-    await tester.scrollUntilVisible(
-      supportToggle,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(supportToggle),
-      alignment: 0.4,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, supportToggle);
     await tester.tap(supportToggle);
     await tester.pump(const Duration(milliseconds: 220));
     final unstick = find.byKey(const ValueKey('goals-unstick-me'));
-    await Scrollable.ensureVisible(
-      tester.element(unstick),
-      alignment: 0.4,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, unstick);
     await tester.tap(unstick);
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, '04b_momentum_kits_1290x2796');
@@ -1860,26 +1869,38 @@ void main() {
     await tester.tap(planAction);
     await tester.pump(const Duration(milliseconds: 350));
     expect(
-      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
+      find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'),
       findsOneWidget,
       reason: 'The planner-shapes capture must show the Plan creation surface.',
     );
     await _storeShot(tester, '05b_planner_shapes_1290x2796');
     Navigator.of(
-      tester.element(find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN')),
+      tester.element(find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN')),
     ).pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
-    expect(
-      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
-      findsNothing,
-    );
+    expect(find.text('START WITH A DAY SHAPE, OR NAME YOUR OWN'), findsNothing);
 
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '06_insights_1290x2796');
     await _playStoreShot(tester, '05_journal_1080x1920');
 
+    // the nook is the Journal now; the hub card waits under it
+    await tester.scrollUntilVisible(
+      find.text('Your Journal'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    // mid-screen: the top of the page is under the shell's HUD
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Your Journal')),
+      alignment: 0.5,
+    );
+    await tester.pump();
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '07_journal_1290x2796');
@@ -2530,11 +2551,12 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
 
-    final pageScroll = find.byType(Scrollable).first;
+    // My Space is the mantel's YOUR SPACE sheet; the Room Guide is in SETTINGS.
+    await openMantelSheet(tester, 'space');
     await tester.scrollUntilVisible(
       find.text('MY SPACE'),
       360,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14_my_space_cards_1290x2796');
@@ -2542,23 +2564,27 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('THIS SEASON'),
       300,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14b_my_space_season_1290x2796');
+    await closeMantelSheet(tester);
 
+    await openMantelSheet(tester, 'settings');
     await tester.scrollUntilVisible(
       find.text('ROOM GUIDE'),
       520,
-      scrollable: pageScroll,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14d_room_guide_entry_1290x2796');
+    await closeMantelSheet(tester);
 
+    await openMantelSheet(tester, 'space');
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('space-page-open-arranger')),
-      -360,
-      scrollable: pageScroll,
+      360,
+      scrollable: mantelSheetScrollable,
     );
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.byKey(const ValueKey('space-page-open-arranger')));
@@ -3079,17 +3105,13 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    // The large-text heading receives a full row above its controls. Keep the
-    // page name as one readable word instead of allowing the toolbar to force
-    // an accidental line break.
-    expect(tester.getSize(find.text('Goals')).height, lessThan(90));
-
-    final action = find.text('Open Quest', skipOffstage: false);
-    await tester.scrollUntilVisible(
-      action,
-      210,
-      scrollable: find.byType(Scrollable).first,
+    // At large text the room scrolls: the sign, the wall and the card follow
+    // each other down the page, and the card's action is reachable.
+    await revealOnGoalsPage(
+      tester,
+      find.byKey(const Key('goals-return-primary-action')),
     );
+    final action = find.text('OPEN QUEST', skipOffstage: false);
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -3185,16 +3207,8 @@ void main() {
       ),
     );
     await _precachePageArt(tester);
-    final recovery = find.byKey(
-      const Key('goals-recover-today'),
-      skipOffstage: false,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(recovery),
-      alignment: 0.2,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    final recovery = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recovery);
     await tester.tap(recovery);
     await tester.pumpAndSettle();
 
@@ -3328,21 +3342,8 @@ void main() {
     );
     await _precachePageArt(tester);
 
-    final recovery = find.byKey(
-      const Key('goals-recover-today'),
-      skipOffstage: false,
-    );
-    await tester.scrollUntilVisible(
-      recovery,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(recovery),
-      alignment: 0.5,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    final recovery = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recovery);
     await tester.tap(recovery);
     await tester.pumpAndSettle();
     await tester.tap(
@@ -4056,7 +4057,9 @@ void main() {
     }
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.byKey(const Key('goals-recover-today')));
+    final recoverToday = find.byKey(const Key('goals-recover-today'));
+    await revealOnGoalsPage(tester, recoverToday);
+    await tester.tap(recoverToday);
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -4073,17 +4076,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     final support = find.byKey(const Key('goals-support-toggle'));
-    await tester.scrollUntilVisible(
-      support,
-      260,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(support),
-      alignment: 0.5,
-      duration: Duration.zero,
-    );
-    await tester.pump();
+    await revealOnGoalsPage(tester, support);
     await tester.tap(support);
     await tester.pumpAndSettle();
     expect(find.text('Find a start'), findsOneWidget);
@@ -4346,16 +4339,7 @@ void main() {
     );
     await _precachePageArt(tester);
     final otherGoals = find.byKey(const Key('other-goals-disclosure'));
-    await tester.scrollUntilVisible(
-      otherGoals,
-      320,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await Scrollable.ensureVisible(
-      tester.element(otherGoals),
-      alignment: 0.35,
-      duration: Duration.zero,
-    );
+    await revealOnGoalsPage(tester, otherGoals);
     await tester.pumpAndSettle();
     await tester.tap(otherGoals);
     await tester.pumpAndSettle();
@@ -4642,13 +4626,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 130));
 
-    // The active Goals page and its departing route share the same room plate
-    // during the handoff, so both source and transition are present here.
-    expect(
-      find.byKey(const Key('goal-room-travel-backdrop')),
-      findsNWidgets(2),
-    );
-    expect(find.byKey(const Key('goal-room-travel-master')), findsNWidgets(2));
+    // The active Goals page stands in the house's workshop plate; its
+    // departing route carries the walk's room, so the transition is present
+    // here with the page's room as its source.
+    expect(find.byType(HouseRoomBackdrop), findsOneWidget);
+    expect(find.byKey(const Key('goal-room-travel-backdrop')), findsOneWidget);
+    expect(find.byKey(const Key('goal-room-travel-master')), findsOneWidget);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),

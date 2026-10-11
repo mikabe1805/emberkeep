@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -37,9 +38,9 @@ import '../tokens.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
-import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
-import '../widgets/luxe_depth.dart';
+import '../widgets/house/plans/plans_actions.dart';
+import '../widgets/house/plans/plans_room.dart';
 import '../widgets/night_reflection_sheet.dart';
 import 'journal_entry.dart';
 
@@ -68,9 +69,9 @@ const _weekdayNames = [
   'SUNDAY',
 ];
 
-/// The Plans page: a warm month calendar. One brass day-weight mark answers
-/// the month view's useful question at a glance: how much of this day is
-/// spoken for? Tap a day to read the actual classes, plans, work, and notes.
+/// The Plans page: the daybook (see widgets/house/plans/). Month, week and day
+/// are three spreads of one open book; a day's classes, plans, work and notes
+/// are on its page. This state owns the schedule and every change to it.
 class CalendarPage extends StatefulWidget {
   const CalendarPage({
     super.key,
@@ -136,7 +137,6 @@ class _CalendarPageState extends State<CalendarPage> {
   late DateTime _month;
   late DateTime _selected;
   late CivilDate _threeDayStart;
-  final ScrollController _calendarScroll = ScrollController();
   late final AcademicScheduleRepository _scheduleRepository;
   late final AcademicCalendarPreferences _calendarPreferences;
   late final NotebookHandoff _notebookHandoff;
@@ -144,7 +144,7 @@ class _CalendarPageState extends State<CalendarPage> {
   late final DaybookPreferences _daybookPreferences;
   late final AcademicScheduleFilePicker _academicScheduleFilePicker;
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
-  AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
+  AcademicCalendarMode _academicMode = AcademicCalendarMode.day;
   bool _academicLoading = true;
 
   /// Completes once the saved schedule has loaded. Adding classes waits on
@@ -331,9 +331,6 @@ class _CalendarPageState extends State<CalendarPage> {
       }
     });
     _persistAcademicView();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_calendarScroll.hasClients) _calendarScroll.jumpTo(0);
-    });
   }
 
   void _moveMonth(int delta) {
@@ -392,16 +389,17 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       );
     }
-    final first = switch (_academicMode) {
-      AcademicCalendarMode.week => selected.startOfWeek(
-        (_academicSchedule.termFor(selected) ?? _academicSchedule.latestTerm)
-                ?.weekStartsOn ??
-            DateTime.monday,
-      ),
-      AcademicCalendarMode.threeDay => _threeDayStart,
-      _ => selected,
-    };
-    return (first, first.addDays(_academicMode.spanDays - 1));
+    // The day view shows its whole week on the left page, so it projects the
+    // week; three days is its own window.
+    if (_academicMode == AcademicCalendarMode.threeDay) {
+      return (_threeDayStart, _threeDayStart.addDays(2));
+    }
+    final first = selected.startOfWeek(
+      (_academicSchedule.termFor(selected) ?? _academicSchedule.latestTerm)
+              ?.weekStartsOn ??
+          DateTime.monday,
+    );
+    return (first, first.addDays(6));
   }
 
   @override
@@ -409,7 +407,6 @@ class _CalendarPageState extends State<CalendarPage> {
     widget.academicScheduleFileInbox?.removeListener(
       _onIncomingAcademicScheduleFile,
     );
-    _calendarScroll.dispose();
     super.dispose();
   }
 
@@ -600,9 +597,6 @@ class _CalendarPageState extends State<CalendarPage> {
       _threeDayStart = date;
     });
     _persistAcademicView();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_calendarScroll.hasClients) _calendarScroll.jumpTo(0);
-    });
   }
 
   Future<bool> _saveAcademicWork(AcademicWorkItem item) async {
@@ -980,14 +974,66 @@ class _CalendarPageState extends State<CalendarPage> {
     if (mounted) setState(() {});
   }
 
+  /// Who is in session now, or coming next, by occurrence key: the card of
+  /// that class says so.
+  Map<String, ({String label, bool active})> _classStatus(DateTime now) {
+    final active = _academicSchedule.doorwayOccurrences(now);
+    final status = <String, ({String label, bool active})>{};
+    if (active.isNotEmpty) {
+      for (final occurrence in active) {
+        final before = now.toUtc().isBefore(occurrence.startInstant);
+        final minutes = math.max(
+          1,
+          (occurrence.startInstant.difference(now.toUtc()).inSeconds / 60)
+              .ceil(),
+        );
+        status[occurrence.occurrenceKey] = (
+          label: before ? 'READY IN $minutes MIN' : 'IN CLASS',
+          active: true,
+        );
+      }
+    } else if (_academicSchedule.nextOccurrence(now) case final next?) {
+      final today = CivilDate.fromDateTime(now);
+      final when = next.date == today
+          ? 'TODAY'
+          : next.date == today.addDays(1)
+          ? 'TOMORROW'
+          : '${_weekdayNames[next.date.weekday - 1]} ${next.date.day}';
+      status[next.occurrenceKey] = (label: 'NEXT CLASS · $when', active: false);
+    }
+    return status;
+  }
+
+  PlansActions get _plansActions => PlansActions(
+    onMode: _setAcademicMode,
+    onSelectDay: _selectDay,
+    onMoveSpan: _moveAcademicSpan,
+    onToday: _goToday,
+    onAdd: () => unawaited(_showAddDaybook(context)),
+    onPlanQuest: () => _showAddEvent(context),
+    onAddClasses: () => unawaited(_showAddClasses()),
+    onOpenJournal: (note) => unawaited(_openJournal(note)),
+    onOpenNotebook: _openNotebook,
+    onOpenDaybookActions: _showDaybookActions,
+    onToggleTask: _toggleDaybookTask,
+    onToggleWork: _toggleAcademicWork,
+    onOpenStudyPlanner: _showAcademicStudyPlanner,
+    onToggleStudyBlock: _toggleAcademicStudyBlock,
+    onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
+    onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+    directionsLauncher: _directionsLauncher,
+    daybookPreferences: _daybookPreferences,
+    onCompleteQuestPlan: widget.onCompleteQuest == null
+        ? null
+        : _completeQuestPlan,
+  );
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: widget.state,
       builder: (context, _) {
         final now = Clock.now();
-        final firstWeekday = DateTime(_month.year, _month.month, 1).weekday;
-        final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
         final bounds = _visibleDaybookBounds();
         final daybook = DaybookRangeProjection.build(
           schedule: _academicSchedule,
@@ -996,368 +1042,30 @@ class _CalendarPageState extends State<CalendarPage> {
           last: bounds.$2,
           now: now,
         );
-        final activeClasses = _academicSchedule.doorwayOccurrences(now);
-        final nextClass = _academicSchedule.nextOccurrence(now);
-        final doorwayClasses = activeClasses.isNotEmpty
-            ? activeClasses
-            : nextClass == null
-            ? const <ClassOccurrence>[]
-            : <ClassOccurrence>[nextClass];
-        final selectedCivil = CivilDate.fromDateTime(_selected);
         final selectedTerm =
-            _academicSchedule.termFor(selectedCivil) ??
+            _academicSchedule.termFor(CivilDate.fromDateTime(_selected)) ??
             _academicSchedule.latestTerm;
-        final selectedCompletions =
-            widget.state.history[Days.key(_selected)] ?? 0;
-        final selectedReflections = _reflectionsOn(_selected);
-        final selectedJournalEntries = _journalOn(_selected);
-        final selectedHasHistory =
-            selectedCompletions > 0 ||
-            selectedReflections > 0 ||
-            selectedJournalEntries.isNotEmpty;
-
-        return LuxePageList(
-          assetPath: 'assets/pages/plans-conservatory-v2.webp',
-          title: 'Plans',
-          subtitle: 'your days, held in one place',
-          icon: Icons.calendar_month_outlined,
+        return PlansRoom(
+          mode: _academicMode,
+          selected: _selected,
+          month: _month,
+          now: now,
+          schedule: _academicSchedule,
+          daybook: daybook,
+          termName: selectedTerm?.name,
+          zoneLabel: (selectedTerm?.timeZoneId ?? '').trim().isEmpty
+              ? 'LOCAL TIME'
+              : 'CAMPUS TIME',
+          loading: _academicLoading,
+          actions: _plansActions,
+          completionsOn: (day) => widget.state.history[Days.key(day)] ?? 0,
+          reflectionsOn: _reflectionsOn,
+          journalOn: _journalOn,
+          classStatus: _classStatus(now),
           parallax: widget.parallax,
           reduceMotion: widget.state.reduceMotion,
-          scrollController: _calendarScroll,
-          children: [
-            AcademicCalendarHeader(
-              mode: _academicMode,
-              termName: selectedTerm?.name,
-              loading: _academicLoading,
-              onModeChanged: _setAcademicMode,
-              onAddAcademic: () => _showAddDaybook(context),
-            ),
-            if (doorwayClasses.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              AcademicDoorway(
-                occurrences: doorwayClasses,
-                schedule: _academicSchedule,
-                now: now,
-                active: activeClasses.isNotEmpty,
-                onOpenNotebook: _openNotebook,
-              ),
-            ],
-            const SizedBox(height: 12),
-            if (_academicMode == AcademicCalendarMode.month) ...[
-              // ── month folio ──────────────────────────────────────
-              // The calendar is the largest single plane in the app, so it is
-              // built like the bound month-folio in the approved target: a
-              // book-cloth board, a brass-ruled masthead, then the dated page
-              // inset into it. A flat panel this size read as an empty block.
-              _MonthFolio(
-                key: const ValueKey('academic-month-folio'),
-                month: _month,
-                selected: _selected,
-                now: now,
-                daybook: daybook,
-                firstWeekday: firstWeekday,
-                daysInMonth: daysInMonth,
-                onPrevious: () => _moveMonth(-1),
-                onNext: () => _moveMonth(1),
-                onToday: _goToday,
-                dayCell: (day) => _dayCell(day, daysInMonth, now, daybook),
-              ),
-            ] else ...[
-              DaybookSpanPanel(
-                mode: _academicMode,
-                selectedDay: _selected,
-                daybook: daybook,
-                schedule: _academicSchedule,
-                now: now,
-                onPrevious: () => _moveAcademicSpan(-1),
-                onNext: () => _moveAcademicSpan(1),
-                onToday: _goToday,
-                onSelectDay: _selectDay,
-                onOpenNotebook: _openNotebook,
-                onOpenDaybookActions: _showDaybookActions,
-                onToggleTask: _toggleDaybookTask,
-                onToggleWork: _toggleAcademicWork,
-                onOpenStudyPlanner: _showAcademicStudyPlanner,
-                onToggleStudyBlock: _toggleAcademicStudyBlock,
-                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
-                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
-                directionsLauncher: _directionsLauncher,
-                daybookPreferences: _daybookPreferences,
-                onCompleteQuestPlan: widget.onCompleteQuest == null
-                    ? null
-                    : _completeQuestPlan,
-                selectedDayHeaderBuilder: (day) => _SelectedDayHeader(
-                  day: DateTime(day.date.year, day.date.month, day.date.day),
-                  now: now,
-                  onPlan: () => _showAddEvent(context),
-                  onAddToDaybook: () => _showAddDaybook(context),
-                  onToday: _goToday,
-                  onSelect: () => _selectDay(
-                    DateTime(day.date.year, day.date.month, day.date.day),
-                  ),
-                  lightDirection: widget.lightDirection ?? widget.parallax,
-                  spanStyle: true,
-                ),
-                selectedDaySummaryBuilder: (day) =>
-                    _DayShapeSummary(summary: day.summary),
-              ),
-            ],
-            if (_academicMode == AcademicCalendarMode.month ||
-                selectedHasHistory) ...[
-              const SizedBox(height: 14),
-
-              // Month owns the complete selected-day folio. Span modes already
-              // keep the date, plan action, Day Shape, and agenda together;
-              // this continuation carries only history and journal material.
-              _DayPanel(
-                day: _selected,
-                completions: selectedCompletions,
-                reflections: selectedReflections,
-                journalEntries: selectedJournalEntries,
-                daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
-                showDaybookEntries: _academicMode == AcademicCalendarMode.month,
-                showDayShape: _academicMode == AcademicCalendarMode.month,
-                showHeader: _academicMode == AcademicCalendarMode.month,
-                academicSchedule: _academicSchedule,
-                now: now,
-                onPlan: () => _showAddEvent(context),
-                onAddToDaybook: () => _showAddDaybook(context),
-                onOpenJournal: _openJournal,
-                onOpenNotebook: _openNotebook,
-                onOpenDaybookActions: _showDaybookActions,
-                onToggleTask: _toggleDaybookTask,
-                onToggleWork: _toggleAcademicWork,
-                onOpenStudyPlanner: _showAcademicStudyPlanner,
-                onToggleStudyBlock: _toggleAcademicStudyBlock,
-                onCompleteQuestPlan: widget.onCompleteQuest == null
-                    ? null
-                    : _completeQuestPlan,
-                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
-                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
-                directionsLauncher: _directionsLauncher,
-                daybookPreferences: _daybookPreferences,
-                lightDirection: widget.lightDirection ?? widget.parallax,
-              ),
-            ],
-            // With no classes yet, Plans ends on a calm way to add them. It
-            // sits after the day, never above it, so a person who uses Plans
-            // without classes keeps their own days first; the ADD menu offers
-            // the same sheet from the top of the page.
-            if (!_academicLoading &&
-                !_academicSchedule.courses.any(
-                  (course) => !course.archived,
-                )) ...[
-              const SizedBox(height: 14),
-              AddClassesDoorway(onTap: () => unawaited(_showAddClasses())),
-            ],
-          ],
         );
       },
-    );
-  }
-
-  Widget _dayCell(
-    int day,
-    int daysInMonth,
-    DateTime now,
-    DaybookRange daybook,
-  ) {
-    if (day < 1 || day > daysInMonth) {
-      return const SizedBox.expand();
-    }
-    final date = DateTime(_month.year, _month.month, day);
-    final keyDate = CivilDate.fromDateTime(date).toString();
-    final daybookDay = daybook.dayOn(CivilDate.fromDateTime(date));
-    final isToday = Days.sameDay(date, now);
-    final isSelected = Days.sameDay(date, _selected);
-    final done = widget.state.history[Days.key(date)] ?? 0;
-    final journalEntries = _journalOn(date);
-
-    final spoken = StringBuffer(
-      _monthDaySemanticLabel(date, daybookDay.summary, isToday: isToday),
-    );
-    if (done > 0) {
-      spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
-    }
-    final transitionPressures = _academicSchedule.transitionPressuresOn(
-      CivilDate.fromDateTime(date),
-    );
-    if (transitionPressures.isNotEmpty) {
-      spoken.write(
-        ', ${transitionPressures.length} tight class transition${transitionPressures.length == 1 ? '' : 's'}',
-      );
-    }
-    if (journalEntries.isNotEmpty) {
-      spoken.write(
-        ', ${journalEntries.length} journal entr${journalEntries.length == 1 ? 'y' : 'ies'}',
-      );
-    }
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: spoken.toString(),
-      hint: isSelected
-          ? 'Showing this day below the calendar'
-          : 'Show this day below the calendar',
-      excludeSemantics: true,
-      onTap: () => _selectDay(date),
-      child: GestureDetector(
-        key: ValueKey('academic-month-day-$keyDate'),
-        excludeFromSemantics: true,
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Sfx.instance.playMaterial(MaterialSound.parchment);
-          _selectDay(date);
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _dayPlate(day, date, isToday, isSelected, daybookDay.summary),
-            // The folio names today under its date, the way the target does —
-            // the honey plate alone doesn't say WHICH kind of mark it is.
-            SizedBox(
-              key: isToday
-                  ? ValueKey(
-                      'month-today-label-${CivilDate.fromDateTime(date)}',
-                    )
-                  : null,
-              height: 12,
-              child: isToday
-                  ? Center(
-                      child: Container(
-                        key: ValueKey('month-today-clip-$keyDate'),
-                        height: 10,
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: facetedDecoration(
-                          cut: 2,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xCC9A6B3C), Color(0xCC5A3A20)],
-                          ),
-                          borderColor: Palette.brassLit.withValues(alpha: 0.5),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'TODAY',
-                          maxLines: 1,
-                          overflow: TextOverflow.clip,
-                          // A seven-column month cell is truly bounded metadata;
-                          // its full spoken date remains available in Semantics.
-                          textScaler: TextScaler.noScaling,
-                          style: Type.label.copyWith(
-                            fontSize: 7,
-                            height: 1,
-                            letterSpacing: 0.75,
-                            color: Palette.brassLit,
-                          ),
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _dayPlate(
-    int day,
-    DateTime date,
-    bool isToday,
-    bool isSelected,
-    DaybookDaySummary summary,
-  ) {
-    final keyDate = CivilDate.fromDateTime(date).toString();
-    return Container(
-      key: isSelected ? ValueKey('month-selected-wash-$keyDate') : null,
-      height: 43,
-      margin: const EdgeInsets.all(1.5),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (isSelected)
-            DecoratedBox(
-              decoration: facetedDecoration(
-                cut: 7,
-                gradient: LinearGradient(
-                  colors: [
-                    Palette.xpLight.withValues(alpha: 0.18),
-                    Palette.xp.withValues(alpha: 0.055),
-                  ],
-                ),
-                borderColor: Colors.transparent,
-                borderWidth: 0,
-              ),
-            ),
-          Column(
-            children: [
-              SizedBox(
-                height: 30,
-                child: Center(
-                  child: Container(
-                    key: isToday
-                        ? ValueKey('month-today-marker-$keyDate')
-                        : null,
-                    width: 30,
-                    height: 30,
-                    decoration: isToday
-                        ? facetedDecoration(
-                            cut: 6,
-                            gradient: const LinearGradient(
-                              colors: [Color(0x36FFE4A1), Color(0x0FE7B66C)],
-                            ),
-                            borderColor: Palette.xp.withValues(alpha: 0.85),
-                          )
-                        : null,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$day',
-                      // Keep the compact month numeral inside its fixed folio
-                      // plate at large system text. The complete date is
-                      // exposed by Semantics.
-                      textScaler: TextScaler.noScaling,
-                      style: Type.numerals.copyWith(
-                        fontSize: 13,
-                        color: isToday
-                            ? Palette.xp
-                            : isSelected
-                            ? Palette.textHi
-                            : Palette.textMid,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 13,
-                child:
-                    summary.weight == DaybookDayWeight.none &&
-                        !summary.hasDeadline &&
-                        summary.focusCount == 0
-                    ? null
-                    : Center(
-                        child: _MonthDayWeightMark(
-                          key:
-                              summary.weight == DaybookDayWeight.none &&
-                                  !summary.hasDeadline
-                              ? null
-                              : ValueKey('academic-month-weight-$keyDate'),
-                          weight: summary.weight,
-                          hasDeadline: summary.hasDeadline,
-                          deadlineKey: ValueKey(
-                            'academic-month-deadline-$keyDate',
-                          ),
-                          hasFocus: summary.focusCount > 0,
-                          focusKey: ValueKey('academic-month-focus-$keyDate'),
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -1632,1222 +1340,6 @@ class _CalendarPageState extends State<CalendarPage> {
   );
 }
 
-String _monthDaySemanticLabel(
-  DateTime date,
-  DaybookDaySummary summary, {
-  required bool isToday,
-}) {
-  final facts = <String>[
-    '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
-    if (isToday) 'today',
-    summary.scheduledMinutes == 0
-        ? 'no timed plans'
-        : '${summary.scheduledMinutes} scheduled minutes',
-  ];
-  if (summary.fixedPlanCount == 0) {
-    facts.add('no fixed plans');
-  } else if (summary.scheduledMinutes == 0) {
-    facts.add(
-      '${summary.fixedPlanCount} all-day plan${summary.fixedPlanCount == 1 ? '' : 's'}',
-    );
-  } else {
-    facts.add(
-      '${summary.fixedPlanCount} fixed plan${summary.fixedPlanCount == 1 ? '' : 's'}',
-    );
-  }
-  facts.add(
-    summary.deadlineCount == 0
-        ? 'no active deadlines'
-        : '${summary.deadlineCount} active deadline${summary.deadlineCount == 1 ? '' : 's'}',
-  );
-  facts.add(
-    summary.focusCount == 0
-        ? 'no active focus choices'
-        : '${summary.focusCount} active focus choice${summary.focusCount == 1 ? '' : 's'}',
-  );
-  return facts.join(', ');
-}
-
-/// The month deliberately carries only one visual sentence per date. Height
-/// means scheduled weight; the small diamond at the tick's crown means that
-/// something is due; the quiet unlock point names an intentional focus. Specific
-/// categories belong in the selected-day panel.
-class _MonthDayWeightMark extends StatelessWidget {
-  const _MonthDayWeightMark({
-    super.key,
-    required this.weight,
-    required this.hasDeadline,
-    required this.deadlineKey,
-    required this.hasFocus,
-    required this.focusKey,
-  });
-
-  final DaybookDayWeight weight;
-  final bool hasDeadline;
-  final Key deadlineKey;
-  final bool hasFocus;
-  final Key focusKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final tickHeight = switch (weight) {
-      DaybookDayWeight.none => 0.0,
-      DaybookDayWeight.light => 6.0,
-      DaybookDayWeight.moderate => 8.0,
-      DaybookDayWeight.full => 10.0,
-    };
-    final ink = switch (weight) {
-      DaybookDayWeight.none => Colors.transparent,
-      DaybookDayWeight.light => Palette.xp.withValues(alpha: 0.65),
-      DaybookDayWeight.moderate => Palette.xp.withValues(alpha: 0.82),
-      DaybookDayWeight.full => Palette.xp.withValues(alpha: 0.96),
-    };
-
-    return SizedBox(
-      width: 9,
-      height: 13,
-      child: Stack(
-        alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Container(
-            width: 3,
-            height: tickHeight,
-            decoration: BoxDecoration(
-              color: ink,
-              borderRadius: BorderRadius.circular(1.5),
-            ),
-          ),
-          if (hasDeadline)
-            Positioned(
-              bottom: (tickHeight - 3).clamp(3.0, 7.0),
-              child: SizedBox.square(
-                dimension: 6,
-                child: Center(
-                  child: Transform.rotate(
-                    angle: 0.785398,
-                    child: Container(
-                      key: deadlineKey,
-                      width: 4.2,
-                      height: 4.2,
-                      color: Palette.brassLit.withValues(alpha: 0.94),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (hasFocus)
-            Positioned(
-              bottom: 0,
-              left: tickHeight > 0 ? null : 3,
-              right: tickHeight > 0 ? 0 : null,
-              child: Container(
-                key: focusKey,
-                width: 3,
-                height: 3,
-                decoration: const BoxDecoration(
-                  color: Palette.unlock,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The dated page inset into the folio board — a shade darker than the board,
-/// warmer at the top lip where the desk candle reaches it.
-final _folioPage = facetedDecoration(
-  cut: 10,
-  gradient: const LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x33241A12), Color(0x4D14100D)],
-  ),
-  borderColor: Palette.brass.withValues(alpha: 0.30),
-  borderWidth: 0.9,
-);
-
-/// A brass hairline that fades at both ends — the folio's ruled divisions.
-class _FolioRule extends StatelessWidget {
-  const _FolioRule({this.strength = 1});
-  final double strength;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    height: 1,
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          Palette.brass.withValues(alpha: 0),
-          Palette.brass.withValues(alpha: 0.62 * strength),
-          Palette.brass.withValues(alpha: 0.62 * strength),
-          Palette.brass.withValues(alpha: 0),
-        ],
-        stops: const [0, 0.14, 0.86, 1],
-      ),
-    ),
-  );
-}
-
-class _MonthFolio extends StatelessWidget {
-  const _MonthFolio({
-    super.key,
-    required this.month,
-    required this.selected,
-    required this.now,
-    required this.daybook,
-    required this.firstWeekday,
-    required this.daysInMonth,
-    required this.onPrevious,
-    required this.onNext,
-    required this.onToday,
-    required this.dayCell,
-  });
-
-  final DateTime month;
-  final DateTime selected;
-  final DateTime now;
-  final DaybookRange daybook;
-  final int firstWeekday;
-  final int daysInMonth;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-  final VoidCallback onToday;
-  final Widget Function(int day) dayCell;
-
-  int get _weekCount => ((firstWeekday - 1 + daysInMonth + 6) ~/ 7);
-
-  @override
-  Widget build(BuildContext context) {
-    final summary = _MonthFolioSummary.from(
-      daybook,
-      firstWeekday: firstWeekday,
-      weekCount: _weekCount,
-    );
-    final selectedIsToday = Days.sameDay(selected, now);
-    final selectedContext =
-        '${_weekdayNames[selected.weekday - 1].substring(0, 3)} '
-        '${selected.day} · ${selectedIsToday ? 'TODAY' : 'BACK TO TODAY'}';
-    final monthHeading = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Type.display.copyWith(
-            fontSize: 16,
-            letterSpacing: 2.4,
-            color: Palette.textHi,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          selectedContext,
-          key: const ValueKey('month-selected-context'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textScaler: TextScaler.noScaling,
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 1.1,
-            color: selectedIsToday ? Palette.textLo : Palette.xpLight,
-          ),
-        ),
-      ],
-    );
-    final monthHeadingHitArea = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 44),
-      child: Center(child: monthHeading),
-    );
-    final interactiveHeading = selectedIsToday
-        ? Semantics(
-            key: const ValueKey('month-selected-context-control'),
-            header: true,
-            label:
-                '${_monthNames[month.month - 1]} ${month.year}, $selectedContext',
-            excludeSemantics: true,
-            child: monthHeadingHitArea,
-          )
-        : Semantics(
-            key: const ValueKey('month-selected-context-control'),
-            button: true,
-            header: true,
-            label:
-                '${_monthNames[month.month - 1]} ${month.year}, '
-                '${_weekdayNames[selected.weekday - 1]} ${selected.day} selected. Back to today',
-            onTap: onToday,
-            excludeSemantics: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onToday,
-              child: monthHeadingHitArea,
-            ),
-          );
-
-    return GlassPanel(
-      blur: true,
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _Chevron(
-                icon: Icons.chevron_left,
-                label: 'Previous month',
-                onTap: onPrevious,
-              ),
-              Expanded(child: interactiveHeading),
-              _Chevron(
-                icon: Icons.chevron_right,
-                label: 'Next month',
-                onTap: onNext,
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const _FolioRule(),
-          const SizedBox(height: 8),
-          DecoratedBox(
-            decoration: _folioPage,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      for (var index = 0; index < 7; index++)
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                letterSpacing: 1.4,
-                                color: index >= 5
-                                    ? Palette.brass
-                                    : Palette.textLo,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 7),
-                  const _FolioRule(strength: 0.55),
-                  const SizedBox(height: 5),
-                  for (var week = 0; week < _weekCount; week++)
-                    SizedBox(
-                      // The target spends the calendar's lower edge on a
-                      // truthful month index. Tightening the rows keeps that
-                      // index in the same physical folio instead of turning it
-                      // into another card below the fold, while preserving a
-                      // comfortable full-cell touch target.
-                      height: 58,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (var column = 0; column < 7; column++)
-                            Expanded(
-                              child: dayCell(
-                                week * 7 + column - (firstWeekday - 1) + 1,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 2),
-                  const _FolioRule(strength: 0.48),
-                  const SizedBox(height: 6),
-                  _MonthSummaryRail(summary: summary),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _MonthFolioSummary {
-  const _MonthFolioSummary({
-    required this.taskCount,
-    required this.eventCount,
-    required this.classCount,
-    required this.weekPlanCounts,
-  });
-
-  factory _MonthFolioSummary.from(
-    DaybookRange daybook, {
-    required int firstWeekday,
-    required int weekCount,
-  }) {
-    final tasks = <String>{};
-    final events = <String>{};
-    final classes = <String>{};
-    final weeklyPlans = List.generate(weekCount, (_) => <String>{});
-
-    for (final day in daybook.days.values) {
-      final week = (firstWeekday - 1 + day.date.day - 1) ~/ 7;
-      for (final entry in day.entries) {
-        if (entry.cancelled) continue;
-        switch (entry.sourceKind) {
-          case DaybookSourceKind.task:
-            tasks.add(entry.displayKey);
-            weeklyPlans[week].add(
-              '${entry.sourceKind.name}:${entry.displayKey}',
-            );
-          case DaybookSourceKind.event:
-            events.add(entry.displayKey);
-            weeklyPlans[week].add(
-              '${entry.sourceKind.name}:${entry.displayKey}',
-            );
-          case DaybookSourceKind.classOccurrence:
-            classes.add(entry.displayKey);
-            weeklyPlans[week].add(
-              '${entry.sourceKind.name}:${entry.displayKey}',
-            );
-          case DaybookSourceKind.academicWork:
-          case DaybookSourceKind.studyBlock:
-          case DaybookSourceKind.questPlan:
-            break;
-        }
-      }
-    }
-
-    return _MonthFolioSummary(
-      taskCount: tasks.length,
-      eventCount: events.length,
-      classCount: classes.length,
-      weekPlanCounts: [for (final plans in weeklyPlans) plans.length],
-    );
-  }
-
-  final int taskCount;
-  final int eventCount;
-  final int classCount;
-  final List<int> weekPlanCounts;
-}
-
-class _MonthSummaryRail extends StatelessWidget {
-  const _MonthSummaryRail({required this.summary});
-
-  final _MonthFolioSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      key: const ValueKey('month-summary-rail'),
-      height: 24,
-      child: Row(
-        children: [
-          Expanded(
-            child: _MonthSummaryMetric(
-              metricKey: const ValueKey('month-summary-tasks'),
-              value: summary.taskCount,
-              label: 'TASKS',
-            ),
-          ),
-          const _MonthSummaryDivider(),
-          Expanded(
-            child: _MonthSummaryMetric(
-              metricKey: const ValueKey('month-summary-events'),
-              value: summary.eventCount,
-              label: 'EVENTS',
-            ),
-          ),
-          const _MonthSummaryDivider(),
-          Expanded(
-            child: _MonthSummaryMetric(
-              metricKey: const ValueKey('month-summary-classes'),
-              value: summary.classCount,
-              label: 'CLASSES',
-            ),
-          ),
-          const _MonthSummaryDivider(),
-          Expanded(child: _MonthWeekRhythm(counts: summary.weekPlanCounts)),
-        ],
-      ),
-    );
-  }
-}
-
-class _MonthSummaryMetric extends StatelessWidget {
-  const _MonthSummaryMetric({
-    required this.metricKey,
-    required this.value,
-    required this.label,
-  });
-
-  final Key metricKey;
-  final int value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final displayLabel = value == 1
-        ? switch (label) {
-            'TASKS' => 'TASK',
-            'EVENTS' => 'EVENT',
-            'CLASSES' => 'CLASS',
-            _ => label,
-          }
-        : label;
-    final spokenLabel = displayLabel.toLowerCase();
-    return Semantics(
-      label: '$value $spokenLabel this month',
-      excludeSemantics: true,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text.rich(
-          key: metricKey,
-          TextSpan(
-            children: [
-              TextSpan(
-                text: '$value ',
-                style: Type.numerals.copyWith(
-                  fontSize: 11,
-                  color: Palette.textMid,
-                ),
-              ),
-              TextSpan(
-                text: displayLabel,
-                style: Type.label.copyWith(
-                  fontSize: 8.5,
-                  letterSpacing: 0.9,
-                  color: Palette.textLo,
-                ),
-              ),
-            ],
-          ),
-          maxLines: 1,
-          textScaler: TextScaler.noScaling,
-        ),
-      ),
-    );
-  }
-}
-
-class _MonthSummaryDivider extends StatelessWidget {
-  const _MonthSummaryDivider();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 18,
-    color: Palette.brass.withValues(alpha: 0.38),
-  );
-}
-
-class _MonthWeekRhythm extends StatelessWidget {
-  const _MonthWeekRhythm({required this.counts});
-
-  final List<int> counts;
-
-  @override
-  Widget build(BuildContext context) {
-    final activeWeeks = counts.where((count) => count > 0).length;
-    final maxCount = counts.fold<int>(
-      0,
-      (value, count) => count > value ? count : value,
-    );
-    return Semantics(
-      key: const ValueKey('month-summary-rhythm'),
-      label:
-          '$activeWeeks of ${counts.length} calendar weeks contain plans this month',
-      excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var index = 0; index < counts.length; index++) ...[
-              if (index > 0)
-                Expanded(
-                  child: Container(
-                    height: 1,
-                    color: Palette.textLo.withValues(alpha: 0.38),
-                  ),
-                ),
-              _MonthWeekDot(
-                strength: counts[index] == 0 || maxCount == 0
-                    ? 0
-                    : counts[index] / maxCount,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MonthWeekDot extends StatelessWidget {
-  const _MonthWeekDot({required this.strength});
-
-  final double strength;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = strength > 0;
-    return Container(
-      width: active ? 5 : 4,
-      height: active ? 5 : 4,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: active
-            ? Palette.xp.withValues(alpha: 0.5 + (strength * 0.5))
-            : Colors.transparent,
-        border: Border.all(
-          color: active
-              ? Palette.xpLight.withValues(alpha: 0.62)
-              : Palette.textLo.withValues(alpha: 0.45),
-          width: 0.75,
-        ),
-      ),
-    );
-  }
-}
-
-class _Chevron extends StatelessWidget {
-  const _Chevron({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    void activate() {
-      Sfx.instance.playMaterial(MaterialSound.brass);
-      onTap();
-    }
-
-    return Semantics(
-      button: true,
-      label: label,
-      onTap: activate,
-      child: GestureDetector(
-        excludeFromSemantics: true,
-        onTap: activate,
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Center(
-            child: SizedBox.square(
-              dimension: 28,
-              child: DecoratedBox(
-                decoration: agedBrassPlate(cut: 7, strength: 0.8),
-                child: Icon(icon, size: 19, color: Palette.xpLight),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectedDayHeader extends StatelessWidget {
-  const _SelectedDayHeader({
-    required this.day,
-    required this.now,
-    required this.onPlan,
-    required this.onAddToDaybook,
-    required this.lightDirection,
-    this.onSelect,
-    this.onToday,
-    this.spanStyle = false,
-  });
-
-  final DateTime day;
-  final DateTime now;
-  final VoidCallback onPlan;
-  final VoidCallback onAddToDaybook;
-  final ValueListenable<Offset> lightDirection;
-  final VoidCallback? onSelect;
-  final VoidCallback? onToday;
-  final bool spanStyle;
-
-  @override
-  Widget build(BuildContext context) {
-    final isToday = Days.sameDay(day, now);
-    final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
-    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
-    final labelStyle = Type.label.copyWith(
-      fontSize: 11.5,
-      letterSpacing: 1.5,
-      color: isToday ? Palette.xpLight : Palette.textMid,
-    );
-    final spoken =
-        '${_weekdayNames[day.weekday - 1]} ${day.day}'
-        '${isToday ? ', today' : ''}';
-    Widget visualDayLabel() => spanStyle
-        ? Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 6,
-            runSpacing: 2,
-            children: [
-              Text(
-                '${_weekdayNames[day.weekday - 1]} ${day.day}',
-                style: labelStyle,
-              ),
-              if (isToday)
-                Text(
-                  'TODAY',
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: Palette.xp,
-                  ),
-                ),
-            ],
-          )
-        : Text(
-            '${_weekdayNames[day.weekday - 1]} ${day.day}'
-            '${isToday ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
-            maxLines: largeText ? 2 : 1,
-            overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
-            style: labelStyle,
-          );
-    final dayLabel = onSelect == null
-        ? Semantics(
-            header: true,
-            label: spoken,
-            excludeSemantics: true,
-            child: visualDayLabel(),
-          )
-        : Semantics(
-            key: ValueKey('daybook-day-control-${CivilDate.fromDateTime(day)}'),
-            button: true,
-            selected: true,
-            header: true,
-            label: spoken,
-            onTap: onSelect,
-            excludeSemantics: true,
-            child: InkWell(
-              onTap: onSelect,
-              borderRadius: BorderRadius.circular(9),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: visualDayLabel(),
-                ),
-              ),
-            ),
-          );
-    final planAction = isPast
-        ? null
-        : Semantics(
-            button: true,
-            label: 'Plan a one-off Quest for $spoken',
-            onTap: onPlan,
-            child: GestureDetector(
-              key: const ValueKey('calendar-plan-selected-day'),
-              excludeFromSemantics: true,
-              behavior: HitTestBehavior.opaque,
-              onTap: onPlan,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                child: Center(
-                  child: GoldSurface(
-                    cut: 7,
-                    glow: false,
-                    textured: false,
-                    light: lightDirection,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 8,
-                      ),
-                      child: const GoldLabel(text: 'PLAN QUEST', fontSize: 11),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-    final daybookAction = Semantics(
-      button: true,
-      label: 'Add class, assignment, exam, event, or task to $spoken Daybook',
-      onTap: onAddToDaybook,
-      child: TextButton.icon(
-        key: const ValueKey('calendar-add-to-daybook-selected-day'),
-        onPressed: onAddToDaybook,
-        style: TextButton.styleFrom(
-          minimumSize: const Size(44, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        icon: const Icon(
-          Icons.calendar_today_outlined,
-          size: 15,
-          color: Palette.textMid,
-        ),
-        label: Text(
-          'CLASS · EXAM · MORE',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 0.85,
-            color: Palette.textMid,
-          ),
-        ),
-      ),
-    );
-    final todayAction = isToday || onToday == null
-        ? null
-        : TextButton(
-            key: const ValueKey('calendar-back-to-today'),
-            onPressed: onToday,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(44, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              'TODAY',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 1.0,
-                color: Palette.xpLight,
-              ),
-            ),
-          );
-    final actions = Wrap(
-      alignment: WrapAlignment.end,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 4,
-      runSpacing: 4,
-      // Keep the selected-day content from jumping when TODAY appears after a
-      // day choice inside a span. The empty slot has no semantics or hit area.
-      children: [
-        daybookAction,
-        todayAction ?? const SizedBox(width: 64, height: 44),
-        ?planAction,
-      ],
-    );
-
-    if (largeText) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          dayLabel,
-          const SizedBox(height: 8),
-          Align(alignment: Alignment.centerRight, child: actions),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(child: dayLabel),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 250),
-          child: actions,
-        ),
-      ],
-    );
-  }
-}
-
-class _DayPanel extends StatelessWidget {
-  const _DayPanel({
-    required this.day,
-    required this.completions,
-    required this.reflections,
-    required this.journalEntries,
-    required this.daybookDay,
-    required this.showDaybookEntries,
-    required this.showDayShape,
-    required this.showHeader,
-    required this.academicSchedule,
-    required this.now,
-    required this.onPlan,
-    required this.onAddToDaybook,
-    required this.onOpenJournal,
-    required this.onOpenNotebook,
-    required this.onOpenDaybookActions,
-    required this.onToggleTask,
-    required this.onToggleWork,
-    required this.onOpenStudyPlanner,
-    required this.onToggleStudyBlock,
-    required this.onCompleteQuestPlan,
-    required this.onUpdateTransitionBuffer,
-    required this.onOpenOccurrenceAdjuster,
-    required this.directionsLauncher,
-    required this.daybookPreferences,
-    required this.lightDirection,
-  });
-
-  final DateTime day;
-  final int completions;
-  final int reflections;
-  final List<Note> journalEntries;
-  final DaybookDay daybookDay;
-  final bool showDaybookEntries;
-  final bool showDayShape;
-  final bool showHeader;
-  final AcademicSchedule academicSchedule;
-  final DateTime now;
-  final VoidCallback onPlan;
-  final VoidCallback onAddToDaybook;
-  final ValueChanged<Note> onOpenJournal;
-  final OpenAcademicNotebook onOpenNotebook;
-  final OpenDaybookActions onOpenDaybookActions;
-  final ToggleDaybookTask onToggleTask;
-  final ToggleAcademicWork onToggleWork;
-  final OpenAcademicStudyPlanner onOpenStudyPlanner;
-  final ToggleAcademicStudyBlock onToggleStudyBlock;
-  final CompleteQuestPlan? onCompleteQuestPlan;
-  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
-  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
-  final DirectionsLauncher directionsLauncher;
-  final DaybookPreferences daybookPreferences;
-  final ValueListenable<Offset> lightDirection;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasContentBeforeJournal =
-        showHeader ||
-        showDayShape ||
-        (showDaybookEntries && daybookDay.entries.isNotEmpty) ||
-        completions > 0 ||
-        reflections > 0;
-    return GlassPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (showHeader) ...[
-            _SelectedDayHeader(
-              day: day,
-              now: now,
-              onPlan: onPlan,
-              onAddToDaybook: onAddToDaybook,
-              lightDirection: lightDirection,
-            ),
-            const SizedBox(height: 9),
-          ],
-          if (showDayShape) ...[
-            _DayShapeSummary(summary: daybookDay.summary),
-            const SizedBox(height: 12),
-          ],
-          if (showDaybookEntries && daybookDay.entries.isNotEmpty)
-            DaybookAgendaEntries(
-              day: daybookDay,
-              schedule: academicSchedule,
-              onOpenNotebook: onOpenNotebook,
-              onOpenDaybookActions: onOpenDaybookActions,
-              onToggleTask: onToggleTask,
-              onToggleWork: onToggleWork,
-              onOpenStudyPlanner: onOpenStudyPlanner,
-              onToggleStudyBlock: onToggleStudyBlock,
-              onCompleteQuestPlan: onCompleteQuestPlan,
-              onUpdateTransitionBuffer: onUpdateTransitionBuffer,
-              onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
-              directionsLauncher: directionsLauncher,
-              daybookPreferences: daybookPreferences,
-            ),
-          if (showDaybookEntries &&
-              daybookDay.entries.isNotEmpty &&
-              (completions > 0 || reflections > 0 || journalEntries.isNotEmpty))
-            const Divider(height: 17, color: Color(0x2EE7C47E)),
-          if (completions > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    size: 14,
-                    color: Palette.success,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '$completions quest${completions == 1 ? "" : "s"} completed',
-                      style: Type.body.copyWith(
-                        fontSize: 13,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (reflections > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.auto_stories_outlined,
-                    size: 14,
-                    color: Palette.xpLight,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '$reflections reflection${reflections == 1 ? "" : "s"} kept',
-                      style: Type.body.copyWith(
-                        fontSize: 13,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (journalEntries.isNotEmpty) ...[
-            if (hasContentBeforeJournal)
-              const Divider(height: 18, color: Color(0x2EE7C47E)),
-            Text(
-              'JOURNAL',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 1.7,
-                color: Palette.xpLight,
-              ),
-            ),
-            const SizedBox(height: 7),
-            _JournalDayEntries(
-              key: ValueKey(Days.key(day)),
-              entries: journalEntries,
-              onOpenJournal: onOpenJournal,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DayShapeSummary extends StatelessWidget {
-  const _DayShapeSummary({required this.summary});
-
-  final DaybookDaySummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final facts = <String>[];
-    if (summary.fixedPlanCount > 0) {
-      if (summary.firstTimedStartMinute == null &&
-          summary.fixedPlanCount == 1) {
-        facts.add('1 all-day plan');
-      } else if (summary.fixedPlanCount == 1) {
-        facts.add(
-          '1 fixed plan · ${formatAcademicTime(summary.firstTimedStartMinute!)}',
-        );
-      } else if (summary.firstTimedStartMinute != null) {
-        facts.add(
-          '${summary.fixedPlanCount} fixed plans · first at ${formatAcademicTime(summary.firstTimedStartMinute!)}',
-        );
-      } else {
-        facts.add('${summary.fixedPlanCount} fixed plans');
-      }
-    }
-    if (summary.deadlineCount > 0) {
-      facts.add(
-        '${summary.deadlineCount} deadline${summary.deadlineCount == 1 ? '' : 's'}',
-      );
-    }
-    if (summary.focusCount > 0) {
-      facts.add(
-        summary.focusCount == 1
-            ? '1 focus'
-            : '${summary.focusCount} focus choices',
-      );
-    }
-    final body = facts.isEmpty ? 'No fixed plans.' : facts.join(' · ');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(height: 1, thickness: 1, color: Color(0x46E7C47E)),
-        const SizedBox(height: 8),
-        Text(
-          'DAY SHAPE',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 1.7,
-            color: Palette.xpLight,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          body,
-          style: Type.body.copyWith(fontSize: 13.5, color: Palette.textMid),
-        ),
-      ],
-    );
-  }
-}
-
-class _JournalDayEntries extends StatefulWidget {
-  const _JournalDayEntries({
-    super.key,
-    required this.entries,
-    required this.onOpenJournal,
-  });
-
-  final List<Note> entries;
-  final ValueChanged<Note> onOpenJournal;
-
-  @override
-  State<_JournalDayEntries> createState() => _JournalDayEntriesState();
-}
-
-class _JournalDayEntriesState extends State<_JournalDayEntries> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final shown = _expanded ? widget.entries : widget.entries.take(2);
-    final hidden = widget.entries.length - 2;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final entry in shown)
-          _JournalDayEntry(
-            entry: entry,
-            onTap: () => widget.onOpenJournal(entry),
-          ),
-        if (hidden > 0)
-          Semantics(
-            button: true,
-            expanded: _expanded,
-            label: _expanded
-                ? 'Show fewer journal entries'
-                : 'Show $hidden more journal ${hidden == 1 ? "entry" : "entries"} from this day',
-            child: InkWell(
-              onTap: () => setState(() => _expanded = !_expanded),
-              borderRadius: BorderRadius.circular(10),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _expanded
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                        size: 18,
-                        color: Palette.xpLight,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        _expanded ? 'SHOW FEWER' : '+ $hidden MORE ON THIS DAY',
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          color: Palette.xpLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _JournalDayEntry extends StatelessWidget {
-  const _JournalDayEntry({required this.entry, required this.onTap});
-
-  final Note entry;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final preview = entry.text.trim().isEmpty
-        ? '${entry.images.length} photo${entry.images.length == 1 ? '' : 's'}'
-        : entry.text.trim();
-    return Semantics(
-      button: true,
-      label: 'Read journal entry. $preview',
-      child: InkWell(
-        key: ValueKey('calendar-journal-entry-${entry.id}'),
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 7),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Palette.glassFill,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Palette.glassEdge),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (entry.images.isNotEmpty) ...[
-                SizedBox.square(
-                  dimension: 50,
-                  child: media.image(entry.images.first, maxHeight: 50),
-                ),
-                const SizedBox(width: 10),
-              ] else ...[
-                const SizedBox.square(
-                  dimension: 34,
-                  child: Icon(
-                    Icons.menu_book_outlined,
-                    size: 19,
-                    color: Palette.xpLight,
-                  ),
-                ),
-                const SizedBox(width: 7),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      preview,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                        fontSize: 13,
-                        height: 1.3,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                    if (entry.images.length > 1) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        '${entry.images.length} PHOTOS',
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          color: Palette.textLo,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(
-                Icons.chevron_right_rounded,
-                size: 19,
-                color: Palette.textLo,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Plan an event / long-term goal on the selected day. Completing it from
 /// the Quests page pays XP like any quest and feeds the Keeper-of-Plans
 /// achievement.
@@ -2985,7 +1477,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
               ),
               const SizedBox(height: 10),
               Text(
-                'START WITH A DAY SHAPE — OR NAME YOUR OWN',
+                'START WITH A DAY SHAPE, OR NAME YOUR OWN',
                 style: Type.label.copyWith(
                   fontSize: Type.minLabel,
                   color: Palette.textLo,

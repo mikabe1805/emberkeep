@@ -41,12 +41,17 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart' show OverlaySurface, WarmBackground;
 import '../widgets/home_room.dart'
     show preloadHearthFireFrames, preloadSpaceTheme;
+import '../widgets/house/house_backdrop.dart';
+import '../widgets/house/house_hud.dart';
+import '../widgets/house/house_room.dart';
+import '../widgets/house/house_travel.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/pressable.dart';
 import '../widgets/room_travel.dart';
 import '../widgets/routine_flows.dart';
 import 'calendar.dart';
+import 'domain_detail.dart';
 import 'goal_wizard.dart';
 import 'goals.dart';
 import 'hearth_circle.dart';
@@ -302,6 +307,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// deferred commit before writing (bug-hunt §1 — observer order alone
   /// is fragile across IndexedStack rebuilds).
   VoidCallback? _flushQuestsCommit;
+
+  /// The house's one HUD: its key (the XP that flies to it) and the Quests
+  /// page's own way of opening a domain, which also settles an undo.
+  final GlobalKey _hudKey = GlobalKey(debugLabel: 'house-hud');
+  void Function(Stat stat)? _questsExploreStat;
   void Function(Quest quest, Offset anchor)? _completeQuest;
   void Function(Quest launcher)? _openGuidedWorkout;
 
@@ -2215,6 +2225,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // only on its first visit; keeping five illustrated pages alive from frame
     // one decoded tens of megabytes the person had not asked to see yet.
     Sfx.instance.setInteractionScreen(_soundTabScopes[i]);
+    // A room's painted plates start decoding now, on the tap's own frame, so a
+    // first visit finds them ready when its light arrives.
+    HouseRoomBackdrop.warm(context, HouseRoom.fromDockIndex(i));
     setState(() {
       if (i == 1 && _focusedQuest != null) {
         _focusedQuest = null;
@@ -2226,6 +2239,35 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     });
     if (i == 1) _maybeStartSessionIgnition();
     if (i == 1) _releaseClassDayRequests();
+  }
+
+  /// A stat in the HUD, over any room: its domain page. Quests opens it
+  /// through the page's own path (it settles an undo and flushes a reward
+  /// still settling); before Quests has been visited the shell does the same
+  /// with what it owns.
+  void _exploreStatFromHud(Stat stat) {
+    final state = _state;
+    final quests = _quests;
+    if (state == null || quests == null) return;
+    final viaQuests = _questsExploreStat;
+    if (viaQuests != null) {
+      viaQuests(stat);
+      return;
+    }
+    _flushQuestsCommit?.call();
+    Haptics.tap();
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => DomainDetailScreen(
+          stat: stat,
+          state: state,
+          quests: quests,
+          onPersist: _persist,
+          onAddQuest: _addQuest,
+        ),
+      ),
+    );
   }
 
   void _openQuestFromGoals(Quest quest) {
@@ -2331,155 +2373,176 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: RoomTravelStack(
-                              index: _tab,
-                              // The travel stack retains IndexedStack's state/lifecycle
-                              // contract; the dock changes rooms at once, softened by
-                              // a very short cross-dissolve (no pan, no blur).
-                              children: [
-                                for (final (i, page) in <Widget>[
-                                  _visitedTabs.contains(0)
-                                      ? MePage(
-                                          state: state,
-                                          quests: quests,
-                                          onPersist: _persist,
-                                          onMusicChanged: (enabled) async {
-                                            await _music.setEnabled(enabled);
-                                            if (enabled) {
-                                              await _music
-                                                  .retryAfterUserGesture();
-                                            }
-                                          },
-                                          onPublishRoom: _publishSpaceRoom,
-                                          onAddQuest: _addQuest,
-                                          onExport: _export,
-                                          onImport: _import,
-                                          onReset: _reset,
-                                          onNotifyChanged:
-                                              _rescheduleNotifications,
-                                          onEnableCloud: _enableCloud,
-                                          onLinkAccount: _linkAccount,
-                                          onSignIn: _signIn,
-                                          onSignOut: _signOut,
-                                          onDeleteAccount: _deleteAccount,
-                                          onRemovePrivateServiceIdentity:
-                                              _removePrivateServiceIdentity,
-                                          onWithdrawPlaceSearchConsent:
-                                              _withdrawPlaceSearchConsent,
-                                          cloudAccountView: CloudSync.instance,
-                                          onSelectTab: _selectTab,
-                                          parallax: cameraFor(0),
-                                        )
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(1)
-                                      ? QuestsPage(
-                                          state: state,
-                                          quests: quests,
-                                          onRefresh: _refreshQuests,
-                                          onPersist: _persist,
-                                          onAdd: _addQuest,
-                                          onRemove: _removeQuest,
-                                          onSnapshot: _captureSnapshot,
-                                          onRestore: _restoreSnapshot,
-                                          onBindFlush: (flush) =>
-                                              _flushQuestsCommit = flush,
-                                          onBindComplete: (complete) =>
-                                              _completeQuest = complete,
-                                          onBindOpenWorkout: (open) =>
-                                              _openGuidedWorkout = open,
-                                          onNightClosed: () => unawaited(
-                                            _rescheduleNotifications(),
-                                          ),
-                                          onOpenRoomGuide: _openRoomGuide,
-                                          parallax: cameraFor(1),
-                                          lightDirection: lightFor(1),
-                                          roomIgniting: _roomIgniting,
-                                          roomHearthLit: _roomHearthLit,
-                                          focusQuest: _focusedQuest,
-                                          focusQuestTitle: _focusedQuestTitle,
-                                          focusRequestId: _questFocusRequest,
-                                          workoutRequestId: _workoutRequest,
-                                          musicController: _music,
-                                          classDays: _classDays,
-                                          classTerm: _classTerm,
-                                          onClassesSetAside: () => unawaited(
-                                            _rescheduleNotifications(),
-                                          ),
-                                          onAddClasses: _offerAddClasses
-                                              ? _openAddClasses
-                                              : null,
-                                          dockQuiet: _dockQuiet,
-                                        )
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(2)
-                                      ? GoalsPage(
-                                          state: state,
-                                          onAdd: _addQuest,
-                                          onRemoveQuest: _removeQuest,
-                                          onRemoveGoal: _removeGoal,
-                                          onPersist: _persist,
-                                          quests: quests,
-                                          onOpenQuest: _openQuestFromGoals,
-                                          onOpenQuests: () => _selectTab(1),
-                                          onOpenGuidedWorkouts:
-                                              _openGuidedWorkouts,
-                                          onOpenWorkout: _openWorkoutFromGoals,
-                                          openingRequestTitle:
-                                              _pendingGoalOpeningTitle,
-                                          onOpeningRequestHandled: () {
-                                            if (!mounted) return;
-                                            setState(
-                                              () => _pendingGoalOpeningTitle =
-                                                  null,
-                                            );
-                                          },
-                                          parallax: cameraFor(2),
-                                          lightDirection: lightFor(2),
-                                        )
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(3)
-                                      ? CalendarPage(
-                                          state: state,
-                                          quests: quests,
-                                          scheduleRepository:
-                                              _academicScheduleRepository,
-                                          academicScheduleFileInbox:
-                                              widget.academicScheduleFiles,
-                                          requestReminderPermission:
-                                              Notifications.requestPermission,
-                                          onScheduleChanged:
-                                              _onAcademicScheduleChanged,
-                                          addClassesRequestId:
-                                              _addClassesRequest,
-                                          onAdd: _addQuest,
-                                          onCompleteQuest: (quest, anchor) =>
-                                              _completeQuest?.call(
-                                                quest,
-                                                anchor,
-                                              ),
-                                          parallax: cameraFor(3),
-                                          lightDirection: lightFor(3),
-                                        )
-                                      : const SizedBox.shrink(),
-                                  _visitedTabs.contains(4)
-                                      ? InsightsPage(
-                                          state: state,
-                                          quests: quests,
-                                          onPersist: _persist,
-                                          parallax: cameraFor(4),
-                                          lightDirection: lightFor(4),
-                                        )
-                                      : const SizedBox.shrink(),
-                                ].indexed)
-                                  InteractionSoundScreenScope(
-                                    id: _soundTabScopes[i],
-                                    sourceRoute: soundRootRoute,
-                                    child: TickerMode(
-                                      enabled: _tab == i,
-                                      child: page,
-                                    ),
+                            child: HouseHudScope(
+                              hudKey: _hudKey,
+                              child: HouseTravelStack(
+                                index: _tab,
+                                // One HUD over every room: the level, the XP,
+                                // the date and the six stats, as in the house's
+                                // prototype. It steps back with the Quests
+                                // evening's music, like the dock.
+                                overlay: ValueListenableBuilder<bool>(
+                                  valueListenable: _dockQuiet,
+                                  builder: (context, quiet, _) => HouseHud(
+                                    state: state,
+                                    hudKey: _hudKey,
+                                    stepBack: quiet && _tab == 1,
+                                    onExploreStat: _exploreStatFromHud,
                                   ),
-                              ],
+                                ),
+                                // The travel stack retains IndexedStack's state/lifecycle
+                                // contract; every tab is a room of one house, and the
+                                // dock turns toward a room: that room's own light
+                                // brings it up (no slide, no blur).
+                                children: [
+                                  for (final (i, page) in <Widget>[
+                                    _visitedTabs.contains(0)
+                                        ? MePage(
+                                            state: state,
+                                            quests: quests,
+                                            onPersist: _persist,
+                                            onMusicChanged: (enabled) async {
+                                              await _music.setEnabled(enabled);
+                                              if (enabled) {
+                                                await _music
+                                                    .retryAfterUserGesture();
+                                              }
+                                            },
+                                            onPublishRoom: _publishSpaceRoom,
+                                            onAddQuest: _addQuest,
+                                            onExport: _export,
+                                            onImport: _import,
+                                            onReset: _reset,
+                                            onNotifyChanged:
+                                                _rescheduleNotifications,
+                                            onEnableCloud: _enableCloud,
+                                            onLinkAccount: _linkAccount,
+                                            onSignIn: _signIn,
+                                            onSignOut: _signOut,
+                                            onDeleteAccount: _deleteAccount,
+                                            onRemovePrivateServiceIdentity:
+                                                _removePrivateServiceIdentity,
+                                            onWithdrawPlaceSearchConsent:
+                                                _withdrawPlaceSearchConsent,
+                                            cloudAccountView:
+                                                CloudSync.instance,
+                                            onSelectTab: _selectTab,
+                                            parallax: cameraFor(0),
+                                          )
+                                        : const SizedBox.shrink(),
+                                    _visitedTabs.contains(1)
+                                        ? QuestsPage(
+                                            state: state,
+                                            quests: quests,
+                                            onRefresh: _refreshQuests,
+                                            onPersist: _persist,
+                                            onAdd: _addQuest,
+                                            onRemove: _removeQuest,
+                                            onSnapshot: _captureSnapshot,
+                                            onRestore: _restoreSnapshot,
+                                            onBindFlush: (flush) =>
+                                                _flushQuestsCommit = flush,
+                                            onBindComplete: (complete) =>
+                                                _completeQuest = complete,
+                                            onBindOpenWorkout: (open) =>
+                                                _openGuidedWorkout = open,
+                                            onBindExploreStat: (open) =>
+                                                _questsExploreStat = open,
+                                            onNightClosed: () => unawaited(
+                                              _rescheduleNotifications(),
+                                            ),
+                                            onOpenRoomGuide: _openRoomGuide,
+                                            parallax: cameraFor(1),
+                                            lightDirection: lightFor(1),
+                                            roomIgniting: _roomIgniting,
+                                            roomHearthLit: _roomHearthLit,
+                                            focusQuest: _focusedQuest,
+                                            focusQuestTitle: _focusedQuestTitle,
+                                            focusRequestId: _questFocusRequest,
+                                            workoutRequestId: _workoutRequest,
+                                            musicController: _music,
+                                            classDays: _classDays,
+                                            classTerm: _classTerm,
+                                            onClassesSetAside: () => unawaited(
+                                              _rescheduleNotifications(),
+                                            ),
+                                            onAddClasses: _offerAddClasses
+                                                ? _openAddClasses
+                                                : null,
+                                            dockQuiet: _dockQuiet,
+                                          )
+                                        : const SizedBox.shrink(),
+                                    _visitedTabs.contains(2)
+                                        ? GoalsPage(
+                                            state: state,
+                                            onAdd: _addQuest,
+                                            onRemoveQuest: _removeQuest,
+                                            onRemoveGoal: _removeGoal,
+                                            onPersist: _persist,
+                                            quests: quests,
+                                            onOpenQuest: _openQuestFromGoals,
+                                            onOpenQuests: () => _selectTab(1),
+                                            onOpenGuidedWorkouts:
+                                                _openGuidedWorkouts,
+                                            onOpenWorkout:
+                                                _openWorkoutFromGoals,
+                                            openingRequestTitle:
+                                                _pendingGoalOpeningTitle,
+                                            onOpeningRequestHandled: () {
+                                              if (!mounted) return;
+                                              setState(
+                                                () => _pendingGoalOpeningTitle =
+                                                    null,
+                                              );
+                                            },
+                                            parallax: cameraFor(2),
+                                            lightDirection: lightFor(2),
+                                          )
+                                        : const SizedBox.shrink(),
+                                    _visitedTabs.contains(3)
+                                        ? CalendarPage(
+                                            state: state,
+                                            quests: quests,
+                                            scheduleRepository:
+                                                _academicScheduleRepository,
+                                            academicScheduleFileInbox:
+                                                widget.academicScheduleFiles,
+                                            requestReminderPermission:
+                                                Notifications.requestPermission,
+                                            onScheduleChanged:
+                                                _onAcademicScheduleChanged,
+                                            addClassesRequestId:
+                                                _addClassesRequest,
+                                            onAdd: _addQuest,
+                                            onCompleteQuest: (quest, anchor) =>
+                                                _completeQuest?.call(
+                                                  quest,
+                                                  anchor,
+                                                ),
+                                            parallax: cameraFor(3),
+                                            lightDirection: lightFor(3),
+                                          )
+                                        : const SizedBox.shrink(),
+                                    _visitedTabs.contains(4)
+                                        ? InsightsPage(
+                                            state: state,
+                                            quests: quests,
+                                            onPersist: _persist,
+                                            parallax: cameraFor(4),
+                                            lightDirection: lightFor(4),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ].indexed)
+                                    InteractionSoundScreenScope(
+                                      id: _soundTabScopes[i],
+                                      sourceRoute: soundRootRoute,
+                                      child: TickerMode(
+                                        enabled: _tab == i,
+                                        child: page,
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                           // Content passes UNDER the dock, so without this it was

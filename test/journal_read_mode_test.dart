@@ -147,6 +147,16 @@ void main() {
       );
       await tester.pump();
 
+      await tester.scrollUntilVisible(
+        find.text('Your Journal'),
+        200,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('journal-nook-scroll')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.ensureVisible(find.text('Your Journal'));
+      await tester.pump();
       final label = find.text('Your Journal');
       final pressable = find.ancestor(
         of: label,
@@ -423,6 +433,18 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('then-and-now-read-entry')),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('journal-nook-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('then-and-now-read-entry')),
+    );
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('then-and-now-read-entry')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

@@ -86,7 +86,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
 
       expect(find.text('Today’s three'), findsOneWidget);
-      expect(find.text('0 of 2 kept'), findsOneWidget);
+      expect(find.text('ready when you are'), findsOneWidget);
       expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
       expect(find.text('First chosen'), findsOneWidget);
       expect(find.text('Second chosen'), findsOneWidget);
@@ -133,7 +133,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Today’s three'), findsOneWidget);
-    expect(find.text('0 of 1 kept · 1 set aside'), findsOneWidget);
+    expect(find.text('ready when you are · 1 set aside'), findsOneWidget);
     expect(find.text('all kept'), findsNothing);
   });
 

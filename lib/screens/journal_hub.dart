@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
@@ -13,9 +12,8 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
-import '../widgets/night_reflection_sheet.dart';
+import '../widgets/house/journal/journal_writer.dart';
 import '../widgets/notes_sheet.dart';
-import 'journal_entry.dart';
 import 'memory_cabinet.dart';
 
 /// The Journal hub (round-45) — the discoverable home for notes. The feature
@@ -213,127 +211,27 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         .toList();
   }
 
+  JournalWriter get _writer => JournalWriter(state: _s, quests: widget.quests);
+
   /// Open the full-page editor — for a brand-new entry, or to keep writing an
-  /// existing one (notes are editable now, not write-once).
+  /// existing one (notes are editable now, not write-once). The writing itself
+  /// lives in [JournalWriter], shared with the Journal nook.
   Future<void> _openEditor({
     Note? entry,
     String heading = 'Journal',
     String hint = 'What’s on your mind today?',
     String? starter,
     bool initiallyEditing = true,
-  }) {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
-    final night = entry?.night;
-    if (entry != null && night != null && initiallyEditing) {
-      return showNightReflectionSheet(
-        context,
-        initial: night,
-        reduceMotion: _s.reduceMotion,
-      ).then((data) {
-        if (!mounted || data == null) return;
-        _s.updateNightJournalEntry(entry, data);
-      });
-    }
-    final trace = entry == null ? _todayTrace() : entry.trace;
-    return Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => JournalEntryScreen(
-          initial: entry,
-          accent: Palette.xp,
-          themeId: _s.canvasTheme,
-          reduceMotion: _s.reduceMotion,
-          heading: heading,
-          hint: hint,
-          starter: starter ?? _starterFor(entry),
-          trace: trace,
-          initiallyEditing: initiallyEditing,
-          keepsakePinned: entry == null
-              ? null
-              : _s.memoryPins.contains(entry.id),
-          onToggleKeepsake: _toggleKeepsake,
-          onEditRequested: entry != null && night != null
-              ? (readerContext) async {
-                  final data = await showNightReflectionSheet(
-                    readerContext,
-                    initial: night,
-                    reduceMotion: _s.reduceMotion,
-                  );
-                  if (!readerContext.mounted || data == null) return;
-                  _s.updateNightJournalEntry(entry, data);
-                  if (readerContext.mounted) {
-                    Navigator.of(readerContext).pop();
-                  }
-                }
-              : null,
-          commit: (payload, existing, markEdited) =>
-              _commit(payload, existing, markEdited, trace),
-          onDelete: _deleteJournal,
-        ),
-      ),
-    );
-  }
+  }) => _writer.open(
+    context,
+    entry: entry,
+    heading: heading,
+    hint: hint,
+    starter: starter,
+    initiallyEditing: initiallyEditing,
+  );
 
-  String? _starterFor(Note? entry) {
-    final source = entry?.sourceQuestKey;
-    if (source == null || source.isEmpty) return null;
-    for (final quest in widget.quests) {
-      if (quest.title == source) return quest.journalPrompt?.starter;
-    }
-    return null;
-  }
-
-  bool _toggleKeepsake(Note entry) {
-    final pinned = !_s.memoryPins.contains(entry.id);
-    _s.setMemoryPinned(entry.id, pinned);
-    Sfx.instance.play(pinned ? 'streak' : 'tick');
-    HapticFeedback.selectionClick();
-    return pinned;
-  }
-
-  /// Insert-or-replace and hand the saved Note back so the editor keeps
-  /// autosaving into the same entry. setJournal notifies GameState, which the
-  /// shell already persists on — so we do NOT also call widget.onPersist here
-  /// (that double-encoded the whole save blob on every 650ms autosave tick).
-  Note _commit(
-    JournalPayload payload,
-    Note? existing,
-    bool markEdited,
-    JournalTrace? trace,
-  ) {
-    if (existing == null) {
-      // stamp who you were when you wrote it — proof of becoming
-      final note = Note(
-        at: Clock.now(),
-        text: payload.text,
-        context: _s.buildTitle,
-        rich: payload.rich,
-        images: payload.images,
-        trace: trace,
-      );
-      _s.setJournal([..._s.journal, note]);
-      return note;
-    }
-    // markEdited only when this entry pre-existed the editor session; passing
-    // null to copyWith leaves the original editedAt untouched.
-    final updated = existing.copyWith(
-      text: payload.text,
-      rich: payload.rich,
-      images: payload.images,
-      editedAt: markEdited ? Clock.now() : null,
-    );
-    _s.setJournal(_s.journal.replacing(updated));
-    return updated;
-  }
-
-  /// Remove an entry AND its device-local photos (they'd be orphaned forever
-  /// otherwise — nothing else references the files). setJournal's notify
-  /// persists via the shell listener, so no explicit onPersist here either.
-  void _deleteJournal(Note n) {
-    for (final f in n.images) {
-      media.delete(f);
-    }
-    _s.setJournal(_s.journal.without(n));
-  }
+  bool _toggleKeepsake(Note entry) => _writer.toggleKeepsake(entry);
 
   /// Peek a note that lives on a quest / goal / domain — with a deep-link
   /// into the editable notes sheet so the hub isn't a dead end.

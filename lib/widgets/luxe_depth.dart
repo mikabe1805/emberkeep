@@ -11,9 +11,12 @@ import '../content/themes.dart';
 import '../platform/motion_stub.dart'
     if (dart.library.js_interop) '../platform/motion_web.dart';
 import '../tokens.dart';
+import 'class_day/class_day_room.dart' show classStatusAbove;
 import 'facets.dart';
 import 'home_room.dart' show paintEmberFlame;
 import 'honey_button.dart';
+import 'house/house_backdrop.dart';
+import 'house/house_room.dart';
 
 /// One calibrated motion source for the whole five-tab shell.
 ///
@@ -259,7 +262,17 @@ class LuxePageList extends StatefulWidget {
     this.heroTranslation = Offset.zero,
     this.heroScrim,
     this.contentSafeArea = false,
+    this.room,
+    this.roomPlates,
   });
+
+  /// The room of the house this page is. When set, the page is that room's
+  /// painted backdrop (see HouseRoomBackdrop) under its live list, instead of
+  /// its own hero plate and ground. [assetPath] is then unused.
+  final HouseRoom? room;
+
+  /// The plates to show for [room] instead of its own (Plans' month spread).
+  final HousePlates? roomPlates;
 
   final String assetPath;
   final String title;
@@ -352,7 +365,17 @@ class LuxeCustomPageList extends StatefulWidget {
     this.heroHeight = 275,
     this.heroAspect,
     this.presentWholeRoom = false,
+    this.room,
+    this.parallax,
   });
+
+  /// The room of the house this page is. When set, the page is that room's
+  /// painted backdrop (see HouseRoomBackdrop) under its live list, instead of
+  /// the player's own room as a hero. [hero] is then unused.
+  final HouseRoom? room;
+
+  /// The tilt source for [room]'s plate.
+  final ValueListenable<Offset>? parallax;
 
   final Widget hero;
   final String title;
@@ -394,6 +417,24 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (widget.room case final room?) {
+      return _houseRoomList(
+        context,
+        room: room,
+        parallax: widget.parallax,
+        reduceMotion: widget.reduceMotion,
+        controller: _scroll,
+        heading: _LuxePageHeading(
+          title: widget.title,
+          subtitle: widget.subtitle,
+          icon: widget.icon,
+          trailing: widget.trailing,
+          showIcon: !widget.presentWholeRoom,
+          wrapTitle: widget.presentWholeRoom,
+        ),
+        children: widget.children,
+      );
+    }
     final ambient = canvasThemeById(widget.ambientThemeId);
     return Stack(
       fit: StackFit.expand,
@@ -516,6 +557,58 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
   }
 }
 
+/// A page that is a room of the house: the room's painted plate behind a
+/// scrolling list, the heading and the page's own cards starting where the
+/// room's live glass begins ([HouseRoom.contentTop]). As the list climbs, a
+/// warm veil deepens over the painting so every label stays crisp.
+Widget _houseRoomList(
+  BuildContext context, {
+  required HouseRoom room,
+  HousePlates? plates,
+  required ValueListenable<Offset>? parallax,
+  required bool reduceMotion,
+  required ScrollController controller,
+  required Widget heading,
+  required List<Widget> children,
+}) {
+  final above = classStatusAbove(context);
+  return LayoutBuilder(
+    builder: (context, box) {
+      // The page and the status bar above it are the screen the plates were
+      // painted for.
+      final k = houseContentScale(Size(box.maxWidth, box.maxHeight + above));
+      // The heading sits just above where the room's glass begins.
+      final lead = (room.contentTop * k - above - 70).clamp(48.0, 640.0);
+      return HouseRoomBackdrop(
+        room: room,
+        plates: plates,
+        parallax: parallax,
+        reduceMotion: reduceMotion,
+        veilFrom: room.contentTop - 50,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _LuxeScrollVeil(controller: controller, height: lead + 120),
+            ListView(
+              controller: controller,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
+              children: [
+                SizedBox(height: lead),
+                heading,
+                const SizedBox(height: 18),
+                ...children,
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 class _AmbientPool extends StatelessWidget {
   const _AmbientPool({required this.color, required this.size});
 
@@ -572,6 +665,30 @@ class _LuxePageListState extends State<LuxePageList> {
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (widget.room case final room?) {
+      return _houseRoomList(
+        context,
+        room: room,
+        plates: widget.roomPlates,
+        parallax: widget.parallax,
+        reduceMotion: widget.reduceMotion,
+        controller: _scroll,
+        heading: Padding(
+          padding: EdgeInsets.only(left: widget.headingIndent),
+          child:
+              widget.heading ??
+              _LuxePageHeading(
+                title: widget.title,
+                subtitle: widget.subtitle,
+                icon: widget.icon,
+                trailing: widget.trailing,
+                compact: widget.compactHeading,
+                showIcon: widget.showHeadingIcon,
+              ),
+        ),
+        children: widget.children,
+      );
+    }
     return Stack(
       fit: StackFit.expand,
       children: [

@@ -252,3 +252,13 @@ from the Doorway pass, see the codex-house doorway-prod README). The
 door-view plate (end brackets, holder unit, plaster pocket, brass front lip,
 plant mask) so the ticket rail can be drawn for any number of holders. About
 1.5 MB in all.
+
+## The house (2026-10-10)
+
+`assets/rooms/house/` holds the room plates of the house the tabs live in, all
+1179 x 2556 (393 x 852 pt at 3x), painted from the codex-house passes: Me
+(midday, evening), Goals (midday), Plans (day midday, day evening, month
+midday) and Journal (midday). Quests keeps the Doorway's own plates. Evening
+plates for Goals and Journal are still being painted: a room with no plate for
+a light keeps its painted light (nothing is tinted); the light map is
+`lib/widgets/house/house_room.dart`. About 1.7 MB in all.

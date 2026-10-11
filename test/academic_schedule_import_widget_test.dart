@@ -596,17 +596,21 @@ void main() {
         tester,
         repository: repository,
         picker: _rutgersPicker(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-27',
+          ),
+        ),
       );
-      // Plans ends on the doorway: after the day, never above it.
+      // The day's page ends on the doorway: after the day, never above it.
       await tester.scrollUntilVisible(
         _key('add-classes-doorway'),
         300,
-        scrollable: find
-            .descendant(
-              of: find.byType(CalendarPage),
-              matching: find.byType(Scrollable),
-            )
-            .first,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('plans-day-list')),
+          matching: find.byType(Scrollable),
+        ),
       );
       await tester.pumpAndSettle();
       expect(_key('add-classes-doorway'), findsOneWidget);
@@ -617,21 +621,20 @@ void main() {
       await tester.tap(_key('add-classes-file'));
       await tester.pumpAndSettle();
       await _tapVisible(tester, _key('add-classes-confirm'));
-      expect(_plansScroll(tester).position.pixels, greaterThan(0));
       await tester.tap(_key('add-classes-see-week'));
       await tester.pumpAndSettle();
 
       expect(_key('add-classes-sheet'), findsNothing);
-      // SEE MY WEEK brings Plans back to its top, on the WEEK view.
-      expect(_plansScroll(tester).position.pixels, 0);
-      // With classes in, the end of Plans no longer offers the doorway.
+      // SEE MY WEEK turns Plans to its WEEK view.
+      expect(find.byKey(const ValueKey('academic-week-view')), findsOneWidget);
+      // With classes in, the end of a day no longer offers the doorway.
+      await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
+      await tester.pumpAndSettle();
       await tester.fling(
-        find
-            .descendant(
-              of: find.byType(CalendarPage),
-              matching: find.byType(Scrollable),
-            )
-            .first,
+        find.descendant(
+          of: find.byKey(const ValueKey('plans-day-list')),
+          matching: find.byType(Scrollable),
+        ),
         const Offset(0, -4000),
         4000,
       );
@@ -687,7 +690,7 @@ void main() {
       // Oct 5, 8:30 AM, the morning after this Sunday evening).
       expect(preferences.state.mode, AcademicCalendarMode.week);
       expect(preferences.state.selectedDate, '2026-10-05');
-      expect(_plansScroll(tester).position.pixels, 0);
+      expect(find.byKey(const ValueKey('academic-week-view')), findsOneWidget);
     });
 
     testWidgets('adding classes while Plans is still opening keeps what was '
@@ -814,12 +817,12 @@ void main() {
     (
       name: 'sep8_designated_monday',
       selectedDate: '2026-09-08',
-      expectedTitle: '14:332:361 · LEC',
+      expectedTitle: 'Electronics Devices',
     ),
     (
       name: 'nov25_designated_friday',
       selectedDate: '2026-11-25',
-      expectedTitle: '14:332:331 · LEC',
+      expectedTitle: 'Computer Architecture & Assembly Language',
     ),
   ]) {
     testWidgets('imported result ${result.name}', (tester) async {
@@ -846,15 +849,6 @@ void main() {
     });
   }
 }
-
-ScrollableState _plansScroll(WidgetTester tester) => tester.state(
-  find
-      .descendant(
-        of: find.byType(CalendarPage),
-        matching: find.byType(Scrollable),
-      )
-      .first,
-);
 
 Set<int> _reminders(AcademicSchedule schedule) => {
   for (final series in schedule.meetingSeries)

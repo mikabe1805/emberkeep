@@ -19,7 +19,6 @@ import '../content/creature_skins.dart';
 import '../content/links.dart';
 import '../content/memories.dart';
 import '../content/room_styles.dart';
-import '../content/space_themes.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../daybook/services/place_search_identity_removal.dart';
@@ -30,7 +29,6 @@ import '../room_photo.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../a11y.dart';
-import '../widgets/count_up.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
@@ -40,11 +38,11 @@ import '../widgets/glass_switch.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
-import '../widgets/luxe_depth.dart';
+import '../widgets/house/me/mantel_glass.dart';
+import '../widgets/house/me/me_mantel.dart';
 import '../widgets/morrow_tapestry_glyph.dart';
 import '../widgets/pressable.dart';
 import '../widgets/radar.dart';
-import '../widgets/stat_chips.dart';
 import '../social.dart';
 import 'domain_detail.dart';
 import 'discover_spaces.dart';
@@ -2349,883 +2347,848 @@ class MePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compactHeading =
-        MediaQuery.sizeOf(context).width < 360 &&
-        MediaQuery.textScalerOf(context).scale(1) >= 1.6;
-    Widget levelSummary() => Container(
-      key: const ValueKey('me-level-summary'),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: facetedDecoration(
-        cut: 8,
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Palette.xp.withValues(alpha: 0.20),
-            Palette.xp.withValues(alpha: 0.06),
-          ],
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) => MeMantel(
+        state: state,
+        parallax: state.reduceMotion ? null : parallax,
+        reduceMotion: state.reduceMotion,
+        onStat: (stat) => _openDomain(context, stat),
+        onTrophy: () => _openSheet(
+          context,
+          eyebrow: 'THE MANTEL',
+          title: 'Trophy case',
+          content: _trophySheet,
         ),
-        borderColor: Palette.xp.withValues(alpha: 0.52),
-      ),
-      child: RollingNumber(
-        state.totalXp,
-        prefix: 'LV ${state.level} · ',
-        suffix: ' XP',
-        maxLines: 1,
-        style: Type.label.copyWith(
-          fontSize: Type.minLabel,
-          color: Palette.xpLight,
+        onSettings: () => _openSheet(
+          context,
+          eyebrow: 'THE MANTEL',
+          title: 'Settings',
+          content: _settingsSheet,
+        ),
+        onSave: () => _openSheet(
+          context,
+          eyebrow: 'THE MANTEL',
+          title: 'Save',
+          content: _saveSheet,
+        ),
+        onYourSpace: () => _openSheet(
+          context,
+          eyebrow: 'YOUR OWN ROOM',
+          title: 'Your space',
+          content: _spaceSheet,
+        ),
+        onMore: () => _openSheet(
+          context,
+          eyebrow: 'THE MANTEL',
+          title: 'More',
+          content: _moreSheet,
         ),
       ),
     );
-    return ListenableBuilder(
-      listenable: state,
-      builder: (context, _) => LuxeCustomPageList(
-        ambientThemeId: state.canvasTheme,
-        // Keep the established Quest camera for the shared Writer room. The
-        // wider crop preserves the room's full authored composition.
-        heroAspect: state.wallStyle == 'wall_walnut' ? 1.7 : 1.5,
-        heroHeight:
-            (MediaQuery.sizeOf(context).width /
-                    (state.wallStyle == 'wall_walnut' ? 1.7 : 1.5))
-                .clamp(state.wallStyle == 'wall_walnut' ? 180.0 : 205.0, 460.0),
-        presentWholeRoom: true,
-        hero: AnimatedBuilder(
-          animation: RoomPhotoStore.instance,
-          builder: (context, _) => HomeRoom(
-            key: const Key('me-room'),
-            aspect: state.wallStyle == 'wall_walnut' ? 1.7 : 1.5,
-            lively: !state.reduceMotion,
-            unlocked: const {},
-            wall: wallColorsFor(state),
-            plateId: state.wallStyle,
-            floor: floorColorsFor(state),
-            window: state.windowScene,
-            petAwake: state.streakDays > 0,
-            emberGlow: flameHueFor(state),
-            heirloomFlame: heirloomFlameFor(state),
-            level: state.level,
-            memoryArtifacts: memoryArtifactCount(state, quests),
-            roomPhoto: RoomPhotoStore.instance.photo,
-            parallax: state.reduceMotion ? null : parallax,
-          ),
+  }
+
+  /// A domain's own page: the card, the HUD and the long view all open it.
+  void _openDomain(BuildContext context, Stat stat) {
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DomainDetailScreen(
+          stat: stat,
+          state: state,
+          quests: quests,
+          onPersist: onPersist,
+          onAddQuest: onAddQuest,
         ),
-        title: 'Your room',
-        subtitle:
-            spaceThemeById(state.wallStyle)?.name ?? 'The Writer’s Hearth',
-        icon: Icons.emoji_emotions_outlined,
-        reduceMotion: state.reduceMotion,
-        trailing: compactHeading ? null : levelSummary(),
-        children: [
-          if (compactHeading) ...[
-            Align(alignment: Alignment.centerLeft, child: levelSummary()),
-            const SizedBox(height: 10),
-          ],
-          // ── the room's own rail: what you have to spend, and the way in ──
-          // Glimmers/room choice, sharing and the circle used to live *inside* the
-          // identity plate, which turned the one page element that should read
-          // as a nameplate into a grab bag of unrelated controls.
-          _SpaceRail(
-            embers: state.embers,
-            light: state.reduceMotion ? null : parallax,
-            onChangeSpace: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ShopScreen(
-                    state: state,
-                    onPersist: onPersist,
-                    parallax: parallax,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          AnimatedBuilder(
-            animation: RoomPhotoStore.instance,
-            builder: (context, _) {
-              final ownerKey = RoomPhotoStore.instance.ownerKey;
-              return RoomPhotoEntry(
-                state: state,
-                onTap:
-                    ownerKey == null ||
-                        ownerKey == 'room-photo-owner-transition' ||
-                        !RoomPhotoStore.instance.loaded
-                    ? null
-                    : () => Navigator.of(context).push<bool>(
-                        MaterialPageRoute(
-                          builder: (_) => RoomPhotoScreen(
-                            state: state,
-                            ownerKey: ownerKey,
-                            parallax: parallax,
-                          ),
-                        ),
-                      ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _SpaceLink(
-                key: const Key('preview-public-space'),
-                icon: Icons.visibility_outlined,
-                label: 'Public preview',
-                onTap: () => previewPublicSpace(
-                  context,
-                  state,
-                  visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-                  parallax: parallax,
-                  roomPhoto: RoomPhotoStore.instance.photo,
-                ),
-              ),
-              _SpaceLink(
-                icon: Icons.ios_share,
-                label: state.roomCode == null
-                    ? 'Share my space'
-                    : spaceDiscoveryEnabled &&
-                          state.roomDiscoveryRemovalCodes.contains(
-                            state.roomCode,
-                          )
-                    ? 'Closing Discover · ${state.roomCode}'
-                    : spaceDiscoveryEnabled && state.roomDiscoverable
-                    ? 'Discoverable · ${state.roomCode}'
-                    : 'Shared · ${state.roomCode}',
-                onTap: () {
-                  Sfx.instance.playMaterial(MaterialSound.glass);
-                  shareSpace(
-                    context,
-                    state,
-                    onPersist,
-                    spaceDiscoveryEnabled: spaceDiscoveryEnabled,
-                  );
-                },
-              ),
-              _SpaceLink(
-                icon: Icons.travel_explore,
-                label: spaceDiscoveryEnabled
-                    ? 'Discover spaces'
-                    : 'Visit a space',
-                onTap: spaceDiscoveryEnabled
-                    ? () {
-                        Sfx.instance.playMaterial(MaterialSound.parchment);
-                        Navigator.of(context).push<void>(
-                          MaterialPageRoute(
-                            builder: (_) => DiscoverSpacesScreen(
-                              state: state,
-                              onPersist: onPersist,
-                              parallax: parallax,
-                            ),
-                          ),
-                        );
-                      }
-                    : () {
-                        Sfx.instance.playMaterial(MaterialSound.glass);
-                        visitSpace(
-                          context,
-                          state: state,
-                          onPersist: onPersist,
-                          themeId: state.canvasTheme,
-                          lively: !state.reduceMotion,
-                          parallax: parallax,
-                        );
-                      },
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
+      ),
+    );
+  }
 
-          _PersonalSpacePanel(
-            state: state,
-            discoveryEnabled: spaceDiscoveryEnabled,
-            directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
-            discoveryClosing:
-                state.roomCode != null &&
-                state.roomDiscoveryRemovalCodes.contains(state.roomCode),
-            visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
-            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-            onManageDiscovery: spaceDiscoveryEnabled
-                ? () => onManageDiscovery != null
-                      ? onManageDiscovery!()
-                      : shareSpace(
-                          context,
-                          state,
-                          onPersist,
-                          spaceDiscoveryEnabled: true,
-                          discoveryFirst: true,
-                        )
-                : null,
-            onEdit: () => _personalizeSpace(
-              context,
-              state,
-              onPersist,
-              onPublishRoom,
-              visitorPhotoSharingEnabled,
-              visitorProfileSharingEnabled,
-            ),
-          ),
-          const SizedBox(height: 14),
+  /// One of the mantel's sheets, over the dimmed room.
+  Future<void> _openSheet(
+    BuildContext context, {
+    required String eyebrow,
+    required String title,
+    required WidgetBuilder content,
+  }) {
+    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Haptics.tap();
+    return showMantelSheet<void>(
+      context,
+      eyebrow: eyebrow,
+      title: title,
+      content: content,
+      listenable: state,
+      reduceMotion: state.reduceMotion,
+    );
+  }
 
-          // ── the nameplate ────────────────────────────────────────
-          GlassPanel(
-            blur: true,
-            child: Column(
+  // ── what each sheet holds (the page's own sections, unchanged) ──────────
+
+  Widget _trophySheet(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const _PlateOrnament(),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        (state.playerName ?? 'You').toUpperCase(),
-                        maxLines: 2,
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.fade,
-                        style: Type.display.copyWith(
-                          fontSize: 29,
-                          color: Palette.textHi,
-                          letterSpacing: 3.2,
+                Text('TROPHY CASE', style: Type.label.copyWith(fontSize: 11)),
+                const Spacer(),
+                Text(
+                  '${state.unlockedAchievements.length} / ${achievements.length}',
+                  style: Type.numerals.copyWith(
+                    fontSize: 12,
+                    color: Palette.xp,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final a in achievements)
+                  _TrophyTile(
+                    achievement: a,
+                    unlocked: state.unlockedAchievements.contains(a.id),
+                    closest: a.id == _closestTrophyId(state),
+                    progress: state.unlockedAchievements.contains(a.id)
+                        ? null
+                        : a.progress?.call(state),
+                    flameHue: flameHueFor(state),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _settingsSheet(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _themesPanel(),
+      const SizedBox(height: 14),
+      _soundPanel(),
+      const SizedBox(height: 14),
+      _remindersPanel(context),
+      const SizedBox(height: 14),
+      _RoomGuidePanel(
+        onTap: () {
+          Sfx.instance.playMaterial(MaterialSound.parchment);
+          Haptics.tap();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RoomGuideScreen(
+                state: state,
+                onAddQuest: onAddQuest,
+                onPersist: onPersist,
+                onSelectTab: onSelectTab ?? (_) {},
+              ),
+            ),
+          );
+        },
+      ),
+      const SizedBox(height: 4),
+    ],
+  );
+
+  Widget _saveSheet(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'YOUR SAVE IS YOURS',
+              style: Type.label.copyWith(fontSize: 11),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Your save stays under your control. For a copy that lives outside '
+              'the app and its cloud backup, stash a manual one too.',
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _DataButton(
+                  label: 'STASH A COPY',
+                  icon: Icons.upload_outlined,
+                  onTap: () async {
+                    final ok = await onExport();
+                    if (!context.mounted) return;
+                    Sfx.instance.play(ok ? 'streak' : 'boing');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Palette.card,
+                        content: Text(
+                          ok
+                              ? 'Copied. Stash it somewhere safe.'
+                              : 'Nothing to stash yet. Your first quest will fix that.',
+                          style: Type.body.copyWith(color: Palette.textHi),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: 'Change your name',
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        size: 18,
-                        color: Palette.textMid,
-                      ),
-                      onPressed: () => _changePlayerName(
-                        context,
-                        state,
-                        onPersist,
-                        onPublishRoom,
-                        visitorProfileSharingEnabled,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  state.buildTitle.toUpperCase(),
-                  style: Type.body.copyWith(
-                    fontSize: 14,
-                    letterSpacing: 2.2,
-                    color: state.dominantStat?.color ?? Palette.xpLight,
-                  ),
+                _DataButton(
+                  label: 'RESTORE',
+                  icon: Icons.download_outlined,
+                  onTap: () {
+                    Sfx.instance.playInteraction(
+                      InteractionSound.select,
+                      material: MaterialSound.stone,
+                    );
+                    showDialog(
+                      context: context,
+                      barrierColor: const Color(0xCC140C06),
+                      builder: (_) => _RestoreDialog(onImport: onImport),
+                    );
+                  },
                 ),
-                const SizedBox(height: 7),
-                Text(
-                  '${state.totalCompletions} QUEST${state.totalCompletions == 1 ? '' : 'S'} DONE  ·  ${state.streakDays} DAY STREAK',
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: Palette.textLo,
-                  ),
-                ),
-                if (state.equippedSkin != null) ...[
-                  const SizedBox(height: 8),
-                  Builder(
-                    builder: (_) {
-                      final tint =
-                          cosmeticFor(state.equippedSkin)?.aura ??
-                          Palette.unlock;
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.auto_awesome, size: 13, color: tint),
-                          const SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              'WEARING ${state.equippedSkin!.toUpperCase()}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: tint,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 16),
-                // Milestones remain a compact record inside the nameplate.
-                // Complete-room identities now live in Change your space, so
-                // this row no longer implies the room begins unfinished.
-                _InsetSection(
-                  label: 'MILESTONES',
-                  child: Row(
-                    children: [
-                      for (final f in progressMilestones.take(3)) ...[
-                        if (f != progressMilestones.take(3).first)
-                          const SizedBox(width: 7),
-                        Expanded(
-                          child: _LockedSlot(
-                            // The name always; the padlock says "not yet" and
-                            // the sheet behind the tap gives the exact level.
-                            // "FIRST FIVE · LV 5" in a third of a row shrank
-                            // below the readable floor.
-                            label: f.name.toUpperCase(),
-                            unlocked: state.level >= f.level,
-                            onTap: () => _showRoomMilestoneInfo(
-                              context,
-                              currentLevel: state.level,
-                              targetLevel: f.level,
-                              name: f.name,
-                              description: f.description,
-                            ),
-                          ),
+                // round-21: the on-device usage log, for the owner to hand
+                // to Claude for improvement ideas. Stored locally only,
+                // never uploaded — copied out only when you choose to.
+                _DataButton(
+                  label: 'USAGE LOG',
+                  icon: Icons.insights_outlined,
+                  onTap: () async {
+                    final raw = await Storage.usageExport();
+                    if (!context.mounted) return;
+                    final ok = raw != null && raw.isNotEmpty;
+                    if (ok) {
+                      await Clipboard.setData(ClipboardData(text: raw));
+                    }
+                    if (!context.mounted) return;
+                    Sfx.instance.play(ok ? 'streak' : 'boing');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: Palette.card,
+                        content: Text(
+                          ok
+                              ? 'Usage log copied to your clipboard. It never leaves your device.'
+                              : 'No usage logged yet. Check back after a few days.',
+                          style: Type.body.copyWith(color: Palette.textHi),
                         ),
-                      ],
-                    ],
-                  ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 12),
-                _HearthCircleLink(
-                  count: state.hearthCircleCodes.length,
-                  active: state.quietCompanyActive,
+                _DataButton(
+                  label: 'PRIVACY',
+                  icon: Icons.privacy_tip_outlined,
+                  onTap: () => _openPolicyPage(context, _privacyUrl),
+                ),
+                _DataButton(
+                  label: 'DELETE HELP',
+                  icon: Icons.person_remove_outlined,
+                  onTap: () => _openPolicyPage(context, _deletionUrl),
+                ),
+                _DataButton(
+                  label: "WHAT'S NEW",
+                  icon: Icons.history_rounded,
+                  onTap: () {
+                    Sfx.instance.playMaterial(MaterialSound.parchment);
+                    Haptics.tap();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => WhatsNewScreen(
+                          themeId: state.canvasTheme,
+                          reduceMotion: state.reduceMotion,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _DataButton(
+                  label: 'ABOUT + FEEDBACK',
+                  icon: Icons.info_outline,
                   onTap: () {
                     Sfx.instance.playMaterial(MaterialSound.parchment);
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => HearthCircleScreen(
+                        builder: (_) => AboutScreen(
+                          themeId: state.canvasTheme,
+                          reduceMotion: state.reduceMotion,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ListenableBuilder(
+              listenable: CloudSync.instance,
+              builder: (_, _) {
+                final cloud = CloudSync.instance;
+                return Row(
+                  children: [
+                    Icon(
+                      cloud.ready
+                          ? Icons.cloud_done_outlined
+                          : Icons.cloud_off_outlined,
+                      size: 13,
+                      color: cloud.ready ? Palette.success : Palette.textLo,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        cloud.ready
+                            ? 'cloud backup · ${cloud.status}'
+                            : cloud.available
+                            ? 'device-only · optional backup is off'
+                            : 'device-only · cloud unavailable',
+                        style: Type.body.copyWith(
+                          fontSize: 11,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const _CorruptRecovery(),
+            const SizedBox(height: 12),
+            Center(
+              child: GestureDetector(
+                onTap: () => _confirmReset(context),
+                child: Text(
+                  'start over',
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: const Color(0xFFE89090).withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  /// Your own room and the ways to share it: change space, the room photo,
+  /// the public preview, sharing, Discover, and the page's cards.
+  Widget _spaceSheet(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      _SpaceRail(
+        embers: state.embers,
+        light: state.reduceMotion ? null : parallax,
+        onChangeSpace: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ShopScreen(
+                state: state,
+                onPersist: onPersist,
+                parallax: parallax,
+              ),
+            ),
+          );
+        },
+      ),
+      const SizedBox(height: 12),
+      AnimatedBuilder(
+        animation: RoomPhotoStore.instance,
+        builder: (context, _) {
+          final ownerKey = RoomPhotoStore.instance.ownerKey;
+          return RoomPhotoEntry(
+            state: state,
+            onTap:
+                ownerKey == null ||
+                    ownerKey == 'room-photo-owner-transition' ||
+                    !RoomPhotoStore.instance.loaded
+                ? null
+                : () => Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => RoomPhotoScreen(
+                        state: state,
+                        ownerKey: ownerKey,
+                        parallax: parallax,
+                      ),
+                    ),
+                  ),
+          );
+        },
+      ),
+      const SizedBox(height: 12),
+      Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          _SpaceLink(
+            key: const Key('preview-public-space'),
+            icon: Icons.visibility_outlined,
+            label: 'Public preview',
+            onTap: () => previewPublicSpace(
+              context,
+              state,
+              visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+              parallax: parallax,
+              roomPhoto: RoomPhotoStore.instance.photo,
+            ),
+          ),
+          _SpaceLink(
+            icon: Icons.ios_share,
+            label: state.roomCode == null
+                ? 'Share my space'
+                : spaceDiscoveryEnabled &&
+                      state.roomDiscoveryRemovalCodes.contains(state.roomCode)
+                ? 'Closing Discover · ${state.roomCode}'
+                : spaceDiscoveryEnabled && state.roomDiscoverable
+                ? 'Discoverable · ${state.roomCode}'
+                : 'Shared · ${state.roomCode}',
+            onTap: () {
+              Sfx.instance.playMaterial(MaterialSound.glass);
+              shareSpace(
+                context,
+                state,
+                onPersist,
+                spaceDiscoveryEnabled: spaceDiscoveryEnabled,
+              );
+            },
+          ),
+          _SpaceLink(
+            icon: Icons.travel_explore,
+            label: spaceDiscoveryEnabled ? 'Discover spaces' : 'Visit a space',
+            onTap: spaceDiscoveryEnabled
+                ? () {
+                    Sfx.instance.playMaterial(MaterialSound.parchment);
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) => DiscoverSpacesScreen(
                           state: state,
                           onPersist: onPersist,
                           parallax: parallax,
                         ),
                       ),
                     );
+                  }
+                : () {
+                    Sfx.instance.playMaterial(MaterialSound.glass);
+                    visitSpace(
+                      context,
+                      state: state,
+                      onPersist: onPersist,
+                      themeId: state.canvasTheme,
+                      lively: !state.reduceMotion,
+                      parallax: parallax,
+                    );
                   },
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+
+      _PersonalSpacePanel(
+        state: state,
+        discoveryEnabled: spaceDiscoveryEnabled,
+        directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
+        discoveryClosing:
+            state.roomCode != null &&
+            state.roomDiscoveryRemovalCodes.contains(state.roomCode),
+        visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+        visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+        onManageDiscovery: spaceDiscoveryEnabled
+            ? () => onManageDiscovery != null
+                  ? onManageDiscovery!()
+                  : shareSpace(
+                      context,
+                      state,
+                      onPersist,
+                      spaceDiscoveryEnabled: true,
+                      discoveryFirst: true,
+                    )
+            : null,
+        onEdit: () => _personalizeSpace(
+          context,
+          state,
+          onPersist,
+          onPublishRoom,
+          visitorPhotoSharingEnabled,
+          visitorProfileSharingEnabled,
+        ),
+      ),
+      const SizedBox(height: 4),
+    ],
+  );
+
+  /// Everything else Me held: who you are (name, worn skin, milestones, the
+  /// circle), sharing the build, recent gains, the wardrobe, the long view of
+  /// the six domains, and the account.
+  Widget _moreSheet(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      GlassPanel(
+        blur: true,
+        child: Column(
+          children: [
+            const _PlateOrnament(),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    (state.playerName ?? 'You').toUpperCase(),
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.fade,
+                    style: Type.display.copyWith(
+                      fontSize: 29,
+                      color: Palette.textHi,
+                      letterSpacing: 3.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Change your name',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: Palette.textMid,
+                  ),
+                  onPressed: () => _changePlayerName(
+                    context,
+                    state,
+                    onPersist,
+                    onPublishRoom,
+                    visitorProfileSharingEnabled,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-
-          // ── the build shape ──────────────────────────────────────
-          GlassPanel(
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'YOUR BUILD',
-                      style: Type.label.copyWith(fontSize: 11),
+            if (state.equippedSkin != null) ...[
+              const SizedBox(height: 8),
+              Builder(
+                builder: (_) {
+                  final tint =
+                      cosmeticFor(state.equippedSkin)?.aura ?? Palette.unlock;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, size: 13, color: tint),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          'WEARING ${state.equippedSkin!.toUpperCase()}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.label.copyWith(fontSize: 11, color: tint),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+            const SizedBox(height: 16),
+            // Milestones remain a compact record inside the nameplate.
+            // Complete-room identities now live in Change your space, so
+            // this row no longer implies the room begins unfinished.
+            _InsetSection(
+              label: 'MILESTONES',
+              child: Row(
+                children: [
+                  for (final f in progressMilestones.take(3)) ...[
+                    if (f != progressMilestones.take(3).first)
+                      const SizedBox(width: 7),
+                    Expanded(
+                      child: _LockedSlot(
+                        // The name always; the padlock says "not yet" and
+                        // the sheet behind the tap gives the exact level.
+                        // "FIRST FIVE · LV 5" in a third of a row shrank
+                        // below the readable floor.
+                        label: f.name.toUpperCase(),
+                        unlocked: state.level >= f.level,
+                        onTap: () => _showRoomMilestoneInfo(
+                          context,
+                          currentLevel: state.level,
+                          targetLevel: f.level,
+                          name: f.name,
+                          description: f.description,
+                        ),
+                      ),
                     ),
-                    const Spacer(),
-                    const DomainLegendButton(),
                   ],
-                ),
-                const SizedBox(height: 8),
-                // The engraved six-domain measure leads, exactly as it does on
-                // Quests and in the approved target. The radar follows as the
-                // shape of the same numbers — before this the panel opened on a
-                // diagram with three unlabelled colour blocks floating round it.
-                _InsetSection(
-                  child: StatChips(
-                    values: state.stats,
-                    reduceMotion: state.reduceMotion,
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _HearthCircleLink(
+              count: state.hearthCircleCodes.length,
+              active: state.quietCompanyActive,
+              onTap: () {
+                Sfx.instance.playMaterial(MaterialSound.parchment);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HearthCircleScreen(
+                      state: state,
+                      onPersist: onPersist,
+                      parallax: parallax,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+      _ShareButton(state: state, quests: quests),
+      const SizedBox(height: 14),
+      _ledgerPanel(),
+      const SizedBox(height: 14),
+      GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('WARDROBE', style: Type.label.copyWith(fontSize: 11)),
+                const Spacer(),
+                Text(
+                  '${state.collectedLoot.length}/${cosmetics.length}',
+                  style: Type.numerals.copyWith(
+                    fontSize: 12,
+                    color: Palette.xp,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Center(child: StatRadar(values: state.stats)),
-                const SizedBox(height: 10),
-                for (final s in Stat.values)
-                  _StatRow(
-                    stat: s,
-                    value: state.stats[s] ?? 0,
-                    noteCount: state.notesFor(s).length,
-                    onOpen: () {
-                      Sfx.instance.playMaterial(MaterialSound.parchment);
-                      HapticFeedback.selectionClick();
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DomainDetailScreen(
-                            stat: s,
-                            state: state,
-                            quests: quests,
-                            onPersist: onPersist,
-                            onAddQuest: onAddQuest,
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              state.collectedLoot.isEmpty
+                  ? 'empty slots wait for drops and trophies as you keep earning Glimmers'
+                  : 'skins you’ve found. Tap to try one on; silhouettes wait for the rest',
+              style: Type.body.copyWith(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final loot
+                    in state.collectedLoot.toList()..sort(
+                      (a, b) => (cosmeticFor(b)?.rarity.index ?? 0).compareTo(
+                        cosmeticFor(a)?.rarity.index ?? 0,
+                      ),
+                    ))
+                  Builder(
+                    builder: (_) {
+                      final worn = state.equippedSkin == loot;
+                      final cos = cosmeticFor(loot);
+                      final tint = cos?.aura ?? Palette.unlock;
+                      final rarity = cos?.rarity ?? Rarity.common;
+                      final legendary = rarity == Rarity.legendary;
+                      return GestureDetector(
+                        key: ValueKey('wardrobe-skin-$loot'),
+                        onTap: () => _showSkinPreview(context, state, loot),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 300),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: facetedDecoration(
+                              cut: 6,
+                              color: tint.withValues(alpha: worn ? 0.28 : 0.10),
+                              borderColor: worn
+                                  ? tint.withValues(alpha: 0.9)
+                                  : rarityColor(rarity).withValues(alpha: 0.55),
+                              borderWidth: worn ? 1.4 : 1,
+                              shadows: legendary
+                                  ? const [
+                                      BoxShadow(
+                                        color: Palette.honeyGlow,
+                                        blurRadius: 10,
+                                      ),
+                                    ]
+                                  : const [],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Transform.rotate(
+                                  angle: 0.785,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    color: tint,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    loot,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.body.copyWith(
+                                      fontSize: 13,
+                                      color: Palette.textMid,
+                                    ),
+                                  ),
+                                ),
+                                if (worn) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'WORN',
+                                    style: Type.label.copyWith(
+                                      fontSize: 11,
+                                      color: tint,
+                                    ),
+                                  ),
+                                ] else if (legendary) ...[
+                                  const SizedBox(width: 5),
+                                  const Icon(
+                                    Icons.auto_awesome,
+                                    size: 13,
+                                    color: Palette.xpLight,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       );
                     },
                   ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _ShareButton(state: state, quests: quests),
-          const SizedBox(height: 14),
-
-          // ── recent gains (near the build — both are your progress) ──
-          _ledgerPanel(),
-          const SizedBox(height: 14),
-
-          // ── trophy case ──────────────────────────────────────────
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'TROPHY CASE',
-                      style: Type.label.copyWith(fontSize: 11),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${state.unlockedAchievements.length} / ${achievements.length}',
-                      style: Type.numerals.copyWith(
-                        fontSize: 12,
-                        color: Palette.xp,
+                for (final entry in cosmetics.entries)
+                  if (!state.collectedLoot.contains(entry.key))
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final a in achievements)
-                      _TrophyTile(
-                        achievement: a,
-                        unlocked: state.unlockedAchievements.contains(a.id),
-                        closest: a.id == _closestTrophyId(state),
-                        progress: state.unlockedAchievements.contains(a.id)
-                            ? null
-                            : a.progress?.call(state),
-                        flameHue: flameHueFor(state),
+                      decoration: facetedDecoration(
+                        cut: 6,
+                        color: Palette.glassFill,
+                        borderColor: Palette.glassEdge.withValues(alpha: 0.7),
                       ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // ── wardrobe: owned skins + locked silhouettes (DESIGN §7)
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('WARDROBE', style: Type.label.copyWith(fontSize: 11)),
-                    const Spacer(),
-                    Text(
-                      '${state.collectedLoot.length}/${cosmetics.length}',
-                      style: Type.numerals.copyWith(
-                        fontSize: 12,
-                        color: Palette.xp,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  state.collectedLoot.isEmpty
-                      ? 'empty slots wait for drops and trophies as you keep earning Glimmers'
-                      : 'skins you’ve found. Tap to try one on; silhouettes wait for the rest',
-                  style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final loot
-                        in state.collectedLoot.toList()..sort(
-                          (a, b) => (cosmeticFor(b)?.rarity.index ?? 0)
-                              .compareTo(cosmeticFor(a)?.rarity.index ?? 0),
-                        ))
-                      Builder(
-                        builder: (_) {
-                          final worn = state.equippedSkin == loot;
-                          final cos = cosmeticFor(loot);
-                          final tint = cos?.aura ?? Palette.unlock;
-                          final rarity = cos?.rarity ?? Rarity.common;
-                          final legendary = rarity == Rarity.legendary;
-                          return GestureDetector(
-                            key: ValueKey('wardrobe-skin-$loot'),
-                            onTap: () => _showSkinPreview(context, state, loot),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 300),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: facetedDecoration(
-                                  cut: 6,
-                                  color: tint.withValues(
-                                    alpha: worn ? 0.28 : 0.10,
-                                  ),
-                                  borderColor: worn
-                                      ? tint.withValues(alpha: 0.9)
-                                      : rarityColor(
-                                          rarity,
-                                        ).withValues(alpha: 0.55),
-                                  borderWidth: worn ? 1.4 : 1,
-                                  shadows: legendary
-                                      ? const [
-                                          BoxShadow(
-                                            color: Palette.honeyGlow,
-                                            blurRadius: 10,
-                                          ),
-                                        ]
-                                      : const [],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Transform.rotate(
-                                      angle: 0.785,
-                                      child: Container(
-                                        width: 8,
-                                        height: 8,
-                                        color: tint,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        loot,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Type.body.copyWith(
-                                          fontSize: 13,
-                                          color: Palette.textMid,
-                                        ),
-                                      ),
-                                    ),
-                                    if (worn) ...[
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'WORN',
-                                        style: Type.label.copyWith(
-                                          fontSize: 11,
-                                          color: tint,
-                                        ),
-                                      ),
-                                    ] else if (legendary) ...[
-                                      const SizedBox(width: 5),
-                                      const Icon(
-                                        Icons.auto_awesome,
-                                        size: 13,
-                                        color: Palette.xpLight,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    for (final entry in cosmetics.entries)
-                      if (!state.collectedLoot.contains(entry.key))
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: facetedDecoration(
-                            cut: 6,
-                            color: Palette.glassFill,
-                            borderColor: Palette.glassEdge.withValues(
-                              alpha: 0.7,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Transform.rotate(
+                            angle: 0.785,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              color: Palette.textLo.withValues(alpha: 0.35),
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Transform.rotate(
-                                angle: 0.785,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  color: Palette.textLo.withValues(alpha: 0.35),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '???',
-                                style: Type.body.copyWith(
-                                  fontSize: 13,
-                                  color: Palette.textLo.withValues(alpha: 0.55),
-                                ),
-                              ),
-                              if (entry.value.rarity != Rarity.common) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  entry.value.rarity == Rarity.legendary
-                                      ? 'LEGEND'
-                                      : 'RARE',
-                                  style: Type.label.copyWith(
-                                    fontSize: Type.minLabel,
-                                    color: rarityColor(
-                                      entry.value.rarity,
-                                    ).withValues(alpha: 0.5),
-                                  ),
-                                ),
-                              ],
-                            ],
+                          const SizedBox(width: 6),
+                          Text(
+                            '???',
+                            style: Type.body.copyWith(
+                              fontSize: 13,
+                              color: Palette.textLo.withValues(alpha: 0.55),
+                            ),
                           ),
-                        ),
-                  ],
-                ),
+                          if (entry.value.rarity != Rarity.common) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              entry.value.rarity == Rarity.legendary
+                                  ? 'LEGEND'
+                                  : 'RARE',
+                              style: Type.label.copyWith(
+                                fontSize: Type.minLabel,
+                                color: rarityColor(
+                                  entry.value.rarity,
+                                ).withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-
-          // ── settings (demoted below the identity content) ────────
-          Padding(
-            padding: const EdgeInsets.only(left: 4, top: 6, bottom: 8),
-            child: Text(
-              'SETTINGS',
-              style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
-            ),
-          ),
-          _themesPanel(),
-          const SizedBox(height: 14),
-          _soundPanel(),
-          const SizedBox(height: 14),
-          _remindersPanel(context),
-          const SizedBox(height: 14),
-          _RoomGuidePanel(
-            onTap: () {
-              Sfx.instance.playMaterial(MaterialSound.parchment);
-              Haptics.tap();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => RoomGuideScreen(
-                    state: state,
-                    onAddQuest: onAddQuest,
-                    onPersist: onPersist,
-                    onSelectTab: onSelectTab ?? (_) {},
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-
-          // ── account (sync across devices) ─────────────────────────
-          _AccountPanel(
-            accountView: cloudAccountView ?? CloudSync.instance,
-            onEnableCloud: onEnableCloud,
-            onLink: onLinkAccount,
-            onSignIn: onSignIn,
-            onSignOut: onSignOut,
-            onDeleteAccount: onDeleteAccount,
-            onRemovePrivateServiceIdentity: onRemovePrivateServiceIdentity,
-            onWithdrawPlaceSearchConsent: onWithdrawPlaceSearchConsent,
-            placeSearchEnabled: placeSearchEnabled,
-            supportsPrivateServiceIdentityRemoval:
-                supportsPrivateServiceIdentityRemoval,
-          ),
-          const SizedBox(height: 14),
-
-          // ── your data is yours ───────────────────────────────────
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+      ),
+      const SizedBox(height: 14),
+      GlassPanel(
+        child: Column(
+          children: [
+            Row(
               children: [
                 Text(
-                  'YOUR SAVE IS YOURS',
+                  'THE SHAPE OF IT',
                   style: Type.label.copyWith(fontSize: 11),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Your save stays under your control. For a copy that lives outside '
-                  'the app and its cloud backup, stash a manual one too.',
-                  style: Type.body.copyWith(
-                    fontSize: 11.5,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _DataButton(
-                      label: 'STASH A COPY',
-                      icon: Icons.upload_outlined,
-                      onTap: () async {
-                        final ok = await onExport();
-                        if (!context.mounted) return;
-                        Sfx.instance.play(ok ? 'streak' : 'boing');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Palette.card,
-                            content: Text(
-                              ok
-                                  ? 'Copied. Stash it somewhere safe.'
-                                  : 'Nothing to stash yet. Your first quest will fix that.',
-                              style: Type.body.copyWith(color: Palette.textHi),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _DataButton(
-                      label: 'RESTORE',
-                      icon: Icons.download_outlined,
-                      onTap: () {
-                        Sfx.instance.playInteraction(
-                          InteractionSound.select,
-                          material: MaterialSound.stone,
-                        );
-                        showDialog(
-                          context: context,
-                          barrierColor: const Color(0xCC140C06),
-                          builder: (_) => _RestoreDialog(onImport: onImport),
-                        );
-                      },
-                    ),
-                    // round-21: the on-device usage log, for the owner to hand
-                    // to Claude for improvement ideas. Stored locally only,
-                    // never uploaded — copied out only when you choose to.
-                    _DataButton(
-                      label: 'USAGE LOG',
-                      icon: Icons.insights_outlined,
-                      onTap: () async {
-                        final raw = await Storage.usageExport();
-                        if (!context.mounted) return;
-                        final ok = raw != null && raw.isNotEmpty;
-                        if (ok) {
-                          await Clipboard.setData(ClipboardData(text: raw));
-                        }
-                        if (!context.mounted) return;
-                        Sfx.instance.play(ok ? 'streak' : 'boing');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Palette.card,
-                            content: Text(
-                              ok
-                                  ? 'Usage log copied to your clipboard. It never leaves your device.'
-                                  : 'No usage logged yet. Check back after a few days.',
-                              style: Type.body.copyWith(color: Palette.textHi),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _DataButton(
-                      label: 'PRIVACY',
-                      icon: Icons.privacy_tip_outlined,
-                      onTap: () => _openPolicyPage(context, _privacyUrl),
-                    ),
-                    _DataButton(
-                      label: 'DELETE HELP',
-                      icon: Icons.person_remove_outlined,
-                      onTap: () => _openPolicyPage(context, _deletionUrl),
-                    ),
-                    _DataButton(
-                      label: "WHAT'S NEW",
-                      icon: Icons.history_rounded,
-                      onTap: () {
-                        Sfx.instance.playMaterial(MaterialSound.parchment);
-                        Haptics.tap();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => WhatsNewScreen(
-                              themeId: state.canvasTheme,
-                              reduceMotion: state.reduceMotion,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    _DataButton(
-                      label: 'ABOUT + FEEDBACK',
-                      icon: Icons.info_outline,
-                      onTap: () {
-                        Sfx.instance.playMaterial(MaterialSound.parchment);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AboutScreen(
-                              themeId: state.canvasTheme,
-                              reduceMotion: state.reduceMotion,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ListenableBuilder(
-                  listenable: CloudSync.instance,
-                  builder: (_, _) {
-                    final cloud = CloudSync.instance;
-                    return Row(
-                      children: [
-                        Icon(
-                          cloud.ready
-                              ? Icons.cloud_done_outlined
-                              : Icons.cloud_off_outlined,
-                          size: 13,
-                          color: cloud.ready ? Palette.success : Palette.textLo,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            cloud.ready
-                                ? 'cloud backup · ${cloud.status}'
-                                : cloud.available
-                                ? 'device-only · optional backup is off'
-                                : 'device-only · cloud unavailable',
-                            style: Type.body.copyWith(
-                              fontSize: 11,
-                              color: Palette.textLo,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const _CorruptRecovery(),
-                const SizedBox(height: 12),
-                Center(
-                  child: GestureDetector(
-                    onTap: () => _confirmReset(context),
-                    child: Text(
-                      'start over',
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: const Color(0xFFE89090).withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                ),
+                const Spacer(),
+                const DomainLegendButton(),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Center(child: StatRadar(values: state.stats)),
+            const SizedBox(height: 10),
+            for (final s in Stat.values)
+              _StatRow(
+                stat: s,
+                value: state.stats[s] ?? 0,
+                noteCount: state.notesFor(s).length,
+                onOpen: () {
+                  Sfx.instance.playMaterial(MaterialSound.parchment);
+                  HapticFeedback.selectionClick();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => DomainDetailScreen(
+                        stat: s,
+                        state: state,
+                        quests: quests,
+                        onPersist: onPersist,
+                        onAddQuest: onAddQuest,
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ),
-    );
-  }
+      const SizedBox(height: 14),
+      _AccountPanel(
+        accountView: cloudAccountView ?? CloudSync.instance,
+        onEnableCloud: onEnableCloud,
+        onLink: onLinkAccount,
+        onSignIn: onSignIn,
+        onSignOut: onSignOut,
+        onDeleteAccount: onDeleteAccount,
+        onRemovePrivateServiceIdentity: onRemovePrivateServiceIdentity,
+        onWithdrawPlaceSearchConsent: onWithdrawPlaceSearchConsent,
+        placeSearchEnabled: placeSearchEnabled,
+        supportsPrivateServiceIdentityRemoval:
+            supportsPrivateServiceIdentityRemoval,
+      ),
+      const SizedBox(height: 4),
+    ],
+  );
 
   /// One tap must never erase a life. Reset asks twice — in words.
   // ── recent gains (kept near the build — both are your progress) ──
@@ -4517,7 +4480,7 @@ class _SpaceDeckHeading extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(child: title),
-            actions,
+            Flexible(child: actions),
           ],
         );
       },
@@ -5773,7 +5736,15 @@ class _ThemeSwatch extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           child: SizedBox(
-            width: 78,
+            // The swatch's name follows large text: wider, so it wraps at
+            // word breaks and never clips a word.
+            width:
+                78 +
+                (MediaQuery.textScalerOf(context).scale(1) - 1).clamp(
+                      0.0,
+                      1.0,
+                    ) *
+                    36,
             child: Column(
               children: [
                 Container(
@@ -5877,7 +5848,8 @@ class _AmbientLightPreview extends StatelessWidget {
         key: const ValueKey('me-theme-ambient'),
         duration: still ? Duration.zero : const Duration(milliseconds: 420),
         curve: Curves.easeOutCubic,
-        height: 72,
+        // At least 72 tall; large text makes it taller instead of clipping.
+        constraints: const BoxConstraints(minHeight: 72),
         width: double.infinity,
         decoration: facetedDecoration(
           cut: 10,

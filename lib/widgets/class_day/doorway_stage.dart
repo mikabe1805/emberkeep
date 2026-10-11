@@ -74,6 +74,8 @@ class DoorwayStage extends StatefulWidget {
     this.now,
     this.art,
     this.onMarkTicket,
+    this.onSelectTicket,
+    this.semanticTickets = false,
     this.onBeat,
     this.cues = const DoorwayCues(),
   });
@@ -99,6 +101,15 @@ class DoorwayStage extends StatefulWidget {
   /// A waiting ticket was dragged up past the mark line: the room marks its
   /// class. Null: the tickets cannot be dragged.
   final ValueChanged<DoorwayTicket>? onMarkTicket;
+
+  /// A ticket that waits (not the foremost) was tapped: the room brings it
+  /// forward. Null: those tickets do not answer a tap.
+  final ValueChanged<DoorwayTicket>? onSelectTicket;
+
+  /// The tickets on the wall are announced to a screen reader (a quest's name,
+  /// its stat and XP, and where it stands). Off for a class day, where the
+  /// glass card says the same in words.
+  final bool semanticTickets;
 
   /// The moves the room waits on (see [DoorwayBeat]).
   final ValueChanged<DoorwayBeat>? onBeat;
@@ -1012,6 +1023,7 @@ class DoorwayStageState extends State<DoorwayStage>
     final day = widget.day;
     final layout = _layout;
     return ExcludeSemantics(
+      excluding: !widget.semanticTickets,
       child: ColoredBox(
         color: const Color(0xFF1A110B),
         child: Stack(
@@ -1063,27 +1075,40 @@ class DoorwayStageState extends State<DoorwayStage>
       clipBehavior: Clip.none,
       children: [
         Positioned.fill(
-          child: RepaintBoundary(
-            child: CustomPaint(
-              painter: _PlatePainter(frame: _frame, art: _art),
-            ),
-          ),
-        ),
-        Positioned.fill(child: RepaintBoundary(child: _objects(day, layout))),
-        Positioned.fill(
-          child: IgnorePointer(
+          child: ExcludeSemantics(
             child: RepaintBoundary(
               child: CustomPaint(
-                painter: DoorwayDustPainter(dust: _dust, repaint: _frame),
+                painter: _PlatePainter(frame: _frame, art: _art),
               ),
             ),
           ),
         ),
-        // The tickets can be dragged up (above the dust, under nothing).
-        if (widget.onMarkTicket != null)
-          for (final placed in layout.placed)
-            if (placed.ticket.markable && !_isMarking(placed.ticket.id))
-              _dragZone(placed),
+        Positioned.fill(
+          child: ExcludeSemantics(
+            child: RepaintBoundary(child: _objects(day, layout)),
+          ),
+        ),
+        Positioned.fill(
+          child: ExcludeSemantics(
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: DoorwayDustPainter(dust: _dust, repaint: _frame),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // The tickets can be dragged up (above the dust, under nothing), and
+        // a waiting quest ticket can be tapped to bring it forward.
+        for (final placed in layout.placed)
+          if (!_isMarking(placed.ticket.id))
+            if (widget.onMarkTicket != null && placed.ticket.markable)
+              _dragZone(placed)
+            else if (widget.onSelectTicket != null &&
+                placed.ticket.isQuest &&
+                placed.ticket.state == DoorwayTicketState.upcoming)
+              _tapZone(placed),
       ],
     );
   }
@@ -1094,16 +1119,46 @@ class DoorwayStageState extends State<DoorwayStage>
   Widget _dragZone(DoorwayPlacedTicket placed) {
     final ticket = placed.ticket;
     final rect = placed.rect.inflate(2);
+    final zone = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragStart: (d) => _dragStarted(ticket, d.localPosition.dy),
+      onVerticalDragUpdate: (d) => _dragUpdate(ticket, d.localPosition.dy),
+      onVerticalDragEnd: (_) => _dragEnd(ticket),
+      onVerticalDragCancel: () => _dragEnd(ticket),
+      child: const SizedBox.expand(),
+    );
     return Positioned.fromRect(
       key: ValueKey('doorway-drag-${ticket.id}'),
       rect: rect,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onVerticalDragStart: (d) => _dragStarted(ticket, d.localPosition.dy),
-        onVerticalDragUpdate: (d) => _dragUpdate(ticket, d.localPosition.dy),
-        onVerticalDragEnd: (_) => _dragEnd(ticket),
-        onVerticalDragCancel: () => _dragEnd(ticket),
-        child: const SizedBox.expand(),
+      child: widget.semanticTickets
+          ? Semantics(
+              container: true,
+              button: true,
+              label: doorwayTicketSemantics(ticket),
+              onTap: () => widget.onMarkTicket?.call(ticket),
+              child: zone,
+            )
+          : zone,
+    );
+  }
+
+  /// A waiting quest ticket: a tap brings it forward.
+  Widget _tapZone(DoorwayPlacedTicket placed) {
+    final ticket = placed.ticket;
+    return Positioned.fromRect(
+      key: ValueKey('doorway-tap-${ticket.id}'),
+      rect: placed.rect.inflate(2),
+      child: Semantics(
+        container: true,
+        button: true,
+        excludeSemantics: true,
+        label: doorwayTicketSemantics(ticket),
+        onTap: () => widget.onSelectTicket?.call(ticket),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onSelectTicket?.call(ticket),
+          child: const SizedBox.expand(),
+        ),
       ),
     );
   }

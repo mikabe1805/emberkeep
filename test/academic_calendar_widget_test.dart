@@ -79,8 +79,8 @@ void main() {
       handoff: _RecordingHandoff(),
     );
 
-    expect(find.text('DAYBOOK'), findsOneWidget);
-    expect(find.text('Classes · exams · events · tasks'), findsOneWidget);
+    expect(find.text('DAYBOOK'), findsNothing);
+    expect(find.text('FALL 2026'), findsNothing);
     expect(
       find.bySemanticsLabel('Add an event, task, class, assignment, or exam'),
       findsOneWidget,
@@ -93,9 +93,7 @@ void main() {
       calendarKey: const ValueKey('daybook-term-header'),
     );
 
-    expect(find.text('DAYBOOK'), findsOneWidget);
-    expect(find.text('Fall 2026'), findsOneWidget);
-    expect(find.text('Classes · exams · events · tasks'), findsNothing);
+    expect(find.text('FALL 2026'), findsOneWidget);
   });
 
   testWidgets('Daybook add chooser keeps general choices before School', (
@@ -2340,16 +2338,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('DAY SHAPE'),
       260,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _dayScrollable,
     );
     expect(find.text('DAY SHAPE'), findsOneWidget);
     expect(
       find.text('2 fixed plans · first at 9:00 AM · 1 deadline · 1 focus'),
       findsOneWidget,
-    );
-    expect(
-      tester.getTopLeft(find.text('DAY SHAPE')).dy,
-      lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
     );
   });
 
@@ -2398,25 +2392,6 @@ void main() {
           calendarKey: ValueKey('selected-folio-${mode.name}'),
         );
 
-        await tester.scrollUntilVisible(
-          find.text('DAY SHAPE'),
-          260,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await tester.pump();
-
-        expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
-        expect(find.text('PLAN QUEST'), findsOneWidget);
-        final planSemantics = tester.getSemantics(
-          find.bySemanticsLabel(
-            RegExp(r'Plan a one-off Quest for TUESDAY 11, today'),
-          ),
-        );
-        expect(
-          planSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
-          isTrue,
-        );
-        expect(find.text('DAY SHAPE'), findsOneWidget);
         final selectedControl = find.byKey(
           const ValueKey('daybook-day-control-2026-08-11'),
         );
@@ -2429,30 +2404,47 @@ void main() {
           selectedSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
           isTrue,
         );
-        final selectedTop = tester.getTopLeft(selectedControl).dy;
-        final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
-        final planTop = tester.getTopLeft(find.text('PLAN QUEST')).dy;
-        if (mode == AcademicCalendarMode.day) {
-          expect(selectedTop, lessThan(shapeTop));
-          expect(planTop, lessThan(shapeTop));
-        } else {
-          expect(shapeTop, lessThan(selectedTop));
-          expect(shapeTop, lessThan(planTop));
+        if (mode == AcademicCalendarMode.week) {
+          // The week is seven columns: choosing a day opens its page, so the
+          // plan action and the Day Shape belong to the day, not the strip.
+          expect(find.text('DAY SHAPE'), findsNothing);
+          expect(find.text('PLAN QUEST'), findsNothing);
+          expect(tester.takeException(), isNull);
+          return;
         }
+
+        expect(find.text('PLAN QUEST'), findsOneWidget);
+        final plan = find.text('PLAN QUEST', skipOffstage: false);
+        final planSemantics = tester.getSemantics(
+          find.bySemanticsLabel(
+            RegExp(r'Plan a one-off Quest for Tuesday, August 11, today'),
+          ),
+        );
         expect(
-          tester.getTopLeft(find.text('DAY SHAPE')).dy,
-          lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
+          planSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue,
+        );
+        await tester.scrollUntilVisible(
+          find.text('DAY SHAPE'),
+          260,
+          scrollable: _dayScrollable,
+        );
+        await tester.pump();
+        expect(find.text('DAY SHAPE'), findsOneWidget);
+        // The plan action comes before the day's closing shape.
+        expect(
+          tester.getTopLeft(plan).dy,
+          lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
         );
 
         await tester.scrollUntilVisible(
           find.text('JOURNAL'),
           260,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: _dayScrollable,
         );
         expect(find.text('1 quest completed'), findsOneWidget);
         expect(find.text('JOURNAL'), findsOneWidget);
         expect(find.text('A kept note'), findsOneWidget);
-        expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );
@@ -2487,7 +2479,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('DAY SHAPE'),
         260,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _dayScrollable,
       );
       expect(find.text('DAY SHAPE'), findsOneWidget);
       expect(find.text(copy), findsOneWidget);
@@ -2678,40 +2670,29 @@ void main() {
         textScale: 2,
       );
 
-      await tester.scrollUntilVisible(
-        find.text('DAY SHAPE'),
-        260,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pump();
+      if (mode == AcademicCalendarMode.week) {
+        // The week strip has no Day Shape: the day's page does.
+        expect(find.text('DAY SHAPE'), findsNothing);
+        expect(tester.takeException(), isNull);
+        return;
+      }
+      final plan = find.text('PLAN QUEST', skipOffstage: false);
+      await _reveal(tester, find.text(body));
+      expect(plan, findsOneWidget);
       final label = tester.renderObject<RenderParagraph>(
         find.text('DAY SHAPE'),
       );
       final paragraph = tester.renderObject<RenderParagraph>(find.text(body));
       expect(label.didExceedMaxLines, isFalse);
       expect(paragraph.didExceedMaxLines, isFalse);
-      expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
-      expect(find.text('PLAN QUEST'), findsOneWidget);
-      final selectedBottom = tester
-          .getBottomLeft(
-            find.byKey(const ValueKey('daybook-day-control-2026-08-11')),
-          )
-          .dy;
-      final planBottom = tester.getBottomLeft(find.text('PLAN QUEST')).dy;
-      final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
-      if (mode == AcademicCalendarMode.day) {
-        expect(selectedBottom, lessThan(shapeTop));
-        expect(planBottom, lessThan(shapeTop));
-      } else {
-        expect(shapeTop, lessThan(selectedBottom));
-        expect(shapeTop, lessThan(planBottom));
-      }
       expect(
-        tester.getTopLeft(find.text('DAY SHAPE')).dy,
-        lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
+        tester.getTopLeft(plan).dy,
+        lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
       );
+      // It wraps inside the page's width and starts on the screen.
       expect(tester.getTopLeft(find.text(body)).dy, greaterThanOrEqualTo(0));
-      expect(tester.getBottomLeft(find.text(body)).dy, lessThanOrEqualTo(568));
+      expect(tester.getTopLeft(find.text(body)).dx, greaterThanOrEqualTo(0));
+      expect(tester.getTopRight(find.text(body)).dx, lessThanOrEqualTo(320));
       expect(tester.takeException(), isNull);
     });
   }
@@ -2722,13 +2703,18 @@ void main() {
     final schedule = _scheduleFixture();
     final repository = InMemoryAcademicScheduleRepository(schedule);
     final handoff = _RecordingHandoff();
-    await _pumpCalendar(tester, repository: repository, handoff: handoff);
+    await _pumpCalendar(
+      tester,
+      repository: repository,
+      handoff: handoff,
+      preferences: _dayOn('2026-08-11'),
+    );
 
-    expect(find.text('DAYBOOK'), findsOneWidget);
-    expect(find.text('Fall 2026'), findsOneWidget);
+    expect(find.text('FALL 2026'), findsOneWidget);
     expect(find.text('READY IN 5 MIN'), findsOneWidget);
-    expect(find.text('ECE 345 · Lecture'), findsOneWidget);
-    expect(find.textContaining('Hill Center · 114'), findsWidgets);
+    expect(find.text('Linear Systems'), findsOneWidget);
+    expect(find.text('10:20 AM–11:40 AM'), findsOneWidget);
+    expect(find.textContaining('114'), findsWidgets);
 
     await tester.tap(
       find.byKey(const ValueKey('academic-doorway-open-notebook')),
@@ -2779,13 +2765,22 @@ void main() {
       AcademicCalendarMode.threeDay,
       AcademicCalendarMode.day,
     ]) {
-      await tester.tap(find.byKey(ValueKey('academic-mode-${mode.name}')));
-      await tester.pump();
+      await _pickMode(tester, mode);
       expect(
         find.byKey(ValueKey('academic-${mode.name}-view')),
         findsOneWidget,
       );
-      expect(find.byKey(ValueKey('academic-occurrence-$key')), findsOneWidget);
+      if (mode == AcademicCalendarMode.week) {
+        // The week is seven rows of strips; the class is its course's name
+        // at its time.
+        expect(find.text('Linear Systems'), findsOneWidget);
+        expect(find.text('10:20'), findsOneWidget);
+      } else {
+        expect(
+          find.byKey(ValueKey('academic-occurrence-$key')),
+          findsOneWidget,
+        );
+      }
       expect(tester.takeException(), isNull);
     }
   });
@@ -2814,46 +2809,54 @@ void main() {
         ),
         findsOneWidget,
       );
-      await tester.scrollUntilVisible(
-        find.text('Library closed'),
-        260,
-        scrollable: find.byType(Scrollable).first,
+      // A date in the month opens that day's page.
+      await tester.tap(
+        find.byKey(const ValueKey('academic-month-day-2026-08-11')),
       );
+      await _pumpTurn(tester);
+      expect(find.byKey(const ValueKey('academic-day-view')), findsOneWidget);
       expect(find.text('Library closed'), findsOneWidget);
       expect(find.text('Project meeting'), findsOneWidget);
-      expect(find.text('Return library book'), findsOneWidget);
-      expect(find.text('Quest board check-in'), findsOneWidget);
       expect(
         tester.getTopLeft(find.text('ALL DAY').first).dy,
         lessThan(tester.getTopLeft(find.text('SCHEDULE')).dy),
       );
+      await _reveal(tester, find.text('Return library book'));
+      expect(find.text('Return library book'), findsOneWidget);
+      await _reveal(tester, find.text('Quest board check-in'));
+      expect(find.text('Quest board check-in'), findsOneWidget);
 
       for (final mode in const [
         AcademicCalendarMode.week,
         AcademicCalendarMode.threeDay,
         AcademicCalendarMode.day,
       ]) {
-        final modeButton = find.byKey(ValueKey('academic-mode-${mode.name}'));
-        await tester.scrollUntilVisible(
-          modeButton,
-          -260,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await tester.tap(modeButton);
-        await tester.pump(const Duration(milliseconds: 250));
+        await _pickMode(tester, mode);
         expect(
           find.byKey(ValueKey('academic-${mode.name}-view')),
           findsOneWidget,
         );
-        expect(find.text('Library closed'), findsWidgets);
-        expect(find.text('Project meeting'), findsWidgets);
-        expect(find.text('Return library book'), findsWidgets);
-        expect(find.text('Quest board check-in'), findsWidgets);
-        expect(find.text('STILL OPEN'), findsOneWidget);
-        expect(
-          tester.getTopLeft(find.text('ALL DAY').first).dy,
-          lessThan(tester.getTopLeft(find.text('SCHEDULE').first).dy),
-        );
+        if (mode == AcademicCalendarMode.week) {
+          // The week is seven rows of strips; a day this full shows its first
+          // plans and says how many more wait (the day opens to all of them).
+          for (final title in const ['Library closed', 'Project meeting']) {
+            expect(find.text(title), findsWidgets);
+          }
+          expect(find.textContaining(RegExp(r'^\+\d+$')), findsWidgets);
+        } else {
+          // A day's page keeps the sections in order.
+          expect(find.text('Library closed'), findsWidgets);
+          expect(find.text('Project meeting'), findsWidgets);
+          expect(find.text('STILL OPEN'), findsNothing);
+          expect(
+            tester.getTopLeft(find.text('ALL DAY').first).dy,
+            lessThan(tester.getTopLeft(find.text('SCHEDULE').first).dy),
+          );
+          await _reveal(tester, find.text('Return library book'));
+          expect(find.text('Return library book'), findsWidgets);
+          await _reveal(tester, find.text('Quest board check-in'));
+          expect(find.text('Quest board check-in'), findsWidgets);
+        }
         expect(tester.takeException(), isNull);
       }
     },
@@ -2904,7 +2907,7 @@ void main() {
         const ValueKey('daybook-task-toggle-task_return_book'),
       );
       await tester.tap(toggle.first);
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       expect(repository.schedule.tasks.single.completed, isTrue);
       expect(repository.schedule.tasks.single.dueDate, CivilDate(2026, 8, 11));
       expect(repository.schedule.tasks.single.dueMinute, 17 * 60);
@@ -2915,7 +2918,7 @@ void main() {
       expect(quest.doneFor(DateTime(2026, 8, 11)), isFalse);
 
       await tester.tap(toggle.first);
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       expect(repository.schedule.tasks.single.completed, isFalse);
       expect(repository.schedule.tasks.single.dueDate, CivilDate(2026, 8, 11));
       expect(repository.schedule.tasks.single.dueMinute, 17 * 60);
@@ -3015,13 +3018,16 @@ void main() {
     );
 
     expect(find.text('Daily routine'), findsNothing);
+    await _reveal(tester, find.text('DUE'));
+    expect(find.text('DUE'), findsWidgets);
+    await _reveal(tester, find.text('TODAY’S FOCUS'));
     expect(find.text('TODAY’S FOCUS'), findsOneWidget);
+    await _reveal(tester, find.text('CHOSEN FOR TODAY'));
     expect(find.text('Chosen today'), findsOneWidget);
     expect(find.text('CHOSEN FOR TODAY'), findsOneWidget);
-    expect(find.text('DUE'), findsWidgets);
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-month')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     expect(
       find.byKey(const ValueKey('academic-month-focus-2026-08-18')),
       findsOneWidget,
@@ -3160,7 +3166,7 @@ void main() {
       await tester.scrollUntilVisible(
         dueToggle,
         220,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _dayScrollable,
       );
       expect(tester.getSize(dueToggle), const Size(44, 44));
       await tester.tap(dueToggle);
@@ -3168,7 +3174,7 @@ void main() {
       await tester.scrollUntilVisible(
         focusToggle,
         220,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _dayScrollable,
       );
       expect(tester.getSize(focusToggle), const Size(44, 44));
       await tester.tap(focusToggle);
@@ -3247,7 +3253,7 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
 
       final toggle = find.byKey(
         const ValueKey('quest-plan-toggle-Calendar focus'),
@@ -3678,9 +3684,9 @@ void main() {
       );
 
       await tester.tap(find.byKey(const ValueKey('academic-add-class')));
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       await tester.tap(find.byKey(const ValueKey('daybook-add-choice-task')));
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       expect(find.byType(DaybookTaskEditor), findsOneWidget);
       expect(find.byKey(const ValueKey('academic-term-name')), findsNothing);
       expect(find.byKey(const ValueKey('academic-course-code')), findsNothing);
@@ -3694,7 +3700,7 @@ void main() {
       );
       repository.allowWrites = false;
       await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
 
       expect(repository.schedule.tasks, isEmpty);
       expect(find.byType(DaybookTaskEditor), findsOneWidget);
@@ -3737,9 +3743,9 @@ void main() {
       );
 
       await tester.tap(find.byKey(const ValueKey('academic-add-class')));
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       await tester.tap(find.byKey(const ValueKey('daybook-add-choice-event')));
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
       expect(find.byType(DaybookEventEditor), findsOneWidget);
       expect(find.byKey(const ValueKey('academic-term-name')), findsNothing);
       expect(find.byKey(const ValueKey('academic-course-code')), findsNothing);
@@ -4196,28 +4202,39 @@ void main() {
     },
   );
 
-  testWidgets('six-week month keeps an even readable folio rhythm', (
+  testWidgets('six-week month sits on the plate grid, row for row', (
     tester,
   ) async {
     await _pumpCalendar(
       tester,
       repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
       handoff: _RecordingHandoff(),
+      size: const Size(393, 852),
     );
 
-    final folio = find.byKey(const ValueKey('academic-month-folio'));
-    expect(folio, findsOneWidget);
-    final folioBox = tester.renderObject<RenderBox>(folio);
-    expect(folioBox.size.height, greaterThanOrEqualTo(450));
-    expect(find.byKey(const ValueKey('month-summary-rail')), findsOneWidget);
-    expect(
-      tester.getTopLeft(find.byKey(const ValueKey('month-summary-rail'))).dy,
-      greaterThan(tester.getTopLeft(find.text('31').last).dy),
+    // August 2026 spans six calendar weeks. Its cells spread over the five
+    // date rows the month plate prints (y 305.8 to 555 on the 393 x 852
+    // canvas) and over its seven printed columns (x 150.7 to 357.5).
+    final first = tester.getRect(
+      find.byKey(const ValueKey('academic-month-day-2026-08-03')),
     );
+    final last = tester.getRect(
+      find.byKey(const ValueKey('academic-month-day-2026-08-31')),
+    );
+    expect(first.left, closeTo(150.7, 3));
+    expect(last.bottom, closeTo(555.0, 3));
+    expect(first.top, greaterThanOrEqualTo(300));
+    expect(
+      tester
+          .getRect(find.byKey(const ValueKey('academic-month-day-2026-08-10')))
+          .top,
+      greaterThan(first.top),
+    );
+    expect(find.byKey(const ValueKey('month-summary-rail')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('month folio summary reads only the projected visible schedule', (
+  testWidgets('month summary reads only the projected visible schedule', (
     tester,
   ) async {
     await _pumpCalendar(
@@ -4225,18 +4242,9 @@ void main() {
       repository: InMemoryAcademicScheduleRepository(_generalDaybookSchedule()),
       handoff: _RecordingHandoff(),
     );
-    expect(
-      find.text('2 TASKS', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(
-      find.text('2 EVENTS', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(
-      find.text('1 CLASS', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('2 tasks this month'), findsOneWidget);
+    expect(find.bySemanticsLabel('2 events this month'), findsOneWidget);
+    expect(find.bySemanticsLabel('1 class this month'), findsOneWidget);
     expect(
       tester
           .getSemantics(find.byKey(const ValueKey('month-summary-rhythm')))
@@ -4245,68 +4253,31 @@ void main() {
     );
 
     await tester.tap(find.bySemanticsLabel('Next month'));
-    await tester.pump();
+    await _pumpTurn(tester);
 
-    expect(
-      find.text('0 TASKS', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(
-      find.text('0 EVENTS', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
-    expect(
-      find.text('0 CLASSES', findRichText: true, skipOffstage: false),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('0 tasks this month'), findsOneWidget);
+    expect(find.bySemanticsLabel('0 events this month'), findsOneWidget);
+    expect(find.bySemanticsLabel('0 classes this month'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('today marker stays compact', (tester) async {
-    final today = DateTime.utc(2026, 8, 17, 12);
-    Clock.freeze(today);
-    await _pumpCalendar(
-      tester,
-      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
-      handoff: _RecordingHandoff(),
-      size: const Size(320, 568),
-      textScale: 2,
-      preferences: InMemoryAcademicCalendarPreferences(
-        state: const AcademicCalendarViewState(
-          mode: AcademicCalendarMode.month,
-          selectedDate: '2026-08-17',
-        ),
-      ),
-    );
-
-    final marker = find.byKey(const ValueKey('month-today-marker-2026-08-17'));
-    final clip = find.byKey(const ValueKey('month-today-clip-2026-08-17'));
-    await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
-    await tester.pump();
-    expect(marker, findsOneWidget);
-    expect(clip, findsOneWidget);
-    expect(tester.getSize(marker), const Size(30, 30));
-    expect(
-      find.byKey(const ValueKey('month-today-label-2026-08-17')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('month-selected-wash-2026-08-17')),
-      findsOneWidget,
-    );
-    final clipRect = tester.getRect(clip);
-    final labelRect = tester.getRect(
-      find.byKey(const ValueKey('month-today-label-2026-08-17')),
-    );
-    expect(clipRect.height, lessThanOrEqualTo(labelRect.height));
-    expect(clipRect.top, greaterThanOrEqualTo(labelRect.top));
-    expect(clipRect.bottom, lessThanOrEqualTo(labelRect.bottom));
-    expect(tester.takeException(), isNull);
-    expect(
-      tester.getSemantics(find.text('17').first).label,
-      contains('August 17, 2026, today'),
-    );
-
+  testWidgets('today marker stays inside its cell in every column', (
+    tester,
+  ) async {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
     // August 2026 displays six rows; September displays five. Together these
     // cases place Today in each weekday column while exercising both layouts.
     for (final day in [
@@ -4335,11 +4306,22 @@ void main() {
           ),
         ),
       );
-      await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
-      await tester.pump();
+      final marker = find.byKey(ValueKey('month-today-marker-$keyDate'));
+      final clip = find.byKey(ValueKey('month-today-clip-$keyDate'));
+      final cell = find.byKey(ValueKey('academic-month-day-$keyDate'));
+      expect(marker, findsOneWidget);
+      expect(clip, findsOneWidget);
+      final cellRect = tester.getRect(cell);
+      final markerRect = tester.getRect(marker);
+      expect(markerRect.left, greaterThanOrEqualTo(cellRect.left));
+      expect(markerRect.right, lessThanOrEqualTo(cellRect.right));
+      expect(markerRect.top, greaterThanOrEqualTo(cellRect.top));
+      expect(markerRect.bottom, lessThanOrEqualTo(cellRect.bottom));
+      // The word TODAY sits inside the dark plate.
+      expect(tester.getRect(clip).bottom, lessThanOrEqualTo(markerRect.bottom));
       expect(
-        find.byKey(ValueKey('month-today-marker-$keyDate')),
-        findsOneWidget,
+        tester.getSemantics(cell).label,
+        contains('${months[day.month - 1]} ${day.day}, 2026, today'),
       );
       expect(tester.takeException(), isNull);
     }
@@ -4369,35 +4351,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('selected folio tab follows the active calendar mode', (
-    tester,
-  ) async {
+  testWidgets('the mode switch lights the view in use', (tester) async {
     await _pumpCalendar(
       tester,
       repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
       handoff: _RecordingHandoff(),
     );
 
-    const monthTab = ValueKey('academic-selected-folio-tab-month');
-    const weekTab = ValueKey('academic-selected-folio-tab-week');
-    expect(find.byKey(monthTab), findsOneWidget);
-    expect(find.byKey(weekTab), findsNothing);
+    bool selected(String key) =>
+        tester
+            .getSemantics(find.byKey(ValueKey(key)))
+            .getSemanticsData()
+            .flagsCollection
+            .isSelected ==
+        Tristate.isTrue;
+    expect(selected('academic-mode-month'), isTrue);
+    expect(selected('academic-mode-week'), isFalse);
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-week')));
-    await tester.pump();
-    expect(find.byKey(monthTab), findsNothing);
-    expect(find.byKey(weekTab), findsOneWidget);
-    final weekSemantics = tester.getSemantics(
-      find.byKey(const ValueKey('academic-mode-week')),
-    );
+    await _pumpTurn(tester);
+    expect(selected('academic-mode-month'), isFalse);
+    expect(selected('academic-mode-week'), isTrue);
+
+    // Three days is in the switch's overflow.
+    await _pickMode(tester, AcademicCalendarMode.threeDay);
+    expect(selected('academic-mode-week'), isFalse);
     expect(
-      weekSemantics.getSemanticsData().flagsCollection.isSelected,
-      Tristate.isTrue,
+      find.byKey(const ValueKey('academic-threeDay-view')),
+      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('today deadline stays below the compact marker', (tester) async {
+  testWidgets('today deadline sits in the today plate with its weight', (
+    tester,
+  ) async {
     Clock.freeze(DateTime.utc(2026, 8, 17, 12));
     await _pumpCalendar(
       tester,
@@ -4423,33 +4411,26 @@ void main() {
       ),
     );
 
-    await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
-    await tester.pump();
     final marker = find.byKey(const ValueKey('month-today-marker-2026-08-17'));
-    final wash = find.byKey(const ValueKey('month-selected-wash-2026-08-17'));
-    final weight = find.byKey(
-      const ValueKey('academic-month-weight-2026-08-17'),
-    );
     final deadline = find.byKey(
       const ValueKey('academic-month-deadline-2026-08-17'),
     );
-
+    final clip = find.byKey(const ValueKey('month-today-clip-2026-08-17'));
     expect(marker, findsOneWidget);
-    expect(weight, findsOneWidget);
     expect(deadline, findsOneWidget);
-    expect(tester.getSize(weight), const Size(9, 13));
-    final markerRect = tester.getRect(marker);
-    final washRect = tester.getRect(wash);
-    final weightRect = tester.getRect(weight);
-    final deadlineRect = tester.getRect(deadline);
-    expect(weightRect.top, greaterThanOrEqualTo(markerRect.bottom));
-    expect(weightRect.bottom, lessThanOrEqualTo(washRect.bottom));
-    expect(deadlineRect.top, greaterThanOrEqualTo(markerRect.bottom));
-    expect(deadlineRect.bottom, lessThanOrEqualTo(washRect.bottom));
+    // The mark is under the date and the word TODAY, inside the plate.
+    expect(
+      tester.getRect(deadline).top,
+      greaterThan(tester.getRect(clip).bottom),
+    );
+    expect(
+      tester.getRect(deadline).bottom,
+      lessThanOrEqualTo(tester.getRect(marker).bottom),
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('month day weight compresses scheduled time into three heights', (
+  testWidgets('month day weight compresses scheduled time into three dots', (
     tester,
   ) async {
     await _pumpCalendar(
@@ -4460,51 +4441,19 @@ void main() {
       handoff: _RecordingHandoff(),
     );
 
-    final light = tester.getSize(
-      find.byKey(const ValueKey('academic-month-weight-2026-08-11')),
-    );
-    final moderate = tester.getSize(
-      find.byKey(const ValueKey('academic-month-weight-2026-08-12')),
-    );
-    final full = tester.getSize(
-      find.byKey(const ValueKey('academic-month-weight-2026-08-13')),
-    );
+    int dots(String date) => find
+        .descendant(
+          of: find.byKey(ValueKey('academic-month-weight-$date')),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is SizedBox && widget.width == 3.6,
+          ),
+        )
+        .evaluate()
+        .length;
 
-    // The outer mark keeps a stable 13px hit-free slot; the visible brass tick is
-    // the only nested Container with one of the encoded workload heights.
-    double visibleTickHeight(Finder mark) {
-      final heights = <double>[];
-      for (final element
-          in find
-              .descendant(of: mark, matching: find.byType(Container))
-              .evaluate()) {
-        final box = element.renderObject! as RenderBox;
-        if (box.hasSize && box.size.width == 3) heights.add(box.size.height);
-      }
-      return heights.single;
-    }
-
-    expect(light, const Size(9, 13));
-    expect(moderate, const Size(9, 13));
-    expect(full, const Size(9, 13));
-    expect(
-      visibleTickHeight(
-        find.byKey(const ValueKey('academic-month-weight-2026-08-11')),
-      ),
-      6,
-    );
-    expect(
-      visibleTickHeight(
-        find.byKey(const ValueKey('academic-month-weight-2026-08-12')),
-      ),
-      8,
-    );
-    expect(
-      visibleTickHeight(
-        find.byKey(const ValueKey('academic-month-weight-2026-08-13')),
-      ),
-      10,
-    );
+    expect(dots('2026-08-11'), 1);
+    expect(dots('2026-08-12'), 2);
+    expect(dots('2026-08-13'), 3);
   });
 
   testWidgets('completed plan clears projected weight and its deadline', (
@@ -4570,10 +4519,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('academic-add-class')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.tap(find.byKey(const ValueKey('academic-add-choice-class')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('academic-course-code')),
@@ -4628,11 +4577,11 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-add-class')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.tap(
       find.byKey(const ValueKey('academic-add-choice-assignment')),
     );
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     expect(tester.takeException(), isNull, reason: 'work dialog layout');
 
     expect(find.byType(AddAcademicWorkDialog), findsOneWidget);
@@ -4668,7 +4617,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     expect(tester.takeException(), isNull, reason: 'day layout');
     expect(
       find.byKey(ValueKey('academic-work-${item.workId}')),
@@ -4711,7 +4660,7 @@ void main() {
     await tester.ensureVisible(plan);
     await tester.pump();
     await tester.tap(plan);
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
 
     expect(find.byType(AcademicStudyPlannerDialog), findsOneWidget);
     expect(
@@ -4728,7 +4677,7 @@ void main() {
     await tester.ensureVisible(save);
     await tester.pump();
     await tester.tap(save);
-    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
 
     expect(repository.schedule.studyPlans, hasLength(1));
     expect(repository.schedule.studyBlocks, isNotEmpty);
@@ -4766,13 +4715,7 @@ void main() {
       );
 
       const occurrenceKey = 'occurrence_ece_345_aug_11';
-      final adjust = find.byKey(
-        const ValueKey('academic-adjust-occurrence-$occurrenceKey'),
-      );
-      await tester.ensureVisible(adjust);
-      await tester.pump();
-      await tester.tap(adjust);
-      await tester.pump(const Duration(milliseconds: 250));
+      await _adjustClass(tester, occurrenceKey);
 
       expect(find.byType(AcademicOccurrenceAdjustDialog), findsOneWidget);
       expect(find.text('ADJUST THIS CLASS'), findsOneWidget);
@@ -4799,12 +4742,7 @@ void main() {
       );
       expect(repository.saveCount, 1);
 
-      final adjustCancelled = find.byKey(
-        const ValueKey('academic-adjust-occurrence-$occurrenceKey'),
-      );
-      await tester.ensureVisible(adjustCancelled);
-      await tester.tap(adjustCancelled);
-      await tester.pump(const Duration(milliseconds: 250));
+      await _adjustClass(tester, occurrenceKey);
       expect(
         find.byKey(const ValueKey('academic-occurrence-restore')),
         findsOneWidget,
@@ -4839,12 +4777,7 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('academic-adjust-occurrence-occurrence_ece_345_aug_11'),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 250));
+    await _adjustClass(tester, 'occurrence_ece_345_aug_11');
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('academic-occurrence-move')),
       120,
@@ -4903,7 +4836,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('academic-study-block-study_problem_set_1')),
         120,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: _dayScrollable,
       );
       expect(find.text('ECE 345 · STUDY'), findsOneWidget);
       expect(find.text('Problem set 4'), findsWidgets);
@@ -4912,12 +4845,10 @@ void main() {
       await tester.ensureVisible(
         find.byKey(const ValueKey('academic-study-toggle-study_problem_set_1')),
       );
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
-      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey('academic-study-toggle-study_problem_set_1')),
       );
-      await tester.pump(const Duration(milliseconds: 250));
+      await _pumpTurn(tester);
 
       expect(repository.schedule.studyBlocks.single.completed, isTrue);
       expect(
@@ -4942,7 +4873,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
 
     expect(
       find.byKey(const ValueKey('academic-conflicts-2026-08-11')),
@@ -4952,9 +4883,9 @@ void main() {
     expect(find.text('OVERLAP'), findsNWidgets(2));
 
     await tester.tap(find.byKey(const ValueKey('academic-add-class')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.tap(find.byKey(const ValueKey('academic-add-choice-class')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     expect(
       find.byKey(const ValueKey('academic-class-overlap-preview')),
       findsOneWidget,
@@ -4976,7 +4907,7 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
 
     expect(
       find.byKey(const ValueKey('academic-transitions-2026-08-11')),
@@ -5026,9 +4957,9 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-add-class')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.tap(find.byKey(const ValueKey('academic-add-choice-class')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
 
     expect(
       find.byKey(const ValueKey('academic-class-transition-preview')),
@@ -5068,7 +4999,7 @@ void main() {
   });
 
   testWidgets(
-    '3-day selection stays in its spread and chevrons advance the next spread',
+    '3-day selection stays in its spread and the arrows advance the next spread',
     (tester) async {
       final preferences = InMemoryAcademicCalendarPreferences(
         state: const AcademicCalendarViewState(
@@ -5083,17 +5014,21 @@ void main() {
         preferences: preferences,
       );
 
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
-      await tester.ensureVisible(find.text('WEDNESDAY 12'));
-      await tester.pump();
-      await tester.tap(find.text('WEDNESDAY 12'));
-      await tester.pump();
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      Finder control(String date) =>
+          find.byKey(ValueKey('daybook-day-control-$date'));
+      // The left page lists the three days of the spread, and no fourth.
+      expect(control('2026-08-11'), findsOneWidget);
+      expect(control('2026-08-12'), findsOneWidget);
+      expect(control('2026-08-13'), findsOneWidget);
+      expect(control('2026-08-14'), findsNothing);
+
+      await tester.tap(control('2026-08-12'));
+      await _pumpTurn(tester);
+      expect(control('2026-08-13'), findsOneWidget);
+      expect(control('2026-08-14'), findsNothing);
       expect(preferences.state.selectedDate, '2026-08-12');
       expect(preferences.state.threeDayStartDate, '2026-08-11');
-      final selectedWednesday = tester.getSemantics(
-        find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
-      );
+      final selectedWednesday = tester.getSemantics(control('2026-08-12'));
       expect(
         selectedWednesday.getSemanticsData().flagsCollection.isSelected,
         Tristate.isTrue,
@@ -5112,104 +5047,112 @@ void main() {
         preferences: preferences,
         calendarKey: const ValueKey('restored-three-day-spread'),
       );
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      expect(control('2026-08-11'), findsOneWidget);
+      expect(control('2026-08-14'), findsNothing);
 
-      await tester.ensureVisible(find.text('THURSDAY 13'));
-      await tester.pump();
-      await tester.tap(find.text('THURSDAY 13'));
-      await tester.pump();
+      await tester.tap(control('2026-08-13'));
+      await _pumpTurn(tester);
 
       // Choosing a visible day changes selection, not the three-day window
       // underneath the finger.
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
-      await tester.ensureVisible(find.bySemanticsLabel('Next 3 days'));
-      await tester.pump();
+      expect(control('2026-08-11'), findsOneWidget);
       await tester.tap(find.bySemanticsLabel('Next 3 days'));
-      await tester.pump();
+      await _pumpTurn(tester);
 
-      expect(find.text('AUGUST 14–16, 2026'), findsOneWidget);
+      expect(control('2026-08-14'), findsOneWidget);
+      expect(control('2026-08-16'), findsOneWidget);
+      expect(control('2026-08-11'), findsNothing);
       expect(preferences.state.selectedDate, '2026-08-14');
       expect(preferences.state.threeDayStartDate, '2026-08-14');
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets(
-    'month day controls state their destination without moving scroll',
-    (tester) async {
-      await _pumpCalendar(
-        tester,
-        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
-        handoff: _RecordingHandoff(),
-      );
+  testWidgets('a date in the month opens that day and Back to today returns', (
+    tester,
+  ) async {
+    final preferences = InMemoryAcademicCalendarPreferences();
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: preferences,
+    );
 
-      final day = find.byKey(const ValueKey('academic-month-day-2026-08-12'));
-      await tester.tap(day);
-      await tester.pump();
+    final day = find.byKey(const ValueKey('academic-month-day-2026-08-12'));
+    expect(tester.getSemantics(day).getSemanticsData().hint, 'Open this day');
+    await tester.tap(day);
+    await _pumpTurn(tester);
 
-      expect(
-        find.byKey(const ValueKey('month-selected-wash-2026-08-12')),
-        findsOneWidget,
-      );
-      expect(find.text('WED 12 · BACK TO TODAY'), findsOneWidget);
-      final monthContext = find.byKey(
-        const ValueKey('month-selected-context-control'),
-      );
-      expect(tester.getRect(monthContext).height, greaterThanOrEqualTo(44));
-      final semantics = tester.getSemantics(
-        find.bySemanticsLabel(RegExp(r'August 12, 2026')),
-      );
-      expect(
-        semantics.getSemanticsData().hint,
-        'Showing this day below the calendar',
-      );
-      expect(tester.getTopLeft(day).dy, greaterThan(0));
+    // The page turned to Wednesday: the day view, Wednesday chosen.
+    expect(find.byKey(const ValueKey('academic-day-view')), findsOneWidget);
+    expect(preferences.state.mode, AcademicCalendarMode.day);
+    expect(preferences.state.selectedDate, '2026-08-12');
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+          )
+          .getSemanticsData()
+          .flagsCollection
+          .isSelected,
+      Tristate.isTrue,
+    );
+    expect(find.text('Wednesday'), findsOneWidget);
 
-      await tester.tap(monthContext);
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey('month-selected-wash-2026-08-11')),
-        findsOneWidget,
-      );
-      expect(find.text('TUE 11 · TODAY'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    await tester.tap(find.byKey(const ValueKey('calendar-back-to-today')));
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-08-11');
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.byKey(const ValueKey('calendar-back-to-today')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
-  testWidgets(
-    'selected span row keeps Today reachable without shifting range',
-    (tester) async {
-      await _pumpCalendar(
-        tester,
-        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
-        handoff: _RecordingHandoff(),
-        preferences: InMemoryAcademicCalendarPreferences(
-          state: const AcademicCalendarViewState(
-            mode: AcademicCalendarMode.threeDay,
-            selectedDate: '2026-08-12',
-            threeDayStartDate: '2026-08-11',
-          ),
-        ),
-      );
+  testWidgets('swiping the book turns the page: a day, a week, a month', (
+    tester,
+  ) async {
+    final preferences = _dayOn('2026-08-11');
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: preferences,
+    );
+    final book = find.byKey(const ValueKey('academic-day-view'));
 
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
-      final today = find.byKey(const ValueKey('calendar-back-to-today'));
-      expect(today, findsOneWidget);
-      await tester.tap(today);
-      await tester.pump();
+    // Swiping left turns forward, a day at a time.
+    await tester.fling(book, const Offset(-260, 0), 1200);
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-08-12');
+    await tester.fling(book, const Offset(260, 0), 1200);
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-08-11');
+    // A small touch is not a turn.
+    await tester.drag(book, const Offset(-20, 0));
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-08-11');
 
-      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
-      expect(today, findsNothing);
-      final selectedToday = tester.getSemantics(
-        find.byKey(const ValueKey('daybook-day-control-2026-08-11')),
-      );
-      expect(
-        selectedToday.getSemanticsData().flagsCollection.isSelected,
-        Tristate.isTrue,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+    // The week turns by a week.
+    await _pickMode(tester, AcademicCalendarMode.week);
+    await tester.fling(
+      find.byKey(const ValueKey('academic-week-view')),
+      const Offset(-260, 0),
+      1200,
+    );
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-08-18');
+
+    // The month turns by a month.
+    await _pickMode(tester, AcademicCalendarMode.month);
+    await tester.fling(
+      find.byKey(const ValueKey('academic-month-view')),
+      const Offset(-260, 0),
+      1200,
+    );
+    await _pumpTurn(tester);
+    expect(preferences.state.selectedDate, '2026-09-18');
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('selected span keeps Quest and Daybook routes distinct', (
     tester,
@@ -5230,29 +5173,19 @@ void main() {
     );
 
     final today = find.byKey(const ValueKey('calendar-back-to-today'));
+    final add = find.byKey(const ValueKey('academic-add-class'));
     final plan = find.byKey(const ValueKey('calendar-plan-selected-day'));
-    final daybook = find.byKey(
-      const ValueKey('calendar-add-to-daybook-selected-day'),
-    );
-    await tester.scrollUntilVisible(
-      today,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump();
-
-    expect(today, findsOneWidget);
-    expect(plan, findsOneWidget);
-    expect(daybook, findsOneWidget);
-    expect(tester.getRect(today).width, greaterThanOrEqualTo(44));
-    expect(tester.getRect(today).height, greaterThanOrEqualTo(44));
-    expect(tester.getRect(plan).width, greaterThanOrEqualTo(44));
-    expect(tester.getRect(plan).height, greaterThanOrEqualTo(44));
-    expect(tester.getRect(daybook).width, greaterThanOrEqualTo(44));
-    expect(tester.getRect(daybook).height, greaterThanOrEqualTo(44));
+    await _reveal(tester, plan);
+    // Today is on the left page, ADD in the right page's heading, PLAN QUEST
+    // under the day's cards: three different controls for three different
+    // things, each a comfortable target.
+    for (final control in [today, add, plan]) {
+      expect(control, findsOneWidget);
+      expect(tester.getRect(control).width, greaterThanOrEqualTo(44));
+      expect(tester.getRect(control).height, greaterThanOrEqualTo(44));
+    }
     expect(find.text('PLAN QUEST'), findsOneWidget);
-    expect(find.text('CLASS · EXAM · MORE'), findsOneWidget);
-
+    expect(find.text('BACK TO TODAY'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -5271,11 +5204,7 @@ void main() {
       ),
     );
 
-    final daybook = find.byKey(
-      const ValueKey('calendar-add-to-daybook-selected-day'),
-    );
-    await tester.ensureVisible(daybook);
-    await tester.tap(daybook);
+    await tester.tap(find.byKey(const ValueKey('academic-add-class')));
     await tester.pumpAndSettle();
     expect(find.text('ADD TO YOUR DAYBOOK'), findsOneWidget);
     expect(find.text('CLASS'), findsOneWidget);
@@ -5284,7 +5213,7 @@ void main() {
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
     final plan = find.byKey(const ValueKey('calendar-plan-selected-day'));
-    await tester.ensureVisible(plan);
+    await _reveal(tester, plan);
     await tester.tap(plan);
     await tester.pumpAndSettle();
     expect(find.textContaining('PLAN FOR'), findsOneWidget);
@@ -5330,16 +5259,22 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey('academic-month-day-2026-08-12')),
+      find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
     );
     await tester.pump();
     preferences.completeLoad();
-    await tester.pump();
+    await _pumpTurn(tester);
 
-    expect(find.byKey(const ValueKey('academic-month-folio')), findsOneWidget);
+    expect(find.byKey(const ValueKey('academic-day-view')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('month-selected-wash-2026-08-12')),
-      findsOneWidget,
+      tester
+          .getSemantics(
+            find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+          )
+          .getSemanticsData()
+          .flagsCollection
+          .isSelected,
+      Tristate.isTrue,
     );
     expect(tester.takeException(), isNull);
   });
@@ -5363,9 +5298,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('academic-mode-month')));
     await tester.pump();
     preferences.completeLoad();
-    await tester.pump();
+    await _pumpTurn(tester);
 
-    expect(find.byKey(const ValueKey('academic-month-folio')), findsOneWidget);
+    expect(find.byKey(const ValueKey('academic-month-view')), findsOneWidget);
     expect(find.byKey(const ValueKey('academic-day-view')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -5381,47 +5316,51 @@ void main() {
       preferences: preferences,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('academic-month-day-2026-08-12')),
-    );
+    await tester.tap(find.bySemanticsLabel('Next month'));
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey('academic-month-day-2026-08-13')),
-    );
+    await tester.tap(find.bySemanticsLabel('Next month'));
     await tester.pump();
 
     expect(preferences.saves, hasLength(1));
-    expect(preferences.saves.single.selectedDate, '2026-08-12');
+    expect(preferences.saves.single.selectedDate, '2026-09-11');
     preferences.completeSave(0);
     await tester.pump();
 
     expect(preferences.saves, hasLength(2));
-    expect(preferences.saves.last.selectedDate, '2026-08-13');
+    expect(preferences.saves.last.selectedDate, '2026-10-11');
     preferences.completeSave(1);
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('changing calendar view returns its new view to the top', (
-    tester,
-  ) async {
+  testWidgets('a page turned to opens at its top', (tester) async {
     await _pumpCalendar(
       tester,
-      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      repository: InMemoryAcademicScheduleRepository(_generalDaybookSchedule()),
       handoff: _RecordingHandoff(),
+      preferences: _dayOn('2026-08-11'),
+      size: const Size(320, 568),
+      textScale: 2,
     );
 
-    final scrollable = find.byType(Scrollable).first;
-    await tester.dragFrom(const Offset(215, 700), const Offset(0, -100));
+    await tester.dragFrom(const Offset(210, 400), const Offset(0, -200));
     await tester.pump();
     expect(
-      tester.state<ScrollableState>(scrollable).position.pixels,
+      tester.state<ScrollableState>(_dayScrollable).position.pixels,
       greaterThan(0),
     );
 
-    await tester.tap(find.byKey(const ValueKey('academic-mode-week')));
+    // At 200% the day rows scroll on their own page; Wednesday is one scroll
+    // away.
+    final wednesday = find.byKey(
+      const ValueKey('daybook-day-control-2026-08-12'),
+    );
+    await tester.ensureVisible(wednesday);
     await tester.pump();
-    expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+    await tester.tap(wednesday);
+    await _pumpTurn(tester);
+    expect(find.text('Wednesday'), findsOneWidget);
+    expect(tester.state<ScrollableState>(_dayScrollable).position.pixels, 0);
     expect(tester.takeException(), isNull);
   });
 
@@ -5432,6 +5371,7 @@ void main() {
       tester,
       repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
       handoff: _RecordingHandoff(),
+      preferences: _dayOn('2026-08-11'),
       size: const Size(320, 568),
       textScale: 2,
     );
@@ -5440,7 +5380,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('academic-now-next')),
       120,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _dayScrollable,
     );
     expect(find.byKey(const ValueKey('academic-now-next')), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -5458,13 +5398,13 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.scrollUntilVisible(
       find.byKey(
         const ValueKey('academic-buffer-menu-occurrence_chem_161_aug_11'),
       ),
       120,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: _dayScrollable,
     );
 
     expect(
@@ -5498,14 +5438,10 @@ void main() {
     final plan = find.byKey(
       const ValueKey('academic-plan-study-work_problem_set'),
     );
-    await tester.scrollUntilVisible(
-      plan,
-      120,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.scrollUntilVisible(plan, 120, scrollable: _dayScrollable);
     await tester.pump();
     await tester.tap(plan);
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('academic-study-plan-save')),
       120,
@@ -5544,7 +5480,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump(const Duration(milliseconds: 250));
+    await _pumpTurn(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('academic-occurrence-move')),
       120,
@@ -5867,7 +5803,7 @@ Future<void> _pumpCalendar(
     ),
   );
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 250));
+  await _pumpTurn(tester);
 }
 
 AcademicSchedule _scheduleFixture({
@@ -6410,4 +6346,64 @@ final class _DelayedSaveAcademicCalendarPreferences
     _saveGates.add(gate);
     return gate.future;
   }
+}
+
+/// The scrollable list on the right page of the open day.
+final _dayScrollable = find.descendant(
+  of: find.byKey(const ValueKey('plans-day-list')),
+  matching: find.byType(Scrollable),
+);
+
+InMemoryAcademicCalendarPreferences _dayOn(String date) =>
+    InMemoryAcademicCalendarPreferences(
+      state: AcademicCalendarViewState(
+        mode: AcademicCalendarMode.day,
+        selectedDate: date,
+      ),
+    );
+
+/// Scrolls the open day's page until [finder] is on screen (not merely built
+/// in the list's cache).
+Future<void> _reveal(WidgetTester tester, Finder finder) async {
+  // Down the page first, then back up it: the thing may be above where the
+  // page was left.
+  for (final dy in const [-90.0, 90.0]) {
+    for (var i = 0; i < 60 && finder.hitTestable().evaluate().isEmpty; i++) {
+      await tester.drag(_dayScrollable, Offset(0, dy));
+      await tester.pump();
+    }
+  }
+}
+
+/// Chooses a view the way a person does: MONTH, WEEK and DAY are in the
+/// switch; three days is in its overflow.
+Future<void> _pickMode(WidgetTester tester, AcademicCalendarMode mode) async {
+  if (mode == AcademicCalendarMode.threeDay) {
+    await tester.tap(find.byKey(const ValueKey('academic-mode-overflow')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('academic-mode-threeDay')));
+  } else {
+    await tester.tap(find.byKey(ValueKey('academic-mode-${mode.name}')));
+  }
+  await _pumpTurn(tester);
+}
+
+/// Opens a class card's "..." menu and chooses MOVE / CANCEL THIS CLASS.
+Future<void> _adjustClass(WidgetTester tester, String occurrenceKey) async {
+  final more = find.byKey(ValueKey('academic-card-menu-$occurrenceKey'));
+  await _reveal(tester, more);
+  await tester.tap(more);
+  await tester.pumpAndSettle();
+  expect(find.text('MOVE / CANCEL THIS CLASS'), findsOneWidget);
+  await tester.tap(
+    find.byKey(ValueKey('academic-adjust-occurrence-$occurrenceKey')),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// A page turn starts on the frame after the change and runs 200 ms still
+/// (620 ms otherwise): two frames carry a still turn to its end.
+Future<void> _pumpTurn(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 250));
+  await tester.pump(const Duration(milliseconds: 250));
 }
