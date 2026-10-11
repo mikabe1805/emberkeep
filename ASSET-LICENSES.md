@@ -39,13 +39,19 @@ can verify the origin and commercial-use status of the bundled sound.
 ## Production Room interaction sounds
 
 - Bundled files: the 20 WAV masters under
-  `assets/sfx/room/ordinary/<role>/`, the 60 bounded Paired Return masters under
+  `assets/sfx/room/ordinary/<role>/`, the 27 material masters under
+  `assets/sfx/room/materials/<lane>/`, the 6 class chime masters under
+  `assets/sfx/room/class_chime/`, the 60 bounded Paired Return masters under
   `assets/sfx/room/paired_return/<token>/<role>/`, plus the three locked
   completion files under `assets/sfx/room/completion/`.
 - These are deterministic project-authored synthesis. No third-party sample,
   recorded Foley, generated-model output, or reference-video audio is used.
-- Ordinary masters are mono 48 kHz / 24-bit PCM, 60 ms, and preserve the
-  selected X contact/body/8.5 ms clasp at its approved `+1.5 dB` phone level.
+- Ordinary and material masters are the owner-approved Soft hand (2026-10-11):
+  mono 44.1 kHz / 16-bit PCM, 100 to 300 ms by lane, deterministic synthesis
+  from the same shared contact master, modal bank, pitch field and room
+  fingerprint (`design/audits/2026-10-11/soft-hand/`). The class chime masters
+  are the same synthesis, authored by `tool/author_class_chime.py`. The older
+  60 ms X and Refined masters they replaced remain only as audit history.
 - Paired Return masters are also mono 48 kHz / 24-bit PCM and 60 ms. Each is a
   deterministic precomposition of the unchanged X role/take plus one approved
   D5, A5, or E5 meaning stem. Only the bounded D5 → A5 → E5 → D5 runtime cell

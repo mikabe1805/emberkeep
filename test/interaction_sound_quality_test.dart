@@ -9,35 +9,57 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _roles = ['open', 'select', 'navigate', 'place'];
 
+const _softHandManifest = 'design/audits/2026-10-11/soft-hand/manifest.json';
+const _chimeManifest = 'design/audits/2026-10-11/class-chime/manifest.json';
+
+/// SHA-256 of the sorted `runtime-path file-sha256` lines of the 47 Soft
+/// hand masters. A literal, so replacing a file AND its audit record together
+/// still fails here until the owner has heard the change.
+const _softHandDigest =
+    'ff7d214965a7850bf777ca189079447cf43aeb9228250b028c1f153774629c2f';
+
+/// The same pin for the six class chime masters.
+const _classChimeDigest =
+    '141ceeaa6c9aa495f05979d38b5df6eed34e3966ceadf4726c7ec4789f420de3';
+
 void main() {
-  test('runtime preserves every owner-selected Refined ordinary master', () {
+  test('runtime ships the owner-approved Soft hand ordinary masters byte '
+      'for byte', () {
+    // Auditioned on his phone 2026-10-09 ("i definitely preferred the softer
+    // hand"), shipped 2026-10-11 from the wood lane of that page, takes 1 to 5,
+    // byte-identical. The pins live in the committed audit manifest; the
+    // digest below pins the manifest's own contents.
+    const durations = {
+      'open': 150.0,
+      'select': 120.0,
+      'navigate': 200.0,
+      'place': 250.0,
+    };
+    final records = _records(_softHandManifest);
     for (final role in _roles) {
       for (var take = 1; take <= 5; take++) {
-        final runtime = File('assets/sfx/room/ordinary/$role/$take.wav');
-        final approved = File(
-          'design/audits/2026-09-06/tap-refinement/'
-          'refined/ordinary/$role/$take.wav',
-        );
-        _expectSelectedTapSnapshot(
-          runtime,
-          approved,
-          'design/audits/2026-09-06/tap-refinement/manifest.json',
-          'refined/ordinary/$role/$take.wav',
-        );
-
+        final path = 'assets/sfx/room/ordinary/$role/$take.wav';
+        final runtime = File(path);
+        _expectPinned(runtime, records, path);
         final wave = _readWave(runtime);
         expect(wave.audioFormat, 1);
         expect(wave.channels, 1);
-        expect(wave.sampleRate, 48000);
-        expect(wave.bitsPerSample, 24);
-        expect(wave.durationMs, closeTo(60, 0.01));
-        expect(wave.peak, lessThanOrEqualTo(0.56));
-        expect(wave.tailRms / wave.peak, lessThan(0.001));
+        expect(wave.sampleRate, 44100);
+        expect(wave.bitsPerSample, 16);
+        expect(wave.durationMs, closeTo(durations[role]!, 0.5));
+        expect(
+          wave.peak,
+          lessThanOrEqualTo(0.2512),
+          reason: 'the Soft hand stays soft: $path peaks under -12 dBFS',
+        );
+        expect(wave.tailRms / wave.peak, lessThan(0.005), reason: path);
+        expect(wave.samples.last.abs(), lessThanOrEqualTo(2), reason: path);
       }
     }
   });
 
-  test('runtime preserves every owner-selected Refined material master', () {
+  test('runtime ships the owner-approved Soft hand material masters byte '
+      'for byte', () {
     const lanes = [
       'slate/select',
       'slate/navigate',
@@ -49,28 +71,91 @@ void main() {
       'brass/select',
       'brass/place',
     ];
+    final records = _records(_softHandManifest);
     for (final lane in lanes) {
       for (var take = 1; take <= 3; take++) {
-        final runtime = File('assets/sfx/room/materials/$lane/$take.wav');
-        final approved = File(
-          'design/audits/2026-09-06/tap-refinement/'
-          'refined/materials/$lane/$take.wav',
-        );
-        _expectSelectedTapSnapshot(
-          runtime,
-          approved,
-          'design/audits/2026-09-06/tap-refinement/manifest.json',
-          'refined/materials/$lane/$take.wav',
-        );
+        final path = 'assets/sfx/room/materials/$lane/$take.wav';
+        final runtime = File(path);
+        _expectPinned(runtime, records, path);
         final wave = _readWave(runtime);
         expect(wave.audioFormat, 1);
         expect(wave.channels, 1);
-        expect(wave.sampleRate, 48000);
-        expect(wave.bitsPerSample, 24);
-        expect(wave.peak, lessThanOrEqualTo(0.56));
-        expect(wave.tailRms / wave.peak, lessThan(0.001));
+        expect(wave.sampleRate, 44100);
+        expect(wave.bitsPerSample, 16);
+        expect(wave.peak, lessThanOrEqualTo(0.2512), reason: path);
+        expect(wave.tailRms / wave.peak, lessThan(0.005), reason: path);
+        expect(wave.samples.last.abs(), lessThanOrEqualTo(2), reason: path);
+        expect(
+          wave.durationMs,
+          closeTo((records[path]!['duration_ms'] as num).toDouble(), 0.05),
+          reason: '$path no longer matches the audit record',
+        );
       }
     }
+  });
+
+  test('the Soft hand set is exactly the audited set, pinned as a whole', () {
+    final records = _records(_softHandManifest);
+    // 4 ordinary verbs x 5 takes + 9 material lanes x 3 takes. The loader
+    // folds the ordinary walk's five variants onto three takes per material
+    // lane, so takes 4 and 5 of a material lane are not shipped.
+    expect(records, hasLength(20 + 27));
+    final onDisk = <String>{
+      for (final dir in [
+        'assets/sfx/room/ordinary',
+        'assets/sfx/room/materials',
+      ])
+        for (final file in Directory(dir).listSync(recursive: true))
+          if (file is File && file.path.endsWith('.wav'))
+            file.path.replaceAll('\\', '/'),
+    };
+    expect(
+      onDisk,
+      records.keys.toSet(),
+      reason: 'a stray or missing master is outside the audition',
+    );
+    expect(
+      _aggregateDigest(records),
+      _softHandDigest,
+      reason: 'the audit manifest changed: re-audition before re-pinning',
+    );
+  });
+
+  test('runtime ships the class chime byte for byte', () {
+    // Six steps of the pitch field's rising line (D5 E5 F#5 A5 B5 D6),
+    // rendered with the Soft hand's own brass synthesis by
+    // tool/author_class_chime.py on 2026-10-11 at the owner's request that the
+    // class chime vary its note. The Doorway plays step N for the Nth class
+    // kept today (doorway_cues.dart).
+    final records = _records(_chimeManifest);
+    expect(records, hasLength(Sfx.classChimeSteps));
+    final onDisk = <String>{
+      for (final file in Directory(
+        'assets/sfx/room/class_chime',
+      ).listSync(recursive: true))
+        if (file is File && file.path.endsWith('.wav'))
+          file.path.replaceAll('\\', '/'),
+    };
+    expect(onDisk, records.keys.toSet());
+    for (var step = 1; step <= Sfx.classChimeSteps; step++) {
+      final path = 'assets/sfx/room/class_chime/$step.wav';
+      final runtime = File(path);
+      _expectPinned(runtime, records, path);
+      final wave = _readWave(runtime);
+      expect(wave.audioFormat, 1);
+      expect(wave.channels, 1);
+      expect(wave.sampleRate, 44100);
+      expect(wave.bitsPerSample, 16);
+      expect(wave.durationMs, closeTo(480, 0.5));
+      expect(wave.peak, lessThanOrEqualTo(0.2512), reason: path);
+      expect(wave.tailRms / wave.peak, lessThan(0.005), reason: path);
+      expect(wave.samples.last.abs(), lessThanOrEqualTo(2), reason: path);
+    }
+    expect(
+      _aggregateDigest(records),
+      _classChimeDigest,
+      reason: 'the chime changed: re-render, listen, then re-pin',
+    );
   });
 
   test('runtime preserves every phone-approved event master byte for byte', () {
@@ -1092,6 +1177,38 @@ String _between(String source, String start, String end) {
   expect(startAt, isNonNegative, reason: 'missing start marker: $start');
   expect(endAt, greaterThan(startAt), reason: 'missing end marker: $end');
   return source.substring(startAt, endAt);
+}
+
+Map<String, Map<String, dynamic>> _records(String manifestPath) {
+  final manifest =
+      jsonDecode(File(manifestPath).readAsStringSync()) as Map<String, dynamic>;
+  return {
+    for (final entry in (manifest['records'] as Map<String, dynamic>).entries)
+      entry.key: entry.value as Map<String, dynamic>,
+  };
+}
+
+void _expectPinned(
+  File runtime,
+  Map<String, Map<String, dynamic>> records,
+  String path,
+) {
+  final record = records[path];
+  expect(record, isNotNull, reason: '$path is not in the audit manifest');
+  expect(
+    sha256.convert(runtime.readAsBytesSync()).toString(),
+    record!['sha256'],
+    reason: '$path must stay byte-identical to what the owner heard',
+  );
+}
+
+String _aggregateDigest(Map<String, Map<String, dynamic>> records) {
+  final paths = records.keys.toList()..sort();
+  final lines = StringBuffer();
+  for (final path in paths) {
+    lines.write('$path ${records[path]!['sha256']}\n');
+  }
+  return sha256.convert(utf8.encode(lines.toString())).toString();
 }
 
 void _expectSelectedTapSnapshot(

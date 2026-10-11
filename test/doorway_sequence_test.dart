@@ -16,6 +16,7 @@ import 'dart:math' as math;
 
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.dart';
+import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/widgets/class_day/doorway_art.dart';
@@ -66,12 +67,19 @@ void _keep(GameState state, DoorwayDay day, DoorwayTicket ticket, DateTime at) {
 
 class _Cues extends DoorwayCues {
   final log = <String>[];
+
+  /// The place each hang announced in the day's kept classes.
+  final positions = <int>[];
   @override
   void lift() => log.add('lift');
   @override
   void stamp() => log.add('stamp');
   @override
-  void hang() => log.add('hang');
+  void hang(int position) {
+    log.add('hang');
+    positions.add(position);
+  }
+
   @override
   void bowl() => log.add('bowl');
   @override
@@ -155,10 +163,14 @@ bool _showsAttended(WidgetTester tester, DoorwayTicket t) {
 }
 
 void main() {
-  setUp(() => GameState.debugRandomFactory = _NoLuck.new);
+  setUp(() {
+    GameState.debugRandomFactory = _NoLuck.new;
+    Sfx.instance.soundEnabled = false;
+  });
   tearDown(() {
     Clock.reset();
     GameState.debugRandomFactory = null;
+    Sfx.instance.soundEnabled = true;
   });
 
   group('the motion, as numbers', () {
@@ -824,6 +836,136 @@ void main() {
       expect(scene.stage.bowlShown, 0);
       expect(scene.stage.shelfShown, 1);
       expect(scene.stage.animating, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('the hang: a chime that climbs with the classes kept today', () {
+    /// Keeps [day]'s ticket [i] at 14:00 (every class is over and markable)
+    /// and reads the day again.
+    DoorwayDay keepAt(
+      AcademicSchedule schedule,
+      GameState state,
+      DoorwayDay day,
+      int i,
+    ) {
+      _keep(state, day, day.tickets[i], _fri(14, 0));
+      return _fridayDay(schedule, state, 14, 0);
+    }
+
+    testWidgets('the 1st to the 6th class kept each hang one step higher', (
+      tester,
+    ) async {
+      final schedule = _friday(6);
+      final state = _state();
+      var day = _fridayDay(schedule, state, 14, 0);
+      final scene = _Scene(day);
+      await scene.mount(tester);
+      for (var i = 0; i < 6; i++) {
+        day = keepAt(schedule, state, day, i);
+        await scene.show(tester, day);
+        await _run(tester, 1100);
+      }
+      expect(scene.cues.positions, [1, 2, 3, 4, 5, 6]);
+      expect(scene.cues.positions.map(DoorwayCues.chimeStepFor), [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+      ]);
+      await _run(tester, 4000);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a class set aside does not count: the line has no gap', (
+      tester,
+    ) async {
+      final schedule = _friday(4);
+      final state = _state();
+      var day = _fridayDay(schedule, state, 14, 0);
+      state.dismissClass(day.tickets[1].facts);
+      day = _fridayDay(schedule, state, 14, 0);
+      expect(day.tickets[1].state, DoorwayTicketState.dismissed);
+      expect(day.keptCount, 0);
+      final scene = _Scene(day);
+      await scene.mount(tester);
+      for (final i in [0, 2, 3]) {
+        day = keepAt(schedule, state, day, i);
+        await scene.show(tester, day);
+        await _run(tester, 1100);
+      }
+      expect(scene.cues.positions, [
+        1,
+        2,
+        3,
+      ], reason: 'the class he could not make takes no step');
+      await _run(tester, 4000);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('undo, then mark again: the same step', (tester) async {
+      final schedule = _friday(3);
+      final state = _state();
+      final start = _fridayDay(schedule, state, 14, 0);
+      final scene = _Scene(start);
+      await scene.mount(tester);
+      final one = keepAt(schedule, state, start, 0);
+      await scene.show(tester, one);
+      await _run(tester, 1100);
+      final two = keepAt(schedule, state, one, 1);
+      await scene.show(tester, two);
+      await _run(tester, 1100);
+      expect(scene.cues.positions, [1, 2]);
+      // The second is undone: the save is as it was with one kept.
+      await scene.show(tester, one);
+      await _run(tester, 1300);
+      expect(two.keptCount, 2);
+      expect(one.keptCount, 1);
+      // Marked again, it hangs on the same step it had.
+      await scene.show(tester, two);
+      await _run(tester, 1100);
+      expect(scene.cues.positions, [1, 2, 2]);
+      await _run(tester, 4000);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('classes kept before the stage opened count too', (
+      tester,
+    ) async {
+      final schedule = _friday(4);
+      final state = _state();
+      var day = _fridayDay(schedule, state, 14, 0);
+      day = keepAt(schedule, state, day, 0);
+      day = keepAt(schedule, state, day, 1);
+      expect(day.keptCount, 2);
+      final scene = _Scene(day);
+      await scene.mount(tester);
+      expect(scene.cues.positions, isEmpty, reason: 'opening it plays nothing');
+      day = keepAt(schedule, state, day, 2);
+      await scene.show(tester, day);
+      await _run(tester, 1100);
+      expect(scene.cues.positions, [3]);
+      await _run(tester, 4000);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Reduce Motion fades the move but the chime still climbs', (
+      tester,
+    ) async {
+      final schedule = _friday(3);
+      final state = _state();
+      var day = _fridayDay(schedule, state, 14, 0);
+      final scene = _Scene(day, reduceMotion: true);
+      await scene.mount(tester);
+      for (var i = 0; i < 3; i++) {
+        day = keepAt(schedule, state, day, i);
+        await scene.show(tester, day);
+        await _run(tester, 700);
+      }
+      expect(scene.cues.positions, [1, 2, 3]);
+      await _run(tester, 4000);
       expect(tester.takeException(), isNull);
     });
   });
