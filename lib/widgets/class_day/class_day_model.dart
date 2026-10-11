@@ -581,6 +581,8 @@ final class ClassCelebrationPlan {
     required this.closing,
     required this.streakLine,
     required this.semanticsLabel,
+    this.xpRail = true,
+    this.pillXp = 0,
   });
 
   static const quickWindow = Duration(seconds: 15);
@@ -637,6 +639,15 @@ final class ClassCelebrationPlan {
   final String? streakLine;
 
   final String semanticsLabel;
+
+  /// Whether the card counts XP up into the level rail. A class pays when it
+  /// is kept, so its card does. The quest day's card has no XP of its own
+  /// (each quest paid when it was kept), so it leaves the row and the rail out.
+  final bool xpRail;
+
+  /// A real full-day bonus shown as one small pill when [xpRail] is off
+  /// (0: no pill).
+  final int pillXp;
 
   bool get held =>
       tier == ClassCelebrationTier.dayDone ||

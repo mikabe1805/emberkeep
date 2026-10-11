@@ -1331,6 +1331,9 @@ class DoorwayStageState extends State<DoorwayStage>
             maxLines: 1,
             softWrap: false,
             overflow: TextOverflow.visible,
+            // Painted on the shelf: it keeps the painting's size at any text
+            // size (the tickets' words do the same), or it runs off the wood.
+            textScaler: TextScaler.noScaling,
             style: const TextStyle(
               fontFamily: 'JetBrainsMono',
               fontWeight: FontWeight.w500,

@@ -78,6 +78,7 @@ import '../widgets/class_day/doorway_model.dart';
 import '../widgets/class_day/doorway_motion.dart' show DoorwayBeat;
 import '../widgets/class_day/doorway_stage.dart';
 import '../widgets/class_day/class_room_stage.dart';
+import '../widgets/house/quests/quest_day_card.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
 /// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
@@ -384,6 +385,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   VoidCallback? _afterQuestMoment;
   bool _questMomentOpen = false;
   Timer? _questMomentTimer;
+
+  /// The day's card ("SATURDAY, DONE.") on a day with no classes: armed by the
+  /// completion that keeps the last of today's three, shown when the tickets
+  /// have landed in the bowl, once a day. The level-up chain follows it.
+  _PendingQuestDay? _questDay;
+  OverlayEntry? _questDayCard;
+  String? _questDayPlayed;
 
   /// What each of today's tickets said it was worth while it was open, so a
   /// kept ticket keeps saying it (the preview drops once the quest is done).
@@ -719,6 +727,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     Sfx.instance.play('boing');
     HapticFeedback.selectionClick();
     Storage.logEvent('undo', [slot.label]);
+    // A quest taken back before the day's card shows: the card never does.
+    _questDay = null;
     setState(() {
       _undoSlot = null;
       _pendingAchievementToasts.clear();
@@ -873,6 +883,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _questMomentOpen = false;
       _afterQuestMoment = null;
       _questMomentTimer?.cancel();
+      _questDay = null;
       _preferredClass = null;
       _lastClassMarkAt = null;
       _dismissUndoTimer?.cancel();
@@ -1006,6 +1017,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _markBusyTimer?.cancel();
     _classCelebration?.remove();
     _classCelebration = null;
+    _questDayCard?.remove();
+    _questDayCard = null;
     _removeNightRoute();
     _localMotion?.dispose();
     _boardScroll.removeListener(_handleScrollLight);
@@ -1525,6 +1538,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       // The Doorway is still dropping today's tickets into the bowl: the
       // level-up (full screen) follows it, never over it.
       _afterQuestMoment = () => _resolveLevelUps(s);
+      // The tickets landed while a beat of the quest's own (an epic, a goal)
+      // was up: the day's card comes now, and the level-up after it.
+      final pending = _questDay;
+      if (pending != null && pending.landed) {
+        _questDay = null;
+        if (!_showQuestDayCard(pending)) _endQuestMoment();
+      }
       return;
     }
     _resolveLevelUps(s);
@@ -1538,7 +1558,25 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (!read.allKept || read.questFor(questTicketId(q)) == null) return;
     _questMomentOpen = true;
     _questMomentTimer?.cancel();
-    _questMomentTimer = Timer(const Duration(seconds: 10), _endQuestMoment);
+    _questMomentTimer = Timer(
+      const Duration(seconds: 10),
+      _questMomentTimedOut,
+    );
+    // The day's card plays once a day, for the keep that cleared it.
+    final dayKey = Days.key(Clock.now());
+    _questDay = _questDayPlayed == dayKey || _questDayCard != null
+        ? null
+        : _PendingQuestDay(_state, dayKey);
+  }
+
+  /// The Doorway never told the bowl had landed: the card does not come late,
+  /// and the level-up goes on. A card waiting on a beat of the quest's own
+  /// keeps waiting for it.
+  void _questMomentTimedOut() {
+    final pending = _questDay;
+    if (pending != null && pending.landed && _completionChains > 0) return;
+    _questDay = null;
+    _endQuestMoment();
   }
 
   void _endQuestMoment() {
@@ -1552,9 +1590,76 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// The Doorway reached a move the Quests room waits on.
   void _onQuestBeat(DoorwayBeat beat) {
     if (!mounted) return;
-    if (beat == DoorwayBeat.dayDone || beat == DoorwayBeat.weekDone) {
-      _endQuestMoment();
+    if (beat != DoorwayBeat.dayDone && beat != DoorwayBeat.weekDone) return;
+    final pending = _questDay;
+    if (pending != null) {
+      pending.landed = true;
+      // A full-screen beat of the quest's own (an epic one, a goal reached) is
+      // still up: the card follows it, from the chain's end.
+      if (_completionChains > 0) return;
+      _questDay = null;
+      if (_showQuestDayCard(pending)) return;
     }
+    _endQuestMoment();
+  }
+
+  /// "SATURDAY, DONE.": the class day's tier card for a day without classes,
+  /// over the Doorway held still, until a tap. Only in the room itself, on the
+  /// tab that is showing, for a day that is still cleared (an undo that put a
+  /// quest back says nothing). Closing it ends the quest moment, so the
+  /// level-up chain follows the card, never over it. False: nothing shown.
+  bool _showQuestDayCard(_PendingQuestDay pending) {
+    if (!mounted || !identical(pending.state, _state)) return false;
+    if (!_questRoomInView || _questDayCard != null) return false;
+    if (!TickerMode.valuesOf(context).enabled) return false;
+    final now = Clock.now();
+    if (Days.key(now) != pending.dayKey) return false;
+    final read = _questRead(now);
+    if (!read.allKept) return false;
+    final s = pending.state;
+    final plan = planQuestDay(
+      date: read.day.date,
+      kept: read.keptCount,
+      state: s,
+    );
+    final reduceMotion =
+        s.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    // The level-up and the rest of the chain wait for the card; the moment's
+    // own fallback must not run them over it.
+    _questMomentTimer?.cancel();
+    _questDayPlayed = pending.dayKey;
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => ClassKeptCelebration(
+        plan: plan,
+        state: s,
+        // The Doorway stands behind the card, held as it is now: the three
+        // tickets in the bowl.
+        backdrop: (context, stageTop, scrimHeight) => DoorwayStage(
+          day: read.day,
+          reduceMotion: true,
+          scrimHeight: scrimHeight,
+        ),
+        stageTop: _classCamera.stage?.top ?? MediaQuery.paddingOf(context).top,
+        stageHeight: _classCamera.stage?.height,
+        fadeStart: _classCamera.fadeStart,
+        fadeEnd: _classCamera.fadeEnd,
+        scrimHeight: _classCamera.scrimHeight ?? classStatusScrimHeight,
+        camera: _classCamera,
+        reduceMotion: reduceMotion,
+        onDismiss: () {
+          entry.remove();
+          if (identical(_questDayCard, entry)) _questDayCard = null;
+          if (!mounted) return;
+          setState(() {});
+          _endQuestMoment();
+        },
+      ),
+    );
+    _questDayCard = entry;
+    Overlay.of(context).insert(entry);
+    return true;
   }
 
   /// Arms the just-completed card so it can be swiped left to undo a misfire;
@@ -3754,6 +3859,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       lightDirection: _activeLight,
       quiet: _levelTakeover,
       onBeat: _onQuestBeat,
+      camera: _classCamera,
     );
   }
 
@@ -5202,6 +5308,18 @@ class _PendingMoment {
   final ClassCelebrationPlan plan;
   final DateTime now;
   final DoorwayBeat beat;
+}
+
+/// The day's card on a day with no classes, armed at the keep that cleared
+/// today's three and told when the tickets have landed in the bowl.
+class _PendingQuestDay {
+  _PendingQuestDay(this.state, this.dayKey);
+
+  final GameState state;
+  final String dayKey;
+
+  /// The Doorway reported the bowl landed.
+  bool landed = false;
 }
 
 class _DismissUndo {

@@ -25,7 +25,7 @@ import '../../../engine.dart';
 import '../../../models.dart';
 import '../../../tokens.dart';
 import '../../class_day/class_day_room.dart'
-    show ClassGlass, ClassThereButton, classStatusAbove;
+    show ClassGlass, ClassRoomCamera, ClassThereButton, classStatusAbove;
 import '../../class_day/class_room_stage.dart' show classStatusScrimHeight;
 import '../../class_day/doorway_model.dart';
 import '../../class_day/doorway_motion.dart' show DoorwayBeat;
@@ -79,6 +79,7 @@ class QuestDoorwayRoom extends StatefulWidget {
     this.lightDirection,
     this.quiet = false,
     this.onBeat,
+    this.camera,
   });
 
   final GameState state;
@@ -130,6 +131,10 @@ class QuestDoorwayRoom extends StatefulWidget {
 
   /// The Doorway's moves the page waits on.
   final ValueChanged<DoorwayBeat>? onBeat;
+
+  /// Told where the stage sits on screen, so the day's card (which holds the
+  /// Doorway still behind it) registers with it frame for frame.
+  final ClassRoomCamera? camera;
 
   @override
   State<QuestDoorwayRoom> createState() => QuestDoorwayRoomState();
@@ -189,6 +194,16 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
       above + topPad + classStatusScrimHeight - 59,
     );
     final cardMode = mode;
+    final camera = widget.camera;
+    if (camera != null) {
+      camera.scrimHeight = scrimHeight;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final box = _stage.currentContext?.findRenderObject();
+        if (box is RenderBox && box.attached && box.hasSize) {
+          camera.stage = box.localToGlobal(Offset.zero) & box.size;
+        }
+      });
+    }
     return ColoredBox(
       color: Palette.parchment,
       child: Padding(
