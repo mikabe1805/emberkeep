@@ -1,13 +1,18 @@
 // The form of the class-day score, and the clock that puts a swell on a beat.
 //
 // This file is pure: no audio, no timers, no platform. The score
-// (class_day_score.dart) plays two pre-mixed beds and thirty-two two-bar
-// swells (assets/music/class_day, made by tool/author_class_day_score.py).
-// The audio plugin in use has no shared clock, so the score measures one: it
-// anchors each bed pass to a monotonic stopwatch and plans every swell on that
-// grid. Everything that decides WHEN and WHICH lives here, where a test can
-// reach it without a phone.
+// (class_day_score.dart) plays pre-mixed beds and thirty-two two-bar swells
+// (assets/music/class_day, made by tool/author_class_day_score.py). There are
+// two beds, Between and Evening, each recorded in six PERFORMANCES of the same
+// song: they share the chords, the bars and the bass line, so the swells fit
+// every one of them, and they differ in what sits on top. The audio plugin in
+// use has no shared clock, so the score measures one: it anchors each bed pass
+// to a monotonic stopwatch and plans every swell on that grid. Everything that
+// decides WHEN and WHICH lives here, where a test can reach it without a
+// phone.
 library;
+
+import 'dart:math' as math;
 
 /// The 16-bar form the files were cut from: one 72 BPM pass of 64 beats.
 abstract final class ScoreForm {
@@ -34,8 +39,37 @@ abstract final class ScoreForm {
   /// A swell is cut at every strong beat (1 and 3 of each bar): 32 of 64.
   static const int swellCount = 32;
 
-  static const String bedBetween = 'music/class_day/bed_between.m4a';
-  static const String bedEvening = 'music/class_day/bed_evening.m4a';
+  /// How many performances of the form each bed is recorded in. Performance 0
+  /// is the one on the listening page.
+  static const int performanceCount = 6;
+
+  /// The bed for a phase, in one performance of the form.
+  static String bedAsset({required bool evening, required int performance}) {
+    RangeError.checkValueInInterval(
+      performance,
+      0,
+      performanceCount - 1,
+      'performance',
+    );
+    return 'music/class_day/bed_${evening ? 'evening' : 'between'}'
+        '_$performance.m4a';
+  }
+
+  static final RegExp _bedName = RegExp(r'bed_(between|evening)_(\d+)\.m4a$');
+
+  /// Whether [asset] is one of the beds (not a swell, not the opener).
+  static bool isBed(String? asset) => asset != null && _bedName.hasMatch(asset);
+
+  /// Whether [asset] is one of the Evening beds.
+  static bool isEveningBed(String? asset) =>
+      asset != null && _bedName.firstMatch(asset)?.group(1) == 'evening';
+
+  /// The performance a bed [asset] plays, or null for anything else.
+  static int? performanceOf(String? asset) {
+    if (asset == null) return null;
+    final match = _bedName.firstMatch(asset);
+    return match == null ? null : int.parse(match.group(2)!);
+  }
 
   /// The swell cut at strong beat [index] of the form (0 to 31).
   static String swellAsset(int index) {
@@ -44,8 +78,10 @@ abstract final class ScoreForm {
   }
 
   static final List<String> allAssets = List<String>.unmodifiable([
-    bedBetween,
-    bedEvening,
+    for (var p = 0; p < performanceCount; p++) ...[
+      bedAsset(evening: false, performance: p),
+      bedAsset(evening: true, performance: p),
+    ],
     for (var i = 0; i < swellCount; i++) swellAsset(i),
   ]);
 
@@ -189,5 +225,63 @@ class ScoreClock {
       beatAt: beatAt,
       startAt: beatAt - ScoreForm.swellPreRoll - lag,
     );
+  }
+}
+
+/// Which performance of the form the next pass plays: a shuffled walk.
+///
+/// A pass of the score is 53 s and a class day is hours, so one performance
+/// would repeat all day. Each pass takes the next performance from a bag of
+/// all [count] of them in a shuffled order; the bag is refilled, reshuffled,
+/// only when every performance has been played once. The first of a new bag is
+/// never the last of the one before, so the same performance never plays twice
+/// in a row, and none comes round again until all the others have. The shuffle
+/// is seeded, so a test (or a device log) can name the whole sequence.
+///
+/// [peek] is the next performance, [take] consumes it. The score prepares the
+/// next pass early with [peek], and a change of phase that prepares it again
+/// still asks for the same performance; [take] is called when the pass starts.
+class PerformanceWalk {
+  PerformanceWalk({required int seed, this.count = ScoreForm.performanceCount})
+    : assert(
+        count >= 2,
+        'a walk needs at least two performances to avoid a repeat',
+      ),
+      _random = math.Random(seed);
+
+  /// How many performances there are to walk.
+  final int count;
+  final math.Random _random;
+  final List<int> _bag = <int>[];
+  int? _last;
+
+  /// The performance last taken, or null before any.
+  int? get last => _last;
+
+  /// The next performance, not consumed.
+  int get peek {
+    _fill();
+    return _bag.first;
+  }
+
+  /// The next performance, consumed.
+  int take() {
+    _fill();
+    final next = _bag.removeAt(0);
+    _last = next;
+    return next;
+  }
+
+  void _fill() {
+    if (_bag.isNotEmpty) return;
+    final order = List<int>.generate(count, (i) => i)..shuffle(_random);
+    if (order.first == _last) {
+      // The bag boundary: never the performance that just played.
+      final swapWith = 1 + _random.nextInt(count - 1);
+      final first = order.first;
+      order[0] = order[swapWith];
+      order[swapWith] = first;
+    }
+    _bag.addAll(order);
   }
 }

@@ -15,6 +15,16 @@ wrong file or a wrong beat in the app would be wrong here too.
     flutter test --no-pub test/class_day_score_plan_test.dart
     python tool/mix_class_day_score.py OUT_DIR
 
+The plan test writes two days: plan.json (a short one) and plan-varied.json (a
+longer day that crosses three pass boundaries, every pass another performance
+of the form). Mix the long one with
+
+    python tool/mix_class_day_score.py OUT_DIR --plan build/class_day_plan/plan-varied.json \\
+        --name day-varied --main-only
+
+which writes only day-varied.wav and day-varied-phone.wav, and prints how the
+level and the waveform behave across each pass boundary.
+
 writes in OUT_DIR:
 
   day.wav                       the day, every level as in the app, scaled by
@@ -156,10 +166,38 @@ def stats(plan: dict, base: np.ndarray, without: np.ndarray) -> list[str]:
     return lines
 
 
+def seams(plan: dict, music: np.ndarray) -> list[str]:
+    """How the music behaves where one pass hands over to the next: the
+    phone-band level in the 4 s either side, and the largest sample-to-sample
+    jump in the 100 ms around the boundary against the same measure over the
+    4 s before it (a click would stand out)."""
+    beds = [v for v in plan["voices"] if v["kind"] == "bed"]
+    lines = []
+    for i in range(1, len(beds)):
+        t = beds[i]["zeroAtMicros"] / 1e6
+        before = music[round((t - 4.0) * SR):round(t * SR)]
+        after = music[round(t * SR):round((t + 4.0) * SR)]
+        around = music[round((t - 0.05) * SR):round((t + 0.05) * SR)]
+        step = float(np.max(np.abs(np.diff(around))))
+        ref = float(np.max(np.abs(np.diff(before))))
+        lines.append(
+            f"boundary {i} at {t:6.2f} s: {beds[i - 1]['asset'].split('/')[-1]} -> "
+            f"{beds[i]['asset'].split('/')[-1]}; phone-band level {rms_db(phone_band(before)):.1f} -> "
+            f"{rms_db(phone_band(after)):.1f} dBFS; largest step in the 100 ms around it "
+            f"{step / ref:.2f} x the 4 s before"
+        )
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("out", type=Path, help="folder to write the WAVs into")
     parser.add_argument("--plan", type=Path, default=ROOT / "build/class_day_plan/plan.json")
+    parser.add_argument("--name", default="day", help="file name stem of the WAVs (default: day)")
+    parser.add_argument(
+        "--main-only", action="store_true",
+        help="write only NAME.wav and NAME-phone.wav, not the without-swells and timing variants",
+    )
     args = parser.parse_args()
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
     args.out.mkdir(parents=True, exist_ok=True)
@@ -173,18 +211,26 @@ def main() -> None:
     scale_db = db(scale)
 
     outputs = {
-        "day.wav": base,
-        "day-phone.wav": phone_band(base),
-        "day-without-swells.wav": without,
-        "day-swell-early-40ms.wav": mix(plan, lib, shift_ms=-40),
-        "day-swell-late-40ms.wav": mix(plan, lib, shift_ms=40),
-        "day-swell-late-90ms-dropped.wav": mix(plan, lib, shift_ms=90),
+        f"{args.name}.wav": base,
+        f"{args.name}-phone.wav": phone_band(base),
     }
+    if not args.main_only:
+        outputs.update(
+            {
+                f"{args.name}-without-swells.wav": without,
+                f"{args.name}-swell-early-40ms.wav": mix(plan, lib, shift_ms=-40),
+                f"{args.name}-swell-late-40ms.wav": mix(plan, lib, shift_ms=40),
+                f"{args.name}-swell-late-90ms-dropped.wav": mix(plan, lib, shift_ms=90),
+            }
+        )
     for name, audio in outputs.items():
         write(args.out / name, audio, scale)
         print(f"wrote {name}  {len(audio) / SR:.1f} s")
-    report = stats(plan, mix(plan, lib, cues=False), mix(plan, lib, swells=False, cues=False))
+    music_only = mix(plan, lib, cues=False)
+    report = stats(plan, music_only, mix(plan, lib, swells=False, cues=False))
     for line in report:
+        print(line)
+    for line in seams(plan, mix(plan, lib, swells=False, cues=False)):
         print(line)
     print(f"one constant on every file: {scale_db:+.1f} dB (the app's levels, plus this)")
     for line in plan["script"]:

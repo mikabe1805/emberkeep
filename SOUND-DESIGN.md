@@ -472,8 +472,9 @@ its iOS loop is a seek to zero on the main thread, which gaps. So the app plays
 pre-mixed files and measures the clock itself (`lib/class_day_score.dart`,
 `lib/class_day_score_clock.dart`):
 
-- two beds, `bed_between.m4a` and `bed_evening.m4a`, each one 16-bar pass plus
-  its 6.5 s natural tail. The next pass is a second source, prepared early and
+- two beds, `bed_between_P.m4a` and `bed_evening_P.m4a`, each one 16-bar pass plus
+  its 6.5 s natural tail, each in six performances P = 0 to 5 (see "Variety"
+  below). The next pass is a second source, prepared early and
   started one form (53.333 s) after the last began, while the first rings out.
   Two chained passes equal the sketch's circular loop sample for sample
   (`tool/tests/test_author_class_day_score.py` proves it to 1e-9), so the seam is
@@ -523,10 +524,38 @@ them in 200 ms; on return the bed starts again from bar 1 on a 1.5 s fade and no
 swell is resumed. Music off fades in 600 ms. Nothing starts without a press or
 his saved setting.
 
+**Variety: six performances.** One 53 s form repeating all class day is the
+failure the owner already named in the room's music ("that fire thing was because
+that fire sound on repeat was annoying"), so each bed is recorded in six
+performances of the same song. They share the harmonic skeleton: the same chords
+in the same bars and the very same bass line (the sketch's bass stem, byte for
+byte), so all thirty-two swells fit every performance. A performance changes only
+what sits on top, by the sketch's own controls made into parameters
+(`KeysControls`, `BrushControls`, `BellsControls` in the tool): the keys' voicing
+picks and where they land in the bar (laid back or on top, a second hit on the and
+of two, the and of three, or both), a few short pentatonic figures in the keys' own
+voice, kept off the slots the swell's bells sound on, a drier touch in one
+performance, the brushes' pattern (where the shaker leans, how often it breathes,
+ghost thumps and rims, the thump on beats 1 and 3 and the rim on 2 and 4 never
+move), and where the Evening's slow night bells fall. Performance 0 is the sketch
+note for note, byte for byte the bed that first shipped. Nothing new is
+synthesized and nothing sampled. The score walks the performances: each pass takes
+the next of a seeded shuffle, never the performance that just played, and all six
+before any comes round again (`PerformanceWalk`, one step a pass; the order differs
+each time the app starts). A change of phase keeps the performance already chosen
+for the next pass. Every bed is still -36.0 dBFS phone-band RMS; peaks run -18.3 to
+-16.1 against -18.3 and -17.2 before; a swell lifts every performance 1.1 to 3.2
+dB (mean about 2.1, the sketch's). The form's downbeat is a chord struck after a
+ring-down in every performance, as in the sketch (the sketch itself steps 8.6 to
+9.1 dB over 2 s at its seam; the others 2.6 to 8.8), and in the scripted proof day
+the largest sample step where one performance hands over to another was at most
+0.8 times the steps in the 4 s before it. The six performances add 7.1 MB. Built
+and measured, not yet listened to by the owner.
+
 **Files and pins.** `tool/author_class_day_score.py` carries the sketch's
 renderer over (the five stems re-render bit-identically, checked against the
 sketch's own files and the hashes in the manifest), renders them unfolded, and
-builds the 34 files, AAC-LC 96 kbps 48 kHz mono, 5,142,699 bytes in all.
+builds the 44 files, AAC-LC 96 kbps 48 kHz mono, 12,248,819 bytes in all.
 `design/audits/2026-10-11/class-day-score/manifest.json` records every file's
 sha256, size, duration and measured level, and `test/class_day_score_assets_test.dart`
 pins a digest of the manifest. `--check` proves the shipped files are the
@@ -557,6 +586,7 @@ mixes. Staying quiet when another app is playing is about 30 lines of native cod
 per platform (`AVAudioSession.secondaryAudioShouldBeSilencedHint`,
 `AudioManager.isMusicActive`) that could not be compiled or run here. Also open:
 every strong beat (32 swells, as built) or every beat (64, 7.4 MB, a wait of
-about 0.5 s instead of 0.9 s), more performances of the bed to shuffle (the form
-is 53 s and repeats all class day), and whether the evening door should start
-the Evening bed directly instead of Lamp left on.
+about 0.5 s instead of 0.9 s), and whether the evening door should start
+the Evening bed directly instead of Lamp left on. The walk over the
+performances is not saved between launches (a new order each time), so a launch
+may open on the performance the last launch ended on.

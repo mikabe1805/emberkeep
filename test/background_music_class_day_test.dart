@@ -87,8 +87,8 @@ class _Score implements ClassDayScorePlayback {
     nowPlaying.value = opener
         ? MainRoomMusic.assetForTake(MainRoomMusic.lampLeftOnTake)
         : evening
-        ? 'music/class_day/bed_evening.m4a'
-        : 'music/class_day/bed_between.m4a';
+        ? 'music/class_day/bed_evening_0.m4a'
+        : 'music/class_day/bed_between_0.m4a';
   }
 
   @override
@@ -437,8 +437,8 @@ void main() {
         reason: 'the saved setting is untouched',
       );
       // The opener moves on to the bed: the door says "Room music".
-      r.score.nowPlaying.value = 'music/class_day/bed_evening.m4a';
-      expect(r.music.nowPlaying.value, 'music/class_day/bed_evening.m4a');
+      r.score.nowPlaying.value = 'music/class_day/bed_evening_0.m4a';
+      expect(r.music.nowPlaying.value, 'music/class_day/bed_evening_0.m4a');
     });
 
     test('with music already on in Me there is no opener: straight to the '
@@ -521,8 +521,8 @@ void main() {
     test('nowPlaying follows the score, then the rotation', () async {
       final r = _Rig();
       expect(r.music.nowPlaying.value, isNull);
-      r.score.nowPlaying.value = 'music/class_day/bed_between.m4a';
-      expect(r.music.nowPlaying.value, 'music/class_day/bed_between.m4a');
+      r.score.nowPlaying.value = 'music/class_day/bed_between_0.m4a';
+      expect(r.music.nowPlaying.value, 'music/class_day/bed_between_0.m4a');
       r.score.nowPlaying.value = null;
       r.main.nowPlaying.value = MainRoomMusic.assetForTake(9);
       expect(r.music.nowPlaying.value, MainRoomMusic.assetForTake(9));
@@ -531,7 +531,7 @@ void main() {
     test('a disposed controller stops listening', () async {
       final r = _Rig();
       await r.music.dispose();
-      r.score.nowPlaying.value = 'music/class_day/bed_between.m4a';
+      r.score.nowPlaying.value = 'music/class_day/bed_between_0.m4a';
       expect(r.music.nowPlaying.value, isNull);
       expect(r.log.events, contains('score:dispose'));
     });

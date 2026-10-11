@@ -2,11 +2,13 @@
 // the architectural invariants of the code that plays them.
 //
 // The files are made by tool/author_class_day_score.py (AAC-LC 96 kbps 48 kHz
-// mono) from the music sketch the owner heard: two beds and thirty-two
-// swells. The manifest beside the audit records every file's sha256, size,
-// duration and measured level; a digest literal below pins the manifest's own
-// contents, so changing a file and its record together still fails here and
-// someone has to listen again.
+// mono) from the music sketch the owner heard: two beds in six performances
+// each, and thirty-two swells. The six performances play the same song (the
+// same chords in the same bars over the same bass line, so every swell fits
+// every one of them) and differ in what sits on top. The manifest beside the
+// audit records every file's sha256, size, duration and measured level; a
+// digest literal below pins the manifest's own contents, so changing a file and
+// its record together still fails here and someone has to listen again.
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,11 +19,19 @@ import 'package:flutter_test/flutter_test.dart';
 const _manifestPath = 'design/audits/2026-10-11/class-day-score/manifest.json';
 const _folder = 'assets/music/class_day';
 
-/// SHA-256 of the sorted `runtime-path file-sha256` lines of the 34 files,
+/// SHA-256 of the sorted `runtime-path file-sha256` lines of the 44 files,
 /// then the sorted `stem:<name> <int16 sha256>` lines of the five sketch stems
-/// they were cut from.
+/// they were cut from, then the `perf:<index>:<stem> <int16 sha256>` lines of
+/// every performance's keys, brushes, slow bells and the shared bass.
 const _scoreDigest =
-    '5700737ccdabf7eab20e2f9b0676e3e5c4dfe171fc08b0c003b1e26d907222ed';
+    '4e4cabbc8a7952ba1374f34a68954d42b68cfed16be5edc89fbf01d490cccc3c';
+
+const _states = ['between', 'evening'];
+
+List<String> _bedNames() => [
+  for (final state in _states)
+    for (var p = 0; p < ScoreForm.performanceCount; p++) 'bed_${state}_$p',
+];
 
 Map<String, dynamic> _manifest() =>
     jsonDecode(File(_manifestPath).readAsStringSync()) as Map<String, dynamic>;
@@ -33,21 +43,24 @@ String _code(String path) => File(path)
 
 void main() {
   group('the files', () {
-    test('are exactly the two beds and thirty-two swells the score names', () {
-      final onDisk = [
-        for (final f in Directory(_folder).listSync())
-          if (f is File) f.uri.pathSegments.last,
-      ]..sort();
-      final named = [
-        for (final asset in ScoreForm.allAssets) asset.split('/').last,
-      ]..sort();
-      expect(onDisk, named, reason: 'no stray file, none missing');
-      expect(onDisk, hasLength(34));
-      final records = (_manifest()['records'] as Map).keys.cast<String>();
-      expect(records.toSet(), {
-        for (final asset in ScoreForm.allAssets) 'assets/$asset',
-      });
-    });
+    test(
+      'are exactly the twelve beds and thirty-two swells the score names',
+      () {
+        final onDisk = [
+          for (final f in Directory(_folder).listSync())
+            if (f is File) f.uri.pathSegments.last,
+        ]..sort();
+        final named = [
+          for (final asset in ScoreForm.allAssets) asset.split('/').last,
+        ]..sort();
+        expect(onDisk, named, reason: 'no stray file, none missing');
+        expect(onDisk, hasLength(44));
+        final records = (_manifest()['records'] as Map).keys.cast<String>();
+        expect(records.toSet(), {
+          for (final asset in ScoreForm.allAssets) 'assets/$asset',
+        });
+      },
+    );
 
     test('are byte-identical to what the manifest records', () {
       final records = (_manifest()['records'] as Map<String, dynamic>)
@@ -87,6 +100,15 @@ void main() {
       for (final name in stems.keys.toList()..sort()) {
         lines.write('stem:$name ${stems[name]!['int16_sha256']}\n');
       }
+      final performances = (manifest['performances'] as List)
+          .cast<Map<String, dynamic>>();
+      for (final performance in performances) {
+        final own = (performance['stems'] as Map<String, dynamic>)
+            .cast<String, String>();
+        for (final name in own.keys.toList()..sort()) {
+          lines.write('perf:${performance['index']}:$name ${own[name]}\n');
+        }
+      }
       expect(
         sha256.convert(utf8.encode(lines.toString())).toString(),
         _scoreDigest,
@@ -94,30 +116,35 @@ void main() {
       );
     });
 
-    test(
-      'are the sizes the design budgeted: about 5.1 MB, 18% on the music',
-      () {
-        final manifest = _manifest();
-        final records = (manifest['records'] as Map<String, dynamic>)
-            .cast<String, Map<String, dynamic>>();
-        var total = 0;
-        for (final record in records.values) {
-          total += record['bytes'] as int;
-        }
-        expect(manifest['total_bytes'], total);
-        expect(total, inInclusiveRange(5000000, 5300000));
-        for (final name in ['bed_between', 'bed_evening']) {
-          final bytes =
-              records['assets/music/class_day/$name.m4a']!['bytes'] as int;
-          expect(bytes, inInclusiveRange(650000, 780000));
-        }
-      },
-    );
+    test('are the sizes budgeted: the extra performances add under 8 MB', () {
+      final manifest = _manifest();
+      final records = (manifest['records'] as Map<String, dynamic>)
+          .cast<String, Map<String, dynamic>>();
+      var total = 0;
+      var extra = 0;
+      for (final entry in records.entries) {
+        final bytes = entry.value['bytes'] as int;
+        total += bytes;
+        // Performance 0 is the pair of beds that shipped first (5,142,699
+        // bytes with the swells); every other bed is what variety costs.
+        final bed = RegExp(r'bed_\w+_(\d)\.m4a$').firstMatch(entry.key);
+        if (bed != null && bed.group(1) != '0') extra += bytes;
+      }
+      expect(manifest['total_bytes'], total);
+      expect(extra, lessThan(8000000), reason: 'the added size');
+      expect(extra, greaterThan(6000000), reason: 'five more of each bed');
+      expect(total, inInclusiveRange(12000000, 12600000));
+      for (final name in _bedNames()) {
+        final bytes =
+            records['assets/music/class_day/$name.m4a']!['bytes'] as int;
+        expect(bytes, inInclusiveRange(650000, 780000), reason: name);
+      }
+    });
 
     test('are one pass and its tail, and two bars and a release', () {
       final records = (_manifest()['records'] as Map<String, dynamic>)
           .cast<String, Map<String, dynamic>>();
-      for (final name in ['bed_between', 'bed_evening']) {
+      for (final name in _bedNames()) {
         final duration =
             records['assets/music/class_day/$name.m4a']!['duration_s'] as num;
         final expected =
@@ -141,6 +168,7 @@ void main() {
         for (var k = 0; k < ScoreForm.swellCount; k++) 2 * k,
       ]);
       expect(form['bpm'], ScoreForm.bpm);
+      expect(form['performance_count'], ScoreForm.performanceCount);
       expect(
         form['pass_s'] as num,
         closeTo(ScoreForm.pass.inMicroseconds / 1e6, 1e-6),
@@ -161,16 +189,135 @@ void main() {
     });
   });
 
+  group('the performances', () {
+    List<Map<String, dynamic>> performances() =>
+        (_manifest()['performances'] as List).cast<Map<String, dynamic>>();
+
+    test('are six, in order, each with both its beds on disk', () {
+      final list = performances();
+      expect(list, hasLength(ScoreForm.performanceCount));
+      for (var p = 0; p < list.length; p++) {
+        expect(list[p]['index'], p);
+        expect(list[p]['name'], isA<String>());
+        expect(list[p]['feel'], isA<String>());
+        final files = (list[p]['files'] as Map<String, dynamic>)
+            .cast<String, String>();
+        expect(
+          'assets/${ScoreForm.bedAsset(evening: false, performance: p)}',
+          files['between'],
+        );
+        expect(
+          'assets/${ScoreForm.bedAsset(evening: true, performance: p)}',
+          files['evening'],
+        );
+        for (final path in files.values) {
+          expect(File(path).existsSync(), isTrue, reason: path);
+        }
+      }
+      expect(
+        {for (final p in list) p['name']},
+        hasLength(6),
+        reason: 'six different names',
+      );
+    });
+
+    test('play the same song: the very same bass, byte for byte', () {
+      final manifest = _manifest();
+      final bass =
+          (manifest['stems'] as Map<String, dynamic>)['bass']['int16_sha256'];
+      for (final performance in performances()) {
+        final stems = (performance['stems'] as Map<String, dynamic>)
+            .cast<String, String>();
+        expect(
+          stems['bass'],
+          bass,
+          reason:
+              'performance ${performance['index']}: the swells are cut '
+              'from this bass, so every performance must carry it',
+        );
+      }
+      // Same chords in the same bars: the form, once, for all of them.
+      final form = manifest['form'] as Map<String, dynamic>;
+      expect(form['chord_bars'], hasLength(16));
+      expect(form['bars'], 16);
+    });
+
+    test('are the sketch for the first and different from it after', () {
+      final manifest = _manifest();
+      final sketch = (manifest['stems'] as Map<String, dynamic>)
+          .cast<String, Map<String, dynamic>>();
+      final list = performances();
+      final zero = (list[0]['stems'] as Map<String, dynamic>)
+          .cast<String, String>();
+      for (final name in ['keys', 'brushes', 'bells_slow']) {
+        expect(zero[name], sketch[name]!['int16_sha256'], reason: name);
+      }
+      for (final name in ['keys', 'brushes', 'bells_slow']) {
+        final all = {
+          for (final p in list) (p['stems'] as Map<String, dynamic>)[name],
+        };
+        expect(
+          all,
+          hasLength(6),
+          reason: 'every performance has its own $name',
+        );
+      }
+    });
+
+    test(
+      'vary the keys, the brushes and the bells, and nothing under them',
+      () {
+        final list = performances();
+        final keysSeeds = <Object?>{};
+        for (final performance in list) {
+          final controls = performance['controls'] as Map<String, dynamic>;
+          expect(controls.keys.toSet(), {'keys', 'brushes', 'slow_bells'});
+          keysSeeds.add((controls['keys'] as Map<String, dynamic>)['seed']);
+        }
+        expect(keysSeeds, hasLength(6));
+        // Performance 0 plays the sketch's own controls.
+        final zero = list[0]['controls'] as Map<String, dynamic>;
+        expect((zero['keys'] as Map<String, dynamic>)['seed'], 14100);
+        expect((zero['brushes'] as Map<String, dynamic>)['seed'], 14400);
+        expect((zero['slow_bells'] as Map<String, dynamic>)['seed'], 14600);
+        // Some answer with figures, some not.
+        final withFigures = [
+          for (final p in list)
+            if ((p['figures'] as Map).isNotEmpty) p['index'],
+        ];
+        expect(withFigures.length, inInclusiveRange(3, 5));
+        expect(withFigures, isNot(contains(0)), reason: 'the sketch has none');
+      },
+    );
+  });
+
   group('the levels', () {
     test('a bed sits at the rotation\'s level, so a hand-off has no step', () {
       // Every take in the rotation measures -36.02 dBFS phone-band RMS.
       final records = (_manifest()['records'] as Map<String, dynamic>)
           .cast<String, Map<String, dynamic>>();
-      for (final name in ['bed_between', 'bed_evening']) {
+      for (final name in _bedNames()) {
         final level =
             records['assets/music/class_day/$name.m4a']!['loop_phone_rms_db']
                 as num;
         expect(level, closeTo(-36.02, 0.1), reason: name);
+      }
+    });
+
+    test('a bed\'s peak is where the sketch\'s was, not 2 dB above it', () {
+      final records = (_manifest()['records'] as Map<String, dynamic>)
+          .cast<String, Map<String, dynamic>>();
+      for (final state in _states) {
+        final sketch =
+            records['assets/music/class_day/bed_${state}_0.m4a']!['peak_dbfs']
+                as num;
+        for (var p = 0; p < ScoreForm.performanceCount; p++) {
+          final peak =
+              records['assets/music/class_day/bed_${state}_$p.m4a']!['peak_dbfs']
+                  as num;
+          expect(peak, lessThan(sketch + 2.0), reason: '$state $p');
+          expect(peak, lessThan(-14), reason: '$state $p');
+        }
       }
     });
 
@@ -192,6 +339,41 @@ void main() {
           lifts += lift;
         }
         expect(lifts / ScoreForm.swellCount, closeTo(2.1, 0.3));
+      },
+    );
+
+    test(
+      'a swell lifts every performance about 2 dB, none lost or crowded',
+      () {
+        final manifest = _manifest();
+        final records = (manifest['records'] as Map<String, dynamic>)
+            .cast<String, Map<String, dynamic>>();
+        for (var p = 0; p < ScoreForm.performanceCount; p++) {
+          var sum = 0.0;
+          for (var k = 0; k < ScoreForm.swellCount; k++) {
+            final r = records['assets/${ScoreForm.swellAsset(k)}']!;
+            final lifts = (r['lift_by_performance_db'] as List).cast<num>();
+            expect(lifts, hasLength(ScoreForm.performanceCount));
+            expect(
+              lifts[p],
+              inInclusiveRange(1.0, 3.3),
+              reason: 'swell $k over $p',
+            );
+            final peaks = (r['with_between_peak_by_performance_db'] as List)
+                .cast<num>();
+            expect(peaks[p], lessThan(-12), reason: 'swell $k over $p');
+            sum += lifts[p];
+          }
+          expect(sum / ScoreForm.swellCount, closeTo(2.1, 0.3), reason: '$p');
+        }
+        // Performance 0's numbers are the ones first shipped.
+        for (var k = 0; k < ScoreForm.swellCount; k++) {
+          final r = records['assets/${ScoreForm.swellAsset(k)}']!;
+          expect(
+            (r['lift_by_performance_db'] as List).first,
+            r['lift_over_between_db'],
+          );
+        }
       },
     );
 
@@ -235,7 +417,7 @@ void main() {
     test('the tail cut from a bed was already silent', () {
       final records = (_manifest()['records'] as Map<String, dynamic>)
           .cast<String, Map<String, dynamic>>();
-      for (final name in ['bed_between', 'bed_evening']) {
+      for (final name in _bedNames()) {
         final cut =
             records['assets/music/class_day/$name.m4a']!['cut_tail_peak_db']
                 as num;
@@ -289,6 +471,17 @@ void main() {
     test('is declared in the bundle, one directory entry (not recursive)', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
       expect(pubspec, contains('- assets/music/class_day/'));
+    });
+
+    test('walks the performances: a seeded shuffle, one step a pass', () {
+      final code = _code('lib/class_day_score.dart');
+      expect(code, contains('PerformanceWalk'));
+      expect(code, contains('_walk.peek'));
+      expect(code, contains('_walk.take()'));
+      // No wall clock behind the shuffle; a test passes a seed.
+      expect(code, isNot(contains('DateTime')));
+      final clock = _code('lib/class_day_score_clock.dart');
+      expect(clock, contains('math.Random(seed)'));
     });
 
     test('plays every file at unity: the level is in the file', () {

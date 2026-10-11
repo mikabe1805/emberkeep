@@ -15,6 +15,13 @@ import 'package:emberkeep/main_room_music.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/foundation.dart';
 
+/// A Between bed, in any performance.
+bool isBetweenBed(String? asset) =>
+    ScoreForm.isBed(asset) && !ScoreForm.isEveningBed(asset);
+
+/// An Evening bed, in any performance.
+bool isEveningBed(String? asset) => ScoreForm.isEveningBed(asset);
+
 class FakeScoreVoice implements ScoreVoice {
   FakeScoreVoice(this.transport, this.id);
 
@@ -132,6 +139,11 @@ class FakeScoreTransport implements ScoreTransport {
   Iterable<FakeScoreVoice> get beds =>
       where((a) => a.contains('bed_')).where((v) => v.callAt != null);
 
+  /// The performances the beds played, in the order they started.
+  List<int> get performances => [
+    for (final v in beds) ScoreForm.performanceOf(v.asset)!,
+  ];
+
   Iterable<FakeScoreVoice> get swells =>
       where((a) => a.contains('swell_')).where((v) => v.callAt != null);
 
@@ -146,6 +158,7 @@ class ScoreHarness {
     Duration startLag = const Duration(milliseconds: 35),
     Duration prepareTime = const Duration(milliseconds: 40),
     double Function()? duck,
+    int walkSeed = 7,
   }) {
     transport = FakeScoreTransport(
       () => async.elapsed,
@@ -156,6 +169,7 @@ class ScoreHarness {
       transport: transport,
       monotonic: () => async.elapsed,
       duckGain: duck,
+      walk: PerformanceWalk(seed: walkSeed),
       log: log.add,
     );
   }

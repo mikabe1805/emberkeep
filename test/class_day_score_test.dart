@@ -31,11 +31,11 @@ void main() {
         h.run(const Duration(milliseconds: 100));
 
         final bed = h.transport.voices.single;
-        expect(bed.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(bed.asset), isTrue);
         expect(bed.volumes.first.volume, 0, reason: 'prepared silent');
         expect(bed.callAt, isNotNull);
         expect(h.score.isPlaying, isTrue);
-        expect(h.score.nowPlaying.value, ScoreForm.bedBetween);
+        expect(isBetweenBed(h.score.nowPlaying.value), isTrue);
 
         h.run(const Duration(seconds: 2));
         expect(bed.lastVolume, closeTo(0.5, 0.05), reason: 'half way in 2 s');
@@ -51,8 +51,8 @@ void main() {
       _day((async) {
         final h = ScoreHarness(async);
         h.startAndSettle(evening: true);
-        expect(h.transport.voices.single.asset, ScoreForm.bedEvening);
-        expect(h.score.nowPlaying.value, ScoreForm.bedEvening);
+        expect(isEveningBed(h.transport.voices.single.asset), isTrue);
+        expect(isEveningBed(h.score.nowPlaying.value), isTrue);
       });
     });
 
@@ -130,7 +130,7 @@ void main() {
         h.run(const Duration(seconds: 3));
         expect(h.transport.voices, hasLength(2));
         final second = h.transport.voices[1];
-        expect(second.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(second.asset), isTrue);
         expect(second.callAt, isNull, reason: 'prepared, waiting for its beat');
         // It starts one pass after the first sample, less the platform's lag.
         h.run(const Duration(seconds: 3));
@@ -168,7 +168,7 @@ void main() {
         h.run(const Duration(seconds: 6));
         expect(h.transport.beds, hasLength(2));
         expect(
-          h.transport.voices.where((v) => v.asset == ScoreForm.bedBetween),
+          h.transport.voices.where((v) => isBetweenBed(v.asset)),
           hasLength(2),
         );
         expect(h.score.isPlaying, isTrue);
@@ -203,15 +203,15 @@ void main() {
         unawaited(h.score.setEvening(true));
         h.run(const Duration(seconds: 20));
         expect(
-          h.transport.beds.every((v) => v.asset == ScoreForm.bedBetween),
+          h.transport.beds.every((v) => isBetweenBed(v.asset)),
           isTrue,
           reason: 'still the Between bed, mid-pass',
         );
-        expect(h.score.nowPlaying.value, ScoreForm.bedBetween);
+        expect(isBetweenBed(h.score.nowPlaying.value), isTrue);
         h.run(const Duration(seconds: 30));
         final last = h.transport.beds.last;
-        expect(last.asset, ScoreForm.bedEvening);
-        expect(h.score.nowPlaying.value, ScoreForm.bedEvening);
+        expect(isEveningBed(last.asset), isTrue);
+        expect(isEveningBed(h.score.nowPlaying.value), isTrue);
         expect(h.score.evening, isTrue);
       });
     });
@@ -222,13 +222,13 @@ void main() {
         h.startPastTheFadeIn();
         // The next pass is prepared four seconds early, as the Between bed.
         h.runToPass(50.5);
-        expect(h.transport.voices.last.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(h.transport.voices.last.asset), isTrue);
         final prepared = h.transport.voices.last;
         unawaited(h.score.setEvening(true));
         h.run(const Duration(milliseconds: 100));
         expect(prepared.released, isTrue, reason: 'the wrong bed is let go');
         h.run(const Duration(seconds: 6));
-        expect(h.transport.beds.last.asset, ScoreForm.bedEvening);
+        expect(isEveningBed(h.transport.beds.last.asset), isTrue);
       });
     });
 
@@ -240,9 +240,9 @@ void main() {
         h.runToPass(52.9);
         unawaited(h.score.setEvening(true));
         h.run(const Duration(seconds: 1));
-        expect(h.transport.beds.last.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(h.transport.beds.last.asset), isTrue);
         h.run(ScoreForm.pass);
-        expect(h.transport.beds.last.asset, ScoreForm.bedEvening);
+        expect(isEveningBed(h.transport.beds.last.asset), isTrue);
       });
     });
   });
@@ -465,7 +465,7 @@ void main() {
         h.startPastTheFadeIn();
         unawaited(h.score.setEvening(true));
         h.run(ScoreForm.pass + const Duration(seconds: 10));
-        expect(h.transport.beds.last.asset, ScoreForm.bedEvening);
+        expect(isEveningBed(h.transport.beds.last.asset), isTrue);
         h.score.classKept(after: _chime);
         h.run(const Duration(seconds: 6));
         expect(h.transport.swells, isEmpty);
@@ -521,7 +521,7 @@ void main() {
           final swell = h.transport.swells.single;
           unawaited(h.score.setEvening(true));
           h.run(const Duration(seconds: 12));
-          expect(h.transport.beds.last.asset, ScoreForm.bedEvening);
+          expect(isEveningBed(h.transport.beds.last.asset), isTrue);
           expect(swell.released, isTrue);
           // It fell to nothing, over about half a second, not all at once.
           final fade = swell.volumes.where((v) => v.volume < 1.0).toList();
@@ -691,6 +691,169 @@ void main() {
     });
   });
 
+  group('performances of the form', () {
+    // What the walk would play for [seed], pass by pass.
+    List<int> reference(int seed, int takes) {
+      final walk = PerformanceWalk(seed: seed);
+      return [for (var i = 0; i < takes; i++) walk.take()];
+    }
+
+    List<int> dayOf(int seed, int passes) {
+      late List<int> played;
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: seed);
+        h.startAndSettle();
+        h.run(ScoreForm.pass * (passes - 1));
+        played = h.transport.performances;
+      });
+      return played;
+    }
+
+    test('each pass plays the walk\'s next performance, in order', () {
+      final played = dayOf(11, 14);
+      expect(played.length, greaterThanOrEqualTo(14));
+      expect(played, reference(11, played.length));
+    });
+
+    test('never the same one twice in a row, all six before any repeats', () {
+      for (final seed in [1, 2, 3, 99]) {
+        final played = dayOf(seed, 18);
+        expect(played.length, greaterThanOrEqualTo(18), reason: 'seed $seed');
+        for (var i = 1; i < played.length; i++) {
+          expect(
+            played[i],
+            isNot(played[i - 1]),
+            reason: 'seed $seed, pass ${i + 1}',
+          );
+        }
+        for (var bag = 0; bag + 6 <= played.length; bag += 6) {
+          expect(
+            played.sublist(bag, bag + 6).toSet(),
+            {0, 1, 2, 3, 4, 5},
+            reason: 'seed $seed, passes ${bag + 1} to ${bag + 6}',
+          );
+        }
+      }
+    });
+
+    test('the same seed is the same day, another seed another day', () {
+      expect(dayOf(8, 6), dayOf(8, 6));
+      final days = {
+        for (var seed = 20; seed < 28; seed++) dayOf(seed, 3).join(),
+      };
+      expect(days.length, greaterThan(4));
+    });
+
+    test('a pass is named in the log with its phase and performance', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 4);
+        h.startAndSettle();
+        final first = reference(4, 1).single;
+        expect(
+          h.log.any((l) => l.contains('between performance $first')),
+          isTrue,
+          reason: h.log.join(' | '),
+        );
+      });
+    });
+
+    test('a change of phase keeps the performance already chosen', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 5);
+        h.startPastTheFadeIn();
+        final ref = reference(5, 4);
+        // The next pass is prepared four seconds early, as a Between bed.
+        h.runToPass(50.5);
+        final prepared = h.transport.voices.last;
+        expect(ScoreForm.performanceOf(prepared.asset), ref[1]);
+        unawaited(h.score.setEvening(true));
+        h.run(const Duration(seconds: 6));
+        final evening = h.transport.beds.last;
+        expect(isEveningBed(evening.asset), isTrue);
+        expect(
+          ScoreForm.performanceOf(evening.asset),
+          ref[1],
+          reason: 'the same performance, now of the Evening bed',
+        );
+        // The walk goes on from there with nothing skipped or played twice.
+        h.run(ScoreForm.pass);
+        expect(h.transport.performances, ref.sublist(0, 3));
+      });
+    });
+
+    test('a change inside the last 800 ms waits a pass and skips nothing', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 6);
+        h.startPastTheFadeIn();
+        final ref = reference(6, 4);
+        h.runToPass(52.9);
+        unawaited(h.score.setEvening(true));
+        h.run(const Duration(seconds: 1));
+        expect(isBetweenBed(h.transport.beds.last.asset), isTrue);
+        expect(ScoreForm.performanceOf(h.transport.beds.last.asset), ref[1]);
+        h.run(ScoreForm.pass);
+        expect(isEveningBed(h.transport.beds.last.asset), isTrue);
+        expect(ScoreForm.performanceOf(h.transport.beds.last.asset), ref[2]);
+        expect(h.transport.performances, ref.sublist(0, 3));
+      });
+    });
+
+    test('stopping and starting again carries the walk on, not back', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 9);
+        final ref = reference(9, 4);
+        h.startPastTheFadeIn();
+        unawaited(h.score.stop(fade: Duration.zero));
+        h.run(const Duration(milliseconds: 100));
+        unawaited(h.score.start(evening: false));
+        h.run(const Duration(seconds: 1));
+        unawaited(h.score.stop(fade: Duration.zero));
+        h.run(const Duration(milliseconds: 100));
+        unawaited(h.score.start(evening: true));
+        h.run(const Duration(seconds: 1));
+        expect(h.transport.performances, ref.sublist(0, 3));
+        expect(isEveningBed(h.transport.beds.last.asset), isTrue);
+      });
+    });
+
+    test('the opener hands over to the walk\'s first performance', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 12);
+        h.startAndSettle(evening: true, opener: true);
+        h.run(const Duration(seconds: 94));
+        final bed = h.transport.beds.single;
+        expect(isEveningBed(bed.asset), isTrue);
+        expect(ScoreForm.performanceOf(bed.asset), reference(12, 1).single);
+      });
+    });
+
+    test('a swell is the same file whatever performance is under it', () {
+      _day((async) {
+        final h = ScoreHarness(async, walkSeed: 3);
+        h.startPastTheFadeIn();
+        final ref = reference(3, 2);
+        void markAndCheck(int pass) {
+          h.score.classKept(after: _chime);
+          h.run(const Duration(seconds: 4));
+          final swell = h.transport.swells.last;
+          final beatAt = swell.zeroAt! + ScoreForm.swellPreRoll;
+          final grid = h.beatOf(beatAt, from: h.score.clock.anchor);
+          expect(grid.beat.isEven, isTrue, reason: 'pass $pass');
+          expect(swell.asset, ScoreForm.swellAsset((grid.beat ~/ 2) % 32));
+        }
+
+        h.run(const Duration(seconds: 6));
+        markAndCheck(1);
+        // Into the second pass, whose bed is another performance.
+        h.runToPass(48);
+        h.run(const Duration(seconds: 22));
+        expect(h.transport.performances, ref);
+        markAndCheck(2);
+        expect(h.transport.swells, hasLength(2));
+      });
+    });
+  });
+
   group('stopping', () {
     test('Music off: 600 ms out, then every voice released', () async {
       fakeAsync((async) {
@@ -766,7 +929,7 @@ void main() {
         unawaited(h.score.start(evening: false));
         h.run(const Duration(seconds: 2));
         expect(h.transport.live, hasLength(1));
-        expect(h.transport.live.single.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(h.transport.live.single.asset), isTrue);
         h.run(const Duration(seconds: 2, milliseconds: 500));
         expect(h.transport.live.single.lastVolume, 1.0);
       });
@@ -794,7 +957,7 @@ void main() {
         unawaited(h.score.start(evening: false));
         h.run(const Duration(milliseconds: 200));
         final bed = h.transport.voices[before];
-        expect(bed.asset, ScoreForm.bedBetween);
+        expect(isBetweenBed(bed.asset), isTrue);
         h.run(const Duration(milliseconds: 650));
         expect(bed.lastVolume, closeTo(0.5, 0.15));
         h.run(const Duration(milliseconds: 900));
@@ -874,14 +1037,14 @@ void main() {
         h.run(const Duration(seconds: 89, milliseconds: 150));
         expect(h.transport.voices, hasLength(2));
         final bed = h.transport.voices[1];
-        expect(bed.asset, ScoreForm.bedEvening);
+        expect(isEveningBed(bed.asset), isTrue);
         h.run(bed.callAt! + const Duration(milliseconds: 1250) - h.now);
         expect(bed.lastVolume, closeTo(0.5, 0.1));
         expect(opener.lastVolume, closeTo(0.5, 0.1));
         h.run(const Duration(milliseconds: 1500));
         expect(bed.lastVolume, 1.0);
         expect(opener.released, isTrue);
-        expect(h.score.nowPlaying.value, ScoreForm.bedEvening);
+        expect(isEveningBed(h.score.nowPlaying.value), isTrue);
         // And the form carries on from there.
         h.run(ScoreForm.pass);
         expect(h.transport.beds.length, greaterThanOrEqualTo(2));
@@ -910,7 +1073,7 @@ void main() {
         unawaited(h.score.setForeground(true));
         unawaited(h.score.start(evening: true));
         h.run(const Duration(seconds: 2));
-        expect(h.transport.live.single.asset, ScoreForm.bedEvening);
+        expect(isEveningBed(h.transport.live.single.asset), isTrue);
       });
     });
   });

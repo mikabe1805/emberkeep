@@ -675,7 +675,7 @@ void main() {
       expect(music.enabled, isFalse);
 
       // The opener gives way to the evening bed: the room's music.
-      score.nowPlaying.value = 'music/class_day/bed_evening.m4a';
+      score.nowPlaying.value = 'music/class_day/bed_evening_0.m4a';
       await tester.pump();
       expect(find.text('Room music'), findsOneWidget);
 

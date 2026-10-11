@@ -57,11 +57,15 @@ web first-frame cache and remains available for offline warming.
 ## Class-day score (`class_day/`)
 
 On a class day the room's music is not the rotation but the class-day score:
-`bed_between.m4a` and `bed_evening.m4a` (one 16-bar pass of the 72 BPM
-umbrella-brush form each, with a 6.5 s tail, -36.0 dBFS phone-band RMS like
-every take above) and `swell_00.m4a` to `swell_31.m4a` (two bars of bass and
-night bells cut at each strong beat of the form, -38.2 dBFS over their held
-bars). A class kept starts the swell cut at the next strong beat. Native only.
+`bed_between_P.m4a` and `bed_evening_P.m4a` for P = 0 to 5 (one 16-bar pass of
+the 72 BPM umbrella-brush form each, with a 6.5 s tail, -36.0 dBFS phone-band
+RMS like every take above; the six performances share the chords, the bars and
+the bass line and differ in the keys, the brushes and the Evening's bells, and
+the score plays them as a seeded shuffled walk, never the same one twice in a
+row) and `swell_00.m4a` to `swell_31.m4a` (two bars of bass and night bells cut
+at each strong beat of the form, -38.2 dBFS over their held bars, valid over
+every performance). A class kept starts the swell cut at the next strong beat.
+Native only.
 Source: `tool/author_class_day_score.py`; manifest, sizes and levels:
 `design/audits/2026-10-11/class-day-score/manifest.json`; pinned in
 `test/class_day_score_assets_test.dart`; how it plays: `SOUND-DESIGN.md` section

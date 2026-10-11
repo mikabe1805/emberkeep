@@ -2,11 +2,15 @@
 // class is kept.
 //
 // What it plays (assets/music/class_day, tool/author_class_day_score.py):
-//   * two pre-mixed beds, Between classes and Evening: one 16-bar pass each
-//     with its 6.5 s tail. The next pass is a second, already prepared source
-//     started one pass (53.333 s) after the last began, while the first rings
-//     out, so the chained passes are the circular loop with no gap and no
-//     crossfade of coherent copies.
+//   * two pre-mixed beds, Between classes and Evening, each in six
+//     performances of the same song: one 16-bar pass with its 6.5 s tail. The
+//     next pass is a second, already prepared source started one pass
+//     (53.333 s) after the last began, while the first rings out, so the
+//     chained passes are the circular loop with no gap and no crossfade of
+//     coherent copies. Every performance has the same chords, bars and bass
+//     line, so a pass may be followed by any other. Which performance plays
+//     next is a seeded shuffled walk (PerformanceWalk): never the same one
+//     twice in a row, and all of them before any comes round again.
 //   * thirty-two two-bar swells of bass and night bells, one per strong beat
 //     of the form. When a class is kept, one is started on the next strong
 //     beat after the chime has sounded, so the bass follows the chords, the
@@ -26,6 +30,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
@@ -162,12 +167,21 @@ abstract interface class ClassDayScorePlayback {
 enum _Kind { bed, swell, opener }
 
 class _Voice {
-  _Voice(this.handle, this.asset, this.kind, {this.evening = false});
+  _Voice(
+    this.handle,
+    this.asset,
+    this.kind, {
+    this.evening = false,
+    this.performance,
+  });
 
   final ScoreVoice handle;
   final String asset;
   final _Kind kind;
   final bool evening;
+
+  /// Which performance of the form a bed plays (null for anything else).
+  final int? performance;
 
   bool started = false;
   bool retired = false;
@@ -222,11 +236,14 @@ class ClassDayScore implements ClassDayScorePlayback {
     Duration Function()? monotonic,
     double Function()? duckGain,
     ScoreClock? clock,
+    PerformanceWalk? walk,
     this.openerAsset = 'music/lamp-left-on.m4a',
     this.log,
   }) : _now = monotonic ?? _stopwatch(),
        _duck = duckGain ?? (() => 1.0),
-       _clock = clock ?? ScoreClock();
+       _clock = clock ?? ScoreClock(),
+       // A different order each time the app starts; a test passes a seed.
+       _walk = walk ?? PerformanceWalk(seed: math.Random().nextInt(1 << 30));
 
   static Duration Function() _stopwatch() {
     final watch = Stopwatch()..start();
@@ -270,6 +287,7 @@ class ClassDayScore implements ClassDayScorePlayback {
   final Duration Function() _now;
   final double Function() _duck;
   final ScoreClock _clock;
+  final PerformanceWalk _walk;
 
   /// The asset that plays first when the evening door is pressed.
   final String openerAsset;
@@ -302,6 +320,9 @@ class ClassDayScore implements ClassDayScorePlayback {
 
   /// The clock the beats are placed on. Exposed for tests and device logs.
   ScoreClock get clock => _clock;
+
+  /// The walk over the performances. Exposed for tests and device logs.
+  PerformanceWalk get walk => _walk;
 
   /// The swell in flight (planned, preparing or sounding), or null.
   SwellPlan? get swellPlan => _swell?.plan;
@@ -576,15 +597,18 @@ class ClassDayScore implements ClassDayScorePlayback {
 
   Future<void> _startPass(int epoch, {required Duration fadeIn}) async {
     final evening = _evening;
+    final performance = _walk.peek;
     final voice = await _prepare(
-      evening ? ScoreForm.bedEvening : ScoreForm.bedBetween,
+      ScoreForm.bedAsset(evening: evening, performance: performance),
       _Kind.bed,
       epoch,
       evening: evening,
+      performance: performance,
       initial: fadeIn > Duration.zero ? 0 : _duck(),
     );
     if (voice == null) return;
     _current = voice;
+    _walk.take();
     await _begin(voice, epoch, fadeIn: fadeIn);
     if (epoch != _epoch) return;
     _bedStartedAt ??= voice.callAt;
@@ -604,7 +628,8 @@ class ClassDayScore implements ClassDayScorePlayback {
       voice.zeroAt = nominal;
       _clock.anchorUnmeasured(nominal);
       _note(
-        'pass ${_passes + 1}: start not measured, no swells until the next',
+        'pass ${_passes + 1} (${_passName(voice)}): start not measured, no '
+        'swells until the next',
       );
     } else {
       voice.zeroAt = zero;
@@ -615,12 +640,17 @@ class ClassDayScore implements ClassDayScorePlayback {
           : ', ${(zero - (before + ScoreForm.pass)).inMilliseconds} ms from '
                 'the last pass plus a form';
       _note(
-        'pass ${_passes + 1}: start lag ${(zero - callAt).inMilliseconds} ms$drift',
+        'pass ${_passes + 1} (${_passName(voice)}): start lag '
+        '${(zero - callAt).inMilliseconds} ms$drift',
       );
     }
     _passes++;
     _scheduleChain(voice, epoch);
   }
+
+  String _passName(_Voice voice) =>
+      '${voice.evening ? "evening" : "between"} performance '
+      '${voice.performance}';
 
   void _scheduleChain(_Voice voice, int epoch) {
     final end = voice.zeroAt! + ScoreForm.pass;
@@ -650,12 +680,16 @@ class ClassDayScore implements ClassDayScorePlayback {
   Future<void> _prepareNextNow(int epoch) async {
     if (epoch != _epoch || !_running || _next != null) return;
     final evening = _evening;
+    // The walk's next performance is not consumed until the pass starts, so a
+    // change of phase that prepares this pass again keeps the same one.
+    final performance = _walk.peek;
     try {
       final voice = await _prepare(
-        evening ? ScoreForm.bedEvening : ScoreForm.bedBetween,
+        ScoreForm.bedAsset(evening: evening, performance: performance),
         _Kind.bed,
         epoch,
         evening: evening,
+        performance: performance,
         initial: _duck(),
       );
       if (voice == null) return;
@@ -677,11 +711,13 @@ class ClassDayScore implements ClassDayScorePlayback {
     var next = _next;
     _next = null;
     try {
+      final performance = _walk.peek;
       next ??= await _prepare(
-        _evening ? ScoreForm.bedEvening : ScoreForm.bedBetween,
+        ScoreForm.bedAsset(evening: _evening, performance: performance),
         _Kind.bed,
         epoch,
         evening: _evening,
+        performance: performance,
         initial: _duck(),
       );
     } catch (error) {
@@ -700,6 +736,7 @@ class ClassDayScore implements ClassDayScorePlayback {
     if (next.evening) _letSwellGo();
     try {
       _current = next;
+      _walk.take();
       await _begin(next, epoch, fadeIn: Duration.zero);
     } catch (error) {
       _note('next pass failed to start: $error');
@@ -833,6 +870,7 @@ class ClassDayScore implements ClassDayScorePlayback {
     _Kind kind,
     int epoch, {
     bool evening = false,
+    int? performance,
     required double initial,
   }) async {
     final voice = _Voice(
@@ -840,6 +878,7 @@ class ClassDayScore implements ClassDayScorePlayback {
       asset,
       kind,
       evening: evening,
+      performance: performance,
     );
     _voices.add(voice);
     try {

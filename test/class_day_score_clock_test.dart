@@ -20,16 +20,55 @@ void main() {
       expect(ScoreForm.pass.inMicroseconds, closeTo(2560000 / 48000 * 1e6, 1));
     });
 
-    test('names one bed per phase and thirty-two swells', () {
-      expect(ScoreForm.bedBetween, 'music/class_day/bed_between.m4a');
-      expect(ScoreForm.bedEvening, 'music/class_day/bed_evening.m4a');
+    test('names six performances of each bed and thirty-two swells', () {
+      expect(ScoreForm.performanceCount, 6);
+      expect(
+        ScoreForm.bedAsset(evening: false, performance: 0),
+        'music/class_day/bed_between_0.m4a',
+      );
+      expect(
+        ScoreForm.bedAsset(evening: true, performance: 5),
+        'music/class_day/bed_evening_5.m4a',
+      );
       expect(ScoreForm.swellCount, 32);
       expect(ScoreForm.swellAsset(0), 'music/class_day/swell_00.m4a');
       expect(ScoreForm.swellAsset(31), 'music/class_day/swell_31.m4a');
-      expect(ScoreForm.allAssets, hasLength(34));
-      expect(ScoreForm.allAssets.toSet(), hasLength(34));
+      // Twelve beds and thirty-two swells.
+      expect(ScoreForm.allAssets, hasLength(44));
+      expect(ScoreForm.allAssets.toSet(), hasLength(44));
       expect(() => ScoreForm.swellAsset(32), throwsRangeError);
       expect(() => ScoreForm.swellAsset(-1), throwsRangeError);
+      expect(
+        () => ScoreForm.bedAsset(evening: false, performance: 6),
+        throwsRangeError,
+      );
+      expect(
+        () => ScoreForm.bedAsset(evening: true, performance: -1),
+        throwsRangeError,
+      );
+    });
+
+    test('a bed names its phase and its performance, nothing else does', () {
+      for (var p = 0; p < ScoreForm.performanceCount; p++) {
+        final between = ScoreForm.bedAsset(evening: false, performance: p);
+        final evening = ScoreForm.bedAsset(evening: true, performance: p);
+        expect(ScoreForm.isBed(between), isTrue);
+        expect(ScoreForm.isBed(evening), isTrue);
+        expect(ScoreForm.isEveningBed(between), isFalse);
+        expect(ScoreForm.isEveningBed(evening), isTrue);
+        expect(ScoreForm.performanceOf(between), p);
+        expect(ScoreForm.performanceOf(evening), p);
+      }
+      for (final other in [
+        null,
+        'music/lamp-left-on.m4a',
+        ScoreForm.swellAsset(3),
+        'music/take_01.m4a',
+      ]) {
+        expect(ScoreForm.isBed(other), isFalse, reason: '$other');
+        expect(ScoreForm.isEveningBed(other), isFalse, reason: '$other');
+        expect(ScoreForm.performanceOf(other), isNull, reason: '$other');
+      }
     });
 
     test('the swell starts 150 ms before its beat', () {
@@ -225,6 +264,85 @@ void main() {
         greaterThan(_s(1.6)),
         reason: 'it does reach the worst case',
       );
+    });
+  });
+
+  group('the walk over the performances', () {
+    List<int> walk(int seed, int takes, {int count = 6}) {
+      final w = PerformanceWalk(seed: seed, count: count);
+      return [for (var i = 0; i < takes; i++) w.take()];
+    }
+
+    test('never plays the same performance twice in a row', () {
+      for (var seed = 0; seed < 300; seed++) {
+        final order = walk(seed, 240);
+        for (var i = 1; i < order.length; i++) {
+          expect(order[i], isNot(order[i - 1]), reason: 'seed $seed, take $i');
+        }
+      }
+    });
+
+    test('plays all of them before any comes round again', () {
+      for (var seed = 0; seed < 300; seed++) {
+        final order = walk(seed, 240);
+        for (var bag = 0; bag < order.length; bag += 6) {
+          expect(
+            order.sublist(bag, bag + 6).toSet(),
+            {0, 1, 2, 3, 4, 5},
+            reason: 'seed $seed, take $bag to ${bag + 5}',
+          );
+        }
+      }
+    });
+
+    test(
+      'is the same walk for the same seed, and not the same for another',
+      () {
+        expect(walk(41, 60), walk(41, 60));
+        final orders = {
+          for (var seed = 0; seed < 40; seed++) walk(seed, 12).join(),
+        };
+        expect(
+          orders.length,
+          greaterThan(30),
+          reason: 'seeds make different days',
+        );
+        // And every performance can open a day.
+        final firsts = {
+          for (var seed = 0; seed < 200; seed++) walk(seed, 1).first,
+        };
+        expect(firsts, {0, 1, 2, 3, 4, 5});
+      },
+    );
+
+    test('peek says what take will, without using it up', () {
+      final w = PerformanceWalk(seed: 5);
+      expect(w.last, isNull);
+      final next = w.peek;
+      expect(w.peek, next);
+      expect(w.peek, next);
+      expect(w.take(), next);
+      expect(w.last, next);
+      expect(w.peek, isNot(next), reason: 'not the one that just played');
+      // Peeking across a bag boundary does not repeat the last either.
+      for (var i = 0; i < 5; i++) {
+        final peeked = w.peek;
+        expect(w.take(), peeked);
+        final after = w.peek;
+        expect(after, isNot(peeked));
+      }
+    });
+
+    test('with two performances it alternates, never repeating', () {
+      final order = walk(3, 30, count: 2);
+      for (var i = 1; i < order.length; i++) {
+        expect(order[i], isNot(order[i - 1]));
+      }
+      expect(order.toSet(), {0, 1});
+    });
+
+    test('a walk of one cannot avoid a repeat, so it is refused', () {
+      expect(() => PerformanceWalk(seed: 1, count: 1), throwsAssertionError);
     });
   });
 }
