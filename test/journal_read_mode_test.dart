@@ -224,7 +224,7 @@ void main() {
       find.byKey(const ValueKey('journal-entry-keepsake')),
       findsOneWidget,
     );
-    expect(find.text('Keep this'), findsOneWidget);
+    expect(find.text('Add to Keepsakes'), findsOneWidget);
     expect(find.byKey(const ValueKey('journal-photo-action')), findsNothing);
     expect(find.byIcon(Icons.delete_outline), findsNothing);
     final field = _journalField(tester);
@@ -242,13 +242,13 @@ void main() {
     await tester.pump();
 
     expect(state.memoryPins, contains(note.id));
-    expect(find.text('Kept in Keepsakes'), findsOneWidget);
+    expect(find.text('In Keepsakes'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
     await tester.pump();
 
     expect(state.memoryPins, isNot(contains(note.id)));
-    expect(find.text('Keep this'), findsOneWidget);
+    expect(find.text('Add to Keepsakes'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('journal-entry-edit')));
     await tester.pump();
@@ -282,11 +282,11 @@ void main() {
     await tester.pump();
 
     expect(state.journal, hasLength(1));
-    expect(find.text('Keep this'), findsOneWidget);
+    expect(find.text('Add to Keepsakes'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('journal-entry-keepsake')));
     await tester.pump();
     expect(state.memoryPins, contains(state.journal.single.id));
-    expect(find.text('Kept in Keepsakes'), findsOneWidget);
+    expect(find.text('In Keepsakes'), findsOneWidget);
   });
 
   testWidgets(
