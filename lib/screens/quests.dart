@@ -75,7 +75,8 @@ import '../widgets/class_day/class_day_model.dart';
 import '../widgets/class_day/class_day_room.dart';
 import '../widgets/class_day/class_kept_celebration.dart';
 import '../widgets/class_day/doorway_model.dart';
-import '../widgets/class_day/doorway_motion.dart' show DoorwayBeat;
+import '../widgets/class_day/doorway_motion.dart'
+    show DoorwayBeat, doorwayChimeDoneAfter;
 import '../widgets/class_day/doorway_stage.dart';
 import '../widgets/class_day/class_room_stage.dart';
 import '../widgets/house/quests/quest_day_card.dart';
@@ -434,6 +435,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// The class day on which the evening's music control set tonight's
   /// choice; it gives way to the saved setting once that evening is over.
   String? _eveningMusicDay;
+
+  /// What this page last told the music controller about today: a class day
+  /// or not (null before the first build), and whether the glass is turned to
+  /// the evening. On a class day the class-day score is the room's music.
+  bool? _musicClassDay;
+  bool _musicClassDayEvening = false;
 
   /// The room's evening has stepped back for its music (the shell's dock
   /// follows it while the room is on screen).
@@ -1019,6 +1026,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _classCelebration = null;
     _questDayCard?.remove();
     _questDayCard = null;
+    // The score is the room's music only while this page says it is a class
+    // day.
+    if (_musicClassDay == true) {
+      unawaited(widget.musicController?.setClassDay(false));
+    }
     _removeNightRoute();
     _localMotion?.dispose();
     _boardScroll.removeListener(_handleScrollLight);
@@ -3553,6 +3565,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _classBoundaryAt = null;
       _eveningShown = false;
       _settleEveningMusic(null, false);
+      _syncClassDayMusic(false, false);
       _syncDockQuiet();
       final reduceMotion =
           _state.reduceMotion ||
@@ -3728,6 +3741,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final evening = celebrating ? _eveningShown : classEveningAt(card, now);
     _eveningShown = evening;
     _settleEveningMusic(day, evening);
+    _syncClassDayMusic(true, evening);
     return ClassDayRoom(
       key: const Key('class-day-room'),
       state: _state,
@@ -3946,6 +3960,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
   }
 
+  /// Tells the music controller whether today is a class day and whether the
+  /// glass is turned to the evening, once per change. The controller decides
+  /// what, if anything, that changes: it never starts music by itself.
+  void _syncClassDayMusic(bool classDay, bool evening) {
+    final music = widget.musicController;
+    if (music == null) return;
+    final phase = classDay && evening;
+    if (_musicClassDay == classDay && _musicClassDayEvening == phase) return;
+    _musicClassDay = classDay;
+    _musicClassDayEvening = phase;
+    // After this frame: the controls listening to it may still be building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(music.setClassDay(classDay, evening: phase));
+    });
+  }
+
   /// Once the evening that chose it is over, the music follows the saved
   /// setting again.
   void _settleEveningMusic(ClassDay? day, bool evening) {
@@ -4074,6 +4105,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // Doorway's.
     Sfx.instance.playCompletionAccepted(
       transitionId: marked.last.facts.identity,
+    );
+    // The room's music answers a kept class too, once the chime has sounded:
+    // on a class day the score brings the bass and a night bell in for two
+    // bars, on the next strong beat. Undo and "Couldn't make it" never do.
+    widget.musicController?.classKept(
+      after: doorwayChimeDoneAfter(
+        reduceMotion:
+            s.reduceMotion ||
+            (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
+        tickets: credits.length,
+      ),
     );
     final previous = _lastClassMarkAt;
     _lastClassMarkAt = now;

@@ -446,3 +446,147 @@ plus a digest literal in the test), and the line can be regenerated.
 satisfaction isnt there", true of the earlier hand too, "something to come
 back to later maybe". The chime has been measured but not heard by him; whether
 it pleases is his to say, from the phone.
+
+---
+
+## 13. Addendum: the class-day score (2026-10-11)
+
+**What he said.** About the music sketch on the listening page, where pressing
+"You marked a class" brings the bass and a night bell in for two bars, on the
+beat, then settles back: "also changing the music after you marked a class was
+super cool". That is a specific approval of music that answers a mark. The
+sketch's Evening state was heard but never judged.
+
+**Where it plays.** On a class day, while music is wanted (the Me switch, or
+tonight's choice at the evening door), the score is the room's music on every
+tab, in place of the 23-take rotation: the Between bed by day, the Evening bed
+once the glass has turned. It is `RoomMusicRole.classDay` in
+`BackgroundMusicController`. Focus still wins over it; the Me switch, the sound
+switch, every other day, the chime and the web build are unchanged. A press at
+the evening door still plays Lamp left on first (the score's opener), and
+crosses into the Evening bed where the rotation would have crossfaded.
+
+**Why it is not the sketch.** The sketch loops five stems on one Web Audio
+clock. audioplayers has no loop point, no start-at-time and no shared clock, and
+its iOS loop is a seek to zero on the main thread, which gaps. So the app plays
+pre-mixed files and measures the clock itself (`lib/class_day_score.dart`,
+`lib/class_day_score_clock.dart`):
+
+- two beds, `bed_between_P.m4a` and `bed_evening_P.m4a`, each one 16-bar pass plus
+  its 6.5 s natural tail, each in six performances P = 0 to 5 (see "Variety"
+  below). The next pass is a second source, prepared early and
+  started one form (53.333 s) after the last began, while the first rings out.
+  Two chained passes equal the sketch's circular loop sample for sample
+  (`tool/tests/test_author_class_day_score.py` proves it to 1e-9), so the seam is
+  exact in the files and only the start time of the next pass can be off. A
+  change of phase waits for the next pass boundary, so two copies of the same
+  keys are never crossfaded (a 40 ms offset would comb every 25 Hz).
+- thirty-two swells, `swell_00.m4a` to `swell_31.m4a`: two bars of bass and busy
+  night bells cut from the circular stems at every strong beat of the form, so
+  the bass follows the chords wherever the class is marked. The envelope is in
+  the file: a 120 ms cosine rise that completes on the beat, two bars held, the
+  sketch's 0.55 s release.
+- the beat clock: each pass is anchored by reading the source's position right
+  after its play call (every 12 ms, for at most 400 ms) on a monotonic
+  stopwatch, never the wall clock. The median of the last five start lags
+  pre-compensates the next start. Every 8 s the playhead is checked against the
+  anchor; more than 40 ms off, and no swell is placed until the next pass
+  anchors again.
+
+**What a kept class does.** `QuestsPage._markClasses` tells the controller once,
+after the engine has paid the class, with the time the chime needs: its hang is
+900 ms (260 ms under Reduce Motion), plus 180 ms for each further ticket the
+shortcut marks, plus 50 ms clear of the chime's attack. The score plans the
+first strong beat at or after that, prepares that swell's file at once, and
+starts it 150 ms (the pre-roll) plus the measured lag ahead of the beat, so
+the first bass note lands on the beat. The wait after the chime is 0.05 to
+1.7 s, about 0.9 s on average. Undo and "Couldn't make it" say nothing to the
+music.
+
+**When it does nothing, on purpose.** The chime alone answers when: the bed has
+not been audible for 4 s; the clock is not believed; the play call would be more
+than 60 ms from its beat (checked before the call, and again once the sample
+has sounded, when the swell is let go in its silent run-up); a swell is already
+in flight; the Evening bed is sounding (its soft bass is the same stem and would
+flam); or the swell would still be held when the Evening bed arrives. **A second
+mark during a swell neither restarts nor extends it** (the sketch extended it):
+a swell is a fixed two-bar window cut from the stems, and a second one over it
+would double the same notes a few milliseconds apart. Several tickets marked at
+once are one gesture and one swell.
+
+**Phone and system.** Beds are calibrated to -36.0 dBFS phone-band RMS, the level
+of all 23 takes, so a hand-off has no step. Each swell is trimmed to -38.2 over
+its two held bars, a lift of 1.5 to 2.8 dB over the Between bed (mean 2.1), the
+sketch's own. The worst peak with a swell over the bed is -13.75 dBFS. The voices
+use the iOS ambient session and no Android audio focus, as the rotation's do, so
+the mute switch silences them and they never take focus. Backgrounding fades
+them in 200 ms; on return the bed starts again from bar 1 on a 1.5 s fade and no
+swell is resumed. Music off fades in 600 ms. Nothing starts without a press or
+his saved setting.
+
+**Variety: six performances.** One 53 s form repeating all class day is the
+failure the owner already named in the room's music ("that fire thing was because
+that fire sound on repeat was annoying"), so each bed is recorded in six
+performances of the same song. They share the harmonic skeleton: the same chords
+in the same bars and the very same bass line (the sketch's bass stem, byte for
+byte), so all thirty-two swells fit every performance. A performance changes only
+what sits on top, by the sketch's own controls made into parameters
+(`KeysControls`, `BrushControls`, `BellsControls` in the tool): the keys' voicing
+picks and where they land in the bar (laid back or on top, a second hit on the and
+of two, the and of three, or both), a few short pentatonic figures in the keys' own
+voice, kept off the slots the swell's bells sound on, a drier touch in one
+performance, the brushes' pattern (where the shaker leans, how often it breathes,
+ghost thumps and rims, the thump on beats 1 and 3 and the rim on 2 and 4 never
+move), and where the Evening's slow night bells fall. Performance 0 is the sketch
+note for note, byte for byte the bed that first shipped. Nothing new is
+synthesized and nothing sampled. The score walks the performances: each pass takes
+the next of a seeded shuffle, never the performance that just played, and all six
+before any comes round again (`PerformanceWalk`, one step a pass; the order differs
+each time the app starts). A change of phase keeps the performance already chosen
+for the next pass. Every bed is still -36.0 dBFS phone-band RMS; peaks run -18.3 to
+-16.1 against -18.3 and -17.2 before; a swell lifts every performance 1.1 to 3.2
+dB (mean about 2.1, the sketch's). The form's downbeat is a chord struck after a
+ring-down in every performance, as in the sketch (the sketch itself steps 8.6 to
+9.1 dB over 2 s at its seam; the others 2.6 to 8.8), and in the scripted proof day
+the largest sample step where one performance hands over to another was at most
+0.8 times the steps in the 4 s before it. The six performances add 7.1 MB. Built
+and measured, not yet listened to by the owner.
+
+**Files and pins.** `tool/author_class_day_score.py` carries the sketch's
+renderer over (the five stems re-render bit-identically, checked against the
+sketch's own files and the hashes in the manifest), renders them unfolded, and
+builds the 44 files, AAC-LC 96 kbps 48 kHz mono, 12,248,819 bytes in all.
+`design/audits/2026-10-11/class-day-score/manifest.json` records every file's
+sha256, size, duration and measured level, and `test/class_day_score_assets_test.dart`
+pins a digest of the manifest. `--check` proves the shipped files are the
+recipe's output.
+
+**Proof without a phone.** `test/class_day_score_plan_test.dart` runs a scripted
+class day through the real controller and score on fake time, and
+`tool/mix_class_day_score.py` mixes the commands it wrote from the shipped files,
+sample for sample, with the completion sound and the chime the Doorway plays. It
+also writes the same day with every swell 40 ms early, 40 ms late and 90 ms late
+(dropped, as the app would).
+
+**Not verified, and why.** All of it is verified except what needs a phone: how
+late the platforms start a source after the play call and how well they report
+the position (the 40 ms budget is inferred), how Android's extractor treats the
+AAC edit list, and whether the bass lands with the thump by ear. The gate is one
+TestFlight listen: the bass lands with the thump; a swell enters within about 2 s
+of the chime and never before it, and the chime stays clear when a beat falls
+right after it; no seam at 53 s and 107 s; the mute switch and backgrounding
+leave nothing stuck; his own music is not interrupted. If the swells land
+audibly off the thump, the dependency to reach for is `flutter_soloud` (sample
+locked mixing and exact loop points; from its documentation, untested here).
+Each pass logs one line (lag, drift, swell played or why not) in debug builds.
+
+**Not done, and his to decide.** The score does not detect the person's own
+music (as the rotation does not): it plays under the ambient session, which
+mixes. Staying quiet when another app is playing is about 30 lines of native code
+per platform (`AVAudioSession.secondaryAudioShouldBeSilencedHint`,
+`AudioManager.isMusicActive`) that could not be compiled or run here. Also open:
+every strong beat (32 swells, as built) or every beat (64, 7.4 MB, a wait of
+about 0.5 s instead of 0.9 s), and whether the evening door should start
+the Evening bed directly instead of Lamp left on. The walk over the
+performances is not saved between launches (a new order each time), so a launch
+may open on the performance the last launch ended on.

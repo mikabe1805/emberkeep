@@ -1,0 +1,2231 @@
+{
+  "study": "class-day-score",
+  "date": "2026-10-11",
+  "status": "built for the owner's phone; shipped, not yet heard in the app",
+  "why": "owner, about the listening page's music sketch: \"also changing the music after you marked a class was super cool\"; and, about repetition in the room's music, \"that fire thing was because that fire sound on repeat was annoying\" (so the one 53 s form is played in six performances)",
+  "form": {
+    "bpm": 72.0,
+    "beat_s": 0.8333333333333334,
+    "bar_s": 3.3333333333333335,
+    "bars": 16,
+    "chord_bars": [
+      "Bm9",
+      "Bm9",
+      "F#m7(11)",
+      "F#m7(11)",
+      "A9sus",
+      "A9sus",
+      "Em9",
+      "Em9",
+      "Bm9",
+      "Bm9",
+      "F#m7(11)",
+      "F#m7(11)",
+      "Gmaj9",
+      "A13",
+      "Dmaj9",
+      "Em9"
+    ],
+    "pass_s": 53.333333333333336,
+    "pass_frames_48k": 2560000,
+    "bed_tail_s": 6.5,
+    "swell_preroll_s": 0.15,
+    "swell_rise_s": 0.12,
+    "swell_hold_bars": 2,
+    "swell_release_tau_s": 0.55,
+    "swell_tail_s": 2.5,
+    "swell_count": 32,
+    "swell_beats": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14,
+      16,
+      18,
+      20,
+      22,
+      24,
+      26,
+      28,
+      30,
+      32,
+      34,
+      36,
+      38,
+      40,
+      42,
+      44,
+      46,
+      48,
+      50,
+      52,
+      54,
+      56,
+      58,
+      60,
+      62
+    ],
+    "performance_count": 6
+  },
+  "recipe": "tool/author_class_day_score.py: the sketch's renderer (render_music.py) carried over, stems unfolded; the song (the 16 bars, the chords, the bass line) is shared and a performance changes only the keys' voicings, hit rhythm and figures, the brushes' pattern and the Evening's slow bells, by the sketch's own controls (seeds, voicing pick, second hit, ghost thump, skipped grain); performance 0 is the sketch note for note. Between = keys (9 kHz lowpass) + 0.55 brushes; Evening = 0.9 keys (900 Hz lowpass, Q 0.6 dB) + 0.35 bass + 1.0 slow bells; each bed gained to -36.0 dBFS phone-band RMS, 50 ms end fade, 6.5 s natural tail; swell k = 0.85 (bass + busy bells) from the circular stems from beat 2k minus 0.15 s, 120 ms cosine rise ending on the beat, two bars held, 0.55 s release, 2.5 s tail, 0.3 s end fade, trimmed to -38.2 dBFS over the held bars; no sample, no foreign synthesis",
+  "format": "AAC-LC 96 kbps 48 kHz mono, m4a (ffmpeg native aac, bitexact, no metadata)",
+  "encoder": "ffmpeg version 8.0-essentials_build-www.gyan.dev Copyright (c) 2000-2025 the FFmpeg developers",
+  "phone_rms_target_dbfs": {
+    "bed": -36.0,
+    "swell": -38.2
+  },
+  "runtime_scale": "lib/class_day_score.dart plays every file at 1.0 times fades and the shared duck",
+  "total_bytes": 12248819,
+  "stems": {
+    "keys": {
+      "int16_sha256": "6ad1be31d87f1dc6e1c9f0baaf11eb975585322a9eeca65b71903bf021379f8c",
+      "gain": 0.534186442376788,
+      "matches_sketch": true
+    },
+    "bass": {
+      "int16_sha256": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b",
+      "gain": 0.6802194158374939,
+      "matches_sketch": true
+    },
+    "brushes": {
+      "int16_sha256": "3d0b223d1a8856b364b30e4185af7f4f3fa97751b4aa68127494f2fb8f87578e",
+      "gain": 2.6540729361688067,
+      "matches_sketch": true
+    },
+    "bells": {
+      "int16_sha256": "c85f9a144b445e3a08f16ba59890aa25908cf47e70f300acc3b0cc981f8a2fcf",
+      "gain": 0.1307865745604552,
+      "matches_sketch": true
+    },
+    "bells_slow": {
+      "int16_sha256": "8a22464aa6b6426bc6cda12cab21e99e91a3718801af183d74c327071bcb28f7",
+      "gain": 0.12514668538172605,
+      "matches_sketch": true
+    }
+  },
+  "performances": [
+    {
+      "index": 0,
+      "name": "the sketch",
+      "feel": "The performance on the listening page, note for note.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_0.m4a",
+        "evening": "assets/music/class_day/bed_evening_0.m4a"
+      },
+      "stems": {
+        "keys": "6ad1be31d87f1dc6e1c9f0baaf11eb975585322a9eeca65b71903bf021379f8c",
+        "brushes": "3d0b223d1a8856b364b30e4185af7f4f3fa97751b4aa68127494f2fb8f87578e",
+        "bells_slow": "8a22464aa6b6426bc6cda12cab21e99e91a3718801af183d74c327071bcb28f7",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {},
+      "swell_lift_over_between_db": {
+        "min": 1.52,
+        "mean": 2.09,
+        "max": 2.82
+      },
+      "controls": {
+        "keys": {
+          "seed": 14100,
+          "sound_seed": 14110,
+          "keep_p": 0.4,
+          "lay": [
+            -0.004,
+            0.008
+          ],
+          "pickups": [
+            [
+              3,
+              0.5
+            ]
+          ],
+          "pickup_lay": [
+            -0.003,
+            0.008
+          ],
+          "pickup_gain": 0.5,
+          "decay_scale": 1.0,
+          "figure_p": 0.0,
+          "figure_shapes": [],
+          "figure_slots": [],
+          "figure_seed": 0,
+          "figure_gain": 0.6,
+          "avoid_busy_bells": false
+        },
+        "brushes": {
+          "seed": 14400,
+          "grain_seed": 14490,
+          "ghost_p": 0.3,
+          "ghost_slot": 7,
+          "two_keep": 1.0,
+          "rim_keep": 1.0,
+          "rim_ghost_p": 0.0,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.05,
+          "thin_bars": [],
+          "accent": "beats",
+          "arc": null,
+          "var_seed": 0
+        },
+        "slow_bells": {
+          "seed": 14600,
+          "placements": [
+            [
+              0,
+              2,
+              81,
+              0.62
+            ],
+            [
+              3,
+              2,
+              83,
+              0.6
+            ],
+            [
+              6,
+              2,
+              86,
+              0.62
+            ],
+            [
+              8,
+              5,
+              83,
+              0.58
+            ],
+            [
+              11,
+              2,
+              81,
+              0.6
+            ],
+            [
+              14,
+              2,
+              86,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 1,
+      "name": "charleston",
+      "feel": "Nearly every bar gets a second hit on the and of two; the brushes keep the sketch's lean.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_1.m4a",
+        "evening": "assets/music/class_day/bed_evening_1.m4a"
+      },
+      "stems": {
+        "keys": "68ddc834b100b79f05253d5807b5c73f01f3fd8799f90358a87252a9e36b9b1a",
+        "brushes": "fc35a4fa75b751051346a3075a80f05d0ed261fdd5c9055bf08442c382bb056f",
+        "bells_slow": "82686f50f26ab99ea7cdc4eca93bb3041a5d25f23558b392e4a5e0297a731ab7",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {},
+      "swell_lift_over_between_db": {
+        "min": 1.55,
+        "mean": 2.07,
+        "max": 2.97
+      },
+      "controls": {
+        "keys": {
+          "seed": 15100,
+          "sound_seed": 15110,
+          "keep_p": 0.55,
+          "lay": [
+            -0.002,
+            0.01
+          ],
+          "pickups": [
+            [
+              3,
+              0.9
+            ]
+          ],
+          "pickup_lay": [
+            -0.002,
+            0.01
+          ],
+          "pickup_gain": 0.5,
+          "decay_scale": 1.0,
+          "figure_p": 0.0,
+          "figure_shapes": [],
+          "figure_slots": [],
+          "figure_seed": 0,
+          "figure_gain": 0.6,
+          "avoid_busy_bells": true
+        },
+        "brushes": {
+          "seed": 15130,
+          "grain_seed": 15140,
+          "ghost_p": 0.22,
+          "ghost_slot": 7,
+          "two_keep": 1.0,
+          "rim_keep": 1.0,
+          "rim_ghost_p": 0.0,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.04,
+          "thin_bars": [],
+          "accent": "beats",
+          "arc": null,
+          "var_seed": 0
+        },
+        "slow_bells": {
+          "seed": 15160,
+          "placements": [
+            [
+              1,
+              5,
+              86,
+              0.6
+            ],
+            [
+              3,
+              2,
+              81,
+              0.58
+            ],
+            [
+              5,
+              5,
+              83,
+              0.62
+            ],
+            [
+              7,
+              2,
+              86,
+              0.6
+            ],
+            [
+              10,
+              2,
+              83,
+              0.58
+            ],
+            [
+              13,
+              2,
+              86,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 2,
+      "name": "open hand",
+      "feel": "Fewer second hits and five short figures on the and of three; a lighter brush that breathes.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_2.m4a",
+        "evening": "assets/music/class_day/bed_evening_2.m4a"
+      },
+      "stems": {
+        "keys": "7c2ef2662e343f3b7efb69a5bd55f2e10aae5fe4e0472df00fb770879f0d2dd7",
+        "brushes": "46ca91b0ffe3753a3785e7c8206826a76f7684e550575c4ba2493e5c35d6fac2",
+        "bells_slow": "c47ff0df5079faa67d26d18fb150f7cec6a7934fbad5866f775e23312c2a0cc9",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {
+        "1": [
+          [
+            5,
+            66
+          ],
+          [
+            6,
+            69
+          ],
+          [
+            7,
+            71
+          ]
+        ],
+        "4": [
+          [
+            5,
+            76
+          ],
+          [
+            6,
+            74
+          ],
+          [
+            7,
+            71
+          ]
+        ],
+        "6": [
+          [
+            5,
+            66
+          ],
+          [
+            6,
+            71
+          ],
+          [
+            7,
+            74
+          ]
+        ],
+        "8": [
+          [
+            5,
+            62
+          ],
+          [
+            6,
+            66
+          ],
+          [
+            7,
+            62
+          ]
+        ],
+        "13": [
+          [
+            5,
+            71
+          ],
+          [
+            6,
+            69
+          ],
+          [
+            7,
+            71
+          ]
+        ]
+      },
+      "swell_lift_over_between_db": {
+        "min": 1.54,
+        "mean": 2.05,
+        "max": 2.65
+      },
+      "controls": {
+        "keys": {
+          "seed": 15200,
+          "sound_seed": 15210,
+          "keep_p": 0.4,
+          "lay": [
+            0.0,
+            0.012
+          ],
+          "pickups": [
+            [
+              3,
+              0.2
+            ]
+          ],
+          "pickup_lay": [
+            -0.003,
+            0.008
+          ],
+          "pickup_gain": 0.5,
+          "decay_scale": 1.0,
+          "figure_p": 0.5,
+          "figure_shapes": [
+            "fall",
+            "turn",
+            "rise",
+            "dip"
+          ],
+          "figure_slots": [
+            5
+          ],
+          "figure_seed": 15220,
+          "figure_gain": 0.6,
+          "avoid_busy_bells": true
+        },
+        "brushes": {
+          "seed": 15230,
+          "grain_seed": 15240,
+          "ghost_p": 0.15,
+          "ghost_slot": 7,
+          "two_keep": 0.9,
+          "rim_keep": 0.85,
+          "rim_ghost_p": 0.0,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.16,
+          "thin_bars": [
+            3,
+            7,
+            11
+          ],
+          "accent": "beats",
+          "arc": null,
+          "var_seed": 15250
+        },
+        "slow_bells": {
+          "seed": 15260,
+          "placements": [
+            [
+              0,
+              5,
+              86,
+              0.6
+            ],
+            [
+              2,
+              2,
+              83,
+              0.6
+            ],
+            [
+              5,
+              2,
+              81,
+              0.58
+            ],
+            [
+              8,
+              2,
+              86,
+              0.62
+            ],
+            [
+              9,
+              5,
+              83,
+              0.56
+            ],
+            [
+              12,
+              5,
+              86,
+              0.6
+            ],
+            [
+              14,
+              2,
+              81,
+              0.58
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 3,
+      "name": "late push",
+      "feel": "The keys lay back and answer on the and of three, with four short figures on the and of one; the brushes lean on the offbeats.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_3.m4a",
+        "evening": "assets/music/class_day/bed_evening_3.m4a"
+      },
+      "stems": {
+        "keys": "45eff231e284a9452180a0ff7dd01e9a17032ab5bccdc36ef4b17dc944765236",
+        "brushes": "cbfddaf9c9d158a055a6ced277c3fa294aef5e64392fe08afaee271a0c02ccf4",
+        "bells_slow": "62f9a4520602ef3b1ecd35fb1e909eb8d399de05adec32f44bd8665a711ce7df",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {
+        "0": [
+          [
+            1,
+            69
+          ],
+          [
+            2,
+            71
+          ]
+        ],
+        "4": [
+          [
+            1,
+            69
+          ],
+          [
+            2,
+            69
+          ]
+        ],
+        "7": [
+          [
+            1,
+            64
+          ],
+          [
+            2,
+            64
+          ]
+        ],
+        "14": [
+          [
+            1,
+            62
+          ],
+          [
+            2,
+            62
+          ]
+        ]
+      },
+      "swell_lift_over_between_db": {
+        "min": 1.35,
+        "mean": 2.14,
+        "max": 3.2
+      },
+      "controls": {
+        "keys": {
+          "seed": 15300,
+          "sound_seed": 15310,
+          "keep_p": 0.4,
+          "lay": [
+            0.004,
+            0.016
+          ],
+          "pickups": [
+            [
+              5,
+              0.6
+            ]
+          ],
+          "pickup_lay": [
+            -0.003,
+            0.008
+          ],
+          "pickup_gain": 0.45,
+          "decay_scale": 1.0,
+          "figure_p": 0.25,
+          "figure_shapes": [
+            "echo",
+            "step"
+          ],
+          "figure_slots": [
+            1
+          ],
+          "figure_seed": 15322,
+          "figure_gain": 0.55,
+          "avoid_busy_bells": true
+        },
+        "brushes": {
+          "seed": 15330,
+          "grain_seed": 15340,
+          "ghost_p": 0.38,
+          "ghost_slot": 5,
+          "two_keep": 1.0,
+          "rim_keep": 1.0,
+          "rim_ghost_p": 0.0,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.06,
+          "thin_bars": [],
+          "accent": "offbeats",
+          "arc": null,
+          "var_seed": 0
+        },
+        "slow_bells": {
+          "seed": 15360,
+          "placements": [
+            [
+              1,
+              2,
+              83,
+              0.6
+            ],
+            [
+              4,
+              5,
+              86,
+              0.62
+            ],
+            [
+              6,
+              5,
+              83,
+              0.58
+            ],
+            [
+              10,
+              5,
+              81,
+              0.58
+            ],
+            [
+              13,
+              5,
+              86,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 4,
+      "name": "rolling",
+      "feel": "A busier hand: second hits on the and of two and of three, four rising figures, ghost thumps and rims on the brushes.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_4.m4a",
+        "evening": "assets/music/class_day/bed_evening_4.m4a"
+      },
+      "stems": {
+        "keys": "bc4033c5465cf631ce0fba3b35d67ecacb6bd8b0fca47b32825e3f257eee5b48",
+        "brushes": "740dfdcd32ee67245400e4ecd0a9a934b9c57173b377bad700a03a17461a103b",
+        "bells_slow": "1490730692f945a303d3c35876f4cb5cae25d43643920ae0b5889c0c416f3301",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {
+        "0": [
+          [
+            5,
+            69
+          ],
+          [
+            6,
+            71
+          ],
+          [
+            7,
+            74
+          ]
+        ],
+        "6": [
+          [
+            5,
+            62
+          ],
+          [
+            6,
+            66
+          ],
+          [
+            7,
+            64
+          ]
+        ],
+        "8": [
+          [
+            5,
+            62
+          ],
+          [
+            6,
+            66
+          ],
+          [
+            7,
+            69
+          ]
+        ],
+        "10": [
+          [
+            5,
+            64
+          ],
+          [
+            6,
+            66
+          ],
+          [
+            7,
+            69
+          ]
+        ]
+      },
+      "swell_lift_over_between_db": {
+        "min": 1.43,
+        "mean": 2.13,
+        "max": 3.07
+      },
+      "controls": {
+        "keys": {
+          "seed": 15400,
+          "sound_seed": 15410,
+          "keep_p": 0.25,
+          "lay": [
+            -0.004,
+            0.008
+          ],
+          "pickups": [
+            [
+              3,
+              0.55
+            ],
+            [
+              5,
+              0.35
+            ]
+          ],
+          "pickup_lay": [
+            -0.003,
+            0.008
+          ],
+          "pickup_gain": 0.45,
+          "decay_scale": 1.0,
+          "figure_p": 0.3,
+          "figure_shapes": [
+            "rise",
+            "leap"
+          ],
+          "figure_slots": [
+            5
+          ],
+          "figure_seed": 15420,
+          "figure_gain": 0.6,
+          "avoid_busy_bells": true
+        },
+        "brushes": {
+          "seed": 15430,
+          "grain_seed": 15440,
+          "ghost_p": 0.45,
+          "ghost_slot": 7,
+          "two_keep": 1.0,
+          "rim_keep": 1.0,
+          "rim_ghost_p": 0.35,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.02,
+          "thin_bars": [],
+          "accent": "flat",
+          "arc": null,
+          "var_seed": 15450
+        },
+        "slow_bells": {
+          "seed": 15460,
+          "placements": [
+            [
+              0,
+              2,
+              86,
+              0.6
+            ],
+            [
+              2,
+              5,
+              81,
+              0.6
+            ],
+            [
+              5,
+              5,
+              86,
+              0.58
+            ],
+            [
+              8,
+              2,
+              83,
+              0.58
+            ],
+            [
+              11,
+              5,
+              81,
+              0.58
+            ],
+            [
+              13,
+              5,
+              86,
+              0.6
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "index": 5,
+      "name": "close and dry",
+      "feel": "A drier, closer touch that repeats each voicing more often, four figures; the brushes are softer in the first half and fuller in the second.",
+      "files": {
+        "between": "assets/music/class_day/bed_between_5.m4a",
+        "evening": "assets/music/class_day/bed_evening_5.m4a"
+      },
+      "stems": {
+        "keys": "69c480bcdc9484f34d7fff68b1d13a48f30147e5bf354b01ee9a0f7b2b029f91",
+        "brushes": "443a8cbcce8f73612a73775d5fc8f1d10bee98ea9bdf9fe86d9cd98e9078bf92",
+        "bells_slow": "21a641738924987f5e2cac64d45d544a6898b9b14859d030b9a244f3f97d61cf",
+        "bass": "6719c3a09da9e8caea8dc4cc98f863084328c6f984fbe70864711c0a961f229b"
+      },
+      "figures": {
+        "0": [
+          [
+            1,
+            66
+          ],
+          [
+            2,
+            62
+          ],
+          [
+            3,
+            66
+          ]
+        ],
+        "4": [
+          [
+            5,
+            62
+          ],
+          [
+            6,
+            64
+          ],
+          [
+            7,
+            62
+          ]
+        ],
+        "6": [
+          [
+            1,
+            66
+          ],
+          [
+            2,
+            71
+          ],
+          [
+            3,
+            66
+          ]
+        ],
+        "10": [
+          [
+            1,
+            64
+          ],
+          [
+            2,
+            66
+          ],
+          [
+            3,
+            64
+          ]
+        ]
+      },
+      "swell_lift_over_between_db": {
+        "min": 1.13,
+        "mean": 2.14,
+        "max": 3.06
+      },
+      "controls": {
+        "keys": {
+          "seed": 15500,
+          "sound_seed": 15510,
+          "keep_p": 0.7,
+          "lay": [
+            -0.004,
+            0.008
+          ],
+          "pickups": [
+            [
+              3,
+              0.35
+            ]
+          ],
+          "pickup_lay": [
+            -0.003,
+            0.008
+          ],
+          "pickup_gain": 0.5,
+          "decay_scale": 0.8,
+          "figure_p": 0.35,
+          "figure_shapes": [
+            "turn",
+            "dip",
+            "fall"
+          ],
+          "figure_slots": [
+            1,
+            5
+          ],
+          "figure_seed": 15520,
+          "figure_gain": 0.6,
+          "avoid_busy_bells": true
+        },
+        "brushes": {
+          "seed": 15530,
+          "grain_seed": 15540,
+          "ghost_p": 0.25,
+          "ghost_slot": 7,
+          "two_keep": 1.0,
+          "rim_keep": 1.0,
+          "rim_ghost_p": 0.0,
+          "rim_ghost_slot": 5,
+          "shaker_skip": 0.08,
+          "thin_bars": [
+            7
+          ],
+          "accent": "beats",
+          "arc": [
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            0.85,
+            1.12,
+            1.12,
+            1.12,
+            1.12,
+            1.12,
+            1.12,
+            1.12,
+            1.12
+          ],
+          "var_seed": 15550
+        },
+        "slow_bells": {
+          "seed": 15560,
+          "placements": [
+            [
+              1,
+              2,
+              86,
+              0.6
+            ],
+            [
+              3,
+              5,
+              83,
+              0.58
+            ],
+            [
+              6,
+              2,
+              83,
+              0.62
+            ],
+            [
+              9,
+              5,
+              86,
+              0.58
+            ],
+            [
+              12,
+              2,
+              86,
+              0.6
+            ],
+            [
+              14,
+              2,
+              81,
+              0.6
+            ]
+          ]
+        }
+      }
+    }
+  ],
+  "records": {
+    "assets/music/class_day/bed_between_0.m4a": {
+      "sha256": "e0fc8d169d602d7a9346b4217028edb30c78bf4313c771d0308c9e41850a0cc6",
+      "bytes": 703166,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -17.16,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (between)",
+      "performance": 0,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_0.m4a": {
+      "sha256": "9c562f27712bb0a0371c174c8ab8ea7553e6e979120ed67bc099ebc682c4be92",
+      "bytes": 726097,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -18.28,
+      "first_sample": 0.0,
+      "last_sample": 5.983087695691895e-178,
+      "role": "bed (evening)",
+      "performance": 0,
+      "sketch_phone_rms_db": -35.81,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.19,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_between_1.m4a": {
+      "sha256": "8ffb513ee358c7f42eb5f2ac58e75c08704a85e8ab5b6304de6cebf5c6f516d3",
+      "bytes": 709653,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.48,
+      "peak_dbfs": -16.95,
+      "first_sample": 0.0,
+      "last_sample": 0.0,
+      "role": "bed (between)",
+      "performance": 1,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_1.m4a": {
+      "sha256": "d4fc594c94f08f5b4ad6ccf027d3554a88acedc8bee9c3275002720571cc27d7",
+      "bytes": 703769,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.48,
+      "peak_dbfs": -17.77,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (evening)",
+      "performance": 1,
+      "sketch_phone_rms_db": -35.82,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.18,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_between_2.m4a": {
+      "sha256": "723690d7c1be528e9627d43e5bca8b4b3c78b9e1f914eb65182b3b2b6f059969",
+      "bytes": 713431,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.49,
+      "peak_dbfs": -16.93,
+      "first_sample": 0.0,
+      "last_sample": 0.0,
+      "role": "bed (between)",
+      "performance": 2,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_2.m4a": {
+      "sha256": "602984aff37a0f4a3cace9b5fa736683d3938e881232190d7ec56c25dd8ef1a9",
+      "bytes": 721938,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.49,
+      "peak_dbfs": -17.74,
+      "first_sample": 0.0,
+      "last_sample": -1.158039707961031e-270,
+      "role": "bed (evening)",
+      "performance": 2,
+      "sketch_phone_rms_db": -35.75,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.25,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_between_3.m4a": {
+      "sha256": "54485e3f87a6253e2644862126574571ff119210e64f6e492081da39f7be83a0",
+      "bytes": 713148,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -16.16,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (between)",
+      "performance": 3,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_3.m4a": {
+      "sha256": "db7d357a33a659f53f51dfd580da43b484348899512892557b7f6504d38627cb",
+      "bytes": 708415,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -16.82,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (evening)",
+      "performance": 3,
+      "sketch_phone_rms_db": -35.93,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.07,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_between_4.m4a": {
+      "sha256": "8570ac857bbcf4fc585a0acacf3967057f5262d27313c0aa4ce8a9541a4ba092",
+      "bytes": 711022,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.51,
+      "peak_dbfs": -16.67,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (between)",
+      "performance": 4,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_4.m4a": {
+      "sha256": "e3e639a95306dacccdc7b21cd580d74d9a12576e3d9c50c558ce6e15419d454c",
+      "bytes": 705985,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.51,
+      "peak_dbfs": -18.24,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (evening)",
+      "performance": 4,
+      "sketch_phone_rms_db": -35.8,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.2,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_between_5.m4a": {
+      "sha256": "c8ef995b10d31ae0dcc333dff82562eb6ba02a5aebe03a78f7bdeffa3a681b5a",
+      "bytes": 694077,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -16.13,
+      "first_sample": 0.0,
+      "last_sample": -0.0,
+      "role": "bed (between)",
+      "performance": 5,
+      "sketch_phone_rms_db": -36.83,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": 0.83,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/bed_evening_5.m4a": {
+      "sha256": "1e491c1bda1e0a9b223ec6665b1c9ede910fe2470cfed40456ac331c5af68b21",
+      "bytes": 724682,
+      "duration_s": 59.833,
+      "phone_rms_dbfs": -36.5,
+      "peak_dbfs": -16.89,
+      "first_sample": 0.0,
+      "last_sample": -1.1252811404937347e-201,
+      "role": "bed (evening)",
+      "performance": 5,
+      "sketch_phone_rms_db": -35.8,
+      "loop_phone_rms_db": -36.0,
+      "gain_db": -0.2,
+      "cut_tail_peak_db": -240.0
+    },
+    "assets/music/class_day/swell_00.m4a": {
+      "sha256": "2f6ba7753f134bed66702c9d34faf5aad6428f50a001cb5dd84d9cc027ebeb4e",
+      "bytes": 116162,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.16,
+      "peak_dbfs": -20.6,
+      "first_sample": 0.0,
+      "last_sample": -3.1798868796468223e-13,
+      "role": "swell",
+      "beat": 0,
+      "pre_trim_phone_rms_db": -38.89,
+      "trim_db": 0.69,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.67,
+      "with_between_peak_db": -15.47,
+      "lift_by_performance_db": [
+        2.67,
+        1.68,
+        2.14,
+        2.39,
+        1.99,
+        2.35
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.47,
+        -14.83,
+        -14.62,
+        -15.38,
+        -16.54,
+        -15.13
+      ]
+    },
+    "assets/music/class_day/swell_01.m4a": {
+      "sha256": "c7c9591d1a8255e87a551c5c020981ecbeeee4c2a91325e511b11d8b9abd49d3",
+      "bytes": 116377,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.62,
+      "peak_dbfs": -20.59,
+      "first_sample": -0.0,
+      "last_sample": -7.198752909804597e-14,
+      "role": "swell",
+      "beat": 2,
+      "pre_trim_phone_rms_db": -38.9,
+      "trim_db": 0.7,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.56,
+      "with_between_peak_db": -15.59,
+      "lift_by_performance_db": [
+        2.56,
+        1.87,
+        1.92,
+        1.98,
+        2.09,
+        2.29
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.59,
+        -14.49,
+        -16.02,
+        -15.72,
+        -16.36,
+        -14.93
+      ]
+    },
+    "assets/music/class_day/swell_02.m4a": {
+      "sha256": "0c585dee74fcf1d9070b45688a4dfdcbdce796082cdfce5dc599366a8cbef8c5",
+      "bytes": 116063,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.33,
+      "peak_dbfs": -20.68,
+      "first_sample": -0.0,
+      "last_sample": -1.886820310185662e-12,
+      "role": "swell",
+      "beat": 4,
+      "pre_trim_phone_rms_db": -38.81,
+      "trim_db": 0.61,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.58,
+      "with_between_peak_db": -15.63,
+      "lift_by_performance_db": [
+        2.58,
+        1.85,
+        1.89,
+        1.94,
+        2.23,
+        2.35
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.63,
+        -14.53,
+        -16.06,
+        -15.75,
+        -16.39,
+        -14.95
+      ]
+    },
+    "assets/music/class_day/swell_03.m4a": {
+      "sha256": "74c644e68d4842e04d40fcb06e5c22d04e9f005001a9958c7e29ee3bb94841a2",
+      "bytes": 116181,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.14,
+      "peak_dbfs": -20.97,
+      "first_sample": 0.0,
+      "last_sample": 1.2711750702212643e-12,
+      "role": "swell",
+      "beat": 6,
+      "pre_trim_phone_rms_db": -38.62,
+      "trim_db": 0.42,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.55,
+      "with_between_peak_db": -15.73,
+      "lift_by_performance_db": [
+        2.55,
+        1.94,
+        2.03,
+        1.86,
+        2.25,
+        2.4
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.73,
+        -14.6,
+        -16.13,
+        -15.82,
+        -16.45,
+        -14.99
+      ]
+    },
+    "assets/music/class_day/swell_04.m4a": {
+      "sha256": "ef5b72045283a91672ceae41509a650119c56e72b6304bc511be45047a524d03",
+      "bytes": 116349,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.25,
+      "peak_dbfs": -19.52,
+      "first_sample": -0.0,
+      "last_sample": -4.59731586373274e-13,
+      "role": "swell",
+      "beat": 8,
+      "pre_trim_phone_rms_db": -38.28,
+      "trim_db": 0.08,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.54,
+      "with_between_peak_db": -15.9,
+      "lift_by_performance_db": [
+        2.54,
+        1.93,
+        2.15,
+        1.87,
+        2.24,
+        2.39
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.9,
+        -14.72,
+        -16.26,
+        -15.93,
+        -16.56,
+        -15.07
+      ]
+    },
+    "assets/music/class_day/swell_05.m4a": {
+      "sha256": "29efda19c35f88a5958f105b781dd50f6c7e2feafeeea52edf55616d7e26bafe",
+      "bytes": 115955,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.61,
+      "peak_dbfs": -19.36,
+      "first_sample": 0.0,
+      "last_sample": 1.694481048609055e-13,
+      "role": "swell",
+      "beat": 10,
+      "pre_trim_phone_rms_db": -38.09,
+      "trim_db": -0.11,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.11,
+      "with_between_peak_db": -16.76,
+      "lift_by_performance_db": [
+        2.11,
+        2.03,
+        1.91,
+        2.67,
+        1.96,
+        2.18
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.76,
+        -16.06,
+        -16.44,
+        -16.97,
+        -16.57,
+        -16.58
+      ]
+    },
+    "assets/music/class_day/swell_06.m4a": {
+      "sha256": "dde20ed027c187017bf316c5f678c2291bf579261b08a85375f3fdf5832a0283",
+      "bytes": 115636,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.43,
+      "peak_dbfs": -19.33,
+      "first_sample": -0.0,
+      "last_sample": -1.6946888061441744e-12,
+      "role": "swell",
+      "beat": 12,
+      "pre_trim_phone_rms_db": -38.12,
+      "trim_db": -0.08,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.02,
+      "with_between_peak_db": -16.74,
+      "lift_by_performance_db": [
+        2.02,
+        1.93,
+        1.7,
+        2.85,
+        1.87,
+        1.95
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.74,
+        -16.04,
+        -16.42,
+        -16.95,
+        -16.56,
+        -15.59
+      ]
+    },
+    "assets/music/class_day/swell_07.m4a": {
+      "sha256": "585dfa778a80fb27aa2220f48c3ee2d4d89b625fc5b537f543976c286a0219dd",
+      "bytes": 115747,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.54,
+      "peak_dbfs": -18.5,
+      "first_sample": 0.0,
+      "last_sample": 3.4313051060623725e-13,
+      "role": "swell",
+      "beat": 14,
+      "pre_trim_phone_rms_db": -38.95,
+      "trim_db": 0.75,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.89,
+      "with_between_peak_db": -16.68,
+      "lift_by_performance_db": [
+        1.89,
+        2.02,
+        1.66,
+        3.16,
+        1.92,
+        1.85
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.68,
+        -15.53,
+        -15.97,
+        -16.38,
+        -16.1,
+        -14.96
+      ]
+    },
+    "assets/music/class_day/swell_08.m4a": {
+      "sha256": "931570694eaa32c0c3d5381f2faa84ecb018293c16555383b1c0b004a6f72190",
+      "bytes": 116114,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.25,
+      "peak_dbfs": -17.53,
+      "first_sample": -0.0,
+      "last_sample": 3.5188943813334086e-13,
+      "role": "swell",
+      "beat": 16,
+      "pre_trim_phone_rms_db": -39.92,
+      "trim_db": 1.72,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.81,
+      "with_between_peak_db": -14.66,
+      "lift_by_performance_db": [
+        1.81,
+        1.91,
+        1.59,
+        3.2,
+        2.0,
+        1.85
+      ],
+      "with_between_peak_by_performance_db": [
+        -14.66,
+        -14.9,
+        -15.41,
+        -15.68,
+        -15.53,
+        -14.51
+      ]
+    },
+    "assets/music/class_day/swell_09.m4a": {
+      "sha256": "6a93eff4e2236e9c2fb39de38f02a552892d67c635fb1869e9c9aca937d11c34",
+      "bytes": 115921,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.6,
+      "peak_dbfs": -19.05,
+      "first_sample": 0.0,
+      "last_sample": 1.5452522069849483e-13,
+      "role": "swell",
+      "beat": 18,
+      "pre_trim_phone_rms_db": -40.72,
+      "trim_db": 2.52,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.81,
+      "with_between_peak_db": -13.95,
+      "lift_by_performance_db": [
+        1.81,
+        2.12,
+        2.33,
+        2.75,
+        2.5,
+        2.18
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.95,
+        -16.12,
+        -16.21,
+        -16.1,
+        -15.21,
+        -14.11
+      ]
+    },
+    "assets/music/class_day/swell_10.m4a": {
+      "sha256": "2f1a22ac264cc041d9640afbc4704b762c331b5ae28e1a3160f8eec004c8a9e0",
+      "bytes": 115808,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.09,
+      "peak_dbfs": -18.83,
+      "first_sample": 0.0,
+      "last_sample": -6.422501260915725e-14,
+      "role": "swell",
+      "beat": 20,
+      "pre_trim_phone_rms_db": -40.94,
+      "trim_db": 2.74,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.81,
+      "with_between_peak_db": -13.83,
+      "lift_by_performance_db": [
+        1.81,
+        2.23,
+        2.38,
+        2.55,
+        2.47,
+        2.41
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.83,
+        -16.0,
+        -16.09,
+        -15.96,
+        -15.12,
+        -14.0
+      ]
+    },
+    "assets/music/class_day/swell_11.m4a": {
+      "sha256": "399d1aeee4648adc389b3eb34e42d90b990c14c392fd66133aef64086f42a4fc",
+      "bytes": 116023,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.2,
+      "peak_dbfs": -19.32,
+      "first_sample": 0.0,
+      "last_sample": 3.348231587603688e-13,
+      "role": "swell",
+      "beat": 22,
+      "pre_trim_phone_rms_db": -40.07,
+      "trim_db": 1.87,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.94,
+      "with_between_peak_db": -14.31,
+      "lift_by_performance_db": [
+        1.94,
+        2.3,
+        2.24,
+        2.53,
+        2.4,
+        2.5
+      ],
+      "with_between_peak_by_performance_db": [
+        -14.31,
+        -16.71,
+        -17.1,
+        -16.61,
+        -15.48,
+        -16.86
+      ]
+    },
+    "assets/music/class_day/swell_12.m4a": {
+      "sha256": "7558f48b8118a00799c42c9ec04b6f69811a41be845d4228c10292bb51b05ff3",
+      "bytes": 115269,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.36,
+      "peak_dbfs": -19.75,
+      "first_sample": -0.0,
+      "last_sample": -6.315201141153036e-14,
+      "role": "swell",
+      "beat": 24,
+      "pre_trim_phone_rms_db": -39.64,
+      "trim_db": 1.44,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.02,
+      "with_between_peak_db": -14.54,
+      "lift_by_performance_db": [
+        2.02,
+        2.49,
+        2.37,
+        2.44,
+        2.38,
+        2.52
+      ],
+      "with_between_peak_by_performance_db": [
+        -14.54,
+        -16.63,
+        -17.23,
+        -16.75,
+        -15.65,
+        -16.72
+      ]
+    },
+    "assets/music/class_day/swell_13.m4a": {
+      "sha256": "7d40ce96c86bda256eeda653f3671801e0a5746427271e0b22a7a231a8c7fbe8",
+      "bytes": 116033,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.62,
+      "peak_dbfs": -19.65,
+      "first_sample": -0.0,
+      "last_sample": 6.045209348704365e-14,
+      "role": "swell",
+      "beat": 26,
+      "pre_trim_phone_rms_db": -39.74,
+      "trim_db": 1.54,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.3,
+      "with_between_peak_db": -16.99,
+      "lift_by_performance_db": [
+        2.3,
+        2.41,
+        1.91,
+        2.3,
+        2.32,
+        2.9
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.99,
+        -16.33,
+        -17.2,
+        -16.46,
+        -17.25,
+        -16.22
+      ]
+    },
+    "assets/music/class_day/swell_14.m4a": {
+      "sha256": "1a25a6b8875fad52c27b8042c26b12b9b5eb20c0faa8d259e1f72bcdd79b2eac",
+      "bytes": 115179,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.36,
+      "peak_dbfs": -19.79,
+      "first_sample": 0.0,
+      "last_sample": 1.5447245677927165e-12,
+      "role": "swell",
+      "beat": 28,
+      "pre_trim_phone_rms_db": -39.6,
+      "trim_db": 1.4,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.23,
+      "with_between_peak_db": -17.02,
+      "lift_by_performance_db": [
+        2.23,
+        2.58,
+        1.68,
+        2.27,
+        2.37,
+        3.06
+      ],
+      "with_between_peak_by_performance_db": [
+        -17.02,
+        -16.4,
+        -16.44,
+        -16.53,
+        -17.32,
+        -16.27
+      ]
+    },
+    "assets/music/class_day/swell_15.m4a": {
+      "sha256": "da4a133ff29c1064b31556f966caa7cd3e069658193fe2ed7897bdad19af30a7",
+      "bytes": 116004,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.14,
+      "peak_dbfs": -20.85,
+      "first_sample": 0.0,
+      "last_sample": -4.050195042294646e-13,
+      "role": "swell",
+      "beat": 30,
+      "pre_trim_phone_rms_db": -39.76,
+      "trim_db": 1.56,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.12,
+      "with_between_peak_db": -16.98,
+      "lift_by_performance_db": [
+        2.12,
+        2.88,
+        1.54,
+        2.17,
+        1.96,
+        3.01
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.98,
+        -16.32,
+        -16.07,
+        -16.11,
+        -17.96,
+        -16.22
+      ]
+    },
+    "assets/music/class_day/swell_16.m4a": {
+      "sha256": "0c91c8af9bedc278ec61fb147d584a59160dea0d85666c06260efc917b32af30",
+      "bytes": 116333,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.05,
+      "peak_dbfs": -19.68,
+      "first_sample": 0.0,
+      "last_sample": 1.2002358172412078e-13,
+      "role": "swell",
+      "beat": 32,
+      "pre_trim_phone_rms_db": -39.78,
+      "trim_db": 1.58,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.19,
+      "with_between_peak_db": -14.02,
+      "lift_by_performance_db": [
+        2.19,
+        2.95,
+        1.55,
+        2.1,
+        1.92,
+        2.97
+      ],
+      "with_between_peak_by_performance_db": [
+        -14.02,
+        -15.95,
+        -14.72,
+        -15.05,
+        -16.33,
+        -14.48
+      ]
+    },
+    "assets/music/class_day/swell_17.m4a": {
+      "sha256": "5ded0df1cdb8d2c65bef12eabd5b0fe21b297845dc4e817f6582276dac8b516f",
+      "bytes": 116011,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.62,
+      "peak_dbfs": -19.77,
+      "first_sample": 0.0,
+      "last_sample": -3.3356226047647195e-13,
+      "role": "swell",
+      "beat": 34,
+      "pre_trim_phone_rms_db": -39.26,
+      "trim_db": 1.06,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.85,
+      "with_between_peak_db": -13.95,
+      "lift_by_performance_db": [
+        1.85,
+        2.97,
+        1.7,
+        2.09,
+        2.26,
+        2.56
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.95,
+        -15.75,
+        -14.72,
+        -14.9,
+        -15.93,
+        -14.23
+      ]
+    },
+    "assets/music/class_day/swell_18.m4a": {
+      "sha256": "476ee47437282127e3967f59bce79397d14133ba06dbb6f780f1b948d0d12d75",
+      "bytes": 116218,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.13,
+      "peak_dbfs": -19.68,
+      "first_sample": -0.0,
+      "last_sample": -9.70744920432778e-13,
+      "role": "swell",
+      "beat": 36,
+      "pre_trim_phone_rms_db": -39.35,
+      "trim_db": 1.15,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.88,
+      "with_between_peak_db": -13.91,
+      "lift_by_performance_db": [
+        1.88,
+        2.72,
+        2.24,
+        2.18,
+        2.31,
+        2.44
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.91,
+        -15.7,
+        -14.68,
+        -14.89,
+        -15.89,
+        -14.19
+      ]
+    },
+    "assets/music/class_day/swell_19.m4a": {
+      "sha256": "c6c6a1a1d6487ade2858279099155f1a4e8ec5f3437c2de7578211e79d07b8c1",
+      "bytes": 115991,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.51,
+      "peak_dbfs": -19.56,
+      "first_sample": -0.0,
+      "last_sample": 8.977170662973888e-13,
+      "role": "swell",
+      "beat": 38,
+      "pre_trim_phone_rms_db": -39.43,
+      "trim_db": 1.23,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.89,
+      "with_between_peak_db": -13.87,
+      "lift_by_performance_db": [
+        1.89,
+        2.13,
+        2.65,
+        2.07,
+        2.94,
+        2.44
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.87,
+        -15.66,
+        -14.64,
+        -14.78,
+        -15.86,
+        -14.16
+      ]
+    },
+    "assets/music/class_day/swell_20.m4a": {
+      "sha256": "b244b2202093189e7c2bfdab419a21f671e5649a8d94311f2ea6bfe9361d0743",
+      "bytes": 115971,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -38.94,
+      "peak_dbfs": -19.28,
+      "first_sample": -0.0,
+      "last_sample": -7.14005307196404e-13,
+      "role": "swell",
+      "beat": 40,
+      "pre_trim_phone_rms_db": -39.71,
+      "trim_db": 1.51,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.91,
+      "with_between_peak_db": -13.75,
+      "lift_by_performance_db": [
+        1.91,
+        2.06,
+        2.65,
+        2.16,
+        3.07,
+        2.34
+      ],
+      "with_between_peak_by_performance_db": [
+        -13.75,
+        -15.15,
+        -14.5,
+        -14.64,
+        -15.57,
+        -13.74
+      ]
+    },
+    "assets/music/class_day/swell_21.m4a": {
+      "sha256": "c23cef8673c53b5541a4285ffa88a8a460bfdfe397bb975638d4ae8aa83fff2a",
+      "bytes": 116020,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.27,
+      "peak_dbfs": -18.87,
+      "first_sample": 0.0,
+      "last_sample": -1.2864678001681507e-12,
+      "role": "swell",
+      "beat": 42,
+      "pre_trim_phone_rms_db": -39.52,
+      "trim_db": 1.32,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.11,
+      "with_between_peak_db": -16.3,
+      "lift_by_performance_db": [
+        2.11,
+        1.98,
+        2.58,
+        1.72,
+        2.19,
+        1.99
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.3,
+        -14.82,
+        -14.97,
+        -14.74,
+        -15.31,
+        -13.4
+      ]
+    },
+    "assets/music/class_day/swell_22.m4a": {
+      "sha256": "f5eaff3210c140efa87e156c449355745a66e59743515ffe94c59f090805c601",
+      "bytes": 116105,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.48,
+      "peak_dbfs": -20.11,
+      "first_sample": -0.0,
+      "last_sample": -1.3537604255027163e-12,
+      "role": "swell",
+      "beat": 44,
+      "pre_trim_phone_rms_db": -38.29,
+      "trim_db": 0.09,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.97,
+      "with_between_peak_db": -16.99,
+      "lift_by_performance_db": [
+        1.97,
+        2.01,
+        2.42,
+        1.66,
+        2.3,
+        1.99
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.99,
+        -15.31,
+        -15.44,
+        -15.34,
+        -15.66,
+        -13.83
+      ]
+    },
+    "assets/music/class_day/swell_23.m4a": {
+      "sha256": "6edc7294837fae9d4be733ba09c1383849bcaceb88092c910f93174483599465",
+      "bytes": 116264,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.35,
+      "peak_dbfs": -20.28,
+      "first_sample": 0.0,
+      "last_sample": 4.4737495251790156e-13,
+      "role": "swell",
+      "beat": 46,
+      "pre_trim_phone_rms_db": -38.11,
+      "trim_db": -0.09,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.57,
+      "with_between_peak_db": -16.91,
+      "lift_by_performance_db": [
+        1.57,
+        1.62,
+        1.95,
+        1.39,
+        1.53,
+        1.44
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.91,
+        -15.38,
+        -15.51,
+        -15.41,
+        -15.7,
+        -13.89
+      ]
+    },
+    "assets/music/class_day/swell_24.m4a": {
+      "sha256": "84c9d343ff06f14f2703d8ff6c91e95f1d8d5f0c65b7d057d2ed1f5ac0c17a33",
+      "bytes": 115978,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.29,
+      "peak_dbfs": -20.39,
+      "first_sample": -0.0,
+      "last_sample": -1.293563037552628e-12,
+      "role": "swell",
+      "beat": 48,
+      "pre_trim_phone_rms_db": -38.01,
+      "trim_db": -0.19,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.54,
+      "with_between_peak_db": -16.26,
+      "lift_by_performance_db": [
+        1.54,
+        1.55,
+        1.78,
+        1.35,
+        1.43,
+        1.45
+      ],
+      "with_between_peak_by_performance_db": [
+        -16.26,
+        -15.41,
+        -15.41,
+        -15.45,
+        -15.73,
+        -13.93
+      ]
+    },
+    "assets/music/class_day/swell_25.m4a": {
+      "sha256": "5f3502310698f4fcd0efa4bf119546c0d398d9b6c051b59fd52c658bd1de2419",
+      "bytes": 116277,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.41,
+      "peak_dbfs": -21.0,
+      "first_sample": 0.0,
+      "last_sample": 6.435627551787669e-13,
+      "role": "swell",
+      "beat": 50,
+      "pre_trim_phone_rms_db": -37.92,
+      "trim_db": -0.28,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.52,
+      "with_between_peak_db": -15.89,
+      "lift_by_performance_db": [
+        1.52,
+        1.58,
+        1.93,
+        1.4,
+        1.56,
+        1.73
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.89,
+        -16.96,
+        -14.99,
+        -16.59,
+        -15.59,
+        -16.11
+      ]
+    },
+    "assets/music/class_day/swell_26.m4a": {
+      "sha256": "c80990f8046f3d38a3a951241fec5c6744d7fafd0fc5e7ef5bfc3617a24d873b",
+      "bytes": 116328,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.16,
+      "peak_dbfs": -20.73,
+      "first_sample": 0.0,
+      "last_sample": 7.41978123550165e-13,
+      "role": "swell",
+      "beat": 52,
+      "pre_trim_phone_rms_db": -37.88,
+      "trim_db": -0.32,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.58,
+      "with_between_peak_db": -15.91,
+      "lift_by_performance_db": [
+        1.58,
+        1.68,
+        2.05,
+        1.45,
+        1.56,
+        1.78
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.91,
+        -15.91,
+        -15.0,
+        -16.16,
+        -15.61,
+        -16.13
+      ]
+    },
+    "assets/music/class_day/swell_27.m4a": {
+      "sha256": "9414d8fbc7dc4900a1b5edb15a1b15384ae48da8cb3e535f9eae863fc7b2e2e9",
+      "bytes": 116185,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.54,
+      "peak_dbfs": -20.51,
+      "first_sample": 0.0,
+      "last_sample": -8.403952697695892e-13,
+      "role": "swell",
+      "beat": 54,
+      "pre_trim_phone_rms_db": -37.7,
+      "trim_db": -0.5,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 1.96,
+      "with_between_peak_db": -15.96,
+      "lift_by_performance_db": [
+        1.96,
+        1.95,
+        2.1,
+        1.71,
+        2.07,
+        1.33
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.96,
+        -15.52,
+        -15.07,
+        -15.89,
+        -15.71,
+        -15.93
+      ]
+    },
+    "assets/music/class_day/swell_28.m4a": {
+      "sha256": "f8adb3e605e797f242e49ca6fe2a03a63cd99bf809b9c17ed57be96478142d5a",
+      "bytes": 116424,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.34,
+      "peak_dbfs": -20.57,
+      "first_sample": -0.0,
+      "last_sample": 4.763507036228833e-13,
+      "role": "swell",
+      "beat": 56,
+      "pre_trim_phone_rms_db": -37.64,
+      "trim_db": -0.56,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.01,
+      "with_between_peak_db": -15.99,
+      "lift_by_performance_db": [
+        2.01,
+        1.96,
+        2.24,
+        1.74,
+        2.15,
+        1.31
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.99,
+        -15.54,
+        -15.1,
+        -15.92,
+        -15.74,
+        -15.94
+      ]
+    },
+    "assets/music/class_day/swell_29.m4a": {
+      "sha256": "11972a25d846ef8458dcc8713c03e9a95ac8d0ade2b7e80c0fddc23407c727ba",
+      "bytes": 116211,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.61,
+      "peak_dbfs": -20.36,
+      "first_sample": 0.0,
+      "last_sample": -4.3031963947698125e-14,
+      "role": "swell",
+      "beat": 58,
+      "pre_trim_phone_rms_db": -37.85,
+      "trim_db": -0.35,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.46,
+      "with_between_peak_db": -15.93,
+      "lift_by_performance_db": [
+        2.46,
+        1.6,
+        2.06,
+        2.02,
+        2.02,
+        1.16
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.93,
+        -15.48,
+        -15.04,
+        -15.72,
+        -17.18,
+        -15.65
+      ]
+    },
+    "assets/music/class_day/swell_30.m4a": {
+      "sha256": "c2033b9132952ee3cd6701c62c740b80add9d1cfe9a5d1cbee6346b373933787",
+      "bytes": 116019,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.33,
+      "peak_dbfs": -19.26,
+      "first_sample": 0.0,
+      "last_sample": 1.977954672367903e-12,
+      "role": "swell",
+      "beat": 60,
+      "pre_trim_phone_rms_db": -38.94,
+      "trim_db": 0.74,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.67,
+      "with_between_peak_db": -15.45,
+      "lift_by_performance_db": [
+        2.67,
+        1.55,
+        2.01,
+        2.03,
+        1.81,
+        1.13
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.45,
+        -15.14,
+        -14.6,
+        -15.36,
+        -16.63,
+        -15.33
+      ]
+    },
+    "assets/music/class_day/swell_31.m4a": {
+      "sha256": "ee2c2e90312956111143a3bcbfd58fbcd46d84c05a2d9a561b1583242d316c3d",
+      "bytes": 116280,
+      "duration_s": 9.316,
+      "phone_rms_dbfs": -39.29,
+      "peak_dbfs": -20.41,
+      "first_sample": -0.0,
+      "last_sample": 1.3455468129393927e-13,
+      "role": "swell",
+      "beat": 62,
+      "pre_trim_phone_rms_db": -39.08,
+      "trim_db": 0.88,
+      "held_phone_rms_db": -38.2,
+      "lift_over_between_db": 2.82,
+      "with_between_peak_db": -15.38,
+      "lift_by_performance_db": [
+        2.82,
+        1.61,
+        2.24,
+        2.33,
+        1.97,
+        2.16
+      ],
+      "with_between_peak_by_performance_db": [
+        -15.38,
+        -16.19,
+        -14.54,
+        -15.31,
+        -16.84,
+        -15.28
+      ]
+    }
+  }
+}

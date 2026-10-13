@@ -117,6 +117,8 @@ flutter:
 
   assets:
     - assets/music/
+    # The class-day score (beds and swells): a directory entry is not recursive.
+    - assets/music/class_day/
     - assets/sfx/
     - assets/sfx/room/ordinary/open/
     - assets/sfx/room/ordinary/select/

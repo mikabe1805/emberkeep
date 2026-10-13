@@ -18,6 +18,7 @@ import 'package:emberkeep/academic_calendar/import/academic_schedule_ics_import.
 import 'package:emberkeep/academic_calendar/services/class_day_projection.dart';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/background_music.dart';
+import 'package:emberkeep/class_day_score.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main_room_music.dart';
@@ -123,6 +124,51 @@ class _MainMusic implements MainRoomMusicPlayback {
 
   @override
   Future<void> retryAfterUserGesture() async {}
+
+  @override
+  Future<void> dispose() async {}
+}
+
+/// The class-day score, recorded instead of played. On a class day it is the
+/// room's music, so the evening door talks to it and not to the rotation.
+class _Score implements ClassDayScorePlayback {
+  final calls = <String>[];
+  bool playing = false;
+
+  @override
+  final ValueNotifier<String?> nowPlaying = ValueNotifier<String?>(null);
+
+  @override
+  bool get isPlaying => playing;
+
+  @override
+  Future<void> start({required bool evening, bool opener = false}) async {
+    calls.add(
+      'start:${evening ? 'evening' : 'between'}${opener ? ':opener' : ''}',
+    );
+    playing = true;
+    nowPlaying.value = opener
+        ? MainRoomMusic.assetForTake(MainRoomMusic.lampLeftOnTake)
+        : 'music/class_day/bed_${evening ? 'evening' : 'between'}.m4a';
+  }
+
+  @override
+  Future<void> setEvening(bool evening) async => calls.add('evening:$evening');
+
+  @override
+  void classKept({required Duration after}) =>
+      calls.add('kept:${after.inMilliseconds}');
+
+  @override
+  Future<void> stop({Duration fade = MainRoomMusic.stopFadeOut}) async {
+    if (!playing) return;
+    calls.add('stop');
+    playing = false;
+    nowPlaying.value = null;
+  }
+
+  @override
+  Future<void> setForeground(bool foreground) async {}
 
   @override
   Future<void> dispose() async {}
@@ -595,6 +641,7 @@ void main() {
         'waiting, and closing the day is there', (tester) async {
       final music = BackgroundMusicController(
         mainMusic: _MainMusic(),
+        classDayScore: _Score(),
         transport: _FocusTransport(),
       );
       final page = await _mount(tester, at: _ny(5, 19, 15), music: music);
@@ -730,8 +777,10 @@ void main() {
     testWidgets('the music never starts by itself; a press plays Lamp left '
         'on for tonight and leaves the saved setting alone', (tester) async {
       final main = _MainMusic();
+      final score = _Score();
       final music = BackgroundMusicController(
         mainMusic: main,
+        classDayScore: score,
         transport: _FocusTransport(),
       );
       unawaited(music.setEnabled(false));
@@ -746,44 +795,56 @@ void main() {
       expect(_playMark, findsOneWidget);
       expect(_levels, findsNothing);
       expect(main.calls, isEmpty);
+      expect(score.calls, isEmpty, reason: 'a class day alone plays nothing');
 
       await tester.tap(_musicRow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      expect(main.calls, ['prefer:${MainRoomMusic.lampLeftOnTake}', 'start']);
+      // On a class day the score is the room's music: Lamp left on is its
+      // opener, and the rotation is not told (it would open with Lamp left on
+      // some other day).
+      expect(score.calls, ['start:evening:opener']);
+      expect(main.calls, isEmpty);
       expect(_playMark, findsNothing);
       expect(find.text('Lamp left on'), findsOneWidget);
       expect(_levels, findsOneWidget);
       expect(page.state.musicEnabled, isFalse);
       expect(music.enabled, isFalse);
 
-      // The rotation moves on to its own takes: the room's music.
-      main.nowPlaying.value = MainRoomMusic.assetForTake(4);
+      // The opener gives way to the evening bed: the room's music.
+      score.nowPlaying.value = 'music/class_day/bed_evening_0.m4a';
       await tester.pump();
       expect(find.text('Room music'), findsOneWidget);
 
       await tester.tap(_musicRow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      expect(main.calls.last, 'pause');
+      expect(score.calls.last, 'stop');
       expect(_playMark, findsOneWidget);
     });
 
     testWidgets('with music on in Me, the evening shows it playing and a '
         'press quiets it for tonight', (tester) async {
       final main = _MainMusic();
+      final score = _Score();
       final music = BackgroundMusicController(
         mainMusic: main,
+        classDayScore: score,
         transport: _FocusTransport(),
       );
       final state = _tuesdayKept()..musicEnabled = true;
       unawaited(music.setEnabled(true));
       await _mount(tester, at: _ny(6, 19, 30), state: state, music: music);
+      await tester.pump(const Duration(milliseconds: 100));
       expect(_levels, findsOneWidget);
+      // The page told the controller it is a class day, in its evening: the
+      // Evening bed, with no opener (nothing was pressed), and not the rotation.
+      expect(score.calls, ['start:evening']);
+      expect(main.enabled, isFalse);
       await tester.tap(_musicRow);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      expect(main.calls.last, 'pause');
+      expect(score.calls.last, 'stop');
       expect(state.musicEnabled, isTrue, reason: 'Me keeps his setting');
       expect(music.enabled, isTrue);
     });
@@ -791,8 +852,12 @@ void main() {
     testWidgets('with the music on the glass stays whole: only the shell is '
         'told to step back', (tester) async {
       final main = _MainMusic();
+      // On a class day the score is the room's music, so it is the recorded
+      // score that plays here and never the real audio transport.
+      final score = _Score();
       final music = BackgroundMusicController(
         mainMusic: main,
+        classDayScore: score,
         transport: _FocusTransport(),
       );
       final state = _tuesdayKept()..musicEnabled = true;
@@ -808,6 +873,7 @@ void main() {
       );
       // Longer than the old step-back took to settle (1.8 s).
       await _pumpFor(tester, const Duration(milliseconds: 2600));
+      expect(score.calls, ['start:evening'], reason: 'the Evening bed plays');
       expect(_levels, findsOneWidget);
       expect(quiet.value, isTrue, reason: 'the HUD and the dock step back');
       // Nothing dims the card or its foot, so every word keeps its colour
@@ -832,8 +898,10 @@ void main() {
     testWidgets("tonight's choice gives way to the saved setting once the "
         'evening is over', (tester) async {
       final main = _MainMusic();
+      final score = _Score();
       final music = BackgroundMusicController(
         mainMusic: main,
+        classDayScore: score,
         transport: _FocusTransport(),
       );
       unawaited(music.setEnabled(false));
@@ -847,6 +915,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(music.roomChoice, isTrue);
+      expect(score.playing, isTrue);
       // Wednesday morning: a class day again, before any class.
       Clock.freeze(_ny(7, 7, 30));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -854,7 +923,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expect(_evening, findsNothing);
       expect(music.roomChoice, isNull);
-      expect(main.calls.last, 'pause');
+      expect(score.calls.last, 'stop');
+      expect(score.playing, isFalse);
     });
 
     testWidgets('undo: the day line swiped left past 42% restores the save '
