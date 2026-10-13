@@ -207,6 +207,31 @@ void main() {
     );
   });
 
+  roomRenderTest('the board rising over the Doorway', skip: !_renders, (
+    tester,
+  ) async {
+    if (!_wants('transition')) return;
+    final at = _at(6, 12, 30);
+    await _boot(tester, at);
+    final pill = find.byKey(const Key('class-day-toggle-board')).hitTestable();
+    await tester.tap(pill);
+    await tester.pump();
+    for (final (ms, name) in [(150, 'X_rise_150'), (150, 'X_rise_300')]) {
+      var t = 0;
+      while (t < ms) {
+        await tester.pump(const Duration(milliseconds: 15));
+        t += 15;
+      }
+      await sheet.shot(
+        tester,
+        name,
+        at: at,
+        surface: 'QUESTS',
+        note: 'BOARD, ${name.substring(7)} ms into the rise',
+      );
+    }
+  });
+
   roomRenderTest('11:37 in the morning, the last class kept', skip: !_renders, (
     tester,
   ) async {

@@ -145,5 +145,19 @@
     "at": "2026-10-06T21:00:00.000",
     "surface": "QUESTS",
     "note": "Tuesday 21:00 at 130% text, the music on"
+  },
+  {
+    "file": "X_rise_150.png",
+    "when": "Tue Oct 6 12:30",
+    "at": "2026-10-06T12:30:00.000",
+    "surface": "QUESTS",
+    "note": "BOARD, 150 ms into the rise"
+  },
+  {
+    "file": "X_rise_300.png",
+    "when": "Tue Oct 6 12:30",
+    "at": "2026-10-06T12:30:00.000",
+    "surface": "QUESTS",
+    "note": "BOARD, 300 ms into the rise"
   }
 ]
