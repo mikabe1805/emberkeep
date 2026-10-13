@@ -27,8 +27,10 @@ abstract final class PlansCanvas {
   static const Rect tabs = Rect.fromLTWH(8.7, 220.7, 116.3, 342);
 
   /// The left page under the rows: the arrows that turn the page, the term,
-  /// and the way back to today.
-  static const Rect leftFoot = Rect.fromLTWH(8.7, 566, 116.3, 124);
+  /// and the way back to today. It ends two points above the page's lower
+  /// edge (the paper's lip begins near 683, measured from the plate), so
+  /// nothing in it is drawn over that edge.
+  static const Rect leftFoot = Rect.fromLTWH(8.7, 566, 116.3, 115);
 
   /// The right page's live field: heading, ADD, the day's cards. It runs down
   /// to the page's lower margin; what does not fit scrolls inside it.

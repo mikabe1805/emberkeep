@@ -1447,6 +1447,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         return;
       }
       _activeReceipts++;
+      // A Quest finished from another room (Plans) has no card in view here.
+      final boardInView = TickerMode.valuesOf(context).enabled;
       _showBoardLayer(
         overlay,
         (finish) => Stack(
@@ -1457,6 +1459,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               state: s,
               xpBefore: xpBefore,
               levelBefore: levelBefore,
+              undoOnBoard: boardInView,
               onReflect: (text) => _keepQuestReflection(s, q, text),
               onDone: finish,
             ),

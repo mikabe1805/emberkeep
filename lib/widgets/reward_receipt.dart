@@ -34,6 +34,7 @@ class RewardReceipt extends StatefulWidget {
     this.onReflect,
     this.xpBefore,
     this.levelBefore,
+    this.undoOnBoard = true,
   });
 
   final RewardBundle bundle;
@@ -55,6 +56,12 @@ class RewardReceipt extends StatefulWidget {
   /// [state] as not yet committed.
   final int? xpBefore;
   final int? levelBefore;
+
+  /// Whether the Quests board's card is on screen to swipe. A Quest finished
+  /// from another room (Plans, say) has no card in view, so the receipt says
+  /// where the undo is instead of telling a person to swipe one that is not
+  /// there.
+  final bool undoOnBoard;
 
   @override
   State<RewardReceipt> createState() => _RewardReceiptState();
@@ -522,7 +529,11 @@ class _RewardReceiptState extends State<RewardReceipt>
             // Was 8.5 pt in textLo — the smallest, lowest-contrast string in
             // the app, sitting beside its brightest numeral.
             Text(
-              _reflectionSaved ? 'QUEST SETTLED' : 'SWIPE TO UNDO',
+              _reflectionSaved
+                  ? 'QUEST SETTLED'
+                  : widget.undoOnBoard
+                  ? 'SWIPE TO UNDO'
+                  : 'UNDO IN QUESTS',
               style: Type.label.copyWith(
                 fontSize: Type.minLabel,
                 color: Palette.textMid,

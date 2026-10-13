@@ -1,5 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../clock.dart';
+import '../../daybook/domain/civil_date.dart';
+
 enum AcademicCalendarMode {
   month('MONTH', 1),
   week('WEEK', 7),
@@ -28,12 +31,20 @@ abstract interface class AcademicCalendarPreferences {
   Future<void> save(AcademicCalendarViewState state);
 }
 
+/// What Plans remembers between visits: its view (DAY, WEEK or MONTH) for good,
+/// and the day it was on only for the day it was chosen. A new day opens on
+/// today, so a Sunday left selected on Sunday never greets Monday.
 final class LocalAcademicCalendarPreferences
     implements AcademicCalendarPreferences {
   static const _modeKey = 'room_of_days_academic_calendar_mode_v1';
   static const _dateKey = 'room_of_days_academic_calendar_date_v1';
   static const _threeDayStartKey =
       'room_of_days_academic_calendar_three_day_start_v1';
+
+  /// The day the dates above were saved on.
+  static const _savedOnKey = 'room_of_days_academic_calendar_saved_on_v1';
+
+  static String _today() => CivilDate.fromDateTime(Clock.now()).toString();
 
   @override
   Future<AcademicCalendarViewState> load() async {
@@ -45,10 +56,16 @@ final class LocalAcademicCalendarPreferences
         // Plans opens on today's page of the daybook until a view is chosen.
         orElse: () => AcademicCalendarMode.day,
       );
+      // A day chosen on an earlier day is not today's page: a new day opens
+      // Plans on today. A save with no stamp was made before this rule and
+      // is read the same way, since there is no telling which day it was.
+      final fresh = preferences.getString(_savedOnKey) == _today();
       return AcademicCalendarViewState(
         mode: mode,
-        selectedDate: preferences.getString(_dateKey),
-        threeDayStartDate: preferences.getString(_threeDayStartKey),
+        selectedDate: fresh ? preferences.getString(_dateKey) : null,
+        threeDayStartDate: fresh
+            ? preferences.getString(_threeDayStartKey)
+            : null,
       );
     } catch (_) {
       return const AcademicCalendarViewState(mode: AcademicCalendarMode.day);
@@ -65,6 +82,7 @@ final class LocalAcademicCalendarPreferences
           preferences.setString(_dateKey, state.selectedDate!),
         if (state.threeDayStartDate != null)
           preferences.setString(_threeDayStartKey, state.threeDayStartDate!),
+        preferences.setString(_savedOnKey, _today()),
       ]);
     } catch (_) {
       // View preferences are non-essential; schedule content is not touched.

@@ -585,7 +585,9 @@ class _BookState extends State<_Book> {
       loading: widget.loading,
       showToday: !_todayVisible,
       onToday: widget.actions.onToday,
-      todayFirst: widget.mode == AcademicCalendarMode.week,
+      // The week's foot is short: with the way back showing, the term and the
+      // clock have no room under it.
+      showTerm: !(widget.mode == AcademicCalendarMode.week && !_todayVisible),
     ),
   );
 

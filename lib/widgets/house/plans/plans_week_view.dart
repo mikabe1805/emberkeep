@@ -310,7 +310,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dim = entry.completed || entry.cancelled;
+    final dim = entry.completed || entry.completedNow || entry.cancelled;
     return PlansGlass(
       radius: 5,
       shadow: false,
@@ -371,7 +371,7 @@ class _Strip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dim = entry.completed || entry.cancelled;
+    final dim = entry.completed || entry.completedNow || entry.cancelled;
     final timed = entry.section == DaybookSection.timed;
     final time = timed
         ? _short(entry.startMinute!)
