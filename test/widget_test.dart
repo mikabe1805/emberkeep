@@ -56,6 +56,21 @@ Future<void> pumpApp(
   }
 }
 
+/// Holds the app's clock at a Wednesday midday for the rest of the test.
+///
+/// [pumpApp] boots the whole app on the wall clock, and the hour of day changes
+/// what the app does with a finished Quest: before 8 AM it also unlocks Dawn
+/// Patrol and after 9 PM Burning Late, so a second trophy toast queues behind
+/// First Step, and from 5 PM to 4 AM Close Day moves from the board's footer to
+/// the evening rail. A test that waits out fixed times and then drives the board
+/// by coordinates would otherwise see a different screen depending on when the
+/// suite runs (this machine is on Eastern time, Codemagic's Mac on UTC). A
+/// weekday midday has none of those. Put back to the real clock afterwards.
+void holdMiddayClock() {
+  Clock.freeze(DateTime(2026, 10, 14, 12));
+  addTearDown(Clock.reset);
+}
+
 /// Settle a finite animation (route push, step switch): one frame to start
 /// the ticker (epoch), then enough elapsed time to finish.
 Future<void> settle(WidgetTester tester) async {
@@ -596,6 +611,7 @@ void main() {
   });
 
   testWidgets('undo restores a quest completed by accident', (tester) async {
+    holdMiddayClock();
     await pumpApp(tester);
 
     await completeQuest(tester, 'Walk 10 minutes');
@@ -621,8 +637,7 @@ void main() {
     await revealQuest(tester, 'Walk 10 minutes');
     final card = find.byKey(const ValueKey('undo-Walk 10 minutes'));
     expect(card, findsOneWidget);
-    // mid-screen: the top of the page is under the shell's HUD, and what sits
-    // above the card depends on the hour the test runs at
+    // mid-screen: the top of the page is under the shell's HUD
     await Scrollable.ensureVisible(tester.element(card), alignment: 0.5);
     await tester.pump(const Duration(milliseconds: 100));
     await tester.fling(card, const Offset(-500, 0), 1500);
