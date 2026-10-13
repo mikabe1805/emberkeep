@@ -4,7 +4,8 @@
 // It is the class-day room's sibling. The same scene, the same glass and the
 // same quiet bar; the rail holds the three quests as tickets, the glass leads
 // with the foremost one (its title, one supporting line, MARK COMPLETE), and
-// FOCUS, ADD and BOARD sit under a fine rule. Completing a quest, from the
+// FOCUS and ADD sit under a fine rule, with the way to all quests (the full
+// board) as a pill at their end. Completing a quest, from the
 // bar or by lifting its ticket, is the same lift, flip, stamp and hang in the
 // scene; the glass moves on to the next at once. When all three are kept the
 // tickets go into the bowl and the glass says the day is enough. Nothing
@@ -25,7 +26,12 @@ import '../../../engine.dart';
 import '../../../models.dart';
 import '../../../tokens.dart';
 import '../../class_day/class_day_room.dart'
-    show ClassGlass, ClassRoomCamera, ClassThereButton, classStatusAbove;
+    show
+        ClassGlass,
+        ClassGlassPill,
+        ClassRoomCamera,
+        ClassThereButton,
+        classStatusAbove;
 import '../../class_day/class_room_stage.dart' show classStatusScrimHeight;
 import '../../class_day/doorway_model.dart';
 import '../../class_day/doorway_motion.dart' show DoorwayBeat;
@@ -507,17 +513,9 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
             ),
           ),
         ),
-        _Cells(
-          cells: [
-            _Cell('ADD', 'Add a quest', widget.onAdd, key: 'add'),
-            _Cell(
-              'BOARD',
-              'Show the full Quest board',
-              widget.onBoard,
-              key: 'board',
-            ),
-          ],
-          quiet: true,
+        _Foot(
+          cells: [_Cell('ADD', 'Add a quest', widget.onAdd, key: 'add')],
+          onBoard: widget.onBoard,
         ),
       ],
     );
@@ -525,7 +523,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
 
   Widget _tools() {
     final resting = mode == QuestCardMode.closed;
-    return _Cells(
+    return _Foot(
       cells: [
         _Cell(
           'FOCUS',
@@ -534,13 +532,8 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
           key: 'focus',
         ),
         _Cell('ADD', 'Add a quest', resting ? null : widget.onAdd, key: 'add'),
-        _Cell(
-          'BOARD',
-          'Show the full Quest board',
-          widget.onBoard,
-          key: 'board',
-        ),
       ],
+      onBoard: widget.onBoard,
     );
   }
 }
@@ -585,84 +578,79 @@ class _Cell {
   final String key;
 }
 
-/// The glass's foot: equal cells with a hairline between, or (when [quiet])
-/// two small words with a dot between, centered.
-class _Cells extends StatelessWidget {
-  const _Cells({required this.cells, this.quiet = false});
+/// The glass's foot: the quiet tools in words (FOCUS, ADD) at the left and the
+/// way to all quests as a real pill at the right. At large text the words wrap
+/// within the room the pill leaves them.
+class _Foot extends StatelessWidget {
+  const _Foot({required this.cells, required this.onBoard});
 
   final List<_Cell> cells;
-  final bool quiet;
+  final VoidCallback onBoard;
 
-  @override
-  Widget build(BuildContext context) {
-    Widget word(_Cell cell) => Pressable(
-      key: Key('quest-day-${cell.key}'),
-      pressDepth: 1,
-      soundEnabled: false,
-      edgeColor: Colors.transparent,
-      borderRadius: BorderRadius.circular(6),
-      material: MaterialSound.parchment,
-      interactionSound: InteractionSound.navigate,
-      enabled: cell.onTap != null,
-      semanticLabel: cell.semantic,
-      onTapUp: (_) => cell.onTap?.call(),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-        child: Center(
-          widthFactor: quiet ? 1 : null,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: quiet ? 10 : 4),
-            child: ExcludeSemantics(
-              child: Text(
-                cell.label,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.fade,
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  letterSpacing: quiet ? 2.2 : 2.4,
-                  color: Palette.textMid.withValues(
-                    alpha: cell.onTap == null ? 0.4 : (quiet ? 0.8 : 0.95),
-                  ),
+  Widget _word(_Cell cell) => Pressable(
+    key: Key('quest-day-${cell.key}'),
+    pressDepth: 1,
+    soundEnabled: false,
+    edgeColor: Colors.transparent,
+    borderRadius: BorderRadius.circular(6),
+    material: MaterialSound.parchment,
+    interactionSound: InteractionSound.navigate,
+    enabled: cell.onTap != null,
+    semanticLabel: cell.semantic,
+    onTapUp: (_) => cell.onTap?.call(),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+      child: Center(
+        widthFactor: 1,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 18),
+          child: ExcludeSemantics(
+            child: Text(
+              cell.label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.fade,
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 2.2,
+                color: Palette.textMid.withValues(
+                  alpha: cell.onTap == null ? 0.4 : 0.9,
                 ),
               ),
             ),
           ),
         ),
       ),
-    );
-    if (quiet) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (var i = 0; i < cells.length; i++) ...[
-            if (i > 0)
-              Text(
-                '·',
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  color: Palette.textLo,
-                ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          children: [
+            Expanded(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [for (final cell in cells) _word(cell)],
               ),
-            word(cells[i]),
-          ],
-        ],
-      );
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var i = 0; i < cells.length; i++) ...[
-            if (i > 0)
-              Container(
-                width: 1,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                color: Palette.brass.withValues(alpha: 0.2),
+            ),
+            const SizedBox(width: 8),
+            // However wide its words, the pill leaves the tools the rest of
+            // the line.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: box.maxWidth * 0.62),
+              child: ClassGlassPill(
+                key: const Key('quest-day-board'),
+                label: 'All quests',
+                semanticLabel: 'Show all quests, the full Quest board',
+                onTap: onBoard,
               ),
-            Expanded(child: word(cells[i])),
+            ),
           ],
-        ],
+        ),
       ),
     );
   }

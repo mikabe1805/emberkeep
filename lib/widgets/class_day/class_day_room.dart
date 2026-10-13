@@ -5,8 +5,8 @@
 // tickets by the door are the day's state). One owner and one luminous
 // control: the class that just ended (or the one he is sitting in) leads the
 // glass with "I was there" (or "I'm here"). The HUD keeps the life RPG in two
-// quiet lines (level, XP, the six stats), and Today's three is one line with
-// a BOARD toggle at the glass's foot that brings the full board back.
+// quiet lines (level, XP, the six stats), and the glass's foot holds Today's
+// three and "All quests", a real pill that brings the full board back.
 // Controls live in the glass; nothing is drawn onto the painting.
 library;
 
@@ -111,7 +111,8 @@ class ClassDayRoom extends StatefulWidget {
   /// reads through behind "YOU DID IT.".
   final bool quiet;
 
-  /// Today's three, one line, with the BOARD toggle.
+  /// The glass's foot: Today's three and the way to all quests
+  /// ([ClassDayBottomLine]).
   final Widget bottomLine;
 
   /// Marks these rows (one, or every waiting class for the shortcut).
@@ -142,8 +143,8 @@ class ClassDayRoom extends StatefulWidget {
   /// light at that hour. Null during the class day.
   final ClassEvening? evening;
 
-  /// The folded evening with the room's music on: the glass and the HUD step
-  /// back, and the page is told so the shell's dock can step back too.
+  /// The folded evening with the room's music on: the page is told, so the
+  /// shell's HUD and dock step back. The glass itself stays whole.
   final ValueChanged<bool>? onStepBack;
 
   /// The Doorway's moves the page waits on: a ticket hung, the day's tickets
@@ -154,19 +155,13 @@ class ClassDayRoom extends StatefulWidget {
   State<ClassDayRoom> createState() => _ClassDayRoomState();
 }
 
-class _ClassDayRoomState extends State<ClassDayRoom>
-    with SingleTickerProviderStateMixin {
-  /// 0..1: the music's step back (the glass dims).
-  late final AnimationController _near = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1800),
-    value: _stepBack ? 1 : 0,
-  );
-
+class _ClassDayRoomState extends State<ClassDayRoom> {
   ValueListenable<bool>? _musicOn;
   bool? _toldStepBack;
 
-  /// The day folded to one line with the room's music on.
+  /// The day folded to one line with the room's music on. Only the shell's HUD
+  /// and dock step back for it (the page is told, see [_tellStepBack]); the
+  /// glass never does, so every word on it stays as legible as by day.
   bool get _stepBack =>
       widget.evening != null &&
       widget.card.foremost == null &&
@@ -183,7 +178,7 @@ class _ClassDayRoomState extends State<ClassDayRoom>
   void didUpdateWidget(ClassDayRoom oldWidget) {
     super.didUpdateWidget(oldWidget);
     _bindMusic();
-    _syncNear();
+    _tellStepBack();
   }
 
   void _bindMusic() {
@@ -196,23 +191,8 @@ class _ClassDayRoomState extends State<ClassDayRoom>
 
   void _onMusic() {
     if (!mounted) return;
-    setState(_syncNear);
-  }
-
-  void _syncNear() {
-    final want = _stepBack ? 1.0 : 0.0;
     _tellStepBack();
-    if (_near.value == want && !_near.isAnimating) return;
-    if (_near.isAnimating && _nearTarget == want) return;
-    _nearTarget = want;
-    _near.animateTo(
-      want,
-      duration: Duration(milliseconds: widget.reduceMotion ? 360 : 1800),
-      curve: Curves.easeInOutSine,
-    );
   }
-
-  double? _nearTarget;
 
   void _tellStepBack() {
     final step = _stepBack;
@@ -243,7 +223,6 @@ class _ClassDayRoomState extends State<ClassDayRoom>
     if (_toldStepBack == true && tell != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => tell(false));
     }
-    _near.dispose();
     super.dispose();
   }
 
@@ -264,27 +243,33 @@ class _ClassDayRoomState extends State<ClassDayRoom>
       above + topPad + classStatusScrimHeight - 59,
     );
     final Widget body = evening == null
-        ? SingleChildScrollView(
-            // A day with many classes, or large text, scrolls inside the glass
-            // rather than running past it. Short days are exactly as tall as
-            // their rows (the viewport hugs them) and nothing is clipped.
-            key: const Key('class-day-scroll'),
-            primary: false,
-            clipBehavior: Clip.none,
-            physics: const ClampingScrollPhysics(),
-            child: ClassCardBody(
-              state: widget.state,
-              card: card,
-              now: widget.now,
-              onMark: widget.onMark,
-              onSelect: widget.onSelect,
-              onUndo: widget.onUndo,
-              undoIdentity: widget.undoIdentity,
-              onDismiss: widget.onDismiss,
-              dismissedLabel: widget.dismissedLabel,
-              onUndoDismiss: widget.onUndoDismiss,
-              reduceMotion: widget.reduceMotion,
-              lightDirection: widget.lightDirection,
+        ? ClipRect(
+            // Rows that scroll past the foot go under it, never over its
+            // words (the soft glows above and beside the rows still spill).
+            clipper: const _ClipBelow(),
+            child: SingleChildScrollView(
+              // A day with many classes, or large text, scrolls inside the
+              // glass rather than running past it. Short days are exactly as
+              // tall as their rows (the viewport hugs them) and nothing is
+              // clipped.
+              key: const Key('class-day-scroll'),
+              primary: false,
+              clipBehavior: Clip.none,
+              physics: const ClampingScrollPhysics(),
+              child: ClassCardBody(
+                state: widget.state,
+                card: card,
+                now: widget.now,
+                onMark: widget.onMark,
+                onSelect: widget.onSelect,
+                onUndo: widget.onUndo,
+                undoIdentity: widget.undoIdentity,
+                onDismiss: widget.onDismiss,
+                dismissedLabel: widget.dismissedLabel,
+                onUndoDismiss: widget.onUndoDismiss,
+                reduceMotion: widget.reduceMotion,
+                lightDirection: widget.lightDirection,
+              ),
             ),
           )
         : SingleChildScrollView(
@@ -345,33 +330,26 @@ class _ClassDayRoomState extends State<ClassDayRoom>
             ),
             LayoutId(
               id: _Slot.glass,
+              // The glass is never dimmed, with the music on or off: an
+              // opacity over it thins its dark body as well as its words, and
+              // the rug shows through (a card at 45% was the evening that read
+              // washed out on a phone). The music steps back the HUD and the
+              // dock, which are chrome; the card is the content.
               child: _Quiet(
                 quiet: widget.quiet,
-                child: AnimatedBuilder(
-                  animation: _near,
-                  builder: (context, child) => Opacity(
-                    // With the music on the glass steps back; its doors
-                    // stay where they are and still answer a touch.
-                    opacity: 1 - 0.55 * _near.value,
-                    child: child,
-                  ),
-                  child: ClassGlass(
-                    key: const Key('class-day-glass'),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Flexible(child: body),
-                        // Today's three and BOARD sit at the foot of the
-                        // glass, under a fine rule, as in the concept.
-                        const _GlassRule(inset: 0),
-                        _StepBack(
-                          near: _near,
-                          depth: 0.55,
-                          child: widget.bottomLine,
-                        ),
-                      ],
-                    ),
+                child: ClassGlass(
+                  key: const Key('class-day-glass'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Flexible(child: body),
+                      // Today's three and the way to all quests sit at the
+                      // foot of the glass, under a fine rule, as in the
+                      // concept.
+                      const _GlassRule(inset: 0),
+                      widget.bottomLine,
+                    ],
                   ),
                 ),
               ),
@@ -385,25 +363,17 @@ class _ClassDayRoomState extends State<ClassDayRoom>
 
 enum _Slot { stage, glass }
 
-/// Steps [child] back by [depth] as the music's [near] rises.
-class _StepBack extends StatelessWidget {
-  const _StepBack({
-    required this.near,
-    required this.depth,
-    required this.child,
-  });
-
-  final Animation<double> near;
-  final double depth;
-  final Widget child;
+/// Clips only below: a scroll view's rows may glow above and beside it, but
+/// not run down over what sits under it.
+class _ClipBelow extends CustomClipper<Rect> {
+  const _ClipBelow();
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: near,
-    builder: (context, child) =>
-        Opacity(opacity: 1 - depth * near.value, child: child),
-    child: child,
-  );
+  Rect getClip(Size size) =>
+      Rect.fromLTRB(-48, -48, size.width + 48, size.height);
+
+  @override
+  bool shouldReclip(_ClipBelow oldClipper) => false;
 }
 
 class _Quiet extends StatelessWidget {
@@ -2505,63 +2475,148 @@ class _NextLine extends StatelessWidget {
   }
 }
 
-/// Today's three, one line, and BOARD: the game stays one tap away. [three]
-/// is the board's own pips and words; [onBoard] brings the full board back.
+/// The way between the room and the full Quest board, as a real control in the
+/// glass: a 44 pt outlined pill with words that say where it goes ("All quests"
+/// to open the board, "Today" to come back) and a chevron that points the way
+/// the board moves. Outlined, never filled or lit: the one bright control on a
+/// card is its own action (I WAS THERE, MARK COMPLETE), and this one only has
+/// to be seen and read at a glance.
+class ClassGlassPill extends StatelessWidget {
+  const ClassGlassPill({
+    super.key,
+    required this.label,
+    required this.semanticLabel,
+    required this.onTap,
+    this.icon = Icons.keyboard_arrow_up_rounded,
+  });
+
+  /// The pill's height, which is also its touch target.
+  static const double height = 44;
+
+  /// Its words follow the text size up to this, like the HUD's: past it the
+  /// pill would crowd out the line it sits on.
+  static const double textCap = 1.3;
+
+  final String label;
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final IconData icon;
+
+  Widget _face(bool pressed, bool focused) {
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: textCap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: height, minWidth: height),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(height / 2),
+            color: Color.fromRGBO(255, 226, 170, pressed ? 0.16 : 0.05),
+            border: Border.all(
+              color: focused
+                  ? Palette.textHi
+                  : Palette.brassLit.withValues(alpha: pressed ? 0.9 : 0.55),
+            ),
+          ),
+          // The control's name is the semantic label; its words are not
+          // read a second time.
+          child: ExcludeSemantics(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 9, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.fade,
+                      style: LedgerType.body.copyWith(
+                        fontSize: 16.5,
+                        height: 1.1,
+                        fontWeight: FontWeight.w500,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(icon, size: 20, color: Palette.brassLit),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      pressDepth: 1,
+      edgeColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(height / 2),
+      material: MaterialSound.parchment,
+      interactionSound: InteractionSound.navigate,
+      semanticLabel: semanticLabel,
+      onTapUp: (_) => onTap(),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          _face(pressed, focused),
+      child: _face(false, false),
+    );
+  }
+}
+
+/// Today's three and the way to all quests: the glass's foot, on one line.
+/// [three] is the board's own rings and words, given the room the pill leaves
+/// it (it scales down to fit, never to an ellipsis); [onBoard] opens the full
+/// board, or with [toRoom] (the board's own foot) lets it down to the room
+/// again.
 class ClassDayBottomLine extends StatelessWidget {
   const ClassDayBottomLine({
     super.key,
     required this.three,
     required this.onBoard,
-    this.boardLabel = 'BOARD',
-    this.boardIcon = Icons.keyboard_arrow_up_rounded,
+    this.toRoom = false,
   });
 
   final Widget three;
   final VoidCallback onBoard;
-  final String boardLabel;
-  final IconData boardIcon;
+  final bool toRoom;
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 44),
-      child: Row(
-        children: [
-          Expanded(child: three),
-          Pressable(
-            key: Key('class-day-toggle-${boardLabel.toLowerCase()}'),
-            pressDepth: 1,
-            edgeColor: Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
-            material: MaterialSound.parchment,
-            interactionSound: InteractionSound.navigate,
-            semanticLabel: boardLabel == 'BOARD'
-                ? 'Show the full Quest board'
-                : 'Back to the room',
-            onTapUp: (_) => onBoard(),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 44, minWidth: 64),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 4, 2, 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      boardLabel,
-                      style: Type.label.copyWith(
-                        fontSize: Type.minLabel,
-                        letterSpacing: 1.4,
-                        color: Palette.textMid,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(boardIcon, size: 18, color: Palette.textMid),
-                  ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: ClassGlassPill.height),
+        child: LayoutBuilder(
+          builder: (context, box) => Row(
+            children: [
+              Expanded(child: three),
+              const SizedBox(width: 8),
+              // However wide its words, the pill leaves Today's three the
+              // rest of the line.
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: box.maxWidth * 0.62),
+                child: ClassGlassPill(
+                  key: Key(
+                    toRoom ? 'class-day-toggle-room' : 'class-day-toggle-board',
+                  ),
+                  label: toRoom ? 'Today' : 'All quests',
+                  icon: toRoom
+                      ? Icons.keyboard_arrow_down_rounded
+                      : Icons.keyboard_arrow_up_rounded,
+                  semanticLabel: toRoom
+                      ? 'Back to today’s room'
+                      : 'Show all quests, the full Quest board',
+                  onTap: onBoard,
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

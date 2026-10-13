@@ -47,7 +47,7 @@ import '../widgets/glass.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/house/house_backdrop.dart';
-import '../widgets/house/house_hud.dart' show HouseHudScope;
+import '../widgets/house/house_hud.dart' show HouseHudScope, houseHudBottom;
 import '../widgets/house/house_room.dart';
 import '../widgets/house/house_travel_scope.dart' show HouseRoomUi;
 import '../widgets/house/quests/quest_doorway_model.dart';
@@ -4505,6 +4505,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // mode the day is in) and the two board tools. It replaces the stack
         // of separate rails, slabs and captions that used to sit between the
         // room and the work, where they blended into one grey band.
+        // In the house the header's first row has room beside the desk tile:
+        // FOCUS and ADD sit there, and the strip below is Today's three alone,
+        // so its words are never cut to make room for them.
+        final toolsInHeader = shellHud && !dayResting;
         final pips = <_ThreePip>[
           for (var slot = 0; slot < 3; slot++)
             if (!hasDailyField || slot >= chosenField.length)
@@ -4535,8 +4539,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           reduceMotion: reduceMotion,
           focusMode: showFocus,
           onChoose: dayResting ? null : _chooseToday,
-          onFocus: dayResting ? null : _toggleFocus,
-          onAdd: dayResting ? null : _quickAdd,
+          onFocus: dayResting || toolsInHeader ? null : _toggleFocus,
+          onAdd: dayResting || toolsInHeader ? null : _quickAdd,
         );
         // Everything that is not one of today's three sits behind one quiet
         // divider, at the exact place those Quests would appear.
@@ -4583,9 +4587,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             onExit: _localMotion?.clearPointer,
             child: Stack(
               fit: StackFit.expand,
+              // In the house the Doorway reaches up under the status bar.
+              clipBehavior: shellHud ? Clip.none : Clip.hardEdge,
               children: [
                 const Positioned.fill(child: _QuestDeskGround()),
-                if (classDay == null) ...[
+                if (shellHud) ...[
+                  // In the house the board is a sheet over the Doorway: its
+                  // own plate, whole and still, dimmed (as the Me sheets dim
+                  // the mantel), with the HUD over the top. No second room
+                  // is painted under the HUD, and no room photo hangs there.
+                  HouseRoomBackdrop(
+                    room: HouseRoom.quests,
+                    parallax: _activeParallax,
+                    reduceMotion: true,
+                    child: const SizedBox.shrink(),
+                  ),
+                  const _QuestBoardDim(),
+                ] else if (classDay == null) ...[
                   // A day without classes: the house's own hall. The Doorway's
                   // plates and light stand behind the board with the rail empty
                   // (Today's three go on it later), so every room of the house
@@ -4634,7 +4652,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            SizedBox(height: roomHeight - 8),
+                            // Under the house's HUD the board starts clear of
+                            // it; on its own it leaves the room's slice above.
+                            SizedBox(
+                              height: shellHud
+                                  ? houseHudBottom(
+                                          textScale: MediaQuery.textScalerOf(
+                                            context,
+                                          ).scale(1),
+                                        ) +
+                                        6
+                                  : roomHeight - 8,
+                            ),
                             // ── Header HUD ──────────────────────────────────────────
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
@@ -4659,6 +4688,44 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                               onTap: _openQuestDeskStyle,
                                               compact: true,
                                             ),
+                                            if (toolsInHeader) ...[
+                                              const Spacer(),
+                                              _BoardToolGroup(
+                                                framed: false,
+                                                focusMode: showFocus,
+                                                onFocus: _toggleFocus,
+                                                onAdd: _quickAdd,
+                                              ),
+                                            ] else if (shellHud && dayResting)
+                                              // The kept day has no tools to
+                                              // show: its word takes their
+                                              // place beside the desk.
+                                              Expanded(
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: 14,
+                                                      ),
+                                                  child: Semantics(
+                                                    header: true,
+                                                    child: Text(
+                                                      'THE DAY IS KEPT',
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: Type.label
+                                                          .copyWith(
+                                                            fontSize:
+                                                                Type.minLabel,
+                                                            height: 1.2,
+                                                            letterSpacing: 1.5,
+                                                            color:
+                                                                Palette.textMid,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             if (!shellHud) ...[
                                               const SizedBox(width: 10),
                                               Expanded(
@@ -4759,7 +4826,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                             ],
                                           ],
                                         ),
-                                        if (!shortFeatured) ...[
+                                        if (!shortFeatured &&
+                                            !(shellHud && dayResting)) ...[
                                           const SizedBox(height: 4),
                                           Divider(
                                             height: 1,
@@ -4885,7 +4953,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               12,
                               3,
                               12,
-                              classDay == null && !withRoomLine ? 130 : 182,
+                              classDay == null && !withRoomLine ? 130 : 206,
                             ),
                             itemCount: listItemCount + 1,
                             separatorBuilder: (_, _) =>
@@ -5299,6 +5367,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           ),
                   ),
                 ),
+                // A card climbing under the HUD dissolves below its numbers
+                // instead of crossing them (the Journal's and Goals' dissolve).
+                if (shellHud)
+                  _QuestBoardHudDissolve(
+                    controller: _boardScroll,
+                    textScale: MediaQuery.textScalerOf(context).scale(1),
+                  ),
               ],
             ),
           ),
@@ -5634,6 +5709,95 @@ class _QuestDoorwayVeil extends StatelessWidget {
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The board's dim over the Doorway in the house: the plate stays whole under
+/// a deep walnut ink (about what the Me sheets' barrier does to the mantel),
+/// heavier toward the foot where the work runs on, so every quest reads. It
+/// dims; it never tints a daylight plate to look like another hour (the
+/// plate's own light of the hour is underneath), and it ignores touches.
+class _QuestBoardDim extends StatelessWidget {
+  const _QuestBoardDim();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      key: const Key('quest-board-dim'),
+      left: 0,
+      right: 0,
+      top: -classStatusAbove(context),
+      bottom: 0,
+      child: const IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x8017100D), Color(0xA617100D), Color(0xC717100D)],
+              stops: [0, 0.45, 1],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Under the house's HUD a card that climbs dissolves into the dark below the
+/// HUD's numbers instead of crossing them: the Journal's and Goals' dissolve,
+/// from the top of the screen down past the HUD, coming up over the first 60
+/// points of the board's scroll and not drawn at rest.
+class _QuestBoardHudDissolve extends StatelessWidget {
+  const _QuestBoardHudDissolve({
+    required this.controller,
+    required this.textScale,
+  });
+
+  final ScrollController controller;
+  final double textScale;
+
+  /// How much scroll the dissolve takes to come up over (points).
+  static const double scroll = 60;
+
+  /// How far the board has scrolled. For one frame, while the board is
+  /// swapped for another (a class day's room and board, the timetable
+  /// arriving), the controller can hold two positions and has no single
+  /// offset: the newest one is the board that stays.
+  double _offset() {
+    if (!controller.hasClients) return 0;
+    final position = controller.positions.last;
+    return position.hasPixels ? position.pixels : 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final above = classStatusAbove(context);
+    return Positioned(
+      key: const Key('quest-board-hud-dissolve'),
+      left: 0,
+      right: 0,
+      top: -above,
+      height: above + houseHudBottom(textScale: textScale) + 14,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) => Opacity(
+            opacity: (_offset() / scroll).clamp(0.0, 1.0),
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF17100D), Color(0x0017100D)],
+                  stops: [0.84, 1],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -7992,36 +8156,44 @@ class _ClassDayThreeLine extends StatelessWidget {
           : 'Choose today’s three: up to three Quests to carry.',
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
-        child: Row(
-          children: [
-            _ThreePips(pips: pips, glow: allKept, reduceMotion: reduceMotion),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Today’s three',
-                      style: LedgerType.body.copyWith(
-                        fontSize: 18,
-                        color: Palette.textHi,
-                      ),
+        // Scales down to the room the way to all quests leaves it, so the
+        // words are never cut (the target stays 44 pt tall).
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ThreePips(pips: pips, glow: allKept, reduceMotion: reduceMotion),
+              const SizedBox(width: 10),
+              // Title over status, so the pill fits beside it on one line.
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Today’s three',
+                    maxLines: 1,
+                    style: LedgerType.body.copyWith(
+                      fontSize: 18,
+                      height: 1.08,
+                      color: Palette.textHi,
                     ),
-                    TextSpan(
-                      text: '  ·  $status',
-                      style: LedgerType.body.copyWith(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: allKept ? Palette.xpLight : Palette.textLo,
-                      ),
+                  ),
+                  Text(
+                    status,
+                    maxLines: 1,
+                    style: LedgerType.body.copyWith(
+                      fontSize: 15,
+                      height: 1.08,
+                      fontStyle: FontStyle.italic,
+                      color: allKept ? Palette.xpLight : Palette.textMid,
                     ),
-                  ],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -8053,56 +8225,60 @@ class _BoardRoomLine extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x0017120F), Color(0xF017120F), Color(0xFF17120F)],
-          stops: [0, 0.38, 1],
+          colors: [Color(0x0017120F), Color(0xFF17120F), Color(0xFF17120F)],
+          stops: [0, 0.3, 1],
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 2),
+        padding: const EdgeInsets.fromLTRB(18, 26, 18, 2),
         child: ClassDayBottomLine(
-          boardLabel: 'ROOM',
-          boardIcon: Icons.keyboard_arrow_down_rounded,
+          toRoom: true,
           onBoard: onRoom,
-          three: Row(
-            children: [
-              for (final record in kept)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: QuestCheckRing(
-                    stat: record.stat,
-                    done: true,
-                    size: 18,
-                    reduceMotion: true,
+          three: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final record in kept)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: QuestCheckRing(
+                      stat: record.stat,
+                      done: true,
+                      size: 18,
+                      reduceMotion: true,
+                    ),
                   ),
-                ),
-              if (kept.isNotEmpty) const SizedBox(width: 6),
-              Flexible(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '$name’s classes',
+                if (kept.isNotEmpty) const SizedBox(width: 6),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$name’s classes',
+                      maxLines: 1,
+                      style: LedgerType.body.copyWith(
+                        fontSize: 18,
+                        height: 1.08,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    if (kept.isNotEmpty)
+                      Text(
+                        '${kept.length} attended',
+                        maxLines: 1,
                         style: LedgerType.body.copyWith(
-                          fontSize: 18,
-                          color: Palette.textHi,
+                          fontSize: 15,
+                          height: 1.08,
+                          fontStyle: FontStyle.italic,
+                          color: Palette.textMid,
                         ),
                       ),
-                      if (kept.isNotEmpty)
-                        TextSpan(
-                          text: '  ·  ${kept.length} attended',
-                          style: LedgerType.body.copyWith(
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                            color: Palette.textLo,
-                          ),
-                        ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -8135,15 +8311,14 @@ class _QuestBoardRoomLine extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x0017120F), Color(0xF017120F), Color(0xFF17120F)],
-          stops: [0, 0.38, 1],
+          colors: [Color(0x0017120F), Color(0xFF17120F), Color(0xFF17120F)],
+          stops: [0, 0.3, 1],
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 2),
+        padding: const EdgeInsets.fromLTRB(18, 26, 18, 2),
         child: ClassDayBottomLine(
-          boardLabel: 'ROOM',
-          boardIcon: Icons.keyboard_arrow_down_rounded,
+          toRoom: true,
           onBoard: onRoom,
           three: _ClassDayThreeLine(
             quests: quests,

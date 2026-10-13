@@ -605,6 +605,12 @@ void main() {
 
     // wait for the deferred commit, which arms swipe-to-undo on the card
     await tester.pump(const Duration(milliseconds: 1400));
+    // and for the reward receipt, then the first trophy, to go: both sit over
+    // the middle of the page, where the card is about to be swiped (the undo
+    // stays armed, it does not time out)
+    await tester.pump(const Duration(milliseconds: 4600));
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.byType(RewardReceipt), findsNothing);
 
     // swipe the finished card left to undo (the undo snackbar was removed).
     // Drive it as an explicit gesture — tester.drag doesn't reliably trip a
