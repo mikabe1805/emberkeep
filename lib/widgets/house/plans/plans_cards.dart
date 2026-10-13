@@ -3,7 +3,8 @@
 // ring and its "..." menu.
 //
 // The ring is the card's own completion where there is one (tasks, course
-// work, study blocks, a Quest planned for today) and a quiet course ring where
+// work, study blocks, and a Quest on any day's page: that one is the Quests
+// page's own completion, and it counts today) and a quiet course ring where
 // there is not (a class or an event is not something you tick off here; the
 // Quests room has I WAS THERE). Everything a row could do before is still on
 // the card: the "..." menu holds notes and MOVE / CANCEL THIS CLASS for a
@@ -17,12 +18,12 @@ import 'package:flutter/services.dart';
 import '../../../academic_calendar/domain/academic_schedule.dart';
 import '../../../academic_calendar/widgets/academic_calendar_sections.dart';
 import '../../../audio.dart';
-import '../../../clock.dart';
 import '../../../daybook/presentation/daybook_range_projection.dart';
 import '../../../daybook/widgets/daybook_rows.dart';
 import '../../../tokens.dart';
 import 'plans_actions.dart';
 import 'plans_card_menu.dart';
+import 'plans_dates.dart';
 import 'plans_glass.dart';
 
 /// A press that darkens and settles a little, for glass (an ink splash would
@@ -131,6 +132,7 @@ class PlansEntryCard extends StatelessWidget {
     required this.day,
     required this.schedule,
     required this.actions,
+    required this.today,
     this.first = false,
     this.status,
   });
@@ -139,6 +141,10 @@ class PlansEntryCard extends StatelessWidget {
   final DaybookDay day;
   final AcademicSchedule schedule;
   final PlansActions actions;
+
+  /// The day the book is open on in real life, so a card can say which day it
+  /// belongs to ("CHOSEN FOR SUN") and what finishing it counts for.
+  final CivilDate today;
 
   /// The first card of the day has the brighter edge.
   final bool first;
@@ -159,7 +165,7 @@ class PlansEntryCard extends StatelessWidget {
     final course = occurrence == null
         ? null
         : schedule.courseById(occurrence.courseId);
-    final dim = entry.completed || entry.cancelled;
+    final dim = _done || entry.cancelled;
     final conflict = day.summary.conflicts.any(
       (item) =>
           item.leftDisplayKey == entry.displayKey ||
@@ -299,12 +305,19 @@ class PlansEntryCard extends StatelessWidget {
     return Semantics(
       container: true,
       explicitChildNodes: true,
-      label: daybookEntrySemantics(entry),
+      label: daybookEntrySemantics(
+        entry,
+        focusLabel: plansChosenForSpoken(day.date, today),
+      ),
       child: menu == null
           ? card
           : PlansPress(onTap: () => _openMenu(context, menu), child: card),
     );
   }
+
+  /// Done on its own day, or (a Quest on another day's page) already done
+  /// today, so there is nothing left for its ring to do.
+  bool get _done => entry.completed || entry.completedNow;
 
   // ── what the card says ────────────────────────────────────────────────
 
@@ -334,7 +347,7 @@ class PlansEntryCard extends StatelessWidget {
           detail: entry.place?.savedName,
         );
       case DaybookSourceKind.questPlan:
-        return (primary: range, secondary: 'QUEST', detail: null);
+        return (primary: _questLine(range), secondary: 'QUEST', detail: null);
       case DaybookSourceKind.event:
       case DaybookSourceKind.academicWork:
       case DaybookSourceKind.studyBlock:
@@ -350,6 +363,19 @@ class PlansEntryCard extends StatelessWidget {
           detail: extra.isEmpty ? null : extra.join(' · '),
         );
     }
+  }
+
+  /// A Quest's first line. A chosen Quest says its own day: "CHOSEN FOR TODAY"
+  /// on today's page, "CHOSEN FOR SUN" on Sunday's. Finishing it counts today
+  /// whichever page it is tapped on, so once it is finished the line says
+  /// that, not the day it was chosen for.
+  String _questLine(String range) {
+    if (entry.completedToday) return 'DONE TODAY';
+    if (entry.completedNow) return 'DONE';
+    if (entry.section == DaybookSection.focus) {
+      return plansChosenFor(day.date, today);
+    }
+    return range;
   }
 
   static TextStyle _mono(Color color, {double letterSpacing = 1}) => TextStyle(
@@ -373,33 +399,44 @@ class PlansEntryCard extends StatelessWidget {
       VoidCallback? onTap,
       ValueChanged<Offset>? onTapAt,
       bool canReopen = true,
+      String? completeLabel,
+      String? hint,
+      bool haptic = true,
     }) {
       final enabled = onTap != null || onTapAt != null;
-      return Semantics(
-        button: enabled,
-        enabled: enabled,
-        checked: entry.completed,
-        label: entry.completed && (!enabled || !canReopen)
-            ? '$title complete'
-            : entry.completed
-            ? 'Mark $title open'
-            : 'Mark $title complete',
-        excludeSemantics: true,
-        onTap: enabled
-            ? () => _activate(context, onTap: onTap, onTapAt: onTapAt)
-            : null,
-        child: GestureDetector(
-          key: key,
-          behavior: HitTestBehavior.opaque,
-          onTap: enabled
-              ? () => _activate(context, onTap: onTap, onTapAt: onTapAt)
-              : null,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: Center(child: PlansRing(done: entry.completed)),
-          ),
-        ),
+      // The ring is its own 44 pt target; the reward flies out of its centre.
+      return Builder(
+        builder: (ringContext) {
+          void activate() => _activate(
+            ringContext,
+            onTap: onTap,
+            onTapAt: onTapAt,
+            haptic: haptic,
+          );
+          return Semantics(
+            button: enabled,
+            enabled: enabled,
+            checked: _done,
+            label: _done && (!enabled || !canReopen)
+                ? '$title complete'
+                : _done
+                ? 'Mark $title open'
+                : completeLabel ?? 'Mark $title complete',
+            hint: enabled ? hint : null,
+            excludeSemantics: true,
+            onTap: enabled ? activate : null,
+            child: GestureDetector(
+              key: key,
+              behavior: HitTestBehavior.opaque,
+              onTap: enabled ? activate : null,
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Center(child: PlansRing(done: _done)),
+              ),
+            ),
+          );
+        },
       );
     }
 
@@ -419,29 +456,37 @@ class PlansEntryCard extends StatelessWidget {
         title: 'study ${entry.title}',
         onTap: _toggleStudyBlock,
       ),
-      QuestPlanAction() when day.date == CivilDate.fromDateTime(Clock.now()) =>
-        button(
-          key: ValueKey('quest-plan-toggle-${entry.sourceId}'),
-          title: entry.title,
-          onTapAt: !entry.completed && actions.onCompleteQuestPlan != null
-              ? (anchor) => _completeQuestPlan(anchor)
-              : null,
-          canReopen: false,
-        ),
+      // A Quest's ring is the Quests page's own completion (the shell hands
+      // it over), on any day's page. Whichever page it is tapped on, the Quest
+      // is open now and finishing it counts today. The shared path owns the
+      // sound, the haptic, the reward and the undo, so the ring adds none of
+      // its own.
+      QuestPlanAction() => button(
+        key: ValueKey('quest-plan-toggle-${entry.sourceId}'),
+        title: entry.title,
+        completeLabel: 'Complete ${entry.title}',
+        hint: day.date == today ? null : 'Counts as done today',
+        onTapAt: !_done && actions.onCompleteQuestPlan != null
+            ? (anchor) => _completeQuestPlan(anchor)
+            : null,
+        canReopen: false,
+        haptic: false,
+      ),
       _ => ExcludeSemantics(child: PlansRing(done: entry.completed)),
     };
   }
 
   void _activate(
-    BuildContext context, {
+    BuildContext ringContext, {
     VoidCallback? onTap,
     ValueChanged<Offset>? onTapAt,
+    bool haptic = true,
   }) {
-    HapticFeedback.selectionClick();
+    if (haptic) HapticFeedback.selectionClick();
     onTap?.call();
     final callback = onTapAt;
     if (callback == null) return;
-    final box = context.findRenderObject() as RenderBox?;
+    final box = ringContext.findRenderObject() as RenderBox?;
     final anchor = box == null || !box.hasSize
         ? Offset.zero
         : box.localToGlobal(box.size.center(Offset.zero));

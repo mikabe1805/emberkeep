@@ -918,30 +918,38 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         children: [
           Row(
             children: [
-              Flexible(child: _chip(e.source, e.color)),
-              const SizedBox(width: 8),
-              Text(
-                relativeWhen(e.note.at),
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  color: Palette.textLo,
+              // The chip and the date sit side by side, and fall under one
+              // another only when there is no room, so a row in ALL never
+              // runs off the screen at a large text size.
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _chip(e.source, e.color),
+                    Text.rich(
+                      TextSpan(
+                        text: relativeWhen(e.note.at),
+                        children: [
+                          if (e.note.editedAt != null)
+                            const TextSpan(text: '  ·  edited'),
+                        ],
+                      ),
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              if (e.note.editedAt != null)
-                Text(
-                  '  ·  edited',
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: Palette.textLo,
-                  ),
-                ),
-              const Spacer(),
               Semantics(
                 button: true,
                 toggled: _s.memoryPins.contains(e.note.id),
                 label: _s.memoryPins.contains(e.note.id)
                     ? 'Remove from Keepsakes'
-                    : 'Keep in Keepsakes',
+                    : 'Add to Keepsakes',
                 onTap: () => _toggleKeepsake(e.note),
                 child: GestureDetector(
                   excludeFromSemantics: true,

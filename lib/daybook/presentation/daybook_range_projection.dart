@@ -42,6 +42,8 @@ final class DaybookEntry {
     this.startMinute,
     this.endMinute,
     this.completed = false,
+    this.completedNow = false,
+    this.completedToday = false,
     this.cancelled = false,
     this.moved = false,
     this.place,
@@ -63,7 +65,21 @@ final class DaybookEntry {
   final DaybookSection section;
   final int? startMinute;
   final int? endMinute;
+
+  /// Done on this entry's own day. This is what the day's counts and marks
+  /// read; it never changes because of what happens on another day.
   final bool completed;
+
+  /// A Quest's row on a day that is not today, for a Quest that is already
+  /// done in the period today falls in (a daily one finished today, say). A
+  /// ring on that row has nothing left to complete, so the card reads it as
+  /// done. The day's own counts do not read this: tomorrow's chosen Quest is
+  /// still tomorrow's.
+  final bool completedNow;
+
+  /// [completedNow], and the Quest was finished today itself (not earlier in
+  /// its week or month): the card may say DONE TODAY.
+  final bool completedToday;
   final bool cancelled;
   final bool moved;
   final DaybookPlace? place;
@@ -196,7 +212,7 @@ abstract final class DaybookRangeProjection {
     _addClasses(schedule, first, last, byDate);
     _addStudyBlocks(schedule, first, last, byDate);
     _addDueItems(schedule, first, last, currentDate, byDate);
-    _addQuestPlans(quests, first, last, byDate);
+    _addQuestPlans(quests, first, last, byDate, now);
 
     final days = <CivilDate, DaybookDay>{
       for (final entry in byDate.entries)
@@ -466,7 +482,10 @@ abstract final class DaybookRangeProjection {
     CivilDate first,
     CivilDate last,
     Map<CivilDate, List<DaybookEntry>> byDate,
+    DateTime now,
   ) {
+    final today = CivilDate.fromDateTime(now);
+    final todayKey = Days.key(now);
     for (var date = first; date.compareTo(last) <= 0; date = date.addDays(1)) {
       final dateTime = DateTime(date.year, date.month, date.day);
       final dateKey = Days.key(dateTime);
@@ -481,6 +500,11 @@ abstract final class DaybookRangeProjection {
                 (quest.dueDate!.hour == 0 && quest.dueDate!.minute == 0)
             ? null
             : quest.dueDate!.hour * 60 + quest.dueDate!.minute;
+        final completed = quest.doneFor(dateTime);
+        // Finishing a Quest counts today, whichever day's page it is tapped
+        // on. On another day's page a Quest that is already done today (or
+        // for the week or month today is in) has nothing left to tap.
+        final completedNow = date != today && !completed && quest.doneFor(now);
         byDate[date]!.add(
           DaybookEntry(
             displayKey: 'quest:${quest.title}',
@@ -489,7 +513,9 @@ abstract final class DaybookRangeProjection {
             title: quest.displayTitle,
             section: due ? DaybookSection.due : DaybookSection.focus,
             startMinute: due ? dueMinute : null,
-            completed: quest.doneFor(dateTime),
+            completed: completed,
+            completedNow: completedNow,
+            completedToday: completedNow && quest.lastDoneDay == todayKey,
             sourceLabel: 'QUEST',
             action: QuestPlanAction(quest.title),
           ),

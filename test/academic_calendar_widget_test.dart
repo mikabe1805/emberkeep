@@ -2966,6 +2966,9 @@ void main() {
   testWidgets('Quest calendar intent renders focus separately from due work', (
     tester,
   ) async {
+    // The 18th is today here: only today's page says TODAY’S FOCUS (another
+    // day's says FOCUS, see plans_quests_test.dart).
+    Clock.freeze(DateTime(2026, 8, 18, 12));
     final date = CivilDate(2026, 8, 18);
     final createdAt = DateTime.utc(2026, 8, 17);
     final timedEvent = DaybookEvent(

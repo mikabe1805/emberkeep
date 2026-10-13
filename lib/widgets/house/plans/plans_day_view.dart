@@ -221,7 +221,11 @@ class _Pointer extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-/// Under the rows: the term, and the way back to today.
+/// Under the rows: the arrows, the way back to today, and the term.
+///
+/// The way back comes straight under the arrows, before the term and the
+/// clock, so what a person needs is never the part that scrolls or sits on the
+/// page's lower edge, whatever the text size or the length of the term's name.
 class PlansLeftFoot extends StatelessWidget {
   const PlansLeftFoot({
     super.key,
@@ -231,12 +235,8 @@ class PlansLeftFoot extends StatelessWidget {
     required this.loading,
     required this.showToday,
     required this.onToday,
-    this.todayFirst = false,
+    this.showTerm = true,
   });
-
-  /// BACK TO TODAY comes before the term and the clock (the week's foot has
-  /// less room: what a person needs is never the part that scrolls).
-  final bool todayFirst;
 
   /// The arrows that turn the page back and forward.
   final Widget arrows;
@@ -248,6 +248,11 @@ class PlansLeftFoot extends StatelessWidget {
   final bool showToday;
   final VoidCallback onToday;
 
+  /// Whether the term and the clock are shown. The week's foot is short, so
+  /// with the way back showing they have no room under it and are left out
+  /// rather than cut through a line of type at the paper's edge.
+  final bool showTerm;
+
   @override
   Widget build(BuildContext context) {
     final label = loading
@@ -255,45 +260,7 @@ class PlansLeftFoot extends StatelessWidget {
         : (termName == null || termName!.trim().isEmpty)
         ? null
         : termName!;
-    final today = Semantics(
-      button: true,
-      label: 'Back to today',
-      excludeSemantics: true,
-      onTap: onToday,
-      child: GestureDetector(
-        key: const ValueKey('calendar-back-to-today'),
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Sfx.instance.playMaterial(MaterialSound.parchment);
-          onToday();
-        },
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 44),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            // It starts at the page's own margin, left of the
-            // term, so the whole of BACK TO TODAY fits a line.
-            child: Transform.translate(
-              offset: const Offset(-14, 0),
-              child: const Text(
-                'BACK TO TODAY',
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.visible,
-                style: TextStyle(
-                  fontFamily: PlansInk.mono,
-                  fontWeight: FontWeight.w700,
-                  fontSize: Type.minLabel,
-                  letterSpacing: 0.4,
-                  color: PlansInk.brass,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    return SingleChildScrollView(
+    final foot = SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,42 +276,150 @@ class PlansLeftFoot extends StatelessWidget {
               child: arrows,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 0, 6, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showToday && todayFirst) today,
-                if (label != null)
-                  Text(
-                    loading ? label : label.toUpperCase(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: loading ? PlansInk.serif : PlansInk.mono,
-                      fontStyle: loading ? FontStyle.italic : FontStyle.normal,
-                      fontWeight: FontWeight.w600,
-                      fontSize: loading ? 14 : Type.minLabel,
-                      letterSpacing: loading ? 0.3 : 0.6,
-                      color: PlansInk.muted,
-                    ),
-                  ),
-                Text(
-                  zoneLabel,
-                  style: const TextStyle(
-                    fontFamily: PlansInk.mono,
-                    fontWeight: FontWeight.w600,
-                    fontSize: Type.minLabel,
-                    letterSpacing: 0.6,
-                    color: PlansInk.muted,
+          if (showToday) PlansBackToToday(onTap: onToday),
+          // The term and the clock ride up over the lower margin of the way
+          // back's 44 pt target (empty, and nothing to press there), so the
+          // page's foot keeps clear of its lower edge. Words are not touched
+          // there: a press in that margin still goes to the way back.
+          if (showTerm)
+            Transform.translate(
+              offset: Offset(0, showToday ? -6 : 0),
+              child: IgnorePointer(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 6, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (label != null)
+                        Text(
+                          loading ? label : label.toUpperCase(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: loading
+                                ? PlansInk.serif
+                                : PlansInk.mono,
+                            fontStyle: loading
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                            fontWeight: FontWeight.w600,
+                            fontSize: loading ? 14 : Type.minLabel,
+                            height: 1.15,
+                            letterSpacing: loading ? 0.3 : 0.6,
+                            color: PlansInk.muted,
+                          ),
+                        ),
+                      Text(
+                        zoneLabel,
+                        style: const TextStyle(
+                          fontFamily: PlansInk.mono,
+                          fontWeight: FontWeight.w600,
+                          fontSize: Type.minLabel,
+                          height: 1.15,
+                          letterSpacing: 0.6,
+                          color: PlansInk.muted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (showToday && !todayFirst) today,
-              ],
+              ),
+            ),
+        ],
+      ),
+    );
+    if (plansTextScale(context) <= 1.15) return foot;
+    // At larger text the term and the clock run past the page's foot and
+    // scroll there; they dissolve at its lower edge rather than being cut
+    // through a line of type.
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (rect) => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: const [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+        stops: [0, (1 - 16 / rect.height).clamp(0.0, 1.0), 1],
+      ).createShader(rect),
+      child: foot,
+    );
+  }
+}
+
+/// BACK TO TODAY: a small dark pill with cream type, so it reads on every
+/// shade of the paper (the page darkens toward the spine, where faint ink
+/// disappears). The pill is 30 pt; the target around it is 44 pt tall, and
+/// the whole of it sits on the page, clear of its lower edge.
+class PlansBackToToday extends StatelessWidget {
+  const PlansBackToToday({super.key, required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Back to today',
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        key: const ValueKey('calendar-back-to-today'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Sfx.instance.playMaterial(MaterialSound.parchment);
+          onTap();
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            // The pill sits high in its target (3 pt above, 11 below): the
+            // term and the clock ride up over the empty lower margin.
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xE61A130F),
+                    border: Border.all(
+                      color: const Color(0x66F4E0C0),
+                      width: 0.75,
+                    ),
+                  ),
+                  child: SizedBox(
+                    height: 30,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: Center(
+                        widthFactor: 1,
+                        // Wider than the page at a larger size: the words
+                        // shrink to fit rather than run off the paper.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: const Text(
+                            'BACK TO TODAY',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              fontFamily: PlansInk.mono,
+                              fontWeight: FontWeight.w700,
+                              fontSize: Type.minLabel,
+                              height: 1,
+                              letterSpacing: 0.4,
+                              color: PlansInk.cream,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -541,7 +616,8 @@ class PlansDayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = DateTime(day.date.year, day.date.month, day.date.day);
-    final today = CivilDate.fromDateTime(now) == day.date;
+    final todayDate = CivilDate.fromDateTime(now);
+    final today = todayDate == day.date;
     final past = date.isBefore(DateTime(now.year, now.month, now.day));
     final entries = day.entries;
     final academicConflicts = [
@@ -575,11 +651,12 @@ class PlansDayPage extends StatelessWidget {
             List<DaybookEntry> entries,
           })
         >[];
-    const names = {
+    final names = {
       DaybookSection.allDay: 'ALL DAY',
       DaybookSection.timed: 'SCHEDULE',
       DaybookSection.due: 'DUE',
-      DaybookSection.focus: 'TODAY’S FOCUS',
+      // Today's page says today's; any other day's says just FOCUS.
+      DaybookSection.focus: plansFocusHeading(day.date, todayDate),
       DaybookSection.stillOpen: 'STILL OPEN',
     };
     final present = [
@@ -660,6 +737,7 @@ class PlansDayPage extends StatelessWidget {
               day: day,
               schedule: schedule,
               actions: actions,
+              today: todayDate,
               first: identical(entry, entries.first),
               status: classStatus[entry.sourceId],
             ),

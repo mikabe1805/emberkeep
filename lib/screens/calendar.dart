@@ -133,10 +133,16 @@ class CalendarPage extends StatefulWidget {
   State<CalendarPage> createState() => _CalendarPageState();
 }
 
-class _CalendarPageState extends State<CalendarPage> {
+class _CalendarPageState extends State<CalendarPage>
+    with WidgetsBindingObserver {
   late DateTime _month;
   late DateTime _selected;
   late CivilDate _threeDayStart;
+
+  /// The day the book was last aligned to: today when it opened, or the day a
+  /// person last chose a page. When the real day moves on, the page the book
+  /// is open to moves with it (see [_followTheDay]).
+  late CivilDate _viewDay;
   late final AcademicScheduleRepository _scheduleRepository;
   late final AcademicCalendarPreferences _calendarPreferences;
   late final NotebookHandoff _notebookHandoff;
@@ -161,6 +167,8 @@ class _CalendarPageState extends State<CalendarPage> {
     _month = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
     _threeDayStart = CivilDate.fromDateTime(_selected);
+    _viewDay = _threeDayStart;
+    WidgetsBinding.instance.addObserver(this);
     _scheduleRepository =
         widget.scheduleRepository ?? LocalAcademicScheduleRepository();
     _calendarPreferences =
@@ -294,7 +302,43 @@ class _CalendarPageState extends State<CalendarPage> {
         .then<void>((_) => _calendarPreferences.save(snapshot));
   }
 
-  void _recordViewInteraction() => _viewInteractionRevision++;
+  void _recordViewInteraction() {
+    _viewInteractionRevision++;
+    // What a person chooses now is chosen today.
+    _viewDay = CivilDate.fromDateTime(Clock.now());
+  }
+
+  /// A new day opens Plans on today. The page chosen yesterday (a Sunday left
+  /// selected, a week or a month) is not today's, so when the real day has
+  /// moved on since the book was last aligned, it turns to today. The
+  /// DAY / WEEK / MONTH choice stays. Returns whether it moved.
+  bool _followTheDay() {
+    final today = CivilDate.fromDateTime(Clock.now());
+    if (today == _viewDay) return false;
+    _viewDay = today;
+    _selected = DateTime(today.year, today.month, today.day);
+    _month = DateTime(today.year, today.month);
+    _threeDayStart = today;
+    return true;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The phone was put down on one day and picked up on the next, with
+    // Plans still holding the page it had.
+    if (state == AppLifecycleState.resumed && _followTheDay() && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The dock turns to Plans: the shell keeps every room alive, so the book
+    // may have been shut on yesterday's page. (Before the first frame this is
+    // a no-op, the book having just opened on today.)
+    if (TickerMode.valuesOf(context).enabled) _followTheDay();
+  }
 
   void _selectDay(DateTime day) {
     _recordViewInteraction();
@@ -404,6 +448,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.academicScheduleFileInbox?.removeListener(
       _onIncomingAcademicScheduleFile,
     );

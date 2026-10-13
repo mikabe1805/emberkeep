@@ -299,14 +299,20 @@ String daybookEntryTiming(DaybookEntry entry) => switch (entry.section) {
         : 'DUE ${daybookEntryTime(entry.startMinute!)}',
 };
 
-String daybookEntrySemantics(DaybookEntry entry) {
+/// What a screen reader says for a card. [focusLabel] is how a chosen Quest
+/// names its day: "today’s focus" on today's page, "chosen for Sunday" on
+/// another's.
+String daybookEntrySemantics(
+  DaybookEntry entry, {
+  String focusLabel = 'today’s focus',
+}) {
   final parts = <String>[
     entry.title,
     switch (entry.section) {
       DaybookSection.allDay => 'all day',
       DaybookSection.timed => 'schedule',
       DaybookSection.due => 'due',
-      DaybookSection.focus => 'today’s focus',
+      DaybookSection.focus => focusLabel,
       DaybookSection.stillOpen => 'still open',
     },
     if (entry.section == DaybookSection.timed)
@@ -315,7 +321,12 @@ String daybookEntrySemantics(DaybookEntry entry) {
       daybookEntryTime(entry.startMinute!),
     if (entry.moved) 'moved',
     if (entry.cancelled) 'cancelled',
-    if (entry.completed) 'completed',
+    if (entry.completed)
+      'completed'
+    else if (entry.completedToday)
+      'done today'
+    else if (entry.completedNow)
+      'done',
     if (entry.place != null) entry.place!.savedName,
   ];
   return parts.join(', ');

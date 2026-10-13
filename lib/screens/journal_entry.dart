@@ -975,6 +975,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     if (mounted) Navigator.of(context).maybePop();
   }
 
+  /// Reading a page says plainly that it is saved: every page is, whether or
+  /// not it is in Keepsakes. The writing view keeps its own status chip, so
+  /// its top line stays as it was.
+  bool get _readingSaved => !_editing && _current != null;
+
   String get _whenLine {
     final n = _current;
     if (n == null) return 'New entry';
@@ -985,6 +990,13 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     if (n.editedAt != null) parts.add('edited');
     return parts.join('  ·  ');
   }
+
+  /// The reading view's top lines: that the page is saved, and what it was
+  /// written as. "saved · 3m ago" is the status line a person looks for.
+  List<String> _readingLines(Note n) => [
+    ['saved', relativeWhen(n.at), if (n.editedAt != null) 'edited'].join(' · '),
+    if (n.context != null && n.context!.isNotEmpty) 'written as ${n.context}',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -1091,6 +1103,44 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       padding: const EdgeInsets.fromLTRB(18, 13, 14, 9),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          if (_readingSaved) {
+            final lines = _readingLines(_current!);
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (i, line) in lines.indexed)
+                    Padding(
+                      padding: EdgeInsets.only(top: i == 0 ? 0 : 2),
+                      child: Text(
+                        line,
+                        key: i == 0
+                            ? const ValueKey('journal-entry-saved')
+                            : null,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 5),
+                  // Where every page can be found again, said on the page
+                  // itself: the worry is a page that is hard to reach later.
+                  Text(
+                    'You can always find it under ALL on the Journal tab.',
+                    key: const ValueKey('journal-entry-find-again'),
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
           if (kIsWeb || !_editing) {
             return Align(alignment: Alignment.centerLeft, child: when);
           }
@@ -1423,14 +1473,21 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     );
     final canKeep =
         !_editing && _current != null && widget.onToggleKeepsake != null;
+    // Every page is already saved. Keepsakes is a shelf for the ones you want
+    // close, so the button only adds to it (or takes the page back off).
+    final keepLabel = _keptInKeepsakes ? 'In Keepsakes' : 'Add to Keepsakes';
+    // The words grow with the text size, so the button does too: it reads in
+    // full at any size rather than ending in an ellipsis.
+    final keepMaxWidth =
+        170 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
     final keep = Semantics(
       key: const ValueKey('journal-entry-keepsake'),
       button: true,
       toggled: _keptInKeepsakes,
-      label: _keptInKeepsakes ? 'Kept in Keepsakes' : 'Keep this in Keepsakes',
+      label: keepLabel,
       hint: _keptInKeepsakes
-          ? 'Remove this journal entry from Keepsakes'
-          : 'Save this journal entry in Keepsakes',
+          ? 'Takes this page off your Keepsakes shelf. It stays saved.'
+          : 'Puts this page on your Keepsakes shelf. It is already saved.',
       onTap: () {
         setState(() {
           _keptInKeepsakes = widget.onToggleKeepsake!(_current!);
@@ -1445,10 +1502,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           });
         },
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
+          constraints: BoxConstraints(
             minHeight: 48,
             minWidth: 110,
-            maxWidth: 155,
+            maxWidth: keepMaxWidth,
           ),
           child: DecoratedBox(
             decoration: facetedDecoration(
@@ -1472,7 +1529,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      _keptInKeepsakes ? 'Kept in Keepsakes' : 'Keep this',
+                      keepLabel,
+                      // Two lines before an ellipsis: it reads in full.
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(
                         fontSize: 10.5,
