@@ -25,8 +25,12 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/class_day/class_day_model.dart';
+import 'package:emberkeep/widgets/class_day/class_day_room.dart';
 import 'package:emberkeep/widgets/class_day/class_kept_celebration.dart';
 import 'package:emberkeep/widgets/class_day/class_room_stage.dart';
+import 'package:emberkeep/widgets/class_day/doorway_light.dart';
+import 'package:emberkeep/widgets/class_day/doorway_model.dart';
 import 'package:emberkeep/widgets/class_day/doorway_stage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -152,6 +156,7 @@ Future<_Page> _mount(
   bool reduceMotion = false,
   double textScale = 1,
   BackgroundMusicController? music,
+  ValueNotifier<bool>? dockQuiet,
   Size size = const Size(393, 852),
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -193,6 +198,7 @@ Future<_Page> _mount(
             onRestore: page.restored.add,
             classDays: _lookup,
             musicController: music,
+            dockQuiet: dockQuiet,
           ),
         ),
       ),
@@ -252,6 +258,31 @@ double _scrollExtent(WidgetTester tester) => tester
     )
     .position
     .maxScrollExtent;
+
+/// How much of [target] shows through every fade above it: the product of
+/// each ancestor's opacity, fading or not. 1 means nothing dims it.
+double _opacityOver(WidgetTester tester, Finder target) {
+  var shown = 1.0;
+  for (final element
+      in find
+          .ancestor(
+            of: target,
+            matching: find.byWidgetPredicate(
+              (w) =>
+                  w is Opacity || w is AnimatedOpacity || w is FadeTransition,
+            ),
+          )
+          .evaluate()) {
+    final w = element.widget;
+    shown *= switch (w) {
+      Opacity() => w.opacity,
+      AnimatedOpacity() => w.opacity,
+      FadeTransition() => w.opacity.value,
+      _ => 1.0,
+    };
+  }
+  return shown;
+}
 
 /// The room's own stage: the Doorway (the celebration paints another one
 /// while it is up).
@@ -413,6 +444,11 @@ void main() {
         );
         expect(_write.hitTestable(), findsOneWidget);
         expect(_closeDay.hitTestable(), findsOneWidget);
+        // The way to all quests is a whole 44 pt control on the same glass.
+        final board = find.byKey(const Key('class-day-toggle-board'));
+        expect(find.text('All quests').hitTestable(), findsOneWidget);
+        expect(board.hitTestable(), findsOneWidget);
+        expect(tester.getSize(board).height, greaterThanOrEqualTo(44));
         if (at.day == 5) {
           expect(_there.hitTestable(), findsOneWidget);
           expect(
@@ -431,6 +467,107 @@ void main() {
         expect(close.height, closeTo(write.height, 0.5));
       });
     }
+  });
+
+  group('the light is the clock\'s, whatever card the room shows', () {
+    // The evening card (the day on one line) turns up as soon as the last
+    // class is over and kept, at any hour; the light of the window is only
+    // ever the phone's own clock. So the card can say evening at 11:37 in the
+    // morning and the window still says midday, and at 11:37 at night the
+    // window is the evening's. The room is mounted on its own here, with the
+    // clock at the phone's wall time (the light reads local time, so these are
+    // local times whatever zone the test machine is in).
+    Future<DoorwayStageState> eveningRoom(
+      WidgetTester tester,
+      DateTime phoneClock,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      await tester.binding.setSurfaceSize(const Size(393, 852));
+      addTearDown(() {
+        tester.view.resetDevicePixelRatio();
+        tester.binding.setSurfaceSize(null);
+      });
+      // Wednesday's classes, all kept, after the last (3:20 PM) is over.
+      final after = _ny(7, 15, 40);
+      final state = _mika();
+      _keepAt(state, after);
+      final day = _lookup(after);
+      final card = ClassCard.read(day, state, after);
+      expect(classEveningAt(card, after), isTrue);
+      final doorway = DoorwayDay.build(
+        day: day,
+        state: state,
+        now: after,
+        dayOf: (date) => _lookup(after, day: date),
+        term: _fall2026.termFor(day.date),
+      );
+      Clock.freeze(phoneClock);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(393, 852)),
+            child: Scaffold(
+              body: ClassDayRoom(
+                key: const Key('class-day-room'),
+                state: state,
+                card: card,
+                doorway: doorway,
+                now: after,
+                camera: ClassRoomCamera(),
+                dockHeight: 88,
+                evening: ClassEvening(onWrite: () {}),
+                bottomLine: ClassDayBottomLine(
+                  three: const SizedBox.shrink(),
+                  onBoard: () {},
+                ),
+                onMark: (_) {},
+                onSelect: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(_evening, findsOneWidget);
+      return tester.state<DoorwayStageState>(_doorway);
+    }
+
+    testWidgets('11:37 in the morning: the evening card, the midday window', (
+      tester,
+    ) async {
+      final stage = await eveningRoom(tester, DateTime(2026, 10, 7, 11, 37));
+      expect(stage.lights.midday, 1);
+      expect(stage.lights.golden, 0);
+      expect(stage.lights.evening, 0);
+      expect(stage.lights, doorwayLightsAt(Clock.now()));
+    });
+
+    testWidgets('11:37 at night: the same card, the evening window', (
+      tester,
+    ) async {
+      final stage = await eveningRoom(tester, DateTime(2026, 10, 12, 23, 37));
+      expect(stage.lights.evening, 1);
+      expect(stage.lights.midday, 0);
+      expect(stage.lights, doorwayLightsAt(Clock.now()));
+    });
+
+    testWidgets('the card never changes the light it sits in', (tester) async {
+      // One clock, every hour of the day: the window is the clock's, with the
+      // evening card up the whole time.
+      for (final hour in [7, 11, 13, 16, 19, 23]) {
+        final stage = await eveningRoom(
+          tester,
+          DateTime(2026, 10, 7, hour, 37),
+        );
+        expect(
+          stage.lights,
+          doorwayLightsAt(DateTime(2026, 10, 7, hour, 37)),
+          reason: '$hour:37',
+        );
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
+    });
   });
 
   group('the wind-down follows his timetable', () {
@@ -649,6 +786,47 @@ void main() {
       expect(main.calls.last, 'pause');
       expect(state.musicEnabled, isTrue, reason: 'Me keeps his setting');
       expect(music.enabled, isTrue);
+    });
+
+    testWidgets('with the music on the glass stays whole: only the shell is '
+        'told to step back', (tester) async {
+      final main = _MainMusic();
+      final music = BackgroundMusicController(
+        mainMusic: main,
+        transport: _FocusTransport(),
+      );
+      final state = _tuesdayKept()..musicEnabled = true;
+      unawaited(music.setEnabled(true));
+      final quiet = ValueNotifier<bool>(false);
+      addTearDown(quiet.dispose);
+      await _mount(
+        tester,
+        at: _ny(6, 19, 30),
+        state: state,
+        music: music,
+        dockQuiet: quiet,
+      );
+      // Longer than the old step-back took to settle (1.8 s).
+      await _pumpFor(tester, const Duration(milliseconds: 2600));
+      expect(_levels, findsOneWidget);
+      expect(quiet.value, isTrue, reason: 'the HUD and the dock step back');
+      // Nothing dims the card or its foot, so every word keeps its colour
+      // and the glass keeps its body (the rug never shows through).
+      for (final key in [
+        'class-day-glass',
+        'class-evening-record',
+        'class-evening-doors',
+        'class-day-todays-three',
+        'class-day-toggle-board',
+      ]) {
+        expect(_opacityOver(tester, find.byKey(Key(key))), 1.0, reason: key);
+      }
+      // Pressing the music quiet again lets the shell come back.
+      await tester.tap(_musicRow);
+      await tester.pump();
+      await _pumpFor(tester, const Duration(milliseconds: 400));
+      expect(quiet.value, isFalse);
+      expect(_opacityOver(tester, find.byKey(const Key('class-day-glass'))), 1);
     });
 
     testWidgets("tonight's choice gives way to the saved setting once the "

@@ -431,9 +431,11 @@ void main() {
       expect(find.text('TODAY’S THREE'), findsOneWidget);
       expect(titleText(tester), 'Read ten pages');
       expect(find.text('MARK COMPLETE'), findsOneWidget);
-      for (final word in ['FOCUS', 'ADD', 'BOARD']) {
+      for (final word in ['FOCUS', 'ADD', 'All quests']) {
         expect(find.text(word), findsOneWidget);
       }
+      // The old mono word is gone: the way to the board says where it goes.
+      expect(find.text('BOARD'), findsNothing);
       // Never a fraction.
       expect(
         find.textContaining(RegExp(r'\d OF \d', caseSensitive: false)),
