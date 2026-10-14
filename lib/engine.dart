@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import 'brawl/weekly_training.dart';
 import 'class_credit.dart';
 import 'clock.dart';
 import 'content/achievements.dart';
@@ -1321,7 +1322,7 @@ class GameState extends ChangeNotifier {
   int get streakFreezeCapacity =>
       level >= 6 ? maxStreakFreezes : _baseFreezeCapacity;
 
-  /// Ordinary active days replenish the reserve. CARE bends this loop in a
+  /// Ordinary active days replenish the reserve. Vitality bends this loop in a
   /// deterministic, legible way instead of hiding a random reward chance.
   int get activeDaysPerFreeze => (stats[Stat.vit] ?? 0) >= 40 ? 2 : 3;
 
@@ -1410,6 +1411,47 @@ class GameState extends ChangeNotifier {
 
   /// dateKey → completions that day (calendar history dots).
   final Map<String, int> history = {};
+
+  // ── this week's training (the weekend brawl reads it) ──────────────
+  /// One small mark for every Quest finished in the last two weeks: when, for
+  /// which stat, and what it counts for (1, or 1.5 when the timer proved it).
+  /// The week's training points are read from these ([weeklyTraining]). Kept
+  /// in the save, so the whole-save undo of a Quest takes its mark back with
+  /// it. Kept classes are not here: their records already live in the day
+  /// records, and [trainingMarks] reads them from there.
+  final List<TrainingMark> trainingLog = [];
+
+  /// The marks kept: this week's and the week before's (a "last week" line
+  /// may want it), and never more than this many.
+  static const _trainingLogMax = 400;
+
+  /// Remembers one finished Quest for the week's training. [at] is the moment
+  /// it was finished (defaults to [Clock.now]); [weight] is 1, or
+  /// [timerProvenWeight] when the countdown proved it.
+  void markTraining(Stat stat, {DateTime? at, double weight = 1}) {
+    final now = Clock.now();
+    trainingLog.add(TrainingMark(at: at ?? now, stat: stat, weight: weight));
+    final keepFrom = trainingWeekStart(now).subtract(const Duration(days: 7));
+    trainingLog.removeWhere((mark) => mark.at.isBefore(keepFrom));
+    if (trainingLog.length > _trainingLogMax) {
+      trainingLog.removeRange(0, trainingLog.length - _trainingLogMax);
+    }
+  }
+
+  /// Everything that trained a stat recently: the Quests in [trainingLog] and
+  /// the classes he kept (each one counts 1 for the stat its kind feeds).
+  List<TrainingMark> get trainingMarks => [
+    ...trainingLog,
+    for (final record in _dayRecords)
+      for (final kept in record.classes)
+        TrainingMark(at: kept.keptAt, stat: kept.stat),
+  ];
+
+  /// The training points per stat this week (Monday 04:00 to [now], which is
+  /// [Clock.now] unless given): the number of Quests finished for each stat,
+  /// the timer-proven ones counting 1.5, and the classes kept.
+  WeeklyTraining weeklyTraining([DateTime? now]) =>
+      WeeklyTraining.from(trainingMarks, now ?? Clock.now());
 
   String? lastActiveDay;
 
@@ -2892,6 +2934,13 @@ class GameState extends ChangeNotifier {
     if (b.isEvent) eventCompletions++;
     if (b.custom) customCompletions++;
     history[today] = (history[today] ?? 0) + 1;
+    // The week's training: one mark for the stat this Quest fed, counting 1.5
+    // when the timer proved it (the same flag that pays the verified bonus).
+    markTraining(
+      b.stat,
+      at: now,
+      weight: b.verifiedMult != null ? timerProvenWeight : 1,
+    );
     final titleKey = b.questKey ?? b.questTitle;
     todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
 
@@ -3349,6 +3398,8 @@ class GameState extends ChangeNotifier {
     'questDeskStyle': questDeskStyle,
     'unlockedAchievements': unlockedAchievements.toList(),
     'history': history,
+    if (trainingLog.isNotEmpty)
+      'trainingLog': [for (final mark in trainingLog) mark.toJson()],
     'goals': [for (final g in goals) g.toJson()],
     'todayXp': todayXp,
     'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
@@ -3721,6 +3772,10 @@ class GameState extends ChangeNotifier {
       if (Days.tryParse(e.key) != null && e.value is num) {
         s.history[e.key] = (e.value as num).toInt();
       }
+    }
+    for (final raw in (j['trainingLog'] as List?) ?? const []) {
+      final mark = TrainingMark.tryFromJson(raw);
+      if (mark != null) s.trainingLog.add(mark);
     }
     for (final g in (j['goals'] as List?) ?? const []) {
       s.goals.add(Goal.fromJson((g as Map).cast<String, dynamic>()));
