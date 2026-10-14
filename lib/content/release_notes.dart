@@ -53,6 +53,48 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.5+56',
+    versionLabel: 'VERSION 1.0.5 · BUILD 56',
+    dateLabel: 'OCTOBER 2026',
+    title: 'Train all week. Fight on the weekend.',
+    introduction:
+        'Your stats have their own names again, and each one powers a move. '
+        'Train during the week, then take on the monster at your door on '
+        'Saturday or Sunday.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'THE WEEKEND FIGHT',
+        body:
+            "On Saturday and Sunday the week's monster is at your door. Tap "
+            'Join the fight! The stats you trained that week hit harder, so '
+            'a good week makes a fast fight.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'SIX STATS, SIX MOVES',
+        body:
+            'Strength, Vitality, Intellect, Focus, Social and Discipline each '
+            'power their own move. Me shows what you trained this week and '
+            'what unlocks next.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'A TIMER THAT KEEPS GOING',
+        body:
+            'Reading and workout quests offer a timer. It keeps counting when '
+            'you leave the app, and a timed quest counts extra for the week.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'MUSIC FOR CLASS DAYS',
+        body:
+            'With music on, marking a class brings in a bass line and a bell, '
+            'right on the beat.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.5+55',
     versionLabel: 'VERSION 1.0.5 · BUILD 55',
     dateLabel: 'OCTOBER 2026',

@@ -108,30 +108,28 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 55 is an internal candidate that turns the app into one house. Every
-tab is now a painted room with its own daytime and evening light. On class
-days your classes hang by the front door in Quests, and Couldn't make it sets
-one aside. Goals pins your goals on the workshop wall, Plans has a new week
-view, and your own room has a page of its own under Your space in Me. Taps
-are softer, and each class you mark rings a note higher than the last.
+Build 56 is an internal candidate built around a new weekend fight. Your
+stats have their own names again (Strength, Vitality, Intellect, Focus,
+Social, Discipline), and each one powers a move. Train during the week, then
+fight the monster at your door on Saturday or Sunday; what you trained that
+week hits harder. Reading and workout quests offer a timer that keeps running
+when you leave the app. It also brings the fixes from Build 55: finishing
+quests from Plans, a clearer way to the Quest board, and music for class days.
 
 ## What to Test
 
-- Move between all five tabs at midday, then again in the evening. Each room
-  should arrive in its own light. Report any flicker, stutter, or lag.
-- On a class day, open Quests. Tap **I WAS THERE** or drag a ticket up to its
-  hook. Try **Couldn't make it** on another class.
-- On a day with no classes, choose Today's three and keep all three. The
-  day's card should show once.
-- In Goals, tap a goal pinned on the wall to bring it to the card, then tap
-  its name to open it.
-- In Plans, switch between **DAY**, **WEEK**, and **MONTH**.
-- In Me, open **YOUR SPACE** and try **CHANGE SPACE**.
-- With sound on, tap around the rooms, then mark two classes in a row. Taps
-  should sound soft, and the second class should ring higher than the first.
-- Try a few rooms with Larger Text and with Reduce Motion.
+- On Saturday or Sunday, open Quests and tap **Join the fight!**. Play it
+  through, then try **Easy mode** on the versus screen.
+- During the fight, notice whether it runs smoothly and whether the sound and
+  haptics feel right.
+- In Me, look over your six stats, this week's training, and the weekend
+  preview.
+- Start the timer on a reading quest, switch to another app for a minute, and
+  come back.
+- Finish a quest from Plans.
+- On a class day with music on, mark a class and listen for the bass and bell.
 
-Report anything that looks pasted on, feels slow, or is hard to find.
+Report anything that feels slow, unclear, or not worth the effort.
 
 ## Reviewer notes
 
