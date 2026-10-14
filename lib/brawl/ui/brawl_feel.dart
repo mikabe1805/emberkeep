@@ -57,6 +57,9 @@ enum BrawlSound {
   cloudWater,
   bloom,
   ko,
+
+  /// The K.O.'s rising line after its first note: [index] 1 to 3.
+  koRise,
   perfect,
   victory,
   chest,
@@ -217,21 +220,11 @@ class AppBrawlFeel extends BrawlFeel {
       case BrawlSound.bloom:
         _chime(4, 0.7);
       case BrawlSound.ko:
-        // The finisher's rising line, ending on the top step.
         _chime(3, 0.8);
-        Future<void>.delayed(
-          const Duration(milliseconds: 140),
-          () => _chime(4, 0.8),
-        );
-        Future<void>.delayed(
-          const Duration(milliseconds: 280),
-          () => _chime(5, 0.85),
-        );
-        Future<void>.delayed(
-          const Duration(milliseconds: 440),
-          () => _chime(6, 0.95),
-        );
         if (_tap(100)) Haptics.big();
+      case BrawlSound.koRise:
+        // The finisher's rising line: F#5, A5, B5, D6.
+        _chime(3 + index.clamp(1, 3), 0.8 + 0.05 * index);
       case BrawlSound.perfect:
         _chime(6, 0.7);
       case BrawlSound.victory:

@@ -5,6 +5,8 @@
 library;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -100,6 +102,7 @@ class _BrawlVictoryScreenState extends State<BrawlVictoryScreen>
     with SingleTickerProviderStateMixin {
   final ValueNotifier<double> _t = ValueNotifier(0);
   late final Ticker _ticker;
+  Timer? _chestSound;
 
   @override
   void initState() {
@@ -110,7 +113,7 @@ class _BrawlVictoryScreenState extends State<BrawlVictoryScreen>
     if (!widget.reduceMotion && widget.earned != null) _ticker.start();
     widget.feel.play(BrawlSound.victory);
     if (widget.earned != null) {
-      Future<void>.delayed(const Duration(milliseconds: 650), () {
+      _chestSound = Timer(const Duration(milliseconds: 650), () {
         if (mounted) widget.feel.play(BrawlSound.chest);
       });
     }
@@ -118,6 +121,7 @@ class _BrawlVictoryScreenState extends State<BrawlVictoryScreen>
 
   @override
   void dispose() {
+    _chestSound?.cancel();
     _ticker.dispose();
     _t.dispose();
     super.dispose();

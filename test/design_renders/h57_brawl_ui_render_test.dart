@@ -83,8 +83,12 @@ Future<MikaAccount> _boot(
   DateTime at, {
   Map<Stat, int> week = _quietWeek,
   bool reduceMotion = false,
+  bool easy = false,
+  double textScale = 1,
 }) async {
   final account = mikaAccount(renderAt: at, reduceMotion: reduceMotion);
+  account.state.brawlEasy = easy;
+  account.state.textScale = textScale;
   account.state.musicEnabled = false;
   account.state.notifyEnabled = false;
   account.quests
@@ -134,7 +138,6 @@ Future<void> _play(
   BrawlFightScreenState state,
   bool Function() done, {
   double maxSeconds = 150,
-  bool jump = false,
 }) async {
   final scene = state.scene!;
   final bot = BrawlBot(state.fight, seed: 3);
@@ -367,9 +370,7 @@ void main() {
   roomRenderTest('the Fog and Easy mode', skip: !_renders, (tester) async {
     if (!_wants('easy')) return;
     final at = _at(10, 11, 0);
-    final account = await _boot(tester, at, week: _bigWeek);
-    account.state.setBrawlEasy(true);
-    await tester.pump();
+    await _boot(tester, at, week: _bigWeek, easy: true);
     await shot(tester, 'G_doorway_fog', at, 'Saturday, the Fog week');
     await _openDoor(tester);
     await shot(
@@ -400,6 +401,86 @@ void main() {
       'G_fog_finisher',
       at,
       'the Fog becomes a little cloud that waters the plant',
+    );
+  });
+
+  roomRenderTest('a practice weekend', skip: !_renders, (tester) async {
+    if (!_wants('practice')) return;
+    final at = _at(3, 11, 0);
+    final account = await _boot(tester, at, week: _bigWeek);
+    expect(account, isNotNull);
+    await _openDoor(tester);
+    await tester.tap(find.byKey(const Key('brawl-fight')).hitTestable());
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    var state = _fightState(tester);
+    await _play(
+      tester,
+      state,
+      () => _flow(tester).stage == BrawlStage.victory,
+      maxSeconds: 150,
+    );
+    await settle(tester, total: const Duration(milliseconds: 1800));
+    await tester.tap(find.byKey(const Key('brawl-again')).hitTestable());
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    state = _fightState(tester);
+    await _play(
+      tester,
+      state,
+      () => _flow(tester).stage == BrawlStage.victory,
+      maxSeconds: 150,
+    );
+    await settle(tester, total: const Duration(milliseconds: 1800));
+    await shot(
+      tester,
+      'H_victory_practice',
+      at,
+      'the second win of the weekend: practice, no chest',
+    );
+  });
+
+  roomRenderTest('large text and Reduce Motion', skip: !_renders, (
+    tester,
+  ) async {
+    if (!_wants('text')) return;
+    final at = _at(10, 11, 0);
+    await _boot(tester, at, week: _bigWeek, textScale: 2);
+    await _openDoor(tester);
+    await shot(tester, 'I_versus_200', at, 'the versus screen at 200% text');
+    await tester.drag(
+      find.byKey(const Key('brawl-versus-scroll')),
+      const Offset(0, -1500),
+      warnIfMissed: false,
+    );
+    await settle(tester, total: const Duration(milliseconds: 600));
+    await shot(tester, 'I_versus_200_abilities', at, 'abilities at 200% text');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _boot(tester, at, week: _bigWeek, reduceMotion: true);
+    await _openDoor(tester);
+    await tester.tap(find.byKey(const Key('brawl-fight')).hitTestable());
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    final state = _fightState(tester);
+    await _play(tester, state, () => state.fight.combo.n >= 8, maxSeconds: 40);
+    await shot(
+      tester,
+      'J_reduce_motion_combo',
+      at,
+      'Reduce Motion: the same fight, calmer',
+    );
+    await _play(
+      tester,
+      state,
+      () => _flow(tester).stage == BrawlStage.victory,
+      maxSeconds: 150,
+    );
+    await settle(tester, total: const Duration(milliseconds: 1800));
+    await shot(
+      tester,
+      'J_reduce_motion_victory',
+      at,
+      'Reduce Motion: the chest is already open',
     );
   });
 }

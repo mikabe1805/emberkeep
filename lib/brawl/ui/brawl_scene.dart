@@ -727,6 +727,9 @@ class BrawlScene extends ChangeNotifier {
                 shake: reduceMotion ? 0 : 2,
               );
               feel.play(BrawlSound.ko);
+              for (var i = 1; i <= 3; i++) {
+                _timed.add((t + 0.14 * i, BrawlSound.koRise, i));
+              }
               flashScreen = 0.8;
             case BrawlCue.perfect:
               announce('PERFECT', dur: 1.6, size: 56, y: 0.43, col: 1);
@@ -1210,6 +1213,10 @@ class BrawlScene extends ChangeNotifier {
 
   double _bloomIn = -1;
 
+  /// Sounds that come a little after the event that asked for them, by the
+  /// scene's own clock (so a paused or disposed fight never makes a late one).
+  final List<(double, BrawlSound, int)> _timed = [];
+
   // ---------------------------------------------------------------- the frame
 
   /// Advances the fight and the picture by [frameDt] seconds.
@@ -1422,6 +1429,12 @@ class BrawlScene extends ChangeNotifier {
       }
     }
     fx.update(fdt);
+    for (var i = _timed.length - 1; i >= 0; i--) {
+      if (t >= _timed[i].$1) {
+        final due = _timed.removeAt(i);
+        feel.play(due.$2, index: due.$3);
+      }
+    }
     for (var i = touch.ripples.length - 1; i >= 0; i--) {
       touch.ripples[i][2] += dt;
       if (touch.ripples[i][2] > 0.5) touch.ripples.removeAt(i);

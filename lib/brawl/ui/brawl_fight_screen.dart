@@ -79,6 +79,11 @@ class BrawlFightScreenState extends State<BrawlFightScreen>
   double _keyLeft = 0, _keyRight = 0;
   final FocusNode _focus = FocusNode(debugLabel: 'brawl-fight');
 
+  /// How many times this screen has been built: a frame of the fight only
+  /// repaints, so this stays put while the fight runs.
+  @visibleForTesting
+  int buildCount = 0;
+
   /// The running scene (null until the first layout).
   BrawlScene? get scene => _scene;
   bool get paused => _paused;
@@ -298,6 +303,7 @@ class BrawlFightScreenState extends State<BrawlFightScreen>
 
   @override
   Widget build(BuildContext context) {
+    buildCount++;
     final media = MediaQuery.of(context);
     return ColoredBox(
       color: const Color(0xFF130B07),
@@ -331,7 +337,7 @@ class BrawlFightScreenState extends State<BrawlFightScreen>
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: (scene.layout.hudTop + 98) * scene.layout.scale,
+                  top: (scene.layout.gy + 12) * scene.layout.scale,
                   child: _ToastLine(scene: scene),
                 ),
                 _TopButtons(
@@ -507,9 +513,10 @@ class _ControlWords extends StatelessWidget {
               child: ValueListenableBuilder<String>(
                 valueListenable: scene.announcerText,
                 builder: (context, text, _) => Semantics(
+                  container: true,
                   liveRegion: true,
                   label: text,
-                  child: const SizedBox.shrink(),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
@@ -520,8 +527,11 @@ class _ControlWords extends StatelessWidget {
               height: 1,
               child: ValueListenableBuilder<String>(
                 valueListenable: scene.status,
-                builder: (context, text, _) =>
-                    Semantics(label: text, child: const SizedBox.shrink()),
+                builder: (context, text, _) => Semantics(
+                  container: true,
+                  label: text,
+                  child: const SizedBox.expand(),
+                ),
               ),
             ),
           ],
@@ -551,6 +561,7 @@ class _ToastLine extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         child: Center(
           child: Semantics(
+            container: true,
             liveRegion: true,
             label: text ?? '',
             child: Container(

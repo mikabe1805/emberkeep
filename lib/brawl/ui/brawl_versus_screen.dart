@@ -195,7 +195,7 @@ class _Faceoff extends StatelessWidget {
     return Semantics(
       container: true,
       label:
-          'You, level ${setup.level}, face ${def.name}, ${brawlMonsterTitle(monster, setup.level)}.',
+          'You, level ${setup.level}, face ${def.name}${brawlMonsterTitle(monster, setup.level) == def.name ? '' : ', ${brawlMonsterTitle(monster, setup.level)}'}.',
       child: ExcludeSemantics(
         child: Stack(
           alignment: Alignment.center,
@@ -351,8 +351,9 @@ class _StatsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(child: BrawlCaps('YOUR STATS')),
-              Flexible(
+              const BrawlCaps('YOUR STATS'),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   'gold = trained this week',
                   textAlign: TextAlign.end,
@@ -898,21 +899,26 @@ class _EasyRow extends StatelessWidget {
     child: Row(
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Easy mode', style: brawlSerif(19, weight: FontWeight.w700)),
-              const SizedBox(height: 2),
-              Text(
-                'Tap anywhere to attack. A gentler monster.',
-                style: brawlSerif(
-                  15,
-                  weight: FontWeight.w500,
-                  color: Palette.textLo,
-                  height: 1.2,
+          child: ExcludeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Easy mode',
+                  style: brawlSerif(19, weight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  'Tap anywhere to attack. A gentler monster.',
+                  style: brawlSerif(
+                    15,
+                    weight: FontWeight.w500,
+                    color: Palette.textLo,
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 10),

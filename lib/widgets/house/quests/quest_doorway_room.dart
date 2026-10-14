@@ -183,6 +183,18 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
   bool get _fightOpen =>
       widget.onFight != null && brawlDoorOpen(widget.now ?? Clock.now());
 
+  /// At large text the door would squeeze the glass, so it goes inside the
+  /// glass, at the top of what scrolls.
+  bool get _fightInCard =>
+      _fightOpen && MediaQuery.textScalerOf(context).scale(1) > 1.3;
+
+  Widget _doorBand() => BrawlDoorBand(
+    state: widget.state,
+    now: widget.now,
+    reduceMotion: widget.reduceMotion,
+    onOpen: widget.onFight!,
+  );
+
   Offset _barCenter() {
     final box = _bar.currentContext?.findRenderObject();
     if (box is RenderBox && box.attached && box.hasSize) {
@@ -243,7 +255,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
             above: above,
             topPad: topPad,
             invitation: cardMode == QuestCardMode.choose,
-            fightHint: _fightOpen ? 76 : 0,
+            fightHint: _fightOpen && !_fightInCard ? 76 : 0,
             hudBottom: houseHudBottom(
               textScale: MediaQuery.textScalerOf(context).scale(1),
             ),
@@ -263,18 +275,10 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
                 onBeat: widget.onBeat,
               ),
             ),
-            if (_fightOpen)
+            if (_fightOpen && !_fightInCard)
               LayoutId(
                 id: _Slot.fight,
-                child: _Quiet(
-                  quiet: widget.quiet,
-                  child: BrawlDoorBand(
-                    state: widget.state,
-                    now: widget.now,
-                    reduceMotion: widget.reduceMotion,
-                    onOpen: widget.onFight!,
-                  ),
-                ),
+                child: _Quiet(quiet: widget.quiet, child: _doorBand()),
               ),
             LayoutId(
               id: _Slot.glass,
@@ -350,6 +354,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (_fightInCard) ...[_doorBand(), const SizedBox(height: 10)],
                 _header(),
                 const SizedBox(height: 6),
                 Semantics(
@@ -533,6 +538,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (_fightInCard) ...[_doorBand(), const SizedBox(height: 10)],
                 Center(
                   child: QuestRings(
                     key: const Key('quest-day-rings'),
