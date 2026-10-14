@@ -6,14 +6,17 @@
 // it since Monday 04:00 (not the raw stat gain, which varies with difficulty);
 // a quest proven with the timer counts 1.5.
 //
-// Pure Dart: the engine remembers a small [TrainingMark] for every finished
-// quest (and every class kept), and everything here is arithmetic on those
-// marks and on a date. The caller passes `Clock.now()`; nothing in this file
+// Pure Dart: the engine remembers a [CompletionRecord] for every finished
+// quest (stat, moment, and whether the timer proved it); a record with
+// `timerProven == true` weighs [timerProvenWeight]. Everything here is
+// arithmetic on those records (and on the marks a kept class leaves) and on a
+// date. The caller passes `Clock.now()`; nothing in this file
 // reads the wall clock, so a test can put any moment against any week.
 library;
 
 import 'dart:math' as math;
 
+import '../models.dart' show CompletionRecord;
 import '../tokens.dart';
 
 /// A week runs from Monday at this hour. The small hours after midnight still
@@ -42,6 +45,14 @@ class TrainingMark {
 
   /// 1, or [timerProvenWeight] for a quest proven with the timer.
   final double weight;
+
+  /// What a finished Quest leaves: 1 point, or [timerProvenWeight] when it ran
+  /// through a finished timer (`timerProven == true`).
+  factory TrainingMark.fromCompletion(CompletionRecord record) => TrainingMark(
+    at: record.at,
+    stat: record.stat,
+    weight: record.timerProven ? timerProvenWeight : 1.0,
+  );
 
   Map<String, Object> toJson() => {
     't': at.millisecondsSinceEpoch,
@@ -129,6 +140,18 @@ class WeeklyTraining {
   /// Read from the marks the engine remembers, at [now].
   factory WeeklyTraining.from(Iterable<TrainingMark> marks, DateTime now) =>
       WeeklyTraining(trainingPoints(marks, now));
+
+  /// Read straight from the engine's [CompletionRecord]s at [now]: each Quest
+  /// counts 1 for its stat, a timer-proven one counts [timerProvenWeight].
+  /// [more] are marks that are not Quests (a kept class counts 1).
+  factory WeeklyTraining.fromCompletions(
+    Iterable<CompletionRecord> completions,
+    DateTime now, {
+    Iterable<TrainingMark> more = const [],
+  }) => WeeklyTraining.from([
+    for (final record in completions) TrainingMark.fromCompletion(record),
+    ...more,
+  ], now);
 
   final Map<Stat, double> points;
 

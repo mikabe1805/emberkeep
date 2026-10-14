@@ -1268,6 +1268,14 @@ class GameState extends ChangeNotifier {
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
+  /// Every accepted Quest completion of the last [completionLogDays] days,
+  /// oldest first: its stat, when, and whether the timer proved it. A week's
+  /// training is read back from here. Quest completions only; classes and
+  /// Extra Credit never add to it.
+  final List<CompletionRecord> completionLog = [];
+  static const completionLogDays = 14;
+  static const completionLogCap = 500;
+
   // ── streak (real now: consecutive days with ≥1 completion) ──────
   int streakDays = 0;
   int bestStreak = 0;
@@ -1413,35 +1421,25 @@ class GameState extends ChangeNotifier {
   final Map<String, int> history = {};
 
   // ── this week's training (the weekend brawl reads it) ──────────────
-  /// One small mark for every Quest finished in the last two weeks: when, for
-  /// which stat, and what it counts for (1, or 1.5 when the timer proved it).
-  /// The week's training points are read from these ([weeklyTraining]). Kept
-  /// in the save, so the whole-save undo of a Quest takes its mark back with
-  /// it. Kept classes are not here: their records already live in the day
-  /// records, and [trainingMarks] reads them from there.
-  final List<TrainingMark> trainingLog = [];
-
-  /// The marks kept: this week's and the week before's (a "last week" line
-  /// may want it), and never more than this many.
-  static const _trainingLogMax = 400;
-
-  /// Remembers one finished Quest for the week's training. [at] is the moment
-  /// it was finished (defaults to [Clock.now]); [weight] is 1, or
-  /// [timerProvenWeight] when the countdown proved it.
-  void markTraining(Stat stat, {DateTime? at, double weight = 1}) {
+  /// Remembers one finished Quest for the week's training, as a record in
+  /// [completionLog]. [at] is the moment it was finished (defaults to
+  /// [Clock.now]); [timerProven] is true when the countdown proved it, which
+  /// counts 1.5 instead of 1. [commit] writes the same record itself; this is
+  /// for seeding a week (tests, renders) without rolling a whole Quest.
+  void markTraining(Stat stat, {DateTime? at, bool timerProven = false}) {
     final now = Clock.now();
-    trainingLog.add(TrainingMark(at: at ?? now, stat: stat, weight: weight));
-    final keepFrom = trainingWeekStart(now).subtract(const Duration(days: 7));
-    trainingLog.removeWhere((mark) => mark.at.isBefore(keepFrom));
-    if (trainingLog.length > _trainingLogMax) {
-      trainingLog.removeRange(0, trainingLog.length - _trainingLogMax);
-    }
+    completionLog.add(
+      CompletionRecord(stat: stat, at: at ?? now, timerProven: timerProven),
+    );
+    completionLog.sort((a, b) => a.at.compareTo(b.at));
+    _trimCompletionLog(now);
   }
 
-  /// Everything that trained a stat recently: the Quests in [trainingLog] and
-  /// the classes he kept (each one counts 1 for the stat its kind feeds).
+  /// Everything that trained a stat recently: the Quests in [completionLog]
+  /// (a timer-proven one weighs 1.5) and the classes he kept (each one counts
+  /// 1 for the stat its kind feeds).
   List<TrainingMark> get trainingMarks => [
-    ...trainingLog,
+    for (final record in completionLog) TrainingMark.fromCompletion(record),
     for (final record in _dayRecords)
       for (final kept in record.classes)
         TrainingMark(at: kept.keptAt, stat: kept.stat),
@@ -2877,6 +2875,15 @@ class GameState extends ChangeNotifier {
     return earned.round();
   }
 
+  /// Keeps the completion log to the days a week's training can reach back to.
+  void _trimCompletionLog(DateTime now) {
+    final oldest = now.subtract(const Duration(days: completionLogDays));
+    completionLog.removeWhere((record) => record.at.isBefore(oldest));
+    if (completionLog.length > completionLogCap) {
+      completionLog.removeRange(0, completionLog.length - completionLogCap);
+    }
+  }
+
   /// Applies a rolled bundle to xp/stats/streak/counters — the moment the
   /// bar fills and the stat chip pulses.
   void commit(RewardBundle b) {
@@ -2934,13 +2941,12 @@ class GameState extends ChangeNotifier {
     if (b.isEvent) eventCompletions++;
     if (b.custom) customCompletions++;
     history[today] = (history[today] ?? 0) + 1;
-    // The week's training: one mark for the stat this Quest fed, counting 1.5
-    // when the timer proved it (the same flag that pays the verified bonus).
-    markTraining(
-      b.stat,
-      at: now,
-      weight: b.verifiedMult != null ? timerProvenWeight : 1,
+    // The week's training is read back from this log: one record per Quest,
+    // and a Quest that ran through the timer counts 1.5 (weekly_training.dart).
+    completionLog.add(
+      CompletionRecord(stat: b.stat, at: now, timerProven: b.timerProven),
     );
+    _trimCompletionLog(now);
     final titleKey = b.questKey ?? b.questTitle;
     todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
 
@@ -3363,6 +3369,8 @@ class GameState extends ChangeNotifier {
     ],
     'journal': [for (final n in journal) n.toJson()],
     'ledger': [for (final e in ledger) e.toJson()],
+    if (completionLog.isNotEmpty)
+      'completionLog': [for (final r in completionLog) r.toJson()],
     'streakDays': streakDays,
     'bestStreak': bestStreak,
     // Keep legacy keys stable so an existing cloud/local save keeps merging.
@@ -3398,8 +3406,6 @@ class GameState extends ChangeNotifier {
     'questDeskStyle': questDeskStyle,
     'unlockedAchievements': unlockedAchievements.toList(),
     'history': history,
-    if (trainingLog.isNotEmpty)
-      'trainingLog': [for (final mark in trainingLog) mark.toJson()],
     'goals': [for (final g in goals) g.toJson()],
     'todayXp': todayXp,
     'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
@@ -3703,6 +3709,15 @@ class GameState extends ChangeNotifier {
     for (final e in (j['ledger'] as List?) ?? const []) {
       s.ledger.add(LedgerEntry.fromJson((e as Map).cast<String, dynamic>()));
     }
+    final rawLog = j['completionLog'];
+    if (rawLog is List) {
+      for (final item in rawLog.take(completionLogCap * 2)) {
+        final record = CompletionRecord.fromJson(item);
+        if (record != null) s.completionLog.add(record);
+      }
+      s.completionLog.sort((a, b) => a.at.compareTo(b.at));
+      s._trimCompletionLog(Clock.now());
+    }
     s.streakDays = j['streakDays'] as int? ?? 0;
     s.bestStreak = j['bestStreak'] as int? ?? s.streakDays;
     final encodedFreezeVersion = j['streakFreezeVersion'] as int? ?? 0;
@@ -3772,10 +3787,6 @@ class GameState extends ChangeNotifier {
       if (Days.tryParse(e.key) != null && e.value is num) {
         s.history[e.key] = (e.value as num).toInt();
       }
-    }
-    for (final raw in (j['trainingLog'] as List?) ?? const []) {
-      final mark = TrainingMark.tryFromJson(raw);
-      if (mark != null) s.trainingLog.add(mark);
     }
     for (final g in (j['goals'] as List?) ?? const []) {
       s.goals.add(Goal.fromJson((g as Map).cast<String, dynamic>()));

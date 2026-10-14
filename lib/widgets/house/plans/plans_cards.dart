@@ -21,6 +21,8 @@ import '../../../audio.dart';
 import '../../../daybook/presentation/daybook_range_projection.dart';
 import '../../../daybook/widgets/daybook_rows.dart';
 import '../../../tokens.dart';
+import '../../../quest_timer.dart';
+import '../../quest_timer_widgets.dart';
 import 'plans_actions.dart';
 import 'plans_card_menu.dart';
 import 'plans_dates.dart';
@@ -295,11 +297,26 @@ class PlansEntryCard extends StatelessWidget {
             ],
           );
 
+    final timer = _timerOffer(context);
     final card = PlansGlass(
       bright: first,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 62),
-        child: content,
+        child: timer == null
+            ? content
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  content,
+                  // The whole card's width, under the ring and the words, so
+                  // the offer reads on one line.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                    child: timer,
+                  ),
+                ],
+              ),
       ),
     );
     return Semantics(
@@ -597,6 +614,27 @@ class PlansEntryCard extends StatelessWidget {
   }
 
   // ── what sits on the card ─────────────────────────────────────────────
+
+  /// A Quest that fits a timer offers one (and, while it runs, the way back).
+  Widget? _timerOffer(BuildContext context) {
+    if (entry.action is! QuestPlanAction || _done) return null;
+    final start = actions.onStartQuestTimer;
+    final quest = actions.questFor?.call(
+      (entry.action as QuestPlanAction).questTitle,
+    );
+    if (start == null || quest == null) return null;
+    final timer = QuestTimerScope.maybeOf(context);
+    final offer = timerOfferFor(quest);
+    final shows =
+        timer?.sessionFor(quest) != null ||
+        (offer != null && !offer.inherent && !(timer?.hasSession ?? false));
+    if (!shows) return null;
+    return QuestTimerAction(
+      quest: quest,
+      onStart: () => start(quest),
+      onOpen: () => start(quest),
+    );
+  }
 
   Widget? _footer() {
     final occurrence = _occurrence;

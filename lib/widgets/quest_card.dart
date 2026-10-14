@@ -16,6 +16,7 @@ import 'facets.dart';
 import 'lamplight.dart';
 import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
+import 'quest_timer_widgets.dart';
 import 'working_surface.dart' show WorkingType;
 
 /// A quest row from the approved room-backed board.
@@ -43,7 +44,14 @@ class QuestCard extends StatefulWidget {
     this.scrollPosition,
     this.featuredAnchor,
     this.goalThreadLabel,
+    this.onStartTimer,
+    this.onOpenTimer,
   });
+
+  /// One tap starts a timer for this Quest (offered when it fits one), and
+  /// [onOpenTimer] returns to it while it runs.
+  final VoidCallback? onStartTimer;
+  final VoidCallback? onOpenTimer;
 
   /// Set on whichever card is currently [featured], so the board can measure it
   /// and keep its action out from under the reward rail.
@@ -454,6 +462,20 @@ class _QuestCardState extends State<QuestCard>
                                       ),
                                     ],
                                     const SizedBox(width: 8),
+                                    if (!heroLayout &&
+                                        !done &&
+                                        widget.onStartTimer != null) ...[
+                                      QuestTimerAction(
+                                        quest: quest,
+                                        compact: true,
+                                        quiet: true,
+                                        onStart: widget.onStartTimer!,
+                                        onOpen:
+                                            widget.onOpenTimer ??
+                                            widget.onStartTimer!,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
                                     if (!largePhoneType &&
                                         done &&
                                         widget.onEncore != null &&
@@ -559,6 +581,17 @@ class _QuestCardState extends State<QuestCard>
                                             ),
                                           ),
                                   ),
+                                  if (!done && widget.onStartTimer != null) ...[
+                                    const SizedBox(height: 8),
+                                    QuestTimerAction(
+                                      quest: quest,
+                                      caption: true,
+                                      onStart: widget.onStartTimer!,
+                                      onOpen:
+                                          widget.onOpenTimer ??
+                                          widget.onStartTimer!,
+                                    ),
+                                  ],
                                   if (!done &&
                                       (widget.onManage != null ||
                                           (widget.featured &&

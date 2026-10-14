@@ -322,6 +322,10 @@ void main() {
       expect(page.onAddClasses, isNotNull);
       expect(find.byKey(const Key('add-classes-row')), findsOneWidget);
 
+      // The leading Quest may offer a timer, which makes its card taller; the
+      // row sits under it, so bring the row into view first.
+      await tester.ensureVisible(find.byKey(const Key('add-classes')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('add-classes')));
       await settle(tester);
       expect(sheet, findsOneWidget, reason: 'Plans opened the sheet');
@@ -339,6 +343,8 @@ void main() {
       // A new tap on the row is a new request.
       await tester.tap(find.text('QUESTS'));
       await settle(tester);
+      await tester.ensureVisible(find.byKey(const Key('add-classes')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('add-classes')));
       await settle(tester);
       expect(sheet, findsOneWidget);

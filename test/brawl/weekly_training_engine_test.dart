@@ -1,4 +1,4 @@
-// The engine remembers a mark for every Quest finished, so the week's training
+// The engine remembers a record for every Quest finished, so the week's training
 // is real: a Quest is a point for its stat, one proven with the timer is 1.5,
 // the whole-save undo takes the point back, a kept class counts for the stat
 // it feeds, and the marks ride along in the save.
@@ -90,7 +90,7 @@ void main() {
     // ...and Undo restores it: the second point goes with the completion.
     final restored = _restore(before);
     expect(restored.weeklyTraining().pointsOf(Stat.str), 1);
-    expect(restored.trainingLog, hasLength(1));
+    expect(restored.completionLog, hasLength(1));
   });
 
   test('the marks are in the save, and an old save reads as a quiet week', () {
@@ -99,22 +99,22 @@ void main() {
     _finish(state, _quest('Do 5 push-ups', Stat.str));
     _finish(state, _quest('Read one page', Stat.intl), timer: true);
     final json = state.toJson();
-    expect(json['trainingLog'], isA<List<dynamic>>());
+    expect(json['completionLog'], isA<List<dynamic>>());
     final back = _restore(jsonEncode(json));
     expect(back.weeklyTraining().pointsOf(Stat.str), 1);
     expect(back.weeklyTraining().pointsOf(Stat.intl), 1.5);
 
     // A save from before the feature has no such key.
-    final old = Map<String, dynamic>.of(json)..remove('trainingLog');
+    final old = Map<String, dynamic>.of(json)..remove('completionLog');
     expect(_restore(jsonEncode(old)).weeklyTraining().any, isFalse);
     // A fresh state writes no key at all.
-    expect(GameState().toJson().containsKey('trainingLog'), isFalse);
+    expect(GameState().toJson().containsKey('completionLog'), isFalse);
     // A damaged entry is skipped and the rest survive.
     final damaged = Map<String, dynamic>.of(json)
-      ..['trainingLog'] = [
+      ..['completionLog'] = [
         'junk',
-        {'t': 'x'},
-        ...(json['trainingLog'] as List),
+        {'at': 'x'},
+        ...(json['completionLog'] as List),
       ];
     expect(
       _restore(jsonEncode(damaged)).weeklyTraining().pointsOf(Stat.str),
@@ -128,7 +128,7 @@ void main() {
     state.markTraining(Stat.str, at: DateTime(2026, 9, 1, 9));
     state.markTraining(Stat.str, at: DateTime(2026, 10, 7, 9)); // last week
     state.markTraining(Stat.str, at: DateTime(2026, 10, 13, 9));
-    expect(state.trainingLog, hasLength(2));
+    expect(state.completionLog, hasLength(2));
     expect(state.weeklyTraining().pointsOf(Stat.str), 1);
   });
 
@@ -161,7 +161,7 @@ void main() {
     expect(week.pointsOf(Stat.intl), 1);
     expect(week.pointsOf(Stat.foc), 1);
     // Keeping a class made no Quest mark.
-    expect(state.trainingLog, isEmpty);
+    expect(state.completionLog, isEmpty);
     // And the whole-save undo of the keep takes it back.
     final fresh = _restore(jsonEncode(GameState().toJson()));
     expect(fresh.weeklyTraining().any, isFalse);

@@ -23,6 +23,7 @@ class Notifications {
 
   static const int _dailyId = 1000;
   static const int _nightId = 1001;
+  static const int _questTimerId = 1002;
   static const int _eventBase = 2000; // event reminders use 2000..2063
   static const int _eventCancelSlots = 64;
   // iOS retains at most 64 pending local notifications. Reserve two slots for
@@ -313,6 +314,43 @@ class Notifications {
       for (var i = 0; i < _eventCancelSlots; i++) {
         await _plugin.cancel(_eventBase + i);
       }
+    } catch (_) {
+      /* best effort */
+    }
+  }
+
+  /// One quest timer's end: a single reminder at the absolute instant [at]
+  /// (a wall-clock moment, so it holds across a time-zone change). Replaces
+  /// the timer's earlier reminder, if any.
+  static Future<void> scheduleQuestTimer({
+    required DateTime at,
+    required String title,
+    required String body,
+  }) async {
+    await init();
+    try {
+      await _plugin.cancel(_questTimerId);
+      final when = tz.TZDateTime.from(at.toUtc(), tz.local);
+      if (!when.isAfter(tz.TZDateTime.now(tz.local))) return;
+      await _plugin.zonedSchedule(
+        _questTimerId,
+        title,
+        body,
+        when,
+        _details(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      debugPrint('Notifications quest timer (continuing): $e');
+    }
+  }
+
+  static Future<void> cancelQuestTimer() async {
+    await init();
+    try {
+      await _plugin.cancel(_questTimerId);
     } catch (_) {
       /* best effort */
     }

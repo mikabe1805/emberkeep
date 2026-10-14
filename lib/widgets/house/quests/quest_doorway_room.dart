@@ -37,6 +37,7 @@ import '../../class_day/doorway_model.dart';
 import '../../class_day/doorway_motion.dart' show DoorwayBeat;
 import '../../class_day/doorway_stage.dart';
 import '../../pressable.dart';
+import '../../quest_timer_widgets.dart';
 import '../../routine_ledger.dart' show LedgerType;
 import '../house_hud.dart' show houseHudBottom;
 import '../house_room.dart' show HouseRoom;
@@ -86,7 +87,14 @@ class QuestDoorwayRoom extends StatefulWidget {
     this.quiet = false,
     this.onBeat,
     this.camera,
+    this.onStartTimer,
+    this.onOpenTimer,
   });
+
+  /// One tap starts a timer for the leading quest when it fits one, and
+  /// [onOpenTimer] returns to it while it runs.
+  final void Function(Quest quest)? onStartTimer;
+  final void Function(Quest quest)? onOpenTimer;
 
   final GameState state;
   final QuestDoorwayRead read;
@@ -419,16 +427,38 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
     );
   }
 
-  Widget _leadBar(Quest quest) => KeyedSubtree(
-    key: _bar,
-    child: ClassThereButton(
-      label: questBarLabel(quest),
-      semanticLabel: '${questBarLabel(quest)}: ${quest.displayTitle}',
-      light: widget.lightDirection,
-      reduceMotion: widget.reduceMotion,
-      onTap: () => widget.onComplete(quest, _barCenter()),
-    ),
-  );
+  Widget _leadBar(Quest quest) {
+    final bar = KeyedSubtree(
+      key: _bar,
+      child: ClassThereButton(
+        label: questBarLabel(quest),
+        semanticLabel: '${questBarLabel(quest)}: ${quest.displayTitle}',
+        light: widget.lightDirection,
+        reduceMotion: widget.reduceMotion,
+        onTap: () => widget.onComplete(quest, _barCenter()),
+      ),
+    );
+    final start = widget.onStartTimer;
+    if (start == null) return bar;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        bar,
+        // The timer offered under the one bright action, never beside it:
+        // outlined, so MARK COMPLETE stays the only lit button on the card.
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: QuestTimerAction(
+            quest: quest,
+            caption: true,
+            onStart: () => start(quest),
+            onOpen: () => (widget.onOpenTimer ?? start)(quest),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _closeBar() => KeyedSubtree(
     key: _bar,

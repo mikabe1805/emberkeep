@@ -244,7 +244,11 @@ void main() {
       // The clock is Tue Oct 6 12:30: Monday 04:00 on is this week.
       state.markTraining(Stat.str, at: DateTime(2026, 10, 5, 9));
       state.markTraining(Stat.str, at: DateTime(2026, 10, 6, 8));
-      state.markTraining(Stat.intl, at: DateTime(2026, 10, 5, 10), weight: 1.5);
+      state.markTraining(
+        Stat.intl,
+        at: DateTime(2026, 10, 5, 10),
+        timerProven: true,
+      );
       // Last week's does not count.
       state.markTraining(Stat.vit, at: DateTime(2026, 10, 5, 3, 59));
       await tester.pumpWidget(_page(state));

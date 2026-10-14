@@ -3,6 +3,7 @@
 // test depends on the host's time zone (the daylight-saving cases hold on a
 // zone without one, where they are ordinary days).
 import 'package:emberkeep/brawl/weekly_training.dart';
+import 'package:emberkeep/models.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -202,6 +203,64 @@ void main() {
       }
       // A strange weight reads as one.
       expect(TrainingMark.tryFromJson({'t': 1000, 's': 0, 'w': -4})!.weight, 1);
+    });
+  });
+
+  group('a timer-proven completion counts 1.5', () {
+    final now = DateTime(2026, 10, 14, 12); // Wed
+    CompletionRecord done(Stat stat, DateTime at, {bool timer = false}) =>
+        CompletionRecord(stat: stat, at: at, timerProven: timer);
+
+    test('the mark a completion leaves weighs 1, or 1.5 through the timer', () {
+      final at = DateTime(2026, 10, 14, 9);
+      expect(TrainingMark.fromCompletion(done(Stat.foc, at)).weight, 1);
+      final proven = TrainingMark.fromCompletion(
+        done(Stat.foc, at, timer: true),
+      );
+      expect(proven.weight, timerProvenWeight);
+      expect(proven.weight, 1.5);
+      expect(proven.stat, Stat.foc);
+      expect(proven.at, at);
+    });
+
+    test('this week the points are the completions, timed ones at 1.5', () {
+      final week = WeeklyTraining.fromCompletions([
+        done(Stat.intl, DateTime(2026, 10, 12, 9)),
+        done(Stat.intl, DateTime(2026, 10, 13, 9), timer: true),
+        done(Stat.intl, DateTime(2026, 10, 14, 9), timer: true),
+        done(Stat.str, DateTime(2026, 10, 14, 10)),
+      ], now);
+      expect(week.pointsOf(Stat.intl), 4);
+      expect(week.pointsOf(Stat.str), 1);
+      expect(week.pointsOf(Stat.vit), 0);
+      expect(week.boost(Stat.intl), closeTo(1 + 0.18 * 4, 1e-9));
+      expect(week.lineFor(Stat.intl), '+4 this week');
+    });
+
+    test('a lone timed completion is a point and a half, shown as 1.5', () {
+      final week = WeeklyTraining.fromCompletions([
+        done(Stat.foc, DateTime(2026, 10, 14, 9), timer: true),
+      ], now);
+      expect(week.pointsOf(Stat.foc), 1.5);
+      expect(week.lineFor(Stat.foc), '+1.5 this week');
+      expect(week.boost(Stat.foc), closeTo(1 + 0.18 * 1.5, 1e-9));
+    });
+
+    test('last week and the future do not count, timed or not', () {
+      final week = WeeklyTraining.fromCompletions([
+        done(Stat.dis, DateTime(2026, 10, 11, 20), timer: true), // last week
+        done(Stat.dis, DateTime(2026, 10, 15, 9), timer: true), // later
+      ], now);
+      expect(week.any, isFalse);
+    });
+
+    test('marks that are not Quests, like a kept class, add 1 each', () {
+      final week = WeeklyTraining.fromCompletions(
+        [done(Stat.intl, DateTime(2026, 10, 14, 9), timer: true)],
+        now,
+        more: [_mark(Stat.intl, DateTime(2026, 10, 14, 10))],
+      );
+      expect(week.pointsOf(Stat.intl), 2.5);
     });
   });
 
