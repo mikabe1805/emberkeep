@@ -97,6 +97,20 @@ Future<void> _toBoard(WidgetTester tester) async {
   await settle(tester, total: const Duration(milliseconds: 1400));
 }
 
+/// Scrolls the board until [target] can be tapped. A weekend board carries
+/// the brawl's door above the rows, so what a test taps can start below the
+/// fold.
+Future<void> _scrollBoardTo(WidgetTester tester, Finder target) async {
+  for (var i = 0; i < 8 && target.hitTestable().evaluate().isEmpty; i++) {
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, -220),
+      warnIfMissed: false,
+    );
+    await settle(tester, total: const Duration(milliseconds: 500));
+  }
+}
+
 final Finder _offer = find.byKey(
   const ValueKey('quest-timer-offer-Read ten pages'),
 );
@@ -174,11 +188,12 @@ void main() {
       surface: 'QUESTS',
       note: 'the board: rows that fit a timer carry a small round button',
     );
-    await tester.tap(
-      find
-          .byKey(const ValueKey('quest-timer-offer-Practice guitar'))
-          .hitTestable(),
+    // A weekend board now carries the brawl's door above the rows.
+    final guitar = find.byKey(
+      const ValueKey('quest-timer-offer-Practice guitar'),
     );
+    await _scrollBoardTo(tester, guitar);
+    await tester.tap(guitar.hitTestable());
     await tester.pump();
     await settle(tester, total: const Duration(milliseconds: 600));
     await tester.ensureVisible(find.byKey(const Key('timer-back')));
@@ -338,6 +353,7 @@ void main() {
         surface: 'QUESTS',
         note: 'the board with the offer at $label% text',
       );
+      await _scrollBoardTo(tester, _offer);
       await tester.tap(_offer.hitTestable().first);
       await tester.pump();
       await settle(tester, total: const Duration(milliseconds: 600));
