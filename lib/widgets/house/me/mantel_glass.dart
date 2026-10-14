@@ -32,6 +32,10 @@ TextStyle _serif(double size, {Color? color, FontWeight? weight}) =>
 TextStyle _mono(double size, {Color? color, double spacing = 1.6}) => Type.label
     .copyWith(fontSize: size, letterSpacing: spacing, color: color ?? _inkSoft);
 
+/// Whether the phone's text size is [mantelLargeTextFrom] or more.
+bool mantelLargeText(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(1) >= mantelLargeTextFrom;
+
 /// A small caps eyebrow ("YOUR BUILD").
 class MantelEyebrow extends StatelessWidget {
   const MantelEyebrow(this.text, {super.key, this.align = TextAlign.start});
@@ -68,9 +72,29 @@ class MantelBuildCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // At the phone's own size the footer stays pinned under the six stats. At
+    // large text it would take half the glass, so it joins the scroll below
+    // the stats and the stats get all the room.
+    final large = mantelLargeText(context);
+    Widget footer() => Container(
+      key: const Key('mantel-footer'),
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.only(top: 5),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0x33EFD8B3))),
+      ),
+      child: Semantics(
+        label:
+            '${facts.questsDone} quest${facts.questsDone == 1 ? '' : 's'}'
+            ' done, ${facts.streakDays} day streak, '
+            '${facts.xp} of ${facts.xpNeeded} XP',
+        excludeSemantics: true,
+        child: _footer(context),
+      ),
+    );
     final glass = ClassGlass(
       key: const Key('mantel-build-card'),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 9),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 5),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -80,24 +104,15 @@ class MantelBuildCard extends StatelessWidget {
               key: const Key('mantel-build-scroll'),
               primary: false,
               physics: const ClampingScrollPhysics(),
-              child: _body(),
+              child: large
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [_body(large: true), footer()],
+                    )
+                  : _body(large: false),
             ),
           ),
-          Container(
-            margin: const EdgeInsets.only(top: 6),
-            padding: const EdgeInsets.only(top: 8),
-            decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0x33EFD8B3))),
-            ),
-            child: Semantics(
-              label:
-                  '${facts.questsDone} quest${facts.questsDone == 1 ? '' : 's'}'
-                  ' done, ${facts.streakDays} day streak, '
-                  '${facts.xp} of ${facts.xpNeeded} XP',
-              excludeSemantics: true,
-              child: _footer(context),
-            ),
-          ),
+          if (!large) footer(),
         ],
       ),
     );
@@ -151,7 +166,7 @@ class MantelBuildCard extends StatelessWidget {
     );
   }
 
-  Widget _body() => Column(
+  Widget _body({required bool large}) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Semantics(
@@ -165,11 +180,11 @@ class MantelBuildCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const MantelEyebrow('YOUR BUILD'),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     facts.title,
                     key: const Key('mantel-title'),
-                    style: _serif(24, weight: FontWeight.w500),
+                    style: _serif(22, weight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -190,34 +205,92 @@ class MantelBuildCard extends StatelessWidget {
           ],
         ),
       ),
-      const SizedBox(height: 6),
-      for (var row = 0; row < 2; row++)
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (var col = 0; col < 3; col++) ...[
-              if (col > 0) const SizedBox(width: 14),
-              Expanded(
-                child: _StatCell(
-                  stat: facts.stats[row * 3 + col],
-                  onTap: onStat,
-                ),
-              ),
-            ],
-          ],
-        ),
+      const SizedBox(height: 2),
+      // At the phone's size the week's preview sits under the title. At
+      // large text it would take the first screen of the glass, so the six
+      // stats come first and it follows them.
+      if (!large) MantelWeekLine(facts: facts),
+      for (final stat in facts.stats) _StatRow(stat: stat, onTap: onStat),
+      if (large) MantelWeekLine(facts: facts),
     ],
   );
 }
 
-class _StatCell extends StatelessWidget {
-  const _StatCell({required this.stat, required this.onTap});
+/// The week's preview, one quiet line under the title: the monster the
+/// weekend brings and the stat it is weak to, with that stat's own glyph.
+class MantelWeekLine extends StatelessWidget {
+  const MantelWeekLine({super.key, required this.facts});
+
+  final MantelBuild facts;
+
+  @override
+  Widget build(BuildContext context) {
+    final weak = facts.monster.weakness;
+    final style = _sans(12, color: _inkSoft);
+    // One line at the phone's own size, shrunk a hair if a narrow phone needs
+    // it; at large text it wraps instead of getting small.
+    final big = MediaQuery.textScalerOf(context).scale(1) > 1.05;
+    final line = big
+        ? Text(facts.weekendLine, style: style)
+        : FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              facts.weekendLine,
+              maxLines: 1,
+              softWrap: false,
+              style: style,
+            ),
+          );
+    return Semantics(
+      label: facts.weekendLine,
+      excludeSemantics: true,
+      child: Padding(
+        key: const Key('mantel-week-line'),
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(weak.icon, size: 15, color: weak.color.withValues(alpha: 0.9)),
+            const SizedBox(width: 8),
+            Expanded(child: line),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Tier 3" and "Tier 4 at 150" never break across lines (a lone "3" on its
+/// own line at large text reads as a mistake); the ability's own name still
+/// may.
+String _keepTogether(String s) => s
+    .replaceAll('Tier ', 'Tier ')
+    .replaceAll(' · ', ' · ')
+    .replaceAll(' at ', ' at ');
+
+TextStyle _sans(double size, {Color? color, FontWeight? weight}) =>
+    Type.body.copyWith(
+      fontSize: size,
+      fontWeight: weight ?? FontWeight.w500,
+      height: 1.2,
+      color: color ?? _inkSoft,
+    );
+
+/// One stat, on its own line of the glass: its glyph in its own hue, its name
+/// and value, what this week's training added to it (glowing, only when it
+/// did), the ability it powers and its tier, and where it goes next. The whole
+/// row opens the stat's page.
+class _StatRow extends StatelessWidget {
+  const _StatRow({required this.stat, required this.onTap});
 
   final MantelStat stat;
   final ValueChanged<Stat> onTap;
 
   @override
   Widget build(BuildContext context) {
+    final hue = stat.stat.color;
+    final trained = stat.trained;
     return Semantics(
       button: true,
       label: stat.spoken,
@@ -229,39 +302,118 @@ class _StatCell extends StatelessWidget {
         onTap: () => onTap(stat.stat),
         child: Container(
           constraints: const BoxConstraints(minHeight: 44),
-          padding: const EdgeInsets.fromLTRB(0, 6, 0, 3),
+          padding: const EdgeInsets.fromLTRB(0, 4, 0, 3),
           decoration: const BoxDecoration(
             border: Border(top: BorderSide(color: _rule)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  stat.label,
-                  maxLines: 1,
-                  style: _mono(
-                    Type.minLabel,
-                    color: const Color(0xFFA79880),
-                    spacing: 1.6,
-                  ),
+              SizedBox(
+                width: 28,
+                child: Icon(
+                  stat.stat.icon,
+                  key: Key('mantel-stat-icon-${stat.stat.name}'),
+                  size: 20,
+                  color: hue.withValues(alpha: trained ? 1 : 0.82),
+                  shadows: trained
+                      ? [
+                          Shadow(
+                            color: hue.withValues(alpha: 0.7),
+                            blurRadius: 9,
+                          ),
+                        ]
+                      : null,
                 ),
               ),
-              const SizedBox(height: 2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          stat.name,
+                          key: Key('mantel-stat-name-${stat.stat.name}'),
+                          style: _serif(17, weight: FontWeight.w600),
+                        ),
+                        if (trained) _TrainingChip(stat: stat),
+                      ],
+                    ),
+                    const SizedBox(height: 1),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 0,
+                      children: [
+                        if (stat.abilityLine != null)
+                          Text(
+                            _keepTogether(stat.abilityLine!),
+                            key: Key('mantel-ability-${stat.stat.name}'),
+                            style: _sans(
+                              12.5,
+                              color: _ink,
+                              weight: FontWeight.w600,
+                            ),
+                          ),
+                        Text(
+                          _keepTogether(stat.nextText),
+                          key: Key('mantel-next-${stat.stat.name}'),
+                          style: _sans(12.5, color: _inkQuiet),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
               FittedBox(
                 fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.centerRight,
                 child: RollingNumber(
                   stat.value,
                   maxLines: 1,
-                  style: _serif(21, weight: FontWeight.w600),
+                  style: _serif(24, weight: FontWeight.w700),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "+6 this week", glowing in the stat's own hue. It is only there when the
+/// stat was trained, so a quiet week is not a row of zeros.
+class _TrainingChip extends StatelessWidget {
+  const _TrainingChip({required this.stat});
+
+  final MantelStat stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final hue = stat.stat.color;
+    return Container(
+      key: Key('mantel-training-${stat.stat.name}'),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: hue.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: hue.withValues(alpha: 0.62), width: 0.8),
+        boxShadow: [
+          BoxShadow(color: hue.withValues(alpha: 0.38), blurRadius: 11),
+        ],
+      ),
+      child: Text(
+        stat.trainingLine!,
+        style: _sans(
+          12,
+          color: const Color(0xFFFBF2E1),
+          weight: FontWeight.w700,
         ),
       ),
     );

@@ -13,13 +13,13 @@ const _thresholds = [0, 10, 25, 50, 100, 200];
 
 /// Per-stat rank names, indexed by tier 0..5.
 const _rankNames = <Stat, List<String>>{
-  // BODY
+  // Strength
   Stat.str: ['Soft', 'Limber', 'Trained', 'Strong', 'Mighty', 'Titan'],
-  // CARE
+  // Vitality
   Stat.vit: ['Frail', 'Steady', 'Hale', 'Vital', 'Radiant', 'Undimmed'],
-  // MIND
+  // Intellect
   Stat.intl: ['Curious', 'Learner', 'Sharp', 'Astute', 'Sage', 'Luminary'],
-  // CRAFT — leveling a craft / career
+  // Focus: leveling a craft / career
   Stat.foc: [
     'Novice',
     'Apprentice',
@@ -28,9 +28,12 @@ const _rankNames = <Stat, List<String>>{
     'Expert',
     'Master',
   ],
-  // PEOPLE
+  // Social
   Stat.soc: ['Quiet', 'Warming', 'Kind', 'Beloved', 'Magnetic', 'Beacon'],
-  // HOME — clutter to sanctuary
+  // Discipline: chores and upkeep, clutter to sanctuary. The top three of
+  // every stat's ranks are also published in a shared room's title, and
+  // firestore.rules lists those words exactly (validBuildTitle), so a rank
+  // word is only renamed together with that rule.
   Stat.dis: ['Cluttered', 'Tidying', 'Kept', 'Homey', 'Welcoming', 'Sanctuary'],
 };
 

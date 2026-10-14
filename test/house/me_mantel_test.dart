@@ -107,7 +107,7 @@ void main() {
         final cell = find.byKey(Key('mantel-stat-${stat.name}'));
         expect(cell, findsOneWidget);
         expect(
-          find.descendant(of: cell, matching: find.text(stat.abbr)),
+          find.descendant(of: cell, matching: find.text(stat.label)),
           findsOneWidget,
         );
         expect(
@@ -192,10 +192,243 @@ void main() {
       );
       expect(
         [for (final s in facts.stats) s.label],
-        ['BODY', 'CARE', 'MIND', 'CRAFT', 'PEOPLE', 'HOME'],
+        ['STR', 'VIT', 'INT', 'FOC', 'SOC', 'DIS'],
+      );
+      expect(
+        [for (final s in facts.stats) s.name],
+        ['Strength', 'Vitality', 'Intellect', 'Focus', 'Social', 'Discipline'],
       );
       expect(MantelBuild.titleCase('MIGHTY STEADY HAND'), 'Mighty Steady Hand');
       expect(facts.spoken, contains('Level 18'));
+    });
+  });
+
+  group('the six stats, drawn out', () {
+    String text(WidgetTester tester, String key) =>
+        tester.widget<Text>(find.byKey(Key(key))).data!.replaceAll(' ', ' ');
+
+    testWidgets('each row has its glyph, name, value, ability and next tier', (
+      tester,
+    ) async {
+      _phone(tester);
+      await tester.pumpWidget(_page(_state()));
+      await tester.pump();
+      // _state(): STR 88, VIT 72, INT 125, FOC 94, SOC 61, DIS 103.
+      const expected = {
+        Stat.str: ('Power Slam · Tier 3', 'Tier 4 at 150'),
+        Stat.vit: ('Second Wind · Tier 2', 'Tier 3 at 80'),
+        Stat.intl: ('Spell Bolt · Tier 3', 'Tier 4 at 150'),
+        Stat.foc: ('Focus · Tier 3', 'Tier 4 at 150'),
+        Stat.soc: ('Call a Friend · Tier 2', 'Tier 3 at 80'),
+        Stat.dis: ('Super · Tier 3', 'Tier 4 at 150'),
+      };
+      final glyphs = <IconData>{};
+      for (final stat in Stat.values) {
+        final icon = tester.widget<Icon>(
+          find.byKey(Key('mantel-stat-icon-${stat.name}')),
+        );
+        expect(icon.icon, stat.icon);
+        glyphs.add(icon.icon!);
+        expect(text(tester, 'mantel-stat-name-${stat.name}'), stat.label);
+        final (ability, next) = expected[stat]!;
+        expect(text(tester, 'mantel-ability-${stat.name}'), ability);
+        expect(text(tester, 'mantel-next-${stat.name}'), next);
+      }
+      expect(glyphs, hasLength(6), reason: 'six different marks');
+    });
+
+    testWidgets('a stat trained this week glows with its points; a quiet one '
+        'shows nothing', (tester) async {
+      _phone(tester);
+      final state = _state();
+      // The clock is Tue Oct 6 12:30: Monday 04:00 on is this week.
+      state.markTraining(Stat.str, at: DateTime(2026, 10, 5, 9));
+      state.markTraining(Stat.str, at: DateTime(2026, 10, 6, 8));
+      state.markTraining(Stat.intl, at: DateTime(2026, 10, 5, 10), weight: 1.5);
+      // Last week's does not count.
+      state.markTraining(Stat.vit, at: DateTime(2026, 10, 5, 3, 59));
+      await tester.pumpWidget(_page(state));
+      await tester.pump();
+      String chip(String key) => tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(Key(key)),
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
+      expect(chip('mantel-training-str'), '+2 this week');
+      expect(chip('mantel-training-intl'), '+1.5 this week');
+      for (final stat in [Stat.vit, Stat.foc, Stat.soc, Stat.dis]) {
+        expect(
+          find.byKey(Key('mantel-training-${stat.name}')),
+          findsNothing,
+          reason: stat.label,
+        );
+      }
+      final facts = MantelBuild.from(state);
+      expect(facts.anyTrained, isTrue);
+      expect(facts.stats.first.points, 2);
+    });
+
+    testWidgets('a quiet week is plain: no chips at all', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_page(_state()));
+      await tester.pump();
+      for (final stat in Stat.values) {
+        expect(find.byKey(Key('mantel-training-${stat.name}')), findsNothing);
+      }
+      expect(MantelBuild.from(_state()).anyTrained, isFalse);
+    });
+
+    testWidgets('a locked ability is an aspiration, never a scold', (
+      tester,
+    ) async {
+      _phone(tester);
+      final state = _state()..stats[Stat.soc] = 5;
+      await tester.pumpWidget(_page(state));
+      await tester.pump();
+      expect(
+        text(tester, 'mantel-next-soc'),
+        'Reach Social 10 to unlock Call a Friend',
+      );
+      expect(find.byKey(const Key('mantel-ability-soc')), findsNothing);
+      // At 10 it opens at tier 1.
+      state.stats[Stat.soc] = 10;
+      await tester.pumpWidget(_page(state));
+      await tester.pump();
+      expect(text(tester, 'mantel-ability-soc'), 'Call a Friend · Tier 1');
+      expect(text(tester, 'mantel-next-soc'), 'Tier 2 at 40');
+    });
+
+    testWidgets('the top tier says so', (tester) async {
+      _phone(tester);
+      final state = _state()..stats[Stat.str] = 150;
+      await tester.pumpWidget(_page(state));
+      await tester.pump();
+      expect(text(tester, 'mantel-ability-str'), 'Power Slam · Tier 4');
+      expect(text(tester, 'mantel-next-str'), 'Top tier');
+    });
+
+    testWidgets('the week previews its monster and what it is weak to', (
+      tester,
+    ) async {
+      _phone(tester);
+      // Tue Oct 6 2026 is ISO week 41 (odd): the Fog.
+      await tester.pumpWidget(_page(_state()));
+      await tester.pump();
+      expect(
+        find.text('This weekend: the Fog · weak to Intellect'),
+        findsOneWidget,
+      );
+      // Wed Oct 14 is week 42 (even): the Couch Troll.
+      Clock.freeze(DateTime(2026, 10, 14, 12, 30));
+      await tester.pumpWidget(_page(_state()));
+      await tester.pump();
+      expect(
+        find.text('This weekend: the Couch Troll · weak to Strength'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('every row is a 44 point target at every text size', (
+      tester,
+    ) async {
+      _phone(tester);
+      for (final scale in [1.0, 1.3, 2.0]) {
+        await tester.pumpWidget(_page(_state(), textScale: scale));
+        await tester.pump();
+        for (final stat in Stat.values) {
+          final size = tester.getSize(
+            find.byKey(Key('mantel-stat-${stat.name}')),
+          );
+          expect(size.height, greaterThanOrEqualTo(44), reason: '$stat $scale');
+          expect(size.width, greaterThanOrEqualTo(44), reason: '$stat $scale');
+        }
+      }
+    });
+
+    testWidgets('at the phone size the footer stays pinned and the shelf '
+        'stays in view', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_page(_state()));
+      await tester.pump();
+      // (Whether all six rows fit at 100% is a matter of the real fonts, which
+      // a widget test does not load; the renders in design/comparisons show
+      // it. Here: the footer is outside the scroll, and the glass never
+      // climbs over the shelf.)
+      final scroll = find.byKey(const Key('mantel-build-scroll'));
+      expect(
+        find.descendant(
+          of: scroll,
+          matching: find.byKey(const Key('mantel-footer')),
+        ),
+        findsNothing,
+        reason: 'the footer stays pinned under the stats',
+      );
+      // The glass keeps below the mantel shelf, so the earned objects and the
+      // trophy leader stay in the picture.
+      const frame = MantelFrame(page: Size(393, 852), above: 0, dock: 122);
+      final shelf = frame.plateToPage(const Offset(0, MantelFrame.shelfBottom));
+      final card = tester.getRect(find.byKey(const Key('mantel-build-card')));
+      expect(card.top, greaterThanOrEqualTo(shelf.dy - 1));
+    });
+
+    testWidgets('at large text the footer joins the scroll and the stats '
+        'get the room', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_page(_state(), textScale: 2.0));
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('mantel-build-scroll')),
+          matching: find.byKey(const Key('mantel-footer')),
+        ),
+        findsOneWidget,
+      );
+      // The first stat is on the glass and the last is one scroll away.
+      expect(find.byKey(const Key('mantel-stat-str')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('mantel-stat-dis')),
+        200,
+        scrollable: find.descendant(
+          of: find.byKey(const Key('mantel-build-scroll')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(find.byKey(const Key('mantel-stat-dis')), findsOneWidget);
+    });
+
+    testWidgets('no word says a stat was lost, missed or failed', (
+      tester,
+    ) async {
+      _phone(tester);
+      final state = GameState()
+        ..reduceMotion = true
+        ..stats.addAll({for (final s in Stat.values) s: 0});
+      await tester.pumpWidget(_page(state));
+      await tester.pump();
+      final all = [
+        for (final t in tester.widgetList<Text>(find.byType(Text))) t.data,
+      ].whereType<String>().join(' ').toLowerCase();
+      for (final word in [
+        'lost',
+        'missed',
+        'failed',
+        'broke',
+        'behind',
+        'overdue',
+        '—',
+      ]) {
+        expect(all.contains(word), isFalse, reason: word);
+      }
+      // All six are locked and each says what it will unlock.
+      for (final stat in Stat.values) {
+        expect(
+          text(tester, 'mantel-next-${stat.name}'),
+          startsWith('Reach ${stat.label} 10 to unlock '),
+        );
+      }
     });
   });
 
@@ -514,7 +747,9 @@ void main() {
       );
       for (final stat in Stat.values) {
         expect(
-          find.bySemanticsLabel('${stat.label} ${state.stats[stat]}'),
+          find.bySemanticsLabel(
+            RegExp('^${stat.label} ${state.stats[stat]}[ .,]'),
+          ),
           findsWidgets,
           reason: stat.label,
         );

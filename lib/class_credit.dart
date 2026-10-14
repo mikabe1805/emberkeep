@@ -46,10 +46,10 @@ final class ClassPay {
   final Stat stat;
   final int statGain;
 
-  /// Lectures, recitations, seminars and anything that is not a lab: MIND.
+  /// Lectures, recitations, seminars and anything that is not a lab: Intellect.
   static const lecture = ClassPay._(xp: 25, stat: Stat.intl, statGain: 3);
 
-  /// Labs and studios: CRAFT, and a little more for the longer block.
+  /// Labs and studios: Focus, and a little more for the longer block.
   static const lab = ClassPay._(xp: 30, stat: Stat.foc, statGain: 5);
 
   /// Paid once per day, on the keep that completes every class that day.

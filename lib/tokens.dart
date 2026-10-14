@@ -34,16 +34,16 @@ abstract final class Palette {
   static const xp = Color(0xFFE0A865); // honey glow — XP / level
   static const xpLight = Color(0xFFF2CD93); // bright honey highlights
   static const streak = Color(0xFFE8915A); // ember
-  // Moss and CARE are the same pigment; they were two near-identical greens.
+  // Moss and Vitality are the same pigment; they were two near-identical greens.
   static const success = Color(0xFF9CBC88); // moss light — complete
   static const unlock = Color(0xFFC9A3DC); // plum light — unlocks / crit
   static const info = Color(0xFF8FBAB6); // teal light — evidence
   static const verify = Color(0xFF93A7E0); // periwinkle — proof / verified
   static const dread = Color(0xFF9AABB8); // moonlit steel — dreaded tasks
 
-  // Destructive-action tint. Deliberately redder than Stat.str's BODY rose
-  // (0xFFE89090) so an "Abandon"/"Delete" on a BODY-domain thing doesn't wear
-  // the same hue as the thing's own accent — danger has to read as danger.
+  // Destructive-action tint. Deliberately redder than Stat.str's rose
+  // (0xFFE89090) so an "Abandon"/"Delete" on a Strength thing doesn't wear
+  // the same hue as the thing's own accent: danger has to read as danger.
   static const danger = Color(0xFFE57468);
 
   // Dialog chrome, tokenized (was inlined ~20 places): the scrim behind a
@@ -115,90 +115,103 @@ abstract final class Palette {
   static const railRim = Color(0x33FFE0AE);
 }
 
-/// The six LIFE DOMAINS you level up — tangible parts of a life, not abstract
-/// RPG attributes (the owner wanted to "level up my home, my caretaking").
-/// The enum identifiers stay (str/vit/… ) so saves — which store the index —
-/// and every switch/title key keep working; only the names/abbrs are domains.
+/// The six STATS you level up, each one a plain word for a part of a life:
+/// Strength, Vitality, Intellect, Focus, Social and Discipline. "By doing 5
+/// push-ups today, you increase your strength stat by a point each time" is
+/// the idea, so every quest feeds the stat that names it and each stat powers
+/// one ability in the weekend brawl (lib/brawl/brawl_abilities.dart).
 ///
-/// [blurb] (one warm line of meaning) and [examples] (a few concrete things,
-/// chosen to draw clean lines between the easily-confused domains — BODY is
-/// exertion, CARE is keeping living things well, HOME is the physical space)
-/// are surfaced wherever you pick a domain, so "which one is this?" answers
-/// itself at categorization time.
-/// Hues are warm-keyed off the approved targets, where every domain glyph is a
-/// pigment lit by the same candle. Two of them had real defects:
-/// PEOPLE was 0xFFF0AFAF against BODY's 0xFFE89090 — the same pink twice, so a
-/// PEOPLE quest ring and a BODY quest ring were not distinguishable; and HOME
-/// was 0xFFB3A897, a neutral bark that made every HOME ring, medallion and
-/// progress rail read *disabled*. PEOPLE is now terracotta and HOME is aged
-/// bronze — still below [Palette.xp] so honey keeps meaning "actionable".
+/// The enum identifiers stay (str/vit/intl/foc/soc/dis) so saves, which store
+/// the index, and every switch and title key keep working. They were called
+/// BODY, CARE, MIND, CRAFT, PEOPLE and HOME until the H57 pass; only the names,
+/// abbreviations, blurbs and glyphs changed.
+///
+/// [blurb] (one warm line of meaning) and [examples] (a few concrete things)
+/// are surfaced wherever you pick a stat, so "which one is this?" answers
+/// itself at categorization time. The lines between the easily-confused ones:
+/// Strength is effort against resistance (push-ups, lifting), Vitality is the
+/// everyday upkeep of a body (walks, sleep, water, meals), Intellect is
+/// learning, Focus is deep work and making, Social is people, and Discipline
+/// is the chores, the routines and the thing you put off.
+///
+/// Hues are warm-keyed off the approved targets, where every glyph is a
+/// pigment lit by the same candle. Two of them once had real defects: Social
+/// (terracotta) was the same pink as Strength, and Discipline (aged bronze)
+/// was a neutral bark that made every ring and rail read *disabled*. Both are
+/// fixed and stay below [Palette.xp] so honey keeps meaning "actionable".
 enum Stat {
   str(
-    'BODY',
-    'Body',
+    'STR',
+    'Strength',
     Color(0xFFE0908A), // ember rose
-    'Moving and training your body.',
-    'workouts, walks, sports, stretching',
+    'Effort against something heavy, and the power it builds.',
+    'push-ups, squats, lifting, climbing',
   ),
   vit(
-    'CARE',
-    'Care',
+    'VIT',
+    'Vitality',
     Color(0xFF9CBC88), // moss
-    'Keeping yourself and what you tend alive and well.',
-    'meals, sleep, water, meds, plants, pets',
+    'Keeping yourself well and going, day after day.',
+    'walks, runs, sleep, water, meals, care',
   ),
   intl(
-    'MIND',
-    'Mind',
+    'INT',
+    'Intellect',
     Color(0xFF8AAFC6), // dusk blue
     'Feeding your head.',
-    'reading, learning, reflecting',
+    'reading, classes, studying',
   ),
   foc(
-    'CRAFT',
-    'Craft',
+    'FOC',
+    'Focus',
     Color(0xFFAE9AC4), // lilac
-    'Focused work and making things.',
-    'deep work, projects, practice, skills',
+    'Staying with one thing until it takes shape.',
+    'deep work, practice, making things',
   ),
   soc(
-    'PEOPLE',
-    'People',
+    'SOC',
+    'Social',
     Color(0xFFDD9A72), // terracotta
     'Tending the people in your life.',
-    'reaching out, friends, family, plans',
+    'reaching out, time with people',
   ),
   dis(
-    'HOME',
-    'Home',
+    'DIS',
+    'Discipline',
     Color(0xFFC79355), // aged bronze
-    'Keeping your space in order.',
-    'chores, tidying, errands, repairs',
+    'Doing it anyway, and keeping your life in order.',
+    'chores, routines, the thing you put off',
   );
 
   const Stat(this.abbr, this.label, this.color, this.blurb, this.examples);
+
+  /// Three letters, for the HUD and small chips: "STR".
   final String abbr;
+
+  /// The word a person reads: "Strength".
   final String label;
   final Color color;
 
-  /// One warm line: what this domain is for.
+  /// One warm line: what this stat is for.
   final String blurb;
 
-  /// A few concrete things that belong here — the disambiguator.
+  /// A few concrete things that belong here, the disambiguator.
   final String examples;
 }
 
-/// The glyph that carries a domain when there is no room for its word — the
+/// The glyph that carries a stat when there is no room for its word: the
 /// header row reads icon-first, the way the approved board art does. Tokenized
-/// here so the six domains keep one mark each everywhere they appear.
+/// here so the six stats keep one mark each everywhere they appear, and each
+/// one is its own shape: a dumbbell, a heart, a book, a target, two people
+/// and a key.
 extension StatGlyph on Stat {
   IconData get icon => switch (this) {
-    Stat.str => Icons.favorite_outline, // BODY — a heart
-    Stat.vit => Icons.eco_outlined, // CARE — a leaf
-    Stat.intl => Icons.visibility_outlined, // MIND — an eye
-    Stat.foc => Icons.handyman_rounded, // CRAFT — crossed maker tools
-    Stat.soc => Icons.people_alt_rounded, // PEOPLE — two figures
-    Stat.dis => Icons.home_rounded, // HOME — a house
+    Stat.str => Icons.fitness_center_rounded, // Strength, a dumbbell
+    Stat.vit => Icons.favorite_rounded, // Vitality, a heart
+    Stat.intl => Icons.menu_book_rounded, // Intellect, a book
+    Stat.foc => Icons.track_changes_rounded, // Focus, a target
+    Stat.soc => Icons.people_alt_rounded, // Social, two people
+    Stat.dis => Icons.key_rounded, // Discipline, a key
   };
 }
 

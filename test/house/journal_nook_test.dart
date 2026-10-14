@@ -458,13 +458,13 @@ void main() {
       expect(find.byType(JournalHubScreen), findsOneWidget);
     });
 
-    testWidgets('the weather, domains, rhythm, weeks and sky are kept', (
+    testWidgets('the weather, stats, rhythm, weeks and sky are kept', (
       tester,
     ) async {
       await _pump(tester, _busy());
       for (final label in [
         'Energy Weather',
-        'YOUR DOMAINS',
+        'YOUR STATS',
         'YOUR RHYTHM',
         'LAST TWO WEEKS',
         'YOUR SKY',
@@ -525,7 +525,7 @@ void main() {
           'PATTERNS',
           'Your Week',
           'Energy Weather',
-          'YOUR DOMAINS',
+          'YOUR STATS',
           'YOUR RHYTHM',
           'LAST TWO WEEKS',
           'YOUR SKY',

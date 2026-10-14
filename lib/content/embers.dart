@@ -10,16 +10,16 @@ const planTomorrowEmber = 'Pick tomorrow’s top three';
 /// win, never a new obligation (it expires at dawn via the bonus plumbing).
 const emberPool = <Stat, List<String>>{
   Stat.str: [
-    'Twenty jumping jacks',
+    'Do ten squats',
     'Hold a plank for thirty seconds',
-    'Take the stairs today',
-    'Dance to one whole song',
+    'Do ten push-ups',
+    'Carry something heavy upstairs',
   ],
   Stat.vit: [
+    'Take the stairs today',
+    'Dance to one whole song',
     'Drink an extra glass of water',
     'Step outside for fresh air',
-    'Eat a piece of fruit',
-    'Five slow, deep breaths',
   ],
   Stat.intl: [
     'Read something new for five minutes',
@@ -29,9 +29,9 @@ const emberPool = <Stat, List<String>>{
   ],
   Stat.foc: [
     'A fifteen-minute focus sprint',
-    'Clear your desktop',
-    'Finish one lingering small task',
-    planTomorrowEmber,
+    'Work on your project for ten minutes',
+    'Practice something for ten minutes',
+    'Make one small thing',
   ],
   Stat.soc: [
     'Send someone a kind message',
@@ -43,6 +43,8 @@ const emberPool = <Stat, List<String>>{
     'Clear one surface',
     'Throw out five things',
     'Wipe down a counter',
+    'Finish one lingering small task',
+    planTomorrowEmber,
     'Put away what’s out of place',
   ],
 };

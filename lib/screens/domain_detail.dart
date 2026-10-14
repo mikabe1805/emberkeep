@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../brawl/weekly_training.dart';
 import '../clock.dart';
 import '../content/evidence.dart';
 import '../content/stat_ranks.dart';
@@ -12,6 +13,7 @@ import '../widgets/ember_sheet.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
+import '../widgets/stat_ability_panel.dart';
 
 /// A life-domain's "base" (round-24, the keystone of notes-with-consequence):
 /// tap a domain on the Me page to open its page — its growth (level + rank +
@@ -60,7 +62,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
       body: WarmBackground(
         themeId: widget.state.canvasTheme,
         reduceMotion: widget.state.reduceMotion,
-        tint: _accent, // this domain's hue — its own "room"
+        tint: _accent, // this stat's hue, its own "room"
         child: SafeArea(
           child: Column(
             children: [
@@ -76,20 +78,24 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                   children: [
                     _growthPanel(value, rank, recent),
                     const SizedBox(height: 16),
+                    StatAbilityPanel(
+                      stat: _stat,
+                      value: value,
+                      training: widget.state.weeklyTraining(now),
+                      monster: monsterOfTheWeek(now),
+                    ),
+                    const SizedBox(height: 16),
                     JournalPanel(
                       title: _stat.label,
                       accent: _accent,
-                      subtitle:
-                          'your ${_stat.label.toLowerCase()}, in your words',
+                      subtitle: '${_stat.label}, in your words',
                       hint: 'What’s on your mind?',
                       emptyPreview:
-                          'Keep notes on your '
-                          '${_stat.label.toLowerCase()}: plans, wins, '
-                          'what needs doing.',
+                          'Keep notes here: plans, wins, what needs doing.',
                       emptyHint:
-                          'No entries yet. This is your space for '
-                          '${_stat.label}: plans, wins, what needs doing, '
-                          'how it’s feeling.',
+                          'No entries yet. This is your space for notes '
+                          'under ${_stat.label}: plans, wins, what needs '
+                          'doing, how it’s feeling.',
                       read: () => widget.state.notesFor(_stat),
                       onAdd: (text) {
                         // stamp the domain's rank now — proof of becoming
@@ -181,20 +187,27 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 11,
-                  vertical: 6,
-                ),
-                decoration: facetedDecoration(
-                  cut: 7,
-                  color: _accent.withValues(alpha: 0.16),
-                  borderColor: _accent.withValues(alpha: 0.45),
-                ),
-                child: Text(
-                  rank.label.toUpperCase(),
-                  style: Type.label.copyWith(fontSize: 12, color: _accent),
+              // The rank chip takes what is left and wraps at large text
+              // rather than running off the panel.
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 6,
+                    ),
+                    decoration: facetedDecoration(
+                      cut: 7,
+                      color: _accent.withValues(alpha: 0.16),
+                      borderColor: _accent.withValues(alpha: 0.45),
+                    ),
+                    child: Text(
+                      rank.label.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(fontSize: 12, color: _accent),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -261,11 +274,13 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
         children: [
           Row(
             children: [
-              Text(
-                'QUESTS IN THIS DOMAIN',
-                style: Type.label.copyWith(fontSize: 11),
+              Expanded(
+                child: Text(
+                  'QUESTS THAT TRAIN ${_stat.label.toUpperCase()}',
+                  style: Type.label.copyWith(fontSize: 11),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 '${quests.length}',
                 style: Type.numerals.copyWith(fontSize: 12, color: _accent),

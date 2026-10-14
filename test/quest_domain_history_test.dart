@@ -64,7 +64,7 @@ void main() {
       complete(quest, const Offset(180, 600));
       await tester.pump(const Duration(milliseconds: 30));
       expect(state.totalXp, 0);
-      await tester.tap(find.text('MIND'));
+      await tester.tap(find.text('INT'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(DomainDetailScreen), findsOneWidget);

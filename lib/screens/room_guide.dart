@@ -173,7 +173,7 @@ class RoomGuideScreen extends StatelessWidget {
                       eyebrow: 'YOUR SPACE + BUILD',
                       title: 'Me',
                       detail:
-                          'See the room and six-domain build your days have shaped. Change the space, keep memories, or manage settings and backup.',
+                          'See the room and six-stat build your days have shaped. Change the space, keep memories, or manage settings and backup.',
                       footnote: 'ROOM · BUILD · MEMORIES · SETTINGS',
                       icon: Icons.emoji_emotions_outlined,
                       accent: Stat.vit.color,

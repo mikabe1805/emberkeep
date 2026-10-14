@@ -951,7 +951,7 @@ void main() {
     await settle(tester);
     expect(find.text('STARTING POINTS'), findsOneWidget);
 
-    // expand the first catalog goal (HOME & HEARTH → "Keep your space", near
+    // expand the first catalog goal (HOME & DISCIPLINE → "Keep your space", near
     // the top) and adopt its first quest. The new cinematic goal header makes
     // the catalog genuinely lazy at this viewport, so reveal it by scrolling.
     final keepYourSpace = find.byKey(

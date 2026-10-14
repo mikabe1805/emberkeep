@@ -153,7 +153,7 @@ class MomentumKitsPage extends StatelessWidget {
                     ],
                     const SizedBox(height: 6),
                     Text(
-                      'This never makes a second checklist. It adds a few today-only steps to Quests with the same XP, Glimmers, and domain growth.',
+                      'This never makes a second checklist. It adds a few today-only steps to Quests with the same XP, Glimmers, and stat growth.',
                       textAlign: TextAlign.center,
                       style: Type.body.copyWith(
                         fontSize: 12,
@@ -370,7 +370,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
   late final TextEditingController _text;
   int _minutes = 5;
   int _capacity = 2;
-  Stat _stat = Stat.foc;
+  Stat _stat = Stat.dis;
   String _room = 'Kitchen';
   int? _added;
   Quest? _acceptedUnstickQuest;
@@ -472,7 +472,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
       switch (widget.kit.kind) {
         case MomentumKitKind.focusExpedition:
           widget.state.addGoal(
-            Goal(title: 'Protect my attention', stat: Stat.intl, target: 25),
+            Goal(title: 'Protect my attention', stat: Stat.foc, target: 25),
           );
           break;
         case MomentumKitKind.creativePractice:
@@ -482,7 +482,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
           break;
         case MomentumKitKind.steadyDay:
           widget.state.addGoal(
-            Goal(title: 'Build a steady day', stat: Stat.soc, target: 25),
+            Goal(title: 'Build a steady day', stat: Stat.vit, target: 25),
           );
           break;
         case MomentumKitKind.examSeason:
@@ -723,13 +723,15 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                       const SizedBox(height: 8),
                       _ChoiceRow<Stat>(
                         options: const [
-                          Stat.foc,
                           Stat.dis,
-                          Stat.vit,
+                          Stat.foc,
                           Stat.intl,
+                          Stat.vit,
+                          Stat.soc,
+                          Stat.str,
                         ],
                         selected: _stat,
-                        label: (v) => v.abbr,
+                        label: (v) => v.label.toUpperCase(),
                         color: (v) => v.color,
                         accent: _stat.color,
                         onChanged: (v) => setState(() => _stat = v),

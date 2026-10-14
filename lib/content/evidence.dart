@@ -63,7 +63,7 @@ const evidenceCards = <EvidenceCard>[
     source: 'BJ Fogg, Stanford Behavior Design Lab',
   ),
   EvidenceCard(
-    stat: Stat.foc,
+    stat: Stat.dis,
     title: 'Enjoyment literally builds habits faster',
     text:
         'Pleasure during a behavior increases the automaticity gained from '
@@ -89,7 +89,7 @@ const evidenceCards = <EvidenceCard>[
     source: 'Holt-Lunstad meta-analyses',
   ),
   EvidenceCard(
-    stat: Stat.foc,
+    stat: Stat.str,
     title: 'Evening workouts are fine',
     text:
         'The idea that late workouts wreck your sleep is a myth. Train when '

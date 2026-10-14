@@ -1381,9 +1381,9 @@ class Note {
   /// the wholesale-replace invariant (and the `const []` default) still holds.
   final String text;
 
-  /// A tiny "where I was" marker captured at write time — e.g. a domain's rank
+  /// A tiny "where I was" marker captured at write time — e.g. a stat's rank
   /// ("Frail") or a goal's standing ("milestone 2"). Lets a journal show proof
-  /// of becoming ("written when CARE was Frail — now Vital"), the payoff that
+  /// of becoming ("written when VITALITY was Frail, now Vital"), the payoff that
   /// makes notes-with-consequence felt rather than described. Null for plain
   /// quest logs. Preserved across edits (it stamps when you FIRST wrote it).
   final String? context;
@@ -2117,11 +2117,11 @@ class RewardBundle {
 
   /// Ordinary active-day progress remaining after this completion. Carrying
   /// the value through the staged reward keeps roll and commit identical even
-  /// if this quest itself crosses the CARE-40 cadence threshold.
+  /// if this quest itself crosses the Vitality-40 cadence threshold.
   final int freezeProgressAfter;
 
   /// Cadence used to compute [freezeProgressAfter]. This closes the last seam
-  /// between a staged roll and a commit that itself crosses CARE 40.
+  /// between a staged roll and a commit that itself crosses Vitality 40.
   final int freezeCadenceAfter;
 
   /// Compatibility name for the existing completion motion path.

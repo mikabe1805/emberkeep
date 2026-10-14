@@ -884,8 +884,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   }
 
   /// The figure is carved out of the room's own light, not painted in the raw
-  /// domain hue — at 148 px on a near-black screen, BODY rose read as a pink
-  /// plastic mannequin. Pulling it toward honey keeps the domain legible and
+  /// stat hue — at 148 px on a near-black screen, Strength rose read as a pink
+  /// plastic mannequin. Pulling it toward honey keeps the stat legible and
   /// puts the one large illustrated object back inside the candlelit palette.
   static Color _figureTone(Color statColor) =>
       Color.lerp(statColor, Palette.xp, 0.42)!;

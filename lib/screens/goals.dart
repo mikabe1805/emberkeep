@@ -60,10 +60,10 @@ class _GoalCategory {
 
 final _goalCategories = <_GoalCategory>[
   _GoalCategory(
-    label: 'HOME & HEARTH',
-    blurb: 'the rooms and rhythms you live inside',
+    label: 'HOME & DISCIPLINE',
+    blurb: 'the rooms and rhythms you keep',
     icon: Icons.cottage_outlined,
-    accent: Palette.xpLight,
+    accent: Stat.dis.color,
     goalTitles: const ['Keep your space', 'Routine keeper', 'Tend your money'],
   ),
   _GoalCategory(
@@ -78,10 +78,10 @@ final _goalCategories = <_GoalCategory>[
     ],
   ),
   _GoalCategory(
-    label: 'BODY & REST',
-    blurb: 'move it, fuel it, let it rest',
-    icon: Icons.favorite_outline,
-    accent: Stat.str.color,
+    label: 'MOVE, LIFT & REST',
+    blurb: 'walk it, lift it, let it rest',
+    icon: Icons.directions_walk_rounded,
+    accent: Stat.vit.color,
     goalTitles: const [
       'Move through the world',
       'The strength path',
@@ -89,14 +89,14 @@ final _goalCategories = <_GoalCategory>[
     ],
   ),
   _GoalCategory(
-    label: 'MIND & FOCUS',
+    label: 'INTELLECT & FOCUS',
     blurb: 'attention and the turning page',
     icon: Icons.auto_stories_outlined,
-    accent: Stat.foc.color,
+    accent: Stat.intl.color,
     goalTitles: const ['Become a reader', 'Deep focus', 'Keep a journal'],
   ),
   _GoalCategory(
-    label: 'PEOPLE',
+    label: 'SOCIAL',
     blurb: 'the ones you reach for',
     icon: Icons.groups_outlined,
     accent: Stat.soc.color,
@@ -1706,7 +1706,7 @@ class _GoalSupportTrayState extends State<_GoalSupportTray> {
                         );
                         final workout = _SupportAction(
                           key: const Key('goals-guided-workouts'),
-                          icon: Icons.favorite_outline_rounded,
+                          icon: Stat.str.icon,
                           title: 'Guided Workouts',
                           detail: 'Work alongside a gentle guide.',
                           accent: Stat.str.color,
@@ -2913,8 +2913,8 @@ class _GoalCardState extends State<_GoalCard> {
                       size: 38,
                       accent: idea.stat.color,
                       child: Center(
-                        // scaleDown so longer domain abbrs (CRAFT, PEOPLE) shrink
-                        // to one line in the circle instead of wrapping to two.
+                        // scaleDown so a longer stat abbr shrinks to one line in
+                        // the circle instead of wrapping to two.
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 3),
                           child: FittedBox(

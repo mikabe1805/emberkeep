@@ -339,22 +339,22 @@ void main() {
     expect(back.notesFor(Stat.dis).single.text, 'declutter the desk');
     // the "where I was" marker survives — proof of becoming
     expect(back.notesFor(Stat.dis).single.context, 'Cluttered');
-    // sparse — domains with no notes don't materialise on restore
+    // sparse — stats with no notes don't materialise on restore
     expect(back.notesFor(Stat.str), isEmpty);
     expect(back.goals.first.notes.single.text, 'week one, kitchen done');
     expect(back.goals.first.notes.single.context, 'starting out');
   });
 
-  test('todays shape recaps which domains were tended', () {
+  test('todays shape recaps which stats were tended', () {
     today = DateTime(2026, 6, 15);
     final s = GameState();
     expect(s.todaysShape(), contains('every small step')); // nothing done yet
     complete(s, Quest(title: 'Push-ups', stat: Stat.str, difficulty: 2));
-    expect(s.todaysShape(), contains('Body'));
+    expect(s.todaysShape(), contains('Strength'));
     complete(s, Quest(title: 'Tidy up', stat: Stat.dis, difficulty: 2));
     final two = s.todaysShape();
-    expect(two, contains('Body'));
-    expect(two, contains('Home'));
+    expect(two, contains('Strength'));
+    expect(two, contains('Discipline'));
   });
 
   test('weekly recap looks back at last week from history', () {

@@ -352,7 +352,7 @@ void main() {
       await settle(tester, total: const Duration(milliseconds: 2600));
       await _tapAway(tester);
       await settle(tester, total: const Duration(milliseconds: 1200));
-      // The lab's CRAFT crossed a rank: the real rank-up beat follows the
+      // The lab's Focus crossed a rank: the real rank-up beat follows the
       // celebration. Tap it away as he would.
       final rank = find.text('tap to keep going →');
       _note('Thu: rank-up beat after the lab: ${rank.evaluate().isNotEmpty}');
@@ -362,7 +362,7 @@ void main() {
           'E6b_thu1856_rank_up_beat',
           at: _at(8, 18, 56),
           surface: 'Rank-up beat',
-          note: 'CRAFT ranked up by the lab: the existing chain',
+          note: 'Focus ranked up by the lab: the existing chain',
         );
         await tester.tap(rank.first);
         await tester.pump();

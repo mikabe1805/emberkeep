@@ -375,7 +375,7 @@ class InsightsPage extends StatelessWidget {
           tint: const Color(0xF0332518),
           child: Stack(
             children: [
-              // A soft page of the authored MIND still life instead of the outsized
+              // A soft page of the authored Intellect still life instead of the outsized
               // Material flower glyph that used to sit here — at 118 px and 5%
               // alpha that read as a smudge, not a botanical.
               Positioned(
@@ -843,11 +843,11 @@ class InsightsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('YOUR DOMAINS', style: Type.label.copyWith(fontSize: 11)),
+          Text('YOUR STATS', style: Type.label.copyWith(fontSize: 11)),
           const SizedBox(height: 4),
           Text(
             lead.$2 == 0
-                ? 'every domain is wide open, so pick one to lead'
+                ? 'every stat is wide open, so pick one to lead'
                 : '${lead.$1.label} is leading your build',
             style: Type.body.copyWith(
               fontSize: 13,

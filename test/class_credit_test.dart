@@ -108,7 +108,7 @@ void main() {
   });
 
   group('pay', () {
-    test('a lecture pays 25 XP, 3 MIND and Glimmers like a Quest', () {
+    test('a lecture pays 25 XP, 3 Intellect and Glimmers like a Quest', () {
       Clock.freeze(DateTime(2026, 10, 6, 11, 52));
       final state = GameState()..embers = 4;
 
@@ -140,7 +140,7 @@ void main() {
       );
     });
 
-    test('a lab or studio pays 30 XP and 5 CRAFT; others pay as lectures', () {
+    test('a lab or studio pays 30 XP and 5 Focus; others pay as lectures', () {
       Clock.freeze(DateTime(2026, 10, 7, 12));
       final state = GameState();
       final lab = state.keepClass(_archLab())!;
