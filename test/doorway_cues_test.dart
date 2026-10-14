@@ -131,24 +131,31 @@ void main() {
   });
 
   group('the one place that chooses', () {
-    test('only audio.dart and doorway_cues.dart name the chime', () {
-      final offenders = <String>[];
-      for (final file in Directory('lib').listSync(recursive: true)) {
-        if (file is! File || !file.path.endsWith('.dart')) continue;
-        final path = file.path.replaceAll('\\', '/');
-        final source = file.readAsStringSync();
-        if (!source.contains('class_chime') &&
-            !source.contains('playClassChime')) {
-          continue;
+    test(
+      'only audio.dart, doorway_cues.dart and brawl_feel.dart name the chime',
+      () {
+        final offenders = <String>[];
+        for (final file in Directory('lib').listSync(recursive: true)) {
+          if (file is! File || !file.path.endsWith('.dart')) continue;
+          final path = file.path.replaceAll('\\', '/');
+          final source = file.readAsStringSync();
+          if (!source.contains('class_chime') &&
+              !source.contains('playClassChime')) {
+            continue;
+          }
+          if (path.endsWith('lib/audio.dart') ||
+              path.endsWith('lib/widgets/class_day/doorway_cues.dart') ||
+              // The weekend fight's own chooser: the rising chime line is the
+              // voice of its crits and its finisher (the painted stage only
+              // reports what happened).
+              path.endsWith('lib/brawl/ui/brawl_feel.dart')) {
+            continue;
+          }
+          offenders.add(path);
         }
-        if (path.endsWith('lib/audio.dart') ||
-            path.endsWith('lib/widgets/class_day/doorway_cues.dart')) {
-          continue;
-        }
-        offenders.add(path);
-      }
-      expect(offenders, isEmpty, reason: 'the stage must not choose sounds');
-    });
+        expect(offenders, isEmpty, reason: 'the stage must not choose sounds');
+      },
+    );
 
     test('the stage only announces the place; it plays nothing itself', () {
       for (final name in ['doorway_stage.dart', 'doorway_model.dart']) {

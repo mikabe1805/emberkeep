@@ -172,6 +172,9 @@ void main() {
       expect(find.byKey(const Key('side-quests-divider')), findsOneWidget);
       expect(find.text('Sketch if there is room'), findsNothing);
 
+      // Sunday: the board's lit door is above the list.
+      await tester.ensureVisible(find.byKey(const Key('side-quests-divider')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('side-quests-divider')));
       await tester.pump(const Duration(milliseconds: 180));
       await tester.scrollUntilVisible(
