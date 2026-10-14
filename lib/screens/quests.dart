@@ -8,6 +8,9 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../background_music.dart';
+import '../brawl/brawl_loot.dart' show brawlDoorOpen;
+import '../brawl/ui/brawl_door.dart';
+import '../brawl/ui/brawl_flow.dart' show openBrawl;
 import '../main_room_music.dart' show MainRoomMusic;
 import '../academic_calendar/domain/academic_schedule.dart' show AcademicTerm;
 import '../academic_calendar/services/class_day_projection.dart';
@@ -3881,6 +3884,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     setState(() => _questBoardDay = Days.nightKey(Clock.now()));
   }
 
+  /// "Join the fight!": the weekend fight, over the house.
+  void _openBrawl() {
+    Haptics.tap();
+    unawaited(openBrawl(context, state: _state, onPersist: widget.onPersist));
+  }
+
   /// FOCUS on the Doorway card: focus mode on, on the board.
   void _questFocus() {
     if (!_state.focusMode) {
@@ -4069,6 +4078,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       onFocus: _questFocus,
       onAdd: _quickAdd,
       onBoard: _showQuestBoard,
+      onFight: _openBrawl,
       dockHeight: _dockHeight(context),
       onCloseDay: !dayRested && _state.nightDoneDay != nightDay && read.allKept
           ? () => _openNight(alreadyAcknowledged: true)
@@ -5144,6 +5154,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ),
                             ),
 
+                            // The weekend door: lit on Saturday and Sunday.
+                            if (brawlDoorOpen(Clock.now()))
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  4,
+                                  16,
+                                  6,
+                                ),
+                                child: BrawlDoorBand(
+                                  state: _state,
+                                  reduceMotion: reduceMotion,
+                                  onOpen: _openBrawl,
+                                ),
+                              ),
                             Offstage(
                               offstage: true,
                               child: Column(

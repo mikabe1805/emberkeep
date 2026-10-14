@@ -29,6 +29,7 @@ import '../room_photo.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../a11y.dart';
+import '../brawl/ui/brawl_chest.dart' show BrawlLootMark;
 import '../widgets/domain_hint.dart';
 import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
@@ -2446,6 +2447,8 @@ class MePage extends StatelessWidget {
   Widget _trophySheet(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      _brawlLootPanel(),
+      const SizedBox(height: 14),
       GlassPanel(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2485,6 +2488,86 @@ class MePage extends StatelessWidget {
       ),
     ],
   );
+
+  /// The loot the weekend fights left: one piece a weekend, newest first.
+  Widget _brawlLootPanel() {
+    final loot = state.brawlLoot.reversed.toList();
+    return GlassPanel(
+      key: const Key('me-brawl-loot'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('WEEKEND LOOT', style: Type.label.copyWith(fontSize: 11)),
+              const Spacer(),
+              Text(
+                '${loot.length}',
+                style: Type.numerals.copyWith(fontSize: 12, color: Palette.xp),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            loot.isEmpty
+                ? 'The weekend fight leaves a keepsake for your house. Win it on a Saturday or Sunday.'
+                : 'One piece for every weekend you won the fight.',
+            style: Type.body.copyWith(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+          if (loot.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final piece in loot)
+                  Semantics(
+                    container: true,
+                    label:
+                        '${piece.loot}. ${piece.monster.def.name}, ${piece.chestName}.',
+                    child: ExcludeSemantics(
+                      child: SizedBox(
+                        key: ValueKey('brawl-loot-${piece.week}'),
+                        width: 96,
+                        child: Column(
+                          children: [
+                            BrawlLootMark(loot: piece.loot, size: 48),
+                            const SizedBox(height: 5),
+                            Text(
+                              piece.loot,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: Palette.textMid,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${piece.monster.def.name} · ${piece.chestName}',
+                              textAlign: TextAlign.center,
+                              style: Type.label.copyWith(
+                                fontSize: Type.minLabel,
+                                color: Palette.textLo,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   Widget _settingsSheet(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,

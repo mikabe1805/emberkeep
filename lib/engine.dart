@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+import 'brawl/brawl_loot.dart';
+import 'brawl/core/brawl_monsters.dart' show BrawlChest, BrawlMonster;
 import 'brawl/weekly_training.dart';
 import 'class_credit.dart';
 import 'clock.dart';
@@ -136,6 +138,61 @@ class GameState extends ChangeNotifier {
     if (addClassesHidden) return;
     addClassesHidden = true;
     notifyListeners();
+  }
+
+  // ── the weekend brawl ──────────────────────────────────────────────
+  /// Easy mode for the weekend fight: tap anywhere to attack, and a gentler
+  /// monster. It stays as chosen, on this save.
+  bool brawlEasy = false;
+
+  void setBrawlEasy(bool v) {
+    if (brawlEasy == v) return;
+    brawlEasy = v;
+    notifyListeners();
+  }
+
+  /// The loot the weekend fights left, oldest first: one piece a weekend, the
+  /// first win of that training week.
+  final List<BrawlLoot> brawlLoot = [];
+
+  /// This week's loot, or null while the weekend's chest is still unopened.
+  BrawlLoot? brawlLootThisWeek([DateTime? now]) {
+    final week = brawlWeekKey(now ?? Clock.now());
+    for (final loot in brawlLoot) {
+      if (loot.week == week) return loot;
+    }
+    return null;
+  }
+
+  /// Whether this week's fight has already been won (later fights are
+  /// practice, with no chest).
+  bool brawlWonThisWeek([DateTime? now]) => brawlLootThisWeek(now) != null;
+
+  /// Keeps the loot for a win at [now]. Returns it when it is the week's first
+  /// win, and null for practice (nothing is saved).
+  BrawlLoot? recordBrawlWin({
+    required BrawlMonster monster,
+    required BrawlChest chest,
+    required String loot,
+    required double seconds,
+    DateTime? now,
+  }) {
+    final at = now ?? Clock.now();
+    if (brawlWonThisWeek(at)) return null;
+    final record = BrawlLoot(
+      week: brawlWeekKey(at),
+      monster: monster,
+      chest: chest,
+      loot: loot,
+      seconds: seconds,
+      at: at,
+    );
+    brawlLoot.add(record);
+    if (brawlLoot.length > brawlLootCap) {
+      brawlLoot.removeRange(0, brawlLoot.length - brawlLootCap);
+    }
+    notifyListeners();
+    return record;
   }
 
   /// The shared-space code, if this keep is published. Set through here (not
@@ -3279,6 +3336,9 @@ class GameState extends ChangeNotifier {
     'soundEnabled': soundEnabled,
     'musicEnabled': musicEnabled,
     if (addClassesHidden) 'addClassesHidden': true,
+    if (brawlEasy) 'brawlEasy': true,
+    if (brawlLoot.isNotEmpty)
+      'brawlLoot': [for (final l in brawlLoot) l.toJson()],
     'textScale': textScale,
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
@@ -3451,6 +3511,15 @@ class GameState extends ChangeNotifier {
     s.soundEnabled = j['soundEnabled'] as bool? ?? true;
     s.musicEnabled = j['musicEnabled'] as bool? ?? false;
     s.addClassesHidden = j['addClassesHidden'] == true;
+    s.brawlEasy = j['brawlEasy'] == true;
+    final rawLoot = j['brawlLoot'];
+    if (rawLoot is List) {
+      for (final item in rawLoot) {
+        final loot = BrawlLoot.tryFromJson(item);
+        if (loot != null) s.brawlLoot.add(loot);
+      }
+      s.brawlLoot.sort((a, b) => a.at.compareTo(b.at));
+    }
     s.textScale = (j['textScale'] as num?)?.toDouble() ?? 1.0;
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;
