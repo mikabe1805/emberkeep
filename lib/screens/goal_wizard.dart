@@ -19,15 +19,15 @@ import '../widgets/particles.dart';
 /// (round-35: the wizard helps instead of interrogating).
 const _questIdeas = <Stat, List<String>>{
   Stat.str: [
-    'Stretch for two minutes',
-    'Take a short walk',
     'Ten push-ups',
-    'Stand and move each hour',
+    'Ten squats',
+    'Hold a plank for thirty seconds',
+    'Carry something heavy',
   ],
   Stat.vit: [
+    'Take a short walk',
     'Drink a glass of water',
     'Eat something green',
-    'Wind down before bed',
     'A proper night’s sleep',
   ],
   Stat.intl: [
@@ -38,9 +38,9 @@ const _questIdeas = <Stat, List<String>>{
   ],
   Stat.foc: [
     'One focused 25-minute block',
-    'Tidy your workspace',
+    'Work on your project for 15 minutes',
     'Practice for ten minutes',
-    'Plan tomorrow tonight',
+    'Make one small thing',
   ],
   Stat.soc: [
     'Send a thoughtful message',
@@ -51,8 +51,8 @@ const _questIdeas = <Stat, List<String>>{
   Stat.dis: [
     'Make your bed',
     'A ten-minute tidy',
-    'Wash the dishes',
-    'One load of laundry',
+    'Do the thing you put off',
+    'Plan tomorrow tonight',
   ],
 };
 

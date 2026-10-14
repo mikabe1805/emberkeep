@@ -25,7 +25,7 @@ void _at(int month, int day, [int hour = 12]) =>
 
 String _key(int month, int day) => Days.key(DateTime(2026, month, day));
 
-/// A lab pays CRAFT, which leaves the Quest XP multipliers untouched, so a
+/// A lab pays Focus, which leaves the Quest XP multipliers untouched, so a
 /// class and a Quest on the same day can be compared to the XP point.
 ClassFacts _classOn(
   int month,

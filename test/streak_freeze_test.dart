@@ -132,7 +132,7 @@ void main() {
     expect(state.streakFreezeProgress, 0);
   });
 
-  test('CARE 40 shortens the ordinary cadence to two active days', () {
+  test('Vitality 40 shortens the ordinary cadence to two active days', () {
     now = DateTime(2026, 8, 10, 9);
     final state = GameState()..streakFreezes = 0;
     state.stats[Stat.vit] = 40;
@@ -147,7 +147,7 @@ void main() {
     expect(state.streakFreezeProgress, 0);
   });
 
-  test('the completion that reaches CARE 40 uses the shorter cadence', () {
+  test('the completion that reaches Vitality 40 uses the shorter cadence', () {
     now = DateTime(2026, 8, 11, 9);
     final state = GameState()
       ..streakFreezes = 0

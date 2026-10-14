@@ -176,7 +176,7 @@ void main() {
     final third = tester.getTopLeft(find.text('5:40 PM')).dy;
     expect(first, lessThan(second));
     expect(second, lessThan(third));
-    expect(find.text('MIND'), findsOneWidget);
+    expect(find.text('INT'), findsOneWidget);
     expect(find.text('+9'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

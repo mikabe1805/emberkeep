@@ -331,7 +331,7 @@ void main() {
       final handle = tester.ensureSemantics();
       await _pump(tester, opened: []);
       expect(find.bySemanticsLabel('Level 18, 369 of 870 XP'), findsOneWidget);
-      expect(find.bySemanticsLabel('Mind 125'), findsOneWidget);
+      expect(find.bySemanticsLabel('Intellect 125'), findsOneWidget);
       handle.dispose();
     });
   });

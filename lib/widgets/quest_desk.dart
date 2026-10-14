@@ -328,10 +328,11 @@ class _CompletionStitchPainter extends CustomPainter {
     final threadPaint = Paint()
       ..shader = LinearGradient(
         colors: [statColor, Palette.xpLight, Palette.xp],
-        // The thread leaves in the domain's colour and becomes XP on the way —
-        // but on an even split half the wire was the domain hue, and for MIND
-        // or CRAFT that is a long cold line drawn across a warm board. Turn it
-        // honey early: the domain reads at the tail, the flight reads as gold.
+        // The thread leaves in the stat's colour and becomes XP on the way,
+        // but on an even split half the wire was the stat's hue, and for
+        // Intellect or Focus that is a long cold line drawn across a warm
+        // board. Turn it honey early: the stat reads at the tail, the flight
+        // reads as gold.
         stops: const [0.0, 0.22, 1.0],
       ).createShader(Rect.fromPoints(from, to))
       ..strokeWidth = 1.55

@@ -107,6 +107,7 @@ abstract final class Ladders {
       'Carry something heavy upstairs',
     ],
     Stat.vit: [
+      'Walk around the block',
       'Take the stairs',
       'A 5-minute stretch flow',
       'Cook a real meal',

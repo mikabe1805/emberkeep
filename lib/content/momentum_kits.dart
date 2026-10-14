@@ -45,7 +45,7 @@ const momentumKits = <MomentumKitSpec>[
     title: 'Unstick Me',
     promise: 'Turn the thing you are avoiding into one tiny first move.',
     detail: 'Name the snag, choose a short timer, and touch it once.',
-    stat: Stat.foc,
+    stat: Stat.dis,
   ),
   MomentumKitSpec(
     kind: MomentumKitKind.lowFlame,
@@ -69,7 +69,7 @@ const momentumKits = <MomentumKitSpec>[
     title: 'Focus Expedition',
     promise: 'Set one destination and protect a small stretch of attention.',
     detail: 'For studying, paperwork, applications, and difficult projects.',
-    stat: Stat.intl,
+    stat: Stat.foc,
   ),
   MomentumKitSpec(
     kind: MomentumKitKind.creativePractice,
@@ -86,7 +86,7 @@ const momentumKits = <MomentumKitSpec>[
     title: 'Steady Day',
     promise: 'A plain, balanced day: move gently, tend a need, reach outward.',
     detail: 'Gentle wording and an easy pace. Any day you show up counts.',
-    stat: Stat.soc,
+    stat: Stat.vit,
   ),
   MomentumKitSpec(
     kind: MomentumKitKind.examSeason,
@@ -160,7 +160,7 @@ Quest _spark({
 Quest buildUnstickQuest({
   required String task,
   required int minutes,
-  Stat stat = Stat.foc,
+  Stat stat = Stat.dis,
   DateTime? now,
   String? goalTitle,
 }) {
@@ -238,7 +238,7 @@ Quest buildFocusQuest({
   DateTime? now,
 }) => _spark(
   title: 'Focus expedition · ${_clean(target, 'one clear destination')}',
-  stat: Stat.intl,
+  stat: Stat.foc,
   difficulty: minutes <= 15 ? 3 : (minutes <= 25 ? 5 : 7),
   timerMinutes: minutes,
   goalTitle: 'Protect my attention',
@@ -263,7 +263,7 @@ List<Quest> buildSteadyDayQuests({required int capacity, DateTime? now}) {
   final all = <Quest>[
     _spark(
       title: 'Move gently for five minutes',
-      stat: Stat.str,
+      stat: Stat.vit,
       difficulty: 1,
       goalTitle: 'Build a steady day',
       now: now,
@@ -305,7 +305,7 @@ List<Quest> buildExamSeasonQuests({required int capacity, DateTime? now}) {
     ),
     _spark(
       title: 'Recall five things without looking',
-      stat: Stat.foc,
+      stat: Stat.intl,
       difficulty: 3,
       goalTitle: 'Cross exam season',
       now: now,

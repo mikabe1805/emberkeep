@@ -8099,7 +8099,7 @@ class _ClassDaySwitchState extends State<_ClassDaySwitch>
     // Both sides stay built, so the board keeps its scroll and its selection
     // while the room shows. The side out of view is offstage with its tickers
     // paused and its animations off: a number that changes there (a mark's
-    // XP and MIND on the board's HUD) lands at once, so nothing rolls up from
+    // XP and Intellect on the board's HUD) lands at once, so nothing rolls up from
     // an old value when it slides into view. This holds however the switch
     // was mounted, the Quests tab on screen or not.
     final media = MediaQuery.of(context);

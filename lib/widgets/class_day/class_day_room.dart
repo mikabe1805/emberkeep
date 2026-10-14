@@ -2622,7 +2622,7 @@ class ClassDayBottomLine extends StatelessWidget {
   }
 }
 
-/// A class that is not a lab feeds MIND; a lab or studio, CRAFT (the
+/// A class that is not a lab feeds Intellect; a lab or studio, Focus (the
 /// engine's [ClassPay] rule, for the ring's colour before a keep exists).
 Stat classStatFor(ProjectedClass entry) =>
     ClassPay.forKind(entry.kind.name).stat;

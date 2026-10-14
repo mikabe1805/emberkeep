@@ -46,31 +46,46 @@ class EmberSheetConfig {
   final Color? accent;
 }
 
-/// Guess the life domain from a quest's title (always overridable under More).
-/// Falls back to Home — the same default the old quick-add used.
+/// Guess the stat from a quest's title (always overridable under More).
+/// Falls back to Discipline, the same catch-all the old quick-add used (chores,
+/// errands, the thing you put off). Walking, running and other cardio are
+/// Vitality; lifting and bodyweight strength are Strength.
 Stat guessStat(String title) {
   final t = title.toLowerCase();
   bool has(List<String> words) => words.any(t.contains);
   if (has(const [
     'run',
     'jog',
-    'gym',
     'walk',
-    'stretch',
-    'push-up',
-    'pushup',
-    'workout',
-    'lift',
-    'yoga',
-    'exercise',
     'steps',
     'cardio',
-    'plank',
-    'squat',
+    'hike',
+    'swim',
+    'bike',
+    'cycling',
   ])) {
-    return Stat.str; // BODY
+    return Stat.vit; // walks, runs and cardio keep you going
   }
   if (has(const [
+    'gym',
+    'push-up',
+    'pushup',
+    'pull-up',
+    'pullup',
+    'workout',
+    'lift',
+    'weights',
+    'exercise',
+    'plank',
+    'squat',
+    'climb',
+    'strength',
+  ])) {
+    return Stat.str;
+  }
+  if (has(const [
+    'stretch',
+    'yoga',
     'water',
     'sleep',
     'meal',
@@ -91,7 +106,7 @@ Stat guessStat(String title) {
     'breathe',
     'rest',
   ])) {
-    return Stat.vit; // CARE
+    return Stat.vit;
   }
   if (has(const [
     'read',
@@ -100,14 +115,15 @@ Stat guessStat(String title) {
     'study',
     'journal',
     'reflect',
-    'meditate',
     'language',
     'course',
+    'class',
+    'lecture',
     'note',
     'chapter',
     'page',
   ])) {
-    return Stat.intl; // MIND
+    return Stat.intl;
   }
   if (has(const [
     'work',
@@ -120,11 +136,12 @@ Stat guessStat(String title) {
     'email',
     'client',
     'focus',
+    'meditate',
     'deep work',
     'side project',
     'portfolio',
   ])) {
-    return Stat.foc; // CRAFT
+    return Stat.foc;
   }
   if (has(const [
     'call',
@@ -141,9 +158,9 @@ Stat guessStat(String title) {
     'mom',
     'dad',
   ])) {
-    return Stat.soc; // PEOPLE
+    return Stat.soc;
   }
-  return Stat.dis; // HOME (clean / laundry / dishes / tidy / money / fallback)
+  return Stat.dis; // chores, tidying, errands, routines, the thing you put off
 }
 
 /// The ONE way to make a quest, everywhere (board + goal + planner). Opens as

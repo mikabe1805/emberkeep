@@ -187,7 +187,7 @@ Future<void> showStreakFreezeDetails(BuildContext context, GameState state) {
                     const SizedBox(height: 12),
                     Text(
                       'Every $needed active days banks another freeze. '
-                      '${needed == 2 ? "Your CARE build has shortened the cadence." : "At CARE 40, that shortens to two."} '
+                      '${needed == 2 ? "Your Vitality has shortened the cadence." : "At Vitality 40, that shortens to two."} '
                       '${state.level >= 6 ? "You can hold a full week." : "Level 6 opens room for a full week."}',
                       style: Type.body.copyWith(
                         fontSize: 12.5,

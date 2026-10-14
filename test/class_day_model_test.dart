@@ -417,7 +417,9 @@ void main() {
       final day = keepAndPlan(state, _ny(6, 15, 35), [1]);
       expect(day.tier, ClassCelebrationTier.dayDone);
       expect(day.xpShown, 60, reason: "the day's XP");
-      expect(day.gains, {Stat.intl: 6}, reason: "the day's MIND, both kept");
+      expect(day.gains, {
+        Stat.intl: 6,
+      }, reason: "the day's Intellect, both kept");
       expect(day.totals, {Stat.intl: 6});
 
       // Thursday: two lectures and the lab; the day's chips carry both.

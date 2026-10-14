@@ -188,7 +188,7 @@ void main() {
       expect(doorwayTicketText(unknown.day.tickets.first), 'READ TEN PAGES');
       expect(
         doorwayTicketSemantics(unknown.day.tickets.first),
-        'Read ten pages, Mind, kept',
+        'Read ten pages, Intellect, kept',
       );
     });
 
@@ -654,11 +654,11 @@ void main() {
       final one = state.xpPreview(quests[0]);
       final two = state.xpPreview(quests[1]);
       expect(
-        find.bySemanticsLabel('Read ten pages, Mind, +$one XP, up next'),
+        find.bySemanticsLabel('Read ten pages, Intellect, +$one XP, up next'),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('Review one problem, Craft, +$two XP, waiting'),
+        find.bySemanticsLabel('Review one problem, Focus, +$two XP, waiting'),
         findsOneWidget,
       );
       expect(

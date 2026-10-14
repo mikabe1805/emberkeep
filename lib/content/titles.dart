@@ -5,33 +5,33 @@ import 'stat_ranks.dart';
 /// identity layer that makes a build personal and shareable.
 abstract final class BuildTitles {
   // Keys are <stat.name>+<stat.name> in enum order (str<vit<intl<foc<soc<dis).
-  // Stats now read as domains: str=Body vit=Care intl=Mind foc=Craft
-  // soc=People dis=Home.
+  // str=Strength vit=Vitality intl=Intellect foc=Focus soc=Social
+  // dis=Discipline.
   static const _pairs = <String, String>{
-    'str+vit': 'LIONHEART', // Body + Care
-    'str+intl': 'WARRIOR SCHOLAR', // Body + Mind
-    'str+foc': 'SILENT HAMMER', // Body + Craft
-    'str+soc': 'GENTLE GIANT', // Body + People
-    'str+dis': 'HOMESTEADER', // Body + Home
-    'vit+intl': 'CLEAR SPRING', // Care + Mind
-    'vit+foc': 'STEADY HAND', // Care + Craft
-    'vit+soc': 'SUNSHINE SOUL', // Care + People
-    'vit+dis': 'EVERGREEN', // Care + Home
-    'intl+foc': 'DEEP CURRENT', // Mind + Craft
-    'intl+soc': 'STORYTELLER', // Mind + People
-    'intl+dis': 'QUIET MASTER', // Mind + Home
-    'foc+soc': 'PRESENT HEART', // Craft + People
-    'foc+dis': 'UNSHAKEABLE', // Craft + Home
-    'soc+dis': 'OPEN HOUSE', // People + Home
+    'str+vit': 'LIONHEART', // Strength + Vitality
+    'str+intl': 'WARRIOR SCHOLAR', // Strength + Intellect
+    'str+foc': 'SILENT HAMMER', // Strength + Focus
+    'str+soc': 'GENTLE GIANT', // Strength + Social
+    'str+dis': 'HOMESTEADER', // Strength + Discipline
+    'vit+intl': 'CLEAR SPRING', // Vitality + Intellect
+    'vit+foc': 'STEADY HAND', // Vitality + Focus
+    'vit+soc': 'SUNSHINE SOUL', // Vitality + Social
+    'vit+dis': 'EVERGREEN', // Vitality + Discipline
+    'intl+foc': 'DEEP CURRENT', // Intellect + Focus
+    'intl+soc': 'STORYTELLER', // Intellect + Social
+    'intl+dis': 'QUIET MASTER', // Intellect + Discipline
+    'foc+soc': 'PRESENT HEART', // Focus + Social
+    'foc+dis': 'UNSHAKEABLE', // Focus + Discipline
+    'soc+dis': 'OPEN HOUSE', // Social + Discipline
   };
 
   static const _solo = <Stat, String>{
-    Stat.str: 'BRAWLER', // Body
-    Stat.vit: 'WELLSPRING', // Care
-    Stat.intl: 'SCHOLAR', // Mind
-    Stat.foc: 'MAKER', // Craft
-    Stat.soc: 'FRIEND', // People
-    Stat.dis: 'KEEPER', // Home
+    Stat.str: 'BRAWLER', // Strength
+    Stat.vit: 'WELLSPRING', // Vitality
+    Stat.intl: 'SCHOLAR', // Intellect
+    Stat.foc: 'MAKER', // Focus
+    Stat.soc: 'FRIEND', // Social
+    Stat.dis: 'KEEPER', // Discipline
   };
 
   /// Title for a stat spread. Needs two stats trained to earn a pair title;

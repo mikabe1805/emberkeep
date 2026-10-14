@@ -27,7 +27,7 @@ const progressMilestones = <ProgressMilestone>[
   ProgressMilestone(
     16,
     'Taking Shape',
-    'Your strongest domains are getting hard to miss.',
+    'Your strongest stats are getting hard to miss.',
   ),
   ProgressMilestone(
     24,

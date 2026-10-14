@@ -4,11 +4,11 @@ import '../tokens.dart';
 import 'facets.dart';
 import 'glass.dart';
 
-/// A quiet one-line answer to "which domain is this?" — the selected domain's
+/// A quiet one-line answer to "which stat is this?": the selected stat's
 /// meaning, plus a few concrete examples in its own colour. Dropped beneath any
-/// domain picker so categorization explains itself at the moment of choosing
-/// (round-21: the six domains overlap enough — CARE vs HOME vs BODY — that a
-/// living example line beats a static legend).
+/// stat picker so categorization explains itself at the moment of choosing
+/// (round-21: the six stats overlap enough, Vitality and Strength and
+/// Discipline above all, that a living example line beats a static legend).
 class DomainHint extends StatelessWidget {
   const DomainHint(this.stat, {super.key});
   final Stat stat;
@@ -75,8 +75,9 @@ class DomainLegendButton extends StatelessWidget {
   }
 }
 
-/// The reference card: all six domains, each with its meaning and examples.
-/// What "?" opens — a place to settle "is this CARE or HOME?" once and for all.
+/// The reference card: all six stats, each with its meaning and examples.
+/// What "?" opens, a place to settle "is a walk Vitality or Strength?" once
+/// and for all.
 Future<void> showDomainLegend(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
@@ -93,7 +94,7 @@ Future<void> showDomainLegend(BuildContext context) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'THE SIX DOMAINS',
+                'THE SIX STATS',
                 style: Type.label.copyWith(fontSize: 12, color: Palette.xp),
               ),
               const SizedBox(height: 4),

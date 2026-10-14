@@ -352,7 +352,7 @@ void main() {
       final board = await _mount(tester, at: _ny(6, 11, 52));
       final s = board.state;
       await _tapThere(tester);
-      // On contact the class is kept: XP, MIND, never a Quest completion.
+      // On contact the class is kept: XP, Intellect, never a Quest completion.
       expect(s.xp, 284 + 25);
       expect(s.stats[Stat.intl], 3);
       expect(s.totalCompletions, 0);
@@ -1074,7 +1074,7 @@ void main() {
       expect(
         find.descendant(of: chips, matching: find.text('28')),
         findsOneWidget,
-        reason: 'MIND landed offstage, never rolling from 25 in view',
+        reason: 'Intellect landed offstage, never rolling from 25 in view',
       );
       expect(find.textContaining('284 / 870'), findsNothing);
       expect(find.textContaining('309'), findsWidgets);

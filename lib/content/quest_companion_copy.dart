@@ -77,13 +77,13 @@ const _main = [
 
 const _byStat = <Stat, List<String>>{
   Stat.str: [
-    'A little movement changes the room.',
+    'Strength starts with one honest rep.',
     'Give your body a real moment.',
     'One honest effort is enough to begin.',
   ],
   Stat.vit: [
     'A quiet kindness to future-you.',
-    'Care counts even when it is small.',
+    'A little movement changes the room.',
     'Make a little room to feel better.',
   ],
   Stat.intl: [
@@ -104,6 +104,6 @@ const _byStat = <Stat, List<String>>{
   Stat.dis: [
     'One corner is enough to begin.',
     'Make the room a little easier to return to.',
-    'A small tending changes the feeling of home.',
+    'A small tending changes how the day feels.',
   ],
 };

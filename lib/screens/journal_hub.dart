@@ -507,7 +507,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                         return Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: Text(
-                            'Notes live on your quests, goals and domains too. '
+                            'Notes live on your quests, goals and stats too. '
                             'Open any of them to add more.',
                             textAlign: TextAlign.center,
                             style: Type.body.copyWith(
