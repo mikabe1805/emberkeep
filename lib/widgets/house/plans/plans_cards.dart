@@ -21,6 +21,7 @@ import '../../../audio.dart';
 import '../../../daybook/presentation/daybook_range_projection.dart';
 import '../../../daybook/widgets/daybook_rows.dart';
 import '../../../tokens.dart';
+import '../../quest_timer_widgets.dart';
 import 'plans_actions.dart';
 import 'plans_card_menu.dart';
 import 'plans_dates.dart';
@@ -635,6 +636,21 @@ class PlansEntryCard extends StatelessWidget {
           onTap: _openStudyPlanner,
         ),
       );
+    }
+    if (entry.action is QuestPlanAction && !_done) {
+      final start = actions.onStartQuestTimer;
+      final quest = actions.questFor?.call(
+        (entry.action as QuestPlanAction).questTitle,
+      );
+      if (start != null && quest != null) {
+        parts.add(
+          QuestTimerAction(
+            quest: quest,
+            onStart: () => start(quest),
+            onOpen: () => start(quest),
+          ),
+        );
+      }
     }
     final place = entry.place;
     if (place != null &&

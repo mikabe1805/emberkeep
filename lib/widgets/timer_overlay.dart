@@ -35,6 +35,9 @@ class TimerOverlay extends StatefulWidget {
     this.guidance,
     this.note,
     this.startReady = true,
+    this.resumeEnd,
+    this.onStarted,
+    this.onStop,
   });
 
   final String questTitle;
@@ -43,6 +46,18 @@ class TimerOverlay extends StatefulWidget {
   final String? guidance;
   final String? note;
   final bool startReady;
+
+  /// A timer that is already running and ends at this instant (the saved
+  /// wall-clock end). The overlay opens in session, showing the true time left.
+  final DateTime? resumeEnd;
+
+  /// A fresh session began: when, and when it ends. The owner saves it so it
+  /// keeps running when the person leaves this surface.
+  final void Function(DateTime startedAt, DateTime endsAt)? onStarted;
+
+  /// "Stop this timer". When set, leaving this surface (Back) no longer stops
+  /// the timer: it keeps running, and only this stops it.
+  final VoidCallback? onStop;
 
   /// Countdown completed -> verified completion (x1.2).
   final VoidCallback onFinished;
@@ -73,7 +88,10 @@ class _TimerOverlayState extends State<TimerOverlay>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (!widget.startReady) {
+    if (widget.resumeEnd != null) {
+      _musicSelected = widget.musicController?.enabled ?? false;
+      _beginSession(announce: false, resumeEnd: widget.resumeEnd);
+    } else if (!widget.startReady) {
       _musicSelected = widget.musicController?.enabled ?? false;
       _beginSession(announce: false);
     }
@@ -84,11 +102,13 @@ class _TimerOverlayState extends State<TimerOverlay>
     if (state == AppLifecycleState.resumed) _check();
   }
 
-  void _beginSession({bool announce = true}) {
+  void _beginSession({bool announce = true, DateTime? resumeEnd}) {
     if (_started || _terminal) return;
     _started = true;
-    _end = Clock.now().add(Duration(minutes: widget.minutes));
+    final startedAt = Clock.now();
+    _end = resumeEnd ?? startedAt.add(Duration(minutes: widget.minutes));
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _check());
+    if (resumeEnd == null) widget.onStarted?.call(startedAt, _end!);
 
     final music = widget.musicController;
     if (music != null) {
@@ -138,6 +158,21 @@ class _TimerOverlayState extends State<TimerOverlay>
     _tick?.cancel();
     widget.onCancel();
   }
+
+  void _stop() {
+    if (_terminal) return;
+    _terminal = true;
+    _tick?.cancel();
+    final stop = widget.onStop;
+    if (stop != null) {
+      stop();
+    } else {
+      widget.onCancel();
+    }
+  }
+
+  /// With a saved timer behind it, Back only leaves: the timer keeps running.
+  bool get _keepsRunning => widget.onStop != null;
 
   @override
   void dispose() {
@@ -253,7 +288,9 @@ class _TimerOverlayState extends State<TimerOverlay>
                             child: Pressable(
                               key: const Key('timer-back'),
                               semanticLabel: _started
-                                  ? 'Leave focus session'
+                                  ? (_keepsRunning
+                                        ? 'Back. The timer keeps running.'
+                                        : 'Leave focus session')
                                   : 'Back to Quests',
                               interactionSound: InteractionSound.navigate,
                               pressDepth: 1,
@@ -279,7 +316,11 @@ class _TimerOverlayState extends State<TimerOverlay>
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        _started ? 'Leave session' : 'Quests',
+                                        _started
+                                            ? (_keepsRunning
+                                                  ? 'Back'
+                                                  : 'Leave session')
+                                            : 'Quests',
                                         style: WorkingType.title.copyWith(
                                           color: Palette.xpLight,
                                           fontSize: compact ? 18 : 20,
@@ -388,7 +429,9 @@ class _TimerOverlayState extends State<TimerOverlay>
                                               ),
                                               const SizedBox(height: 5),
                                               Text(
-                                                'You can leave the app open or come back when the time is up.',
+                                                _keepsRunning
+                                                    ? 'It keeps running if you leave. We’ll tell you when the time is up.'
+                                                    : 'You can leave the app open or come back when the time is up.',
                                                 textAlign: TextAlign.center,
                                                 style: Type.body.copyWith(
                                                   fontSize: 13,
@@ -464,6 +507,36 @@ class _TimerOverlayState extends State<TimerOverlay>
                                       ),
                                     ),
                                   ),
+                                  if (_started && _keepsRunning) ...[
+                                    const SizedBox(height: 4),
+                                    Pressable(
+                                      key: const Key('timer-stop'),
+                                      semanticLabel: 'Stop this timer',
+                                      semanticHint:
+                                          'Ends the timer without finishing the quest',
+                                      material: MaterialSound.glass,
+                                      interactionSound: InteractionSound.select,
+                                      pressDepth: 1,
+                                      edgeColor: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                      guardRapidReentry: true,
+                                      onTapUp: (_) => _stop(),
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minHeight: 48,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Stop this timer',
+                                            style: Type.body.copyWith(
+                                              color: Palette.textMid,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                   if (note != null) ...[
                                     const SizedBox(height: 16),
                                     const WorkingRule(),

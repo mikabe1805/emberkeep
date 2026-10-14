@@ -31,6 +31,7 @@ import '../models.dart';
 import '../home_widgets/widget_snapshot.dart';
 import '../home_widgets/widget_snapshot_writer.dart';
 import '../notifications.dart';
+import '../quest_timer.dart';
 import '../release_features.dart';
 import '../release_notes_preferences.dart';
 import '../room_photo.dart';
@@ -49,6 +50,7 @@ import '../widgets/house/house_travel.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/pressable.dart';
+import '../widgets/quest_timer_widgets.dart';
 import '../widgets/room_travel.dart';
 import '../widgets/routine_flows.dart';
 import 'calendar.dart';
@@ -318,7 +320,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final GlobalKey _hudKey = GlobalKey(debugLabel: 'house-hud');
   void Function(Stat stat)? _questsExploreStat;
   void Function(Quest quest, Offset anchor)? _completeQuest;
+  void Function(Quest quest)? _startQuestTimer;
   void Function(Quest launcher)? _openGuidedWorkout;
+
+  /// The one quest timer. It lives on a saved wall-clock start and end, so it
+  /// runs through leaving a room, backgrounding the app and closing it.
+  final QuestTimer _questTimer = QuestTimer();
+  int _timerRequest = 0;
+  bool _timerFinishOpen = false;
+  QuestTimerSession? _finishMomentShown;
 
   /// Serializes preference writes so a slower old write cannot land after a
   /// newer one. Export and lifecycle flushes await this same tail.
@@ -352,6 +362,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _boardSeam.boardMarksClasses.addListener(_onBoardMarksChanged);
     widget.academicScheduleFiles?.addListener(_onIncomingAcademicScheduleFile);
     CloudSync.instance.addListener(_onCloudAccountChanged);
+    _questTimer.addListener(_onQuestTimerChanged);
+    unawaited(_loadQuestTimer());
     _load();
     unawaited(_loadAcademicScheduleForShell());
     _onIncomingAcademicScheduleFile();
@@ -408,6 +420,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _onIncomingAcademicScheduleFile,
     );
     CloudSync.instance.removeListener(_onCloudAccountChanged);
+    _questTimer.removeListener(_onQuestTimerChanged);
+    _questTimer.dispose();
     if (GameState.restDayResolver == _restDayFromSchedule) {
       GameState.restDayResolver = null;
     }
@@ -859,6 +873,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _maybeMorning();
       unawaited(_rescheduleNotifications(refreshTimeZone: true));
       unawaited(_notifySocialInbox());
+      // The wall clock ran while the app was away: a timer may have ended.
+      _questTimer.checkFinished();
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
       if (lifecycle == AppLifecycleState.paused) {
@@ -1788,6 +1804,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     CloudSync.instance.cancelPending();
 
     await Notifications.cancelAll();
+    await _questTimer.clear();
     old.removeListener(_persist);
     fresh.addListener(_persist);
     setState(() {
@@ -1992,6 +2009,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     s.removeListener(_persist);
     CloudSync.instance.cancelPending();
     await Notifications.cancelAll();
+    await _questTimer.clear();
     final localCleanup = await Future.wait([
       Storage.clear(),
       Storage.clearCorruptBackup(),
@@ -2276,6 +2294,68 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     );
   }
 
+  Future<void> _loadQuestTimer() async {
+    await _questTimer.load();
+    if (!mounted) return;
+    final session = _questTimer.session;
+    // A timer that ended on an earlier day belongs to that day: it can no
+    // longer prove today's Quest.
+    if (session != null &&
+        session.finishedAt(Clock.now()) &&
+        Days.key(session.endsAt) != Days.key(Clock.now())) {
+      await _questTimer.clear();
+      return;
+    }
+    _onQuestTimerChanged();
+  }
+
+  /// The timer changed: if it has just ended while the person is elsewhere,
+  /// the finish moment appears over whatever room they are in.
+  void _onQuestTimerChanged() {
+    if (!mounted) return;
+    _questTimer.checkFinished();
+    final session = _questTimer.session;
+    if (session == null ||
+        !_questTimer.isFinished() ||
+        !_questTimer.finishAnnounced ||
+        _questTimer.overlayOpen ||
+        _timerFinishOpen ||
+        identical(_finishMomentShown, session)) {
+      return;
+    }
+    _finishMomentShown = session;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !identical(_questTimer.session, session)) return;
+      unawaited(_showTimerFinish(session));
+    });
+  }
+
+  Future<void> _showTimerFinish(QuestTimerSession session) async {
+    if (_timerFinishOpen) return;
+    _timerFinishOpen = true;
+    bool? finish;
+    try {
+      finish = await showQuestTimerFinish(context, session: session);
+    } finally {
+      _timerFinishOpen = false;
+    }
+    if (finish == true && mounted) _openQuestTimer();
+  }
+
+  /// The pill, or the finish moment's "Finish it": the Quests page opens the
+  /// running timer, or finishes the Quest it was timing. A running timer opens
+  /// where the person is; a finished one finishes on the board, where the
+  /// receipt, the XP and the undo live.
+  void _openQuestTimer() {
+    final finished = _questTimer.isFinished();
+    if (finished && _tab != 1) {
+      _selectTab(1);
+    } else if (!_visitedTabs.contains(1)) {
+      setState(() => _visitedTabs.add(1));
+    }
+    setState(() => _timerRequest++);
+  }
+
   void _openQuestFromGoals(Quest quest) {
     Sfx.instance.setInteractionScreen(_soundTabScopes[1]);
     setState(() {
@@ -2302,7 +2382,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => QuestTimerScope(
+    timer: _questTimer,
+    child: Builder(builder: _buildShell),
+  );
+
+  Widget _buildShell(BuildContext context) {
     final state = _state;
     final quests = _quests;
     if (state == null || quests == null) {
@@ -2450,6 +2535,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                                 _flushQuestsCommit = flush,
                                             onBindComplete: (complete) =>
                                                 _completeQuest = complete,
+                                            onBindStartTimer: (start) =>
+                                                _startQuestTimer = start,
+                                            timerRequestId: _timerRequest,
                                             onBindOpenWorkout: (open) =>
                                                 _openGuidedWorkout = open,
                                             onBindExploreStat: (open) =>
@@ -2525,6 +2613,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                                   quest,
                                                   anchor,
                                                 ),
+                                            onStartQuestTimer: (quest) =>
+                                                _startQuestTimer?.call(quest),
                                             parallax: cameraFor(3),
                                             lightDirection: lightFor(3),
                                           )
@@ -2577,6 +2667,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               questAccent: activeQuestDeskLook(state).brass,
                               bottomInset: MediaQuery.paddingOf(context).bottom,
                               onSelect: _selectTab,
+                            ),
+                          ),
+                          // A running quest timer stays over every room, just
+                          // above the dock, and opens the timer.
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            bottom:
+                                88 + MediaQuery.paddingOf(context).bottom + 10,
+                            child: Center(
+                              child: QuestTimerPill(
+                                timer: _questTimer,
+                                onOpen: _openQuestTimer,
+                              ),
                             ),
                           ),
                           // The class-day evening's music: the dock steps

@@ -24,6 +24,12 @@ class Notifications {
   static Future<void> cancelNightRoutine() async {}
   static Future<void> scheduleEvents(List<EventReminder> events) async {}
   static Future<void> cancelEvents() async {}
+  static Future<void> scheduleQuestTimer({
+    required DateTime at,
+    required String title,
+    required String body,
+  }) async {}
+  static Future<void> cancelQuestTimer() async {}
   static Future<void> cancelAll() async {}
 }
 

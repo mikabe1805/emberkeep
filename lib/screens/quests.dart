@@ -66,6 +66,8 @@ import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
 import '../widgets/routine_ledger.dart' show LedgerType;
 import '../widgets/timer_overlay.dart';
+import '../widgets/quest_timer_widgets.dart';
+import '../quest_timer.dart';
 import '../widgets/top_three_wizard.dart';
 import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/stat_chips.dart';
@@ -101,6 +103,7 @@ class QuestsPage extends StatefulWidget {
     required this.onRestore,
     this.onBindFlush,
     this.onBindComplete,
+    this.onBindStartTimer,
     this.onBindExploreStat,
     this.onBindOpenWorkout,
     this.onNightClosed,
@@ -113,6 +116,7 @@ class QuestsPage extends StatefulWidget {
     this.focusQuestTitle,
     this.focusRequestId = 0,
     this.workoutRequestId = 0,
+    this.timerRequestId = 0,
     this.musicController,
     this.classDays,
     this.classTerm,
@@ -153,6 +157,10 @@ class QuestsPage extends StatefulWidget {
   /// completion pipeline without copying reward or persistence logic.
   final void Function(void Function(Quest quest, Offset anchor) complete)?
   onBindComplete;
+
+  /// Lets another room (Plans) start, or reopen, a Quest's timer through this
+  /// page's one timer path.
+  final void Function(void Function(Quest quest) start)? onBindStartTimer;
 
   /// Lets the Goals page enter the same canonical workout picker without
   /// manufacturing another launcher or duplicating reward logic.
@@ -198,6 +206,11 @@ class QuestsPage extends StatefulWidget {
   /// the entry point.
   final int workoutRequestId;
 
+  /// A one-shot request from the shell's timer pill (or its finish moment):
+  /// open the running timer, or finish the Quest it was timing. The page stays
+  /// the sole owner of the overlay and the reward path.
+  final int timerRequestId;
+
   /// The shell's one optional long-lived music voice. Kept optional for
   /// direct previews; production passes it into timer-verified Focus rooms.
   final BackgroundMusicController? musicController;
@@ -229,6 +242,11 @@ class QuestsPage extends StatefulWidget {
   /// tests turn it off. Never set outside tests.
   @visibleForTesting
   static bool debugLegacyBoard = false;
+
+  /// Marking a Quest that fits a timer first asks "Time it?". The old tests
+  /// mark reading Quests all the time and do not mean to meet that question,
+  /// so the test config turns it off; the timer's own tests turn it on.
+  static bool debugAskTimerOnMark = true;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -470,6 +488,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// the keeper chooses another row.
   Quest? _selectedQuest;
   int _handledFocusRequestId = 0;
+  int _handledTimerRequestId = 0;
+  QuestTimer? _fallbackTimer;
+  bool _timerOfferOpen = false;
   bool _manualQuestSelection = false;
 
   /// When a weekly quest is cleared on a day other than its anchor, we offer
@@ -812,11 +833,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // bind flush so the shell can settle rewards before a pause-path save
     widget.onBindFlush?.call(_flushCommit);
     widget.onBindComplete?.call(_completeQuest);
+    widget.onBindStartTimer?.call(_startOrOpenTimer);
     widget.onBindExploreStat?.call(_exploreStat);
     widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     Haptics.reduceMotion = _state.reduceMotion;
     _acceptFocusRequest();
     if (widget.workoutRequestId > 0) _showRequestedWorkout();
+    _acceptTimerRequest();
   }
 
   void _showFocusedQuest() {
@@ -907,6 +930,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (old.onBindComplete != widget.onBindComplete) {
       widget.onBindComplete?.call(_completeQuest);
     }
+    if (old.onBindStartTimer != widget.onBindStartTimer) {
+      widget.onBindStartTimer?.call(_startOrOpenTimer);
+    }
     if (old.onBindExploreStat != widget.onBindExploreStat) {
       widget.onBindExploreStat?.call(_exploreStat);
     }
@@ -914,6 +940,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     }
     if (old.focusRequestId != widget.focusRequestId) _acceptFocusRequest();
+    if (old.timerRequestId != widget.timerRequestId) _acceptTimerRequest();
     if (old.workoutRequestId != widget.workoutRequestId) {
       _boardRequested = true;
       _showRequestedWorkout();
@@ -1238,70 +1265,229 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _openWorkout(q, tapPos);
       return;
     }
+    // A timer for this Quest already began: finished, it is claimed here as
+    // the proof it is; running, it is opened to show the true time left.
+    final running = _questTimer.sessionFor(q);
+    if (running != null) {
+      if (running.finishedAt(Clock.now())) {
+        _claimTimer(q, tapPos);
+      } else {
+        _openTimerOverlay(q, tapPos, resume: running);
+      }
+      return;
+    }
     if (q.verification == Verification.timer && q.effectiveTimerMinutes > 0) {
-      final linkedGoal = _state.goals
-          .where(
-            (goal) =>
-                goal.title.trim().toLowerCase() ==
-                q.goalTitle?.trim().toLowerCase(),
-          )
-          .firstOrNull;
-      final step = linkedGoal?.plan?.currentStep;
-      final currentStep =
-          step != null &&
-              q.goalPlanStepId == step.id &&
-              q.goalPlanRevision == linkedGoal?.plan?.revision &&
-              (q.goalPlanAttempt ?? 1) == step.completions + 1
-          ? step
-          : null;
-      final notes =
-          linkedGoal?.notes
-              .where((note) => note.text.trim().isNotEmpty)
-              .toList()
-            ?..sort((a, b) => b.at.compareTo(a.at));
-      var settled = false;
-      final navigator = Navigator.of(context, rootNavigator: true);
-      unawaited(
-        navigator.push<void>(
-          RawDialogRoute<void>(
-            barrierDismissible: false,
-            barrierColor: Colors.transparent,
-            transitionDuration: Duration.zero,
-            traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
-            requestFocus: true,
-            pageBuilder: (dialogContext, _, _) => TimerOverlay(
-              questTitle: q.title,
-              minutes: q.effectiveTimerMinutes,
-              musicController: widget.musicController,
-              goalTitle: linkedGoal?.title,
-              guidance: currentStep?.whyNow,
-              note: notes?.firstOrNull?.text,
-              onFinished: () {
-                if (settled) return;
-                settled = true;
-                Navigator.of(dialogContext).pop();
-                if (mounted) _runCompletion(q, tapPos, verified: true);
-              },
-              // honor path: did it without the timer → full base, no ×1.2
-              onHonor: () {
-                if (settled) return;
-                settled = true;
-                Navigator.of(dialogContext).pop();
-                if (mounted) _runCompletion(q, tapPos);
-              },
-              onCancel: () {
-                if (settled) return;
-                settled = true;
-                Navigator.of(dialogContext).pop();
-              },
-            ),
-          ),
-        ),
-      );
+      _openTimerOverlay(q, tapPos);
       Sfx.instance.playInteraction(InteractionSound.open);
       return;
     }
+    // A Quest that fits a timer (reading, studying, practice, meditation, a
+    // workout, anything that names minutes) is offered one when it is marked.
+    // Proof multiplies, never gates: "Just mark it done" is always there.
+    final offer = timerOfferFor(q);
+    if (QuestsPage.debugAskTimerOnMark &&
+        offer != null &&
+        !offer.inherent &&
+        !_questTimer.hasSession &&
+        _questTimer.shouldAsk(q)) {
+      unawaited(_askTimerOffer(q, tapPos, offer));
+      return;
+    }
     _runCompletion(q, tapPos);
+  }
+
+  QuestTimer get _questTimer =>
+      QuestTimerScope.maybeRead(context) ?? (_fallbackTimer ??= QuestTimer());
+
+  bool get _remindersOn => _state.notifyEnabled || _state.nightReminderEnabled;
+
+  Offset get _timerAnchor {
+    final size = MediaQuery.sizeOf(context);
+    return Offset(size.width / 2, size.height * 0.58);
+  }
+
+  Future<void> _askTimerOffer(
+    Quest q,
+    Offset tapPos,
+    QuestTimerOffer offer,
+  ) async {
+    if (_timerOfferOpen) return;
+    _timerOfferOpen = true;
+    QuestTimerChoice? choice;
+    try {
+      Sfx.instance.playInteraction(InteractionSound.open);
+      choice = await showQuestTimerOffer(context, quest: q, offer: offer);
+    } finally {
+      _timerOfferOpen = false;
+    }
+    if (!mounted || q.doneFor(Clock.now())) return;
+    switch (choice) {
+      case QuestTimerChoice.start:
+        await _startTimer(q, tapPos, offer.minutes);
+      case QuestTimerChoice.markDone:
+        unawaited(_questTimer.recordDecline(q));
+        _runCompletion(q, tapPos);
+      case null:
+        break;
+    }
+  }
+
+  /// The card's one-tap offer: begin a timer for [q] and show it running.
+  void _startTimerFromOffer(Quest q) {
+    final offer = timerOfferFor(q);
+    if (offer == null || q.doneFor(Clock.now())) return;
+    unawaited(_startTimer(q, _timerAnchor, offer.minutes));
+  }
+
+  /// Plans' offer: reopen [q]'s timer if it has one, else start it.
+  void _startOrOpenTimer(Quest q) {
+    if (_questTimer.sessionFor(q) != null) {
+      _openRunningTimer(q);
+    } else {
+      _startTimerFromOffer(q);
+    }
+  }
+
+  /// Back to [q]'s timer (running or finished) from its card.
+  void _openRunningTimer(Quest q) => _completeQuest(q, _timerAnchor);
+
+  Future<void> _startTimer(Quest q, Offset tapPos, int minutes) async {
+    final timer = _questTimer;
+    final session = await timer.start(
+      quest: q,
+      minutes: minutes,
+      remindersOn: _remindersOn,
+    );
+    if (!mounted) return;
+    Storage.logEvent('timer_start', [q.stat.index, session.minutes]);
+    _openTimerOverlay(q, tapPos, resume: session);
+    Sfx.instance.playInteraction(InteractionSound.open);
+  }
+
+  /// The timer ended and the person is finishing the Quest: the proof, once.
+  void _claimTimer(Quest q, Offset tapPos) {
+    unawaited(_questTimer.clear());
+    _runCompletion(q, tapPos, verified: true);
+  }
+
+  void _acceptTimerRequest() {
+    if (widget.timerRequestId == _handledTimerRequestId) return;
+    _handledTimerRequestId = widget.timerRequestId;
+    if (widget.timerRequestId == 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final timer = _questTimer;
+      final session = timer.session;
+      if (session == null) return;
+      Quest? quest;
+      for (final candidate in widget.quests) {
+        if (candidate.title == session.questKey) {
+          quest = candidate;
+          break;
+        }
+      }
+      // The Quest was removed, or finished another way: the timer has nothing
+      // left to do, and ends quietly.
+      if (quest == null || quest.doneFor(Clock.now())) {
+        unawaited(timer.clear());
+        return;
+      }
+      _completeQuest(quest, _timerAnchor);
+    });
+  }
+
+  /// The full-screen timer. [resume] opens one that is already running (its
+  /// saved end); without it, the overlay opens ready and Start begins and
+  /// saves the timer. Leaving never stops a running timer: only Stop does.
+  void _openTimerOverlay(Quest q, Offset tapPos, {QuestTimerSession? resume}) {
+    final timer = _questTimer;
+    final linkedGoal = _state.goals
+        .where(
+          (goal) =>
+              goal.title.trim().toLowerCase() ==
+              q.goalTitle?.trim().toLowerCase(),
+        )
+        .firstOrNull;
+    final step = linkedGoal?.plan?.currentStep;
+    final currentStep =
+        step != null &&
+            q.goalPlanStepId == step.id &&
+            q.goalPlanRevision == linkedGoal?.plan?.revision &&
+            (q.goalPlanAttempt ?? 1) == step.completions + 1
+        ? step
+        : null;
+    final notes =
+        linkedGoal?.notes.where((note) => note.text.trim().isNotEmpty).toList()
+          ?..sort((a, b) => b.at.compareTo(a.at));
+    var settled = false;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    timer.overlayOpen = true;
+    unawaited(
+      navigator
+          .push<void>(
+            RawDialogRoute<void>(
+              barrierDismissible: false,
+              barrierColor: Colors.transparent,
+              transitionDuration: Duration.zero,
+              traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+              requestFocus: true,
+              pageBuilder: (dialogContext, _, _) => TimerOverlay(
+                questTitle: q.title,
+                minutes: resume?.minutes ?? q.effectiveTimerMinutes,
+                resumeEnd: resume?.endsAt,
+                musicController: widget.musicController,
+                goalTitle: linkedGoal?.title,
+                guidance: currentStep?.whyNow,
+                note: notes?.firstOrNull?.text,
+                // A fresh Start is saved at once, so leaving the page (or the
+                // app) never stops it.
+                onStarted: resume != null
+                    ? null
+                    : (startedAt, endsAt) {
+                        final minutes = endsAt.difference(startedAt).inMinutes;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          unawaited(
+                            timer.start(
+                              quest: q,
+                              minutes: minutes,
+                              startedAt: startedAt,
+                              remindersOn: _remindersOn,
+                            ),
+                          );
+                        });
+                      },
+                onStop: () {
+                  if (settled) return;
+                  settled = true;
+                  Navigator.of(dialogContext).pop();
+                  unawaited(timer.clear());
+                },
+                onFinished: () {
+                  if (settled) return;
+                  settled = true;
+                  Navigator.of(dialogContext).pop();
+                  unawaited(timer.clear());
+                  if (mounted) _runCompletion(q, tapPos, verified: true);
+                },
+                // honor path: did it without the timer: full base, no x1.2
+                onHonor: () {
+                  if (settled) return;
+                  settled = true;
+                  Navigator.of(dialogContext).pop();
+                  unawaited(timer.clear());
+                  if (mounted) _runCompletion(q, tapPos);
+                },
+                // Back: the overlay closes; a running timer keeps running.
+                onCancel: () {
+                  if (settled) return;
+                  settled = true;
+                  Navigator.of(dialogContext).pop();
+                },
+              ),
+            ),
+          )
+          .whenComplete(() => timer.overlayOpen = false),
+    );
   }
 
   void _keepQuestReflection(GameState state, Quest quest, String text) {
@@ -3426,6 +3612,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             onComplete: (pos) => _activateQuest(q, pos),
             onManage: () => _manageQuest(q),
             goalThreadLabel: _goalThreadLabel(q),
+            onStartTimer: () => _startTimerFromOffer(q),
+            onOpenTimer: () => _openRunningTimer(q),
           ),
         ),
         const SizedBox(height: 16),
@@ -3870,6 +4058,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       read: read,
       supportFor: _questSupport,
       onComplete: _completeFromRoom,
+      onStartTimer: _startTimerFromOffer,
+      onOpenTimer: _openRunningTimer,
       onSelect: (quest) {
         Haptics.tap();
         setState(() => _questPick = quest.title);
@@ -5266,6 +5456,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     ? widget.onOpenRoomGuide
                                     : null,
                                 goalThreadLabel: _goalThreadLabel(q),
+                                onStartTimer: isDone
+                                    ? null
+                                    : () => _startTimerFromOffer(q),
+                                onOpenTimer: () => _openRunningTimer(q),
                                 // a finished, still-climbable quest offers the next rung
                                 // right on the card
                                 onEncore:

@@ -2099,6 +2099,9 @@ class RewardBundle {
   /// 1.2 when the completion was proof-verified (timer), null otherwise.
   final double? verifiedMult;
 
+  /// This completion ran through a finished timer.
+  bool get timerProven => verifiedMult != null;
+
   /// Set when this is the first completion back after a gap — a warm
   /// comeback bonus, never a scold (never-punish; RESEARCH-momentum.md §4).
   final double? comebackMult;
@@ -2186,6 +2189,44 @@ class LedgerEntry {
     amount: (j['amount'] as int?) ?? 0,
     title: (j['title'] as String?) ?? '',
   );
+}
+
+/// One accepted Quest completion, kept so a week can be read back: which stat
+/// it trained, when, and whether it was finished through the timer.
+///
+/// [timerProven] is true only for a completion that ran through a finished
+/// timer. It is stored additively (omitted when false), so a save from before
+/// the timer was a record reads every old completion as untimed.
+class CompletionRecord {
+  const CompletionRecord({
+    required this.stat,
+    required this.at,
+    this.timerProven = false,
+  });
+
+  final Stat stat;
+  final DateTime at;
+  final bool timerProven;
+
+  Map<String, dynamic> toJson() => {
+    'stat': stat.index,
+    'at': at.millisecondsSinceEpoch,
+    if (timerProven) 'timerProven': true,
+  };
+
+  /// Total: a damaged record is dropped, never thrown.
+  static CompletionRecord? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final stat = raw['stat'];
+    final at = raw['at'];
+    if (stat is! int || stat < 0 || stat >= Stat.values.length) return null;
+    if (at is! int) return null;
+    return CompletionRecord(
+      stat: Stat.values[stat],
+      at: DateTime.fromMillisecondsSinceEpoch(at),
+      timerProven: raw['timerProven'] == true,
+    );
+  }
 }
 
 /// Result of applying XP to the level model.

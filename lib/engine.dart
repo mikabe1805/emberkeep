@@ -1267,6 +1267,14 @@ class GameState extends ChangeNotifier {
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
+  /// Every accepted Quest completion of the last [completionLogDays] days,
+  /// oldest first: its stat, when, and whether the timer proved it. A week's
+  /// training is read back from here. Quest completions only; classes and
+  /// Extra Credit never add to it.
+  final List<CompletionRecord> completionLog = [];
+  static const completionLogDays = 14;
+  static const completionLogCap = 500;
+
   // ── streak (real now: consecutive days with ≥1 completion) ──────
   int streakDays = 0;
   int bestStreak = 0;
@@ -2835,6 +2843,15 @@ class GameState extends ChangeNotifier {
     return earned.round();
   }
 
+  /// Keeps the completion log to the days a week's training can reach back to.
+  void _trimCompletionLog(DateTime now) {
+    final oldest = now.subtract(const Duration(days: completionLogDays));
+    completionLog.removeWhere((record) => record.at.isBefore(oldest));
+    if (completionLog.length > completionLogCap) {
+      completionLog.removeRange(0, completionLog.length - completionLogCap);
+    }
+  }
+
   /// Applies a rolled bundle to xp/stats/streak/counters — the moment the
   /// bar fills and the stat chip pulses.
   void commit(RewardBundle b) {
@@ -2892,6 +2909,10 @@ class GameState extends ChangeNotifier {
     if (b.isEvent) eventCompletions++;
     if (b.custom) customCompletions++;
     history[today] = (history[today] ?? 0) + 1;
+    completionLog.add(
+      CompletionRecord(stat: b.stat, at: now, timerProven: b.timerProven),
+    );
+    _trimCompletionLog(now);
     final titleKey = b.questKey ?? b.questTitle;
     todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
 
@@ -3314,6 +3335,8 @@ class GameState extends ChangeNotifier {
     ],
     'journal': [for (final n in journal) n.toJson()],
     'ledger': [for (final e in ledger) e.toJson()],
+    if (completionLog.isNotEmpty)
+      'completionLog': [for (final r in completionLog) r.toJson()],
     'streakDays': streakDays,
     'bestStreak': bestStreak,
     // Keep legacy keys stable so an existing cloud/local save keeps merging.
@@ -3651,6 +3674,15 @@ class GameState extends ChangeNotifier {
     ];
     for (final e in (j['ledger'] as List?) ?? const []) {
       s.ledger.add(LedgerEntry.fromJson((e as Map).cast<String, dynamic>()));
+    }
+    final rawLog = j['completionLog'];
+    if (rawLog is List) {
+      for (final item in rawLog.take(completionLogCap * 2)) {
+        final record = CompletionRecord.fromJson(item);
+        if (record != null) s.completionLog.add(record);
+      }
+      s.completionLog.sort((a, b) => a.at.compareTo(b.at));
+      s._trimCompletionLog(Clock.now());
     }
     s.streakDays = j['streakDays'] as int? ?? 0;
     s.bestStreak = j['bestStreak'] as int? ?? s.streakDays;

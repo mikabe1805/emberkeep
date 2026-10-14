@@ -32,6 +32,8 @@ class PlansActions {
     required this.directionsLauncher,
     required this.daybookPreferences,
     this.onCompleteQuestPlan,
+    this.onStartQuestTimer,
+    this.questFor,
   });
 
   /// The MONTH / WEEK / DAY / 3 DAYS switch.
@@ -71,4 +73,9 @@ class PlansActions {
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
   final CompleteQuestPlan? onCompleteQuestPlan;
+
+  /// One tap starts (or reopens) the timer for a Quest. With [questFor], which
+  /// reads the live Quest by its title, a Quest card offers it.
+  final ValueChanged<Quest>? onStartQuestTimer;
+  final Quest? Function(String questTitle)? questFor;
 }

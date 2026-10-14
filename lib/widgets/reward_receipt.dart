@@ -10,6 +10,7 @@ import '../content/evidence.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../models.dart';
+import '../quest_timer.dart' show questTimerReceiptLine;
 import '../tokens.dart';
 import 'ember_flame_icon.dart';
 import 'facets.dart';
@@ -160,6 +161,13 @@ class _RewardReceiptState extends State<RewardReceipt>
         _Bubble(
           'VERIFIED ×${b.verifiedMult!.toStringAsFixed(1)}',
           Icons.verified,
+          Palette.verify,
+          null,
+        ),
+      if (b.timerProven)
+        _Bubble(
+          questTimerReceiptLine,
+          Icons.timer_outlined,
           Palette.verify,
           null,
         ),

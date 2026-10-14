@@ -79,6 +79,7 @@ class CalendarPage extends StatefulWidget {
     required this.quests,
     required this.onAdd,
     this.onCompleteQuest,
+    this.onStartQuestTimer,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.lightDirection,
     this.scheduleRepository,
@@ -101,6 +102,9 @@ class CalendarPage extends StatefulWidget {
   final List<Quest> quests;
   final bool Function(Quest) onAdd;
   final void Function(Quest quest, Offset anchor)? onCompleteQuest;
+
+  /// One tap on a Quest's timer offer in Plans: start (or reopen) its timer.
+  final void Function(Quest quest)? onStartQuestTimer;
   final ValueListenable<Offset> parallax;
   final ValueListenable<Offset>? lightDirection;
   final AcademicScheduleRepository? scheduleRepository;
@@ -1004,6 +1008,13 @@ class _CalendarPageState extends State<CalendarPage>
     );
   }
 
+  Quest? _questByTitle(String questTitle) {
+    for (final candidate in widget.quests) {
+      if (candidate.title == questTitle) return candidate;
+    }
+    return null;
+  }
+
   void _completeQuestPlan(String questTitle, Offset anchor) {
     final complete = widget.onCompleteQuest;
     if (complete == null) return;
@@ -1071,6 +1082,8 @@ class _CalendarPageState extends State<CalendarPage>
     onCompleteQuestPlan: widget.onCompleteQuest == null
         ? null
         : _completeQuestPlan,
+    onStartQuestTimer: widget.onStartQuestTimer,
+    questFor: _questByTitle,
   );
 
   @override
