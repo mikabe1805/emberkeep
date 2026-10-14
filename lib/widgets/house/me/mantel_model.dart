@@ -8,25 +8,62 @@
 // ends on the medallion on the mantel), the glass is anchored above the dock.
 library;
 
+import 'dart:math' as math;
 import 'dart:ui' show Offset, Rect, Size;
 
+import '../../../brawl/brawl_abilities.dart';
+import '../../../brawl/weekly_training.dart';
+import '../../../clock.dart';
 import '../../../engine.dart';
 import '../../../tokens.dart';
 import '../house_backdrop.dart' show housePlateOverscan;
 import '../house_room.dart';
 
-/// One of the six domains on the card.
+/// One of the six stats on the card: its value, what this week's training
+/// added to it, and the ability it powers in the weekend fight.
 class MantelStat {
-  const MantelStat({required this.stat, required this.value});
+  const MantelStat({required this.stat, required this.value, this.points = 0});
 
   final Stat stat;
   final int value;
 
-  /// "BODY".
+  /// This week's training points for the stat (quests finished since Monday
+  /// 04:00, a timer-proven one counting 1.5).
+  final double points;
+
+  /// "STR".
   String get label => stat.abbr;
 
-  /// "Body 88", what VoiceOver says on the cell.
-  String get spoken => '${stat.label} $value';
+  /// "Strength", the word the card reads.
+  String get name => stat.label;
+
+  /// Trained this week at all.
+  bool get trained => points > 0;
+
+  /// "+6 this week", or null when the stat was not trained.
+  String? get trainingLine =>
+      trained ? '+${pointsLabel(points)} this week' : null;
+
+  BrawlAbility get ability => abilityOf(stat);
+
+  /// 0 while locked, then 1 to 4.
+  int get tier => tierOf(value);
+
+  bool get locked => tier == 0;
+
+  /// "Power Slam · Tier 2", or null while locked (the next line says so).
+  String? get abilityLine =>
+      locked ? null : '${ability.name} · ${tierName(tier)}';
+
+  /// "Tier 3 at 80", "Top tier", or "Reach Social 10 to unlock Call a
+  /// Friend".
+  String get nextText => nextLine(stat, value);
+
+  /// "Strength 88", what VoiceOver says on the cell.
+  String get spoken {
+    final week = trained ? ', plus ${pointsLabel(points)} this week' : '';
+    return '${stat.label} $value$week. ${abilitySpoken(stat, value)}';
+  }
 }
 
 /// What the YOUR BUILD card says, read from the engine.
@@ -39,6 +76,8 @@ class MantelBuild {
     required this.streakDays,
     required this.xp,
     required this.xpNeeded,
+    required this.monster,
+    required this.weekendLine,
   });
 
   /// The build's own name in a word or two ("Steady Hand"), the way the
@@ -46,8 +85,8 @@ class MantelBuild {
   final String title;
   final int level;
 
-  /// The six domains in the engine's order: BODY, CARE, MIND, CRAFT, PEOPLE,
-  /// HOME.
+  /// The six stats in the engine's order: Strength, Vitality, Intellect,
+  /// Focus, Social, Discipline.
   final List<MantelStat> stats;
   final int questsDone;
   final int streakDays;
@@ -56,19 +95,35 @@ class MantelBuild {
   final int xp;
   final int xpNeeded;
 
+  /// The week's monster, and the line that previews it: "This weekend: the
+  /// Couch Troll · weak to Strength".
+  final WeeklyMonster monster;
+  final String weekendLine;
+
+  /// Any stat trained this week.
+  bool get anyTrained => stats.any((s) => s.trained);
+
   factory MantelBuild.from(GameState state) {
     final need = state.xpNeeded(state.level + 1);
+    final now = Clock.now();
+    final week = state.weeklyTraining(now);
     return MantelBuild(
       title: titleCase(state.buildTitle),
       level: state.level,
       stats: [
         for (final s in Stat.values)
-          MantelStat(stat: s, value: state.stats[s] ?? 0),
+          MantelStat(
+            stat: s,
+            value: state.stats[s] ?? 0,
+            points: week.pointsOf(s),
+          ),
       ],
       questsDone: state.totalCompletions,
       streakDays: state.streakDays,
       xp: state.xp < need ? state.xp : need,
       xpNeeded: need,
+      monster: monsterOfTheWeek(now),
+      weekendLine: weekendPreviewLine(now),
     );
   }
 
@@ -84,7 +139,7 @@ class MantelBuild {
   String get spoken =>
       'Your build, $title. Level $level. $questsDone '
       'quest${questsDone == 1 ? '' : 's'} done, $streakDays day streak. '
-      '$xp of $xpNeeded XP.';
+      '$xp of $xpNeeded XP. $weekendLine.';
 
   /// "LIONHEART" becomes "Lionheart"; "MIGHTY STEADY HAND" becomes "Mighty
   /// Steady Hand".
@@ -101,6 +156,12 @@ class MantelBuild {
 /// Text larger than this puts the two quiet tab pills on separate rows, so
 /// neither runs into the other.
 const double mantelStackedTabsFrom = 1.12;
+
+/// Text larger than this gives the stats card all the room it can have: its
+/// footer scrolls with it instead of staying pinned, and the glass may climb
+/// over the shelf (the shelf is a picture; six stats at large text are what
+/// the page is for).
+const double mantelLargeTextFrom = 1.12;
 
 /// Quiet glass labels (the tabs, the trophy tag) follow the phone's text size
 /// up to this much; past it the sheets and the card, which scroll, carry the
@@ -167,7 +228,7 @@ class MantelFrame {
   static const hit = 44.0;
 
   /// The glass sits this far above the dock.
-  static const glassGap = 8.0;
+  static const glassGap = 6.0;
 
   /// The side margin of the glass.
   static const glassInset = 20.0;
@@ -186,11 +247,23 @@ class MantelFrame {
     plateToPage(medallion),
   );
 
-  /// The room above the glass the tag must keep: the glass never climbs over
-  /// the tag, so a tall card (large text) scrolls inside itself.
-  double glassMaxHeight({required double tagBottom}) {
+  /// The foot of the mantel shelf, where the earned objects stand (plate
+  /// points): the glass keeps below it so the shelf and the trophy leader
+  /// stay in view.
+  static const shelfBottom = 352.0;
+
+  /// The room above the glass the tag and the shelf must keep: the glass
+  /// never climbs over either, so a tall card (large text) scrolls inside
+  /// itself.
+  double glassMaxHeight({required double tagBottom, bool largeText = false}) {
     final bottom = page.height - dock - glassGap;
-    return (bottom - (tagBottom + 12)).clamp(160.0, bottom);
+    final top = largeText
+        ? tagBottom + 12
+        : math.max(
+            tagBottom + 12,
+            plateToPage(const Offset(0, shelfBottom)).dy,
+          );
+    return (bottom - top).clamp(160.0, bottom);
   }
 
   /// The glass's rect for a given height, anchored above the dock.

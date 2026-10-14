@@ -1,0 +1,58 @@
+[
+  {
+    "file": "ME_stats_evening.png",
+    "when": "Wed Oct 14 21:00",
+    "at": "2026-10-14T21:00:00.000",
+    "surface": "ME",
+    "note": "the mantel with the six stats, Wed Oct 14 21:00"
+  },
+  {
+    "file": "ME_stats_midday.png",
+    "when": "Wed Oct 14 12:30",
+    "at": "2026-10-14T12:30:00.000",
+    "surface": "ME",
+    "note": "the mantel with the six stats, Wed Oct 14 12:30"
+  },
+  {
+    "file": "ME_stats_quiet.png",
+    "when": "Wed Oct 14 12:30",
+    "at": "2026-10-14T12:30:00.000",
+    "surface": "ME",
+    "note": "nothing trained yet this week, Wed Oct 14 12:30"
+  },
+  {
+    "file": "ME_stats_spec_numbers.png",
+    "when": "Sat Oct 17 11:00",
+    "at": "2026-10-17T11:00:00.000",
+    "surface": "ME",
+    "note": "LV 6 numbers (Social locked) on Saturday Oct 17 11:00"
+  },
+  {
+    "file": "ME_stats_text130.png",
+    "when": "Wed Oct 14 12:30",
+    "at": "2026-10-14T12:30:00.000",
+    "surface": "ME",
+    "note": "the mantel at 130% text"
+  },
+  {
+    "file": "ME_stats_text200.png",
+    "when": "Wed Oct 14 12:30",
+    "at": "2026-10-14T12:30:00.000",
+    "surface": "ME",
+    "note": "the mantel at 200% text"
+  },
+  {
+    "file": "STAT_social_locked.png",
+    "when": "Sat Oct 17 11:00",
+    "at": "2026-10-17T11:00:00.000",
+    "surface": "STAT",
+    "note": "Social page, Sat Oct 17 11:00"
+  },
+  {
+    "file": "STAT_strength_trained.png",
+    "when": "Sat Oct 17 11:00",
+    "at": "2026-10-17T11:00:00.000",
+    "surface": "STAT",
+    "note": "Strength page, Sat Oct 17 11:00"
+  }
+]

@@ -149,6 +149,7 @@ class MeMantel extends StatelessWidget {
                   onStat: onStat,
                   maxHeight: frame.glassMaxHeight(
                     tagBottom: tagTop + MantelFrame.hit,
+                    largeText: mantelLargeText(context),
                   ),
                 ),
               ),
