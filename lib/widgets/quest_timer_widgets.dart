@@ -102,7 +102,9 @@ class QuestTimerAction extends StatelessWidget {
           quiet: quiet,
           onTap: onStart,
         ),
-        if (caption) ...[
+        // At very large text the words are the button's own spoken hint, so
+        // the page is not asked to carry a second line.
+        if (caption && MediaQuery.textScalerOf(context).scale(1) <= 1.3) ...[
           const SizedBox(height: 5),
           Text(
             questTimerTrainingLine,
@@ -176,18 +178,7 @@ class _PillButton extends StatelessWidget {
                     color: highlight ? Palette.xpLight : Palette.brassLit,
                   ),
                   const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: Type.body.copyWith(
-                        fontSize: 15.5,
-                        height: 1.15,
-                        fontWeight: FontWeight.w500,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                  ),
+                  Flexible(child: _PillText(label)),
                 ],
               ),
             ),
@@ -213,6 +204,32 @@ class _PillButton extends StatelessWidget {
       stateBuilder: (context, child, pressed, focused, hovered) =>
           _face(pressed, focused),
       child: _face(false, false),
+    );
+  }
+}
+
+/// The pill's words. At the system's usual text size they stay on one line,
+/// stepping down a little if the room is narrow; at larger sizes they wrap
+/// rather than shrink, so they are never read small.
+class _PillText extends StatelessWidget {
+  const _PillText(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Type.body.copyWith(
+      fontSize: 15.5,
+      height: 1.15,
+      fontWeight: FontWeight.w500,
+      color: Palette.textHi,
+    );
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.15) {
+      return Text(label, textAlign: TextAlign.center, style: style);
+    }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(label, maxLines: 1, softWrap: false, style: style),
     );
   }
 }
@@ -459,33 +476,21 @@ class _QuestTimerPillState extends State<QuestTimerPill> {
     final left = timer.remaining();
     return KeyedSubtree(
       key: const Key('quest-timer-pill'),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0xB3090504),
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Pressable(
-          pressDepth: 1,
-          edgeColor: Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-          material: MaterialSound.glass,
-          interactionSound: InteractionSound.select,
-          guardRapidReentry: true,
-          semanticLabel: finished
-              ? 'Timer done for ${session.questTitle}. Tap to finish it.'
-              : 'Timer running for ${session.questTitle}, '
-                    '${_spokenLeft(left)}. Opens the timer.',
-          onTapUp: (_) => widget.onOpen(),
-          stateBuilder: (context, child, pressed, focused, hovered) =>
-              _face(session, finished, left, pressed, focused),
-          child: _face(session, finished, left, false, false),
-        ),
+      child: Pressable(
+        pressDepth: 1,
+        edgeColor: Colors.transparent,
+        borderRadius: BorderRadius.circular(22),
+        material: MaterialSound.glass,
+        interactionSound: InteractionSound.select,
+        guardRapidReentry: true,
+        semanticLabel: finished
+            ? 'Timer done for ${session.questTitle}. Tap to finish it.'
+            : 'Timer running for ${session.questTitle}, '
+                  '${_spokenLeft(left)}. Opens the timer.',
+        onTapUp: (_) => widget.onOpen(),
+        stateBuilder: (context, child, pressed, focused, hovered) =>
+            _face(session, finished, left, pressed, focused),
+        child: _face(session, finished, left, false, false),
       ),
     );
   }
@@ -499,59 +504,71 @@ class _QuestTimerPillState extends State<QuestTimerPill> {
   ) {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
+      // 44 pt to touch. The capsule you see is 34 pt, so it rests on the
+      // dock's edge and covers only a sliver of the room above it.
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44, maxWidth: 320),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: Color.alphaBlend(
-              finished
-                  ? Color.fromRGBO(255, 214, 140, pressed ? 0.3 : 0.2)
-                  : Color.fromRGBO(255, 226, 170, pressed ? 0.14 : 0.04),
-              _pillFill,
+        constraints: const BoxConstraints(minHeight: 44, maxWidth: 232),
+        child: Center(
+          widthFactor: 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xB3090504),
+                  blurRadius: 14,
+                  offset: Offset(0, 4),
+                ),
+              ],
+              color: Color.alphaBlend(
+                finished
+                    ? Color.fromRGBO(255, 214, 140, pressed ? 0.3 : 0.2)
+                    : Color.fromRGBO(255, 226, 170, pressed ? 0.14 : 0.04),
+                _pillFill,
+              ),
+              border: Border.all(
+                color: focused
+                    ? Palette.textHi
+                    : Palette.brassLit.withValues(alpha: finished ? 0.95 : 0.6),
+              ),
             ),
-            border: Border.all(
-              color: focused
-                  ? Palette.textHi
-                  : Palette.brassLit.withValues(alpha: finished ? 0.95 : 0.6),
-            ),
-          ),
-          child: ExcludeSemantics(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 6, 16, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    finished ? Icons.alarm_on_rounded : Icons.timer_outlined,
-                    size: 20,
-                    color: finished ? Palette.xpLight : Palette.brassLit,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    finished ? 'Done' : questTimerClock(left),
-                    key: const Key('quest-timer-pill-clock'),
-                    style: Type.numerals.copyWith(
-                      fontSize: 18,
-                      height: 1,
-                      color: Palette.textHi,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+            child: ExcludeSemantics(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 5, 14, 5),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      finished ? Icons.alarm_on_rounded : Icons.timer_outlined,
+                      size: 18,
+                      color: finished ? Palette.xpLight : Palette.brassLit,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      finished ? 'Tap to finish' : session.questTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                        fontSize: 14,
-                        height: 1.1,
-                        color: Palette.textMid,
+                    const SizedBox(width: 7),
+                    Text(
+                      finished ? 'Done' : questTimerClock(left),
+                      key: const Key('quest-timer-pill-clock'),
+                      style: Type.numerals.copyWith(
+                        fontSize: 17,
+                        height: 1,
+                        color: Palette.textHi,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        finished ? 'Tap to finish' : session.questTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.body.copyWith(
+                          fontSize: 13.5,
+                          height: 1.1,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -582,9 +599,9 @@ Future<QuestTimerChoice?> showQuestTimerOffer(
       eyebrow: 'TIME IT?',
       title: quest.displayTitle,
       body:
-          'A finished ${offer.minutes}-minute timer counts as timed. '
-          '$questTimerTrainingLine. It keeps running if you leave, and '
-          'you can still just mark it done.',
+          'A finished ${offer.minutes}-minute timer counts extra toward this '
+          'week’s training. It keeps running if you leave, and you can '
+          'still just mark it done.',
       primaryKey: const Key('quest-timer-sheet-start'),
       primaryLabel: offer.label,
       primaryIcon: Icons.timer_outlined,
@@ -616,8 +633,8 @@ Future<bool?> showQuestTimerFinish(
       title: session.questTitle,
       body:
           '${session.minutes} ${session.minutes == 1 ? 'minute' : 'minutes'}, '
-          'done. Finishing it now counts as timed, with extra XP. '
-          '$questTimerTrainingLine.',
+          'done. Finish it now for extra XP. It counts extra toward this '
+          'week’s training.',
       primaryKey: const Key('quest-timer-finish'),
       primaryLabel: 'Finish it',
       primaryIcon: Icons.check_rounded,
@@ -662,75 +679,85 @@ class _TimerSheet extends StatelessWidget {
       child: GlassPanel(
         tint: const Color(0xF22A211D),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                eyebrow,
-                style: Type.label.copyWith(
-                  color: Palette.xpLight,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Semantics(
-                header: true,
-                child: Text(
-                  title,
-                  style: WorkingType.title.copyWith(
-                    fontSize: 27,
-                    height: 1.08,
-                    color: Palette.textHi,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                body,
-                style: Type.body.copyWith(
-                  fontSize: 15,
-                  height: 1.4,
-                  color: Palette.textMid,
-                ),
-              ),
-              const SizedBox(height: 18),
-              WorkingAction(
-                key: primaryKey,
-                label: primaryLabel,
-                onTap: onPrimary,
-                icon: primaryIcon,
-                iconLeading: true,
-                primary: true,
-                sound: InteractionSound.place,
-              ),
-              const SizedBox(height: 4),
-              Pressable(
-                key: secondaryKey,
-                semanticLabel: secondaryLabel,
-                material: MaterialSound.glass,
-                interactionSound: InteractionSound.select,
-                pressDepth: 1,
-                edgeColor: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                guardRapidReentry: true,
-                onTapUp: (_) => onSecondary(),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: Center(
-                    child: Text(
-                      secondaryLabel,
-                      style: Type.display.copyWith(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The words scroll if the text is very large; the two ways on
+            // never do, so they are always in reach.
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      eyebrow,
+                      style: Type.label.copyWith(
                         color: Palette.xpLight,
-                        fontSize: 18,
+                        letterSpacing: 2,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        title,
+                        style: WorkingType.title.copyWith(
+                          fontSize: 27,
+                          height: 1.08,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      body,
+                      style: Type.body.copyWith(
+                        fontSize: 15,
+                        height: 1.4,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            WorkingAction(
+              key: primaryKey,
+              label: primaryLabel,
+              onTap: onPrimary,
+              icon: primaryIcon,
+              iconLeading: true,
+              primary: true,
+              sound: InteractionSound.place,
+            ),
+            const SizedBox(height: 4),
+            Pressable(
+              key: secondaryKey,
+              semanticLabel: secondaryLabel,
+              material: MaterialSound.glass,
+              interactionSound: InteractionSound.select,
+              pressDepth: 1,
+              edgeColor: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              guardRapidReentry: true,
+              onTapUp: (_) => onSecondary(),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Center(
+                  child: Text(
+                    secondaryLabel,
+                    style: Type.display.copyWith(
+                      color: Palette.xpLight,
+                      fontSize: 18,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

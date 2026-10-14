@@ -2669,13 +2669,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               onSelect: _selectTab,
                             ),
                           ),
-                          // A running quest timer stays over every room, just
-                          // above the dock, and opens the timer.
+                          // A running quest timer stays over every room, resting
+                          // on the dock's top edge (a 44 pt touch, a 34 pt
+                          // capsule), and opens the timer.
                           Positioned(
                             left: 16,
                             right: 16,
                             bottom:
-                                88 + MediaQuery.paddingOf(context).bottom + 10,
+                                88 + MediaQuery.paddingOf(context).bottom - 27,
                             child: Center(
                               child: QuestTimerPill(
                                 timer: _questTimer,

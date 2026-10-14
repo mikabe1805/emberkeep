@@ -164,13 +164,6 @@ class _RewardReceiptState extends State<RewardReceipt>
           Palette.verify,
           null,
         ),
-      if (b.timerProven)
-        _Bubble(
-          questTimerReceiptLine,
-          Icons.timer_outlined,
-          Palette.verify,
-          null,
-        ),
       if (b.streakMult != null)
         _Bubble(
           'STREAK ×${b.streakMult!.toStringAsFixed(1)}',
@@ -578,6 +571,32 @@ class _RewardReceiptState extends State<RewardReceipt>
             runSpacing: 6,
             children: [
               for (final bubble in compact.take(5)) _receiptChip(bubble),
+            ],
+          ),
+        ],
+        // A completion the timer proved says so in plain words, once its
+        // VERIFIED chip has risen: one line, never a second chip.
+        if (widget.bundle.timerProven &&
+            rewards.any((bubble) => bubble.text.startsWith('VERIFIED'))) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.timer_outlined, size: 14, color: Palette.verify),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  questTimerReceiptLine,
+                  key: const ValueKey('receipt-timed-line'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.body.copyWith(
+                    fontSize: 12.5,
+                    height: 1.2,
+                    color: Palette.verify,
+                  ),
+                ),
+              ),
             ],
           ),
         ],

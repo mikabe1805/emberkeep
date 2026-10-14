@@ -1043,6 +1043,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _fallbackTimer?.dispose();
     _classBoundaryTimer?.cancel();
     _questMomentTimer?.cancel();
     _dismissUndoTimer?.cancel();
