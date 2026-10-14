@@ -81,6 +81,9 @@ class _BrawlDoorBandState extends State<BrawlDoorBand>
         if (!brawlDoorOpen(now)) return const SizedBox.shrink();
         final monster = monsterOfTheWeek(now);
         final won = widget.state.brawlWonThisWeek(now);
+        // At large text the door keeps to its title, so it stays a small
+        // thing under the HUD; the words below it are still spoken.
+        final compact = MediaQuery.textScalerOf(context).scale(1) > 1.3;
         final title = won ? 'Fight again' : 'Join the fight!';
         final sub = won
             ? 'Just for practice. This weekend’s chest is already yours.'
@@ -161,6 +164,8 @@ class _BrawlDoorBandState extends State<BrawlDoorBand>
                             Text(
                               title,
                               key: const Key('brawl-door-title'),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontFamily: 'EBGaramond',
                                 fontSize: 24,
@@ -169,19 +174,23 @@ class _BrawlDoorBandState extends State<BrawlDoorBand>
                                 color: Palette.textHi,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              sub,
-                              key: const Key('brawl-door-sub'),
-                              style: const TextStyle(
-                                fontFamily: 'EBGaramond',
-                                fontSize: 15.5,
-                                fontStyle: FontStyle.italic,
-                                fontWeight: FontWeight.w500,
-                                height: 1.15,
-                                color: Palette.textMid,
+                            if (!compact) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                sub,
+                                key: const Key('brawl-door-sub'),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'EBGaramond',
+                                  fontSize: 15.5,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.15,
+                                  color: Palette.textMid,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),

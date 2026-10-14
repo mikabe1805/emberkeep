@@ -253,6 +253,7 @@ class _Faceoff extends StatelessWidget {
               ),
               child: Text(
                 'VS',
+                textScaler: TextScaler.noScaling,
                 style: brawlSerif(
                   20,
                   weight: FontWeight.w800,
@@ -302,31 +303,38 @@ class _Card extends StatelessWidget {
             left: 12,
             right: 12,
             bottom: 10,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: brawlSerif(
-                    24,
-                    weight: FontWeight.w700,
-                    color: Palette.textHi,
-                    height: 1,
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: MediaQuery.textScalerOf(
+                  context,
+                ).clamp(maxScaleFactor: 1.25),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: brawlSerif(
+                      24,
+                      weight: FontWeight.w700,
+                      color: Palette.textHi,
+                      height: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  sub,
-                  maxLines: 2,
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    letterSpacing: 1.6,
-                    color: const Color(0xFFE5C896),
+                  const SizedBox(height: 4),
+                  Text(
+                    sub,
+                    maxLines: 2,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.6,
+                      color: const Color(0xFFE5C896),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -396,6 +404,8 @@ class _StatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final trained = points > 0;
     final week = trained ? '+${pointsLabel(points)} this week' : null;
+    // At large text the week's words take a line of their own.
+    final stacked = MediaQuery.textScalerOf(context).scale(1) > 1.2;
     return Semantics(
       container: true,
       label:
@@ -425,7 +435,7 @@ class _StatRow extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (week != null) ...[
+                  if (week != null && !stacked) ...[
                     Flexible(
                       child: Text(
                         week,
@@ -448,6 +458,18 @@ class _StatRow extends StatelessWidget {
                   ),
                 ],
               ),
+              if (week != null && stacked)
+                Padding(
+                  padding: const EdgeInsets.only(left: 28, top: 2),
+                  child: Text(
+                    week,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 0.4,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.only(left: 28),

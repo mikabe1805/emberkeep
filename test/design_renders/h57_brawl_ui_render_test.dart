@@ -7,6 +7,7 @@
 // H57_ONLY=door,versus,fight,victory,easy picks groups; H57_OUT=<folder>
 // writes somewhere else. Output: design/comparisons/2026-10-14/h57-brawl-ui/
 // in this checkout.
+import 'package:emberkeep/a11y.dart' show appTextScale;
 import 'package:emberkeep/brawl/brawl_loot.dart';
 import 'package:emberkeep/brawl/core/brawl_core.dart';
 import 'package:emberkeep/brawl/ui/brawl_flow.dart';
@@ -117,6 +118,8 @@ Future<MikaAccount> _boot(
   });
   await tester.pump(const Duration(milliseconds: 200));
   await settle(tester, total: const Duration(milliseconds: 2800));
+  appTextScale.value = textScale;
+  await tester.pump();
   return account;
 }
 
@@ -181,6 +184,7 @@ void main() {
     QuestsPage.debugLegacyBoard = true;
     BrawlDebug.seed = null;
     BrawlDebug.openAnyDay = false;
+    appTextScale.value = 1;
   });
   final sheet = FrameSheet(_out);
   tearDownAll(() {
@@ -316,13 +320,10 @@ void main() {
       await _play(
         tester,
         state,
-        () =>
-            state.fight.f.state == BrawlFighterState.superMove &&
-            state.fight.f.superStage >= 1 &&
-            state.fight.cine,
+        () => state.fight.f.anim == BrawlFighterAnim.superFlurry,
         maxSeconds: 5,
       );
-      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(milliseconds: 120));
       await shot(tester, 'E_super', at, 'the Super');
       await _play(
         tester,
@@ -455,6 +456,36 @@ void main() {
     );
     await settle(tester, total: const Duration(milliseconds: 600));
     await shot(tester, 'I_versus_200_abilities', at, 'abilities at 200% text');
+    await tester.drag(
+      find.byKey(const Key('brawl-versus-scroll')),
+      const Offset(0, 5000),
+      warnIfMissed: false,
+    );
+    await settle(tester, total: const Duration(milliseconds: 500));
+    await tester.tap(find.byKey(const Key('brawl-fight')).hitTestable());
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    final big = _fightState(tester);
+    await _play(
+      tester,
+      big,
+      () => _flow(tester).stage == BrawlStage.victory,
+      maxSeconds: 150,
+    );
+    await settle(tester, total: const Duration(milliseconds: 1800));
+    await shot(tester, 'I_victory_200', at, 'the victory at 200% text');
+    await tester.drag(
+      find.byKey(const Key('brawl-victory-scroll')),
+      const Offset(0, -1500),
+      warnIfMissed: false,
+    );
+    await settle(tester, total: const Duration(milliseconds: 600));
+    await shot(
+      tester,
+      'I_victory_200_breakdown',
+      at,
+      'the breakdown at 200% text',
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await _boot(tester, at, week: _bigWeek, reduceMotion: true);
     await _openDoor(tester);
@@ -482,5 +513,39 @@ void main() {
       at,
       'Reduce Motion: the chest is already open',
     );
+  });
+
+  roomRenderTest('Power Slam on a quiet week', skip: !_renders, (tester) async {
+    if (!_wants('slam')) return;
+    final at = _at(3, 11, 0);
+    await _boot(tester, at);
+    await _openDoor(tester);
+    await tester.tap(find.byKey(const Key('brawl-fight')).hitTestable());
+    await tester.pump();
+    await settle(tester, total: const Duration(milliseconds: 600));
+    final state = _fightState(tester);
+    await _play(
+      tester,
+      state,
+      () =>
+          state.fight.t > 4 &&
+          state.fight.f.state == BrawlFighterState.charge &&
+          state.fight.f.charge > 0.3,
+      maxSeconds: 60,
+    );
+    await shot(
+      tester,
+      'K_slam_charge',
+      at,
+      'holding ATTACK: Power Slam charges',
+    );
+    await _play(
+      tester,
+      state,
+      () => state.fight.f.state == BrawlFighterState.slam,
+      maxSeconds: 20,
+    );
+    await tester.pump(const Duration(milliseconds: 150));
+    await shot(tester, 'K_slam_impact', at, 'Power Slam lands');
   });
 }

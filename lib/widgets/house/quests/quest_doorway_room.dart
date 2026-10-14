@@ -183,11 +183,6 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
   bool get _fightOpen =>
       widget.onFight != null && brawlDoorOpen(widget.now ?? Clock.now());
 
-  /// At large text the door would squeeze the glass, so it goes inside the
-  /// glass, at the top of what scrolls.
-  bool get _fightInCard =>
-      _fightOpen && MediaQuery.textScalerOf(context).scale(1) > 1.3;
-
   Widget _doorBand() => BrawlDoorBand(
     state: widget.state,
     now: widget.now,
@@ -255,7 +250,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
             above: above,
             topPad: topPad,
             invitation: cardMode == QuestCardMode.choose,
-            fightHint: _fightOpen && !_fightInCard ? 76 : 0,
+            fightHint: _fightOpen ? 76 : 0,
             hudBottom: houseHudBottom(
               textScale: MediaQuery.textScalerOf(context).scale(1),
             ),
@@ -275,7 +270,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
                 onBeat: widget.onBeat,
               ),
             ),
-            if (_fightOpen && !_fightInCard)
+            if (_fightOpen)
               LayoutId(
                 id: _Slot.fight,
                 child: _Quiet(quiet: widget.quiet, child: _doorBand()),
@@ -354,7 +349,6 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_fightInCard) ...[_doorBand(), const SizedBox(height: 10)],
                 _header(),
                 const SizedBox(height: 6),
                 Semantics(
@@ -538,7 +532,6 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_fightInCard) ...[_doorBand(), const SizedBox(height: 10)],
                 Center(
                   child: QuestRings(
                     key: const Key('quest-day-rings'),
@@ -953,20 +946,19 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
   void performLayout(Size size) {
     final belowGlass = invitation ? 52.0 : 14.0;
     final inset = invitation ? 40.0 : 16.0;
-    // The weekend door sits just above the glass, and the glass gives way to
-    // it when the page is short.
-    var fightHeight = 0.0;
+    // The weekend door hangs just under the HUD, clear of the ticket rail and
+    // of the glass below it.
     if (hasChild(_Slot.fight)) {
-      fightHeight = layoutChild(
+      layoutChild(
         _Slot.fight,
         BoxConstraints(
           minWidth: size.width - 32,
           maxWidth: size.width - 32,
-          maxHeight: math.max(64, size.height * 0.28),
+          maxHeight: math.max(64, size.height * 0.3),
         ),
-      ).height;
+      );
+      positionChild(_Slot.fight, Offset(16, topPad + hudBottom + 4));
     }
-    final reserve = fightHeight > 0 ? fightHeight + 10 : 0.0;
     final glass = layoutChild(
       _Slot.glass,
       BoxConstraints(
@@ -974,15 +966,14 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
         maxWidth: size.width - inset * 2,
         maxHeight: math.max(
           140,
-          size.height - belowGlass - (topPad + hudBottom + 56) - reserve,
+          size.height - belowGlass - (topPad + hudBottom + 56),
         ),
       ),
     );
-    final glassTop = size.height - belowGlass - glass.height;
-    positionChild(_Slot.glass, Offset(inset, glassTop));
-    if (fightHeight > 0) {
-      positionChild(_Slot.fight, Offset(16, glassTop - 10 - fightHeight));
-    }
+    positionChild(
+      _Slot.glass,
+      Offset(inset, size.height - belowGlass - glass.height),
+    );
     layoutChild(
       _Slot.stage,
       BoxConstraints.tightFor(width: size.width, height: size.height + above),

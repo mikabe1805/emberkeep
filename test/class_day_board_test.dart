@@ -843,6 +843,10 @@ void main() {
       );
       expect(_closeTheDay, findsOneWidget);
       expect(_closeIsQuiet(tester), isFalse, reason: 'no other lamp yet');
+      // The weekend's lit door sits at the top of the board, so the divider
+      // may start below the fold.
+      await tester.ensureVisible(find.byKey(const Key('side-quests-divider')));
+      await tester.pump();
       await tester.tap(find.byKey(const Key('side-quests-divider')));
       await tester.pump();
       await _pumpFor(tester, const Duration(milliseconds: 600));
