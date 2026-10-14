@@ -1,0 +1,205 @@
+[
+  {
+    "file": "A_board_saturday.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Saturday: the board keeps the door lit"
+  },
+  {
+    "file": "A_doorway_saturday.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Saturday: the Doorway lights \"Join the fight!\" with the Troll at the door"
+  },
+  {
+    "file": "B_doorway_weekday.png",
+    "when": "Thu Nov 26 11:00",
+    "at": "2026-11-26T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Thanksgiving, no classes: the Doorway only says what is coming"
+  },
+  {
+    "file": "C_versus_quiet.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the versus screen, a quiet week"
+  },
+  {
+    "file": "C_versus_quiet_abilities.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the monster and abilities"
+  },
+  {
+    "file": "D_versus_big.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the versus screen, a big week"
+  },
+  {
+    "file": "D_versus_big_abilities.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "abilities glowing, trained this week"
+  },
+  {
+    "file": "D_versus_big_bottom.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the end of the versus screen: Easy mode and FIGHT!"
+  },
+  {
+    "file": "E_fight_start.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "ROUND 1 to FIGHT!"
+  },
+  {
+    "file": "E_finish_it.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "FINISH IT!"
+  },
+  {
+    "file": "E_finisher.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the Troll, tucked in for a nap"
+  },
+  {
+    "file": "E_mid_combo.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "mid-combo, a big week"
+  },
+  {
+    "file": "E_spell_bolt.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Spell Bolt in flight"
+  },
+  {
+    "file": "E_super.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the Super"
+  },
+  {
+    "file": "F_victory.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "victory: the chest and the breakdown"
+  },
+  {
+    "file": "F_victory_breakdown.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "which stats did the work"
+  },
+  {
+    "file": "G_doorway_fog.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Saturday, the Fog week"
+  },
+  {
+    "file": "G_easy_fog.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Easy mode against the Fog: the whole stage is the button"
+  },
+  {
+    "file": "G_fog_finisher.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the Fog becomes a little cloud that waters the plant"
+  },
+  {
+    "file": "G_versus_fog.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the Fog at the versus screen, Easy mode on"
+  },
+  {
+    "file": "H_victory_practice.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the second win of the weekend: practice, no chest"
+  },
+  {
+    "file": "I_versus_200.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the versus screen at 200% text"
+  },
+  {
+    "file": "I_versus_200_abilities.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "abilities at 200% text"
+  },
+  {
+    "file": "I_victory_200.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the victory at 200% text"
+  },
+  {
+    "file": "I_victory_200_breakdown.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "the breakdown at 200% text"
+  },
+  {
+    "file": "J_reduce_motion_combo.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Reduce Motion: the same fight, calmer"
+  },
+  {
+    "file": "J_reduce_motion_victory.png",
+    "when": "Sat Oct 10 11:00",
+    "at": "2026-10-10T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Reduce Motion: the chest is already open"
+  },
+  {
+    "file": "K_slam_charge.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "holding ATTACK: Power Slam charges"
+  },
+  {
+    "file": "K_slam_impact.png",
+    "when": "Sat Oct 3 11:00",
+    "at": "2026-10-03T11:00:00.000",
+    "surface": "QUESTS",
+    "note": "Power Slam lands"
+  }
+]

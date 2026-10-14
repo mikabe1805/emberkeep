@@ -169,6 +169,18 @@ void main() {
 
     expect(first.doneFor(Clock.now()), isFalse);
     expect(second.doneFor(Clock.now()), isFalse);
+    // On a Saturday the board's lit door sits above the list, so the first
+    // card has scrolled out of the built rows: bring it back.
+    await tester.drag(
+      find
+          .descendant(
+            of: find.byType(QuestsPage),
+            matching: find.byType(Scrollable),
+          )
+          .last,
+      const Offset(0, 600),
+    );
+    await tester.pump();
     expect(_actionIn(first), findsOneWidget);
     expect(_actionIn(second), findsNothing);
     expect(state.totalXp, 0);

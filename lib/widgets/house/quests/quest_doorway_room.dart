@@ -21,6 +21,8 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../../audio.dart' show InteractionSound, MaterialSound;
+import '../../../brawl/brawl_loot.dart' show brawlDoorOpen;
+import '../../../brawl/ui/brawl_door.dart';
 import '../../../clock.dart';
 import '../../../engine.dart';
 import '../../../models.dart';
@@ -89,7 +91,17 @@ class QuestDoorwayRoom extends StatefulWidget {
     this.camera,
     this.onStartTimer,
     this.onOpenTimer,
+    this.onFight,
+    this.now,
   });
+
+  /// Opens the weekend fight. On Saturday and Sunday the Doorway lights a
+  /// "Join the fight!" door above its glass; during the week it only says
+  /// what is coming. Null leaves the fight out of this room.
+  final VoidCallback? onFight;
+
+  /// The moment the door reads (defaults to [Clock.now]).
+  final DateTime? now;
 
   /// One tap starts a timer for the leading quest when it fits one, and
   /// [onOpenTimer] returns to it while it runs.
@@ -167,6 +179,17 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
     return QuestCardMode.resting;
   }
 
+  /// The weekend door is lit and there is a fight to open.
+  bool get _fightOpen =>
+      widget.onFight != null && brawlDoorOpen(widget.now ?? Clock.now());
+
+  Widget _doorBand() => BrawlDoorBand(
+    state: widget.state,
+    now: widget.now,
+    reduceMotion: widget.reduceMotion,
+    onOpen: widget.onFight!,
+  );
+
   Offset _barCenter() {
     final box = _bar.currentContext?.findRenderObject();
     if (box is RenderBox && box.attached && box.hasSize) {
@@ -227,6 +250,7 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
             above: above,
             topPad: topPad,
             invitation: cardMode == QuestCardMode.choose,
+            fightHint: _fightOpen ? 76 : 0,
             hudBottom: houseHudBottom(
               textScale: MediaQuery.textScalerOf(context).scale(1),
             ),
@@ -246,6 +270,11 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
                 onBeat: widget.onBeat,
               ),
             ),
+            if (_fightOpen)
+              LayoutId(
+                id: _Slot.fight,
+                child: _Quiet(quiet: widget.quiet, child: _doorBand()),
+              ),
             LayoutId(
               id: _Slot.glass,
               child: _Quiet(
@@ -363,6 +392,12 @@ class QuestDoorwayRoomState extends State<QuestDoorwayRoom> {
                   ),
                 ],
                 if (bar != null) ...[const SizedBox(height: 12), bar],
+                if (widget.onFight != null &&
+                    !_fightOpen &&
+                    cardMode != QuestCardMode.closed) ...[
+                  const SizedBox(height: 10),
+                  BrawlWeekendPreview(now: widget.now),
+                ],
                 const SizedBox(height: 8),
               ],
             ),
@@ -865,7 +900,7 @@ class _RingPainter extends CustomPainter {
 
 // ── Layout ────────────────────────────────────────────────────────────────
 
-enum _Slot { stage, glass }
+enum _Slot { stage, glass, fight }
 
 class _Quiet extends StatelessWidget {
   const _Quiet({required this.quiet, required this.child});
@@ -893,11 +928,16 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
     required this.topPad,
     required this.invitation,
     required this.hudBottom,
+    this.fightHint = 0,
   });
 
   final double above;
   final double topPad;
   final bool invitation;
+
+  /// A rough height for the weekend door above the glass (0 when it is not
+  /// there); only a change in it asks for a new layout.
+  final double fightHint;
 
   /// How far down the page the shell's HUD reaches.
   final double hudBottom;
@@ -906,6 +946,19 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
   void performLayout(Size size) {
     final belowGlass = invitation ? 52.0 : 14.0;
     final inset = invitation ? 40.0 : 16.0;
+    // The weekend door hangs just under the HUD, clear of the ticket rail and
+    // of the glass below it.
+    if (hasChild(_Slot.fight)) {
+      layoutChild(
+        _Slot.fight,
+        BoxConstraints(
+          minWidth: size.width - 32,
+          maxWidth: size.width - 32,
+          maxHeight: math.max(64, size.height * 0.3),
+        ),
+      );
+      positionChild(_Slot.fight, Offset(16, topPad + hudBottom + 4));
+    }
     final glass = layoutChild(
       _Slot.glass,
       BoxConstraints(
@@ -933,5 +986,6 @@ class _QuestRoomDelegate extends MultiChildLayoutDelegate {
       old.above != above ||
       old.topPad != topPad ||
       old.invitation != invitation ||
+      old.fightHint != fightHint ||
       old.hudBottom != hudBottom;
 }
